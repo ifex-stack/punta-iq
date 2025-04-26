@@ -578,35 +578,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Add push notification test endpoint
-  app.post("/api/notifications/test", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-    
-    try {
-      const { title, body, data } = req.body;
-      
-      if (!title || !body) {
-        return res.status(400).json({ message: "Title and body are required" });
-      }
-      
-      const success = await PushNotificationService.sendNotification(
-        req.user.id,
-        title,
-        body,
-        data
-      );
-      
-      if (success) {
-        return res.json({ success: true, message: "Test notification sent successfully" });
-      } else {
-        return res.status(500).json({ success: false, message: "Failed to send test notification" });
-      }
-    } catch (error: any) {
-      return res.status(500).json({ message: error.message });
-    }
-  });
+  // Note: The push notification test endpoint is now defined in the notifications.ts file
 
   const httpServer = createServer(app);
   

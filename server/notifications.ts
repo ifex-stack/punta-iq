@@ -216,4 +216,52 @@ export function setupNotificationRoutes(app: Express) {
       return res.status(500).json({ message: error.message });
     }
   });
+  
+  // Test push notification
+  app.post("/api/notifications/test", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const { title, body, data } = req.body;
+      
+      if (!title || !body) {
+        return res.status(400).json({ message: "Title and body are required" });
+      }
+      
+      // Create an in-app notification
+      await storage.createNotification({
+        userId: req.user.id,
+        title,
+        message: body,
+        type: "info",
+        data
+      });
+      
+      // Send through WebSocket if user is connected
+      await storage.notifyUserViaWebSocket(req.user.id, {
+        type: 'notification',
+        title,
+        body,
+        data
+      });
+      
+      // Use the push notification service
+      const success = await storage.sendPushNotification(
+        req.user.id,
+        title,
+        body,
+        data
+      );
+      
+      if (success) {
+        return res.json({ success: true, message: "Test notification sent successfully" });
+      } else {
+        return res.status(500).json({ success: false, message: "Failed to send test notification" });
+      }
+    } catch (error: any) {
+      return res.status(500).json({ message: error.message });
+    }
+  });
 }
