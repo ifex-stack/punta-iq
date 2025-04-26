@@ -1,6 +1,15 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { parseApiError, handleApiError, checkOnlineStatus } from "./error-handler";
 
+// List of error patterns to silently ignore (no toast notifications)
+const SILENT_ERROR_PATTERNS = [
+  'aborted',
+  'cancelled',
+  'navigation',
+  'WebSocket',
+  'Socket'
+];
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const error = await parseApiError(res);
@@ -40,6 +49,15 @@ export async function apiRequest(
     await throwIfResNotOk(res);
     return res;
   } catch (error) {
+    // Check if this is a silent error we should ignore
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isSilentError = SILENT_ERROR_PATTERNS.some(pattern => errorMessage.includes(pattern));
+    
+    if (isSilentError) {
+      console.log('Silent error suppressed for request:', url, error);
+      throw error;
+    }
+
     // Skip error handling for aborted or cancelled requests
     if (error instanceof DOMException && 
        (error.name === 'AbortError' || error.message.includes('aborted'))) {
@@ -55,7 +73,13 @@ export async function apiRequest(
       throw error;
     }
     
-    // Let the error handler deal with other errors
+    // Check if the document is hidden (user has switched tabs or is navigating away)
+    if (document.hidden) {
+      console.log('Error occurred while page is not visible - suppressing toast');
+      throw error;
+    }
+    
+    // Let the error handler deal with other errors (but only if active and visible)
     handleApiError(error);
     throw error;
   }
@@ -97,6 +121,15 @@ export const getQueryFn: <T>(options: {
       await throwIfResNotOk(res);
       return await res.json();
     } catch (error) {
+      // Check if this is a silent error we should ignore
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isSilentError = SILENT_ERROR_PATTERNS.some(pattern => errorMessage.includes(pattern));
+      
+      if (isSilentError) {
+        console.log('Silent error suppressed for query:', queryKey[0], error);
+        throw error;
+      }
+
       // Skip error handling for aborted or cancelled requests
       if (error instanceof DOMException && 
          (error.name === 'AbortError' || error.message.includes('aborted'))) {
@@ -112,7 +145,13 @@ export const getQueryFn: <T>(options: {
         throw error;
       }
       
-      // Let the error handler deal with other errors
+      // Check if the document is hidden (user has switched tabs or is navigating away)
+      if (document.hidden) {
+        console.log('Error occurred while page is not visible - suppressing toast');
+        throw error;
+      }
+      
+      // Let the error handler deal with other errors (but only if active and visible)
       handleApiError(error);
       throw error;
     }
@@ -127,19 +166,10 @@ export const queryClient = new QueryClient({
       staleTime: Infinity,
       retry: false,
       // This prevents error toasts from being shown when a query fails on page changes
-      retryOnMount: false,
-      // Custom error handling to prevent toast spamming
-      onError: (error) => {
-        // Silence query errors during navigation
-        if (error instanceof Error && 
-            (error.message.includes('cancelled') || 
-             error.message.includes('aborted'))) {
-          console.log('Query cancelled during navigation:', error);
-        }
-      }
+      retryOnMount: false
     },
     mutations: {
-      retry: false,
+      retry: false
     },
   },
 });
