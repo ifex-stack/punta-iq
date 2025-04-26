@@ -17,6 +17,10 @@ import {
   pointsTransactions,
   notifications,
   pushTokens,
+  badges,
+  userBadges,
+  leaderboards,
+  leaderboardEntries,
   type User,
   type InsertUser,
   type Sport,
@@ -53,6 +57,14 @@ import {
   type InsertNotification,
   type PushToken,
   type InsertPushToken,
+  type Badge,
+  type InsertBadge,
+  type UserBadge,
+  type InsertUserBadge,
+  type Leaderboard,
+  type InsertLeaderboard,
+  type LeaderboardEntry,
+  type InsertLeaderboardEntry,
   subscriptionTiers
 } from "@shared/schema";
 import session from "express-session";

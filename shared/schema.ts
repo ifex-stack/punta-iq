@@ -30,11 +30,13 @@ export const users = pgTable("users", {
   totalContestsEntered: integer("total_contests_entered").default(0).notNull(),
 });
 
-// User relations - Will add the userBadges and leaderboardEntries relations after we define them
+// User relations
 export const usersRelations = relations(users, ({ many }) => ({
   fantasyTeams: many(fantasyTeams),
   fantasyEntries: many(fantasyContestEntries),
   pointsTransactions: many(pointsTransactions),
+  userBadges: many(userBadges),
+  leaderboardEntries: many(leaderboardEntries),
 }));
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -604,6 +606,47 @@ export const leaderboardEntriesRelations = relations(leaderboardEntries, ({ one 
   }),
 }));
 
+// Insert schemas for badges
+export const insertBadgeSchema = createInsertSchema(badges).pick({
+  name: true,
+  description: true,
+  category: true,
+  icon: true,
+  tier: true,
+  points: true,
+  requirements: true,
+  isActive: true,
+});
+
+// Insert schema for user badges
+export const insertUserBadgeSchema = createInsertSchema(userBadges).pick({
+  userId: true,
+  badgeId: true,
+  progress: true,
+});
+
+// Insert schema for leaderboards
+export const insertLeaderboardSchema = createInsertSchema(leaderboards).pick({
+  name: true,
+  description: true,
+  type: true,
+  period: true,
+  startDate: true,
+  endDate: true,
+  isActive: true,
+  rules: true,
+});
+
+// Insert schema for leaderboard entries
+export const insertLeaderboardEntrySchema = createInsertSchema(leaderboardEntries).pick({
+  leaderboardId: true,
+  userId: true,
+  points: true,
+  rank: true,
+  previousRank: true,
+  details: true,
+});
+
 // Export types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -645,3 +688,13 @@ export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type PushToken = typeof pushTokens.$inferSelect;
 export type InsertPushToken = z.infer<typeof insertPushTokenSchema>;
+
+// Gamification types
+export type Badge = typeof badges.$inferSelect;
+export type InsertBadge = z.infer<typeof insertBadgeSchema>;
+export type UserBadge = typeof userBadges.$inferSelect;
+export type InsertUserBadge = z.infer<typeof insertUserBadgeSchema>;
+export type Leaderboard = typeof leaderboards.$inferSelect;
+export type InsertLeaderboard = z.infer<typeof insertLeaderboardSchema>;
+export type LeaderboardEntry = typeof leaderboardEntries.$inferSelect;
+export type InsertLeaderboardEntry = z.infer<typeof insertLeaderboardEntrySchema>;
