@@ -88,6 +88,27 @@ export interface IStorage {
   updateUserNotificationSettings(userId: number, settings: any): Promise<User>;
   updateUserFantasyPoints(userId: number, points: number): Promise<User>;
   
+  // 2FA methods
+  enableTwoFactor(userId: number, secret: string, phoneNumber: string): Promise<User>;
+  disableTwoFactor(userId: number): Promise<User>;
+  verifyTwoFactorCode(userId: number, code: string): Promise<boolean>;
+  
+  // IMEI and device tracking
+  updateUserDeviceImei(userId: number, imei: string): Promise<User>;
+  getUserByDeviceImei(imei: string): Promise<User | undefined>;
+  
+  // Referral methods
+  getUserReferrals(userId: number): Promise<Referral[]>;
+  getReferralById(id: number): Promise<Referral | undefined>;
+  createReferral(referral: InsertReferral): Promise<Referral>;
+  updateReferralStatus(id: number, status: string): Promise<Referral>;
+  getUserReferralStats(userId: number): Promise<{ 
+    totalReferrals: number, 
+    pendingReferrals: number, 
+    completedReferrals: number,
+    totalRewards: number 
+  }>;
+  
   // Sport & League methods
   getAllSports(): Promise<Sport[]>;
   getActiveSports(): Promise<Sport[]>;
@@ -1978,40 +1999,187 @@ export class DatabaseStorage implements IStorage {
 
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    try {
+      const [user] = await db.select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        password: users.password,
+        createdAt: users.createdAt,
+        subscriptionTier: users.subscriptionTier,
+        stripeCustomerId: users.stripeCustomerId,
+        stripeSubscriptionId: users.stripeSubscriptionId,
+        notificationSettings: users.notificationSettings,
+        fantasyPoints: users.fantasyPoints,
+        totalContestsWon: users.totalContestsWon,
+        totalContestsEntered: users.totalContestsEntered,
+        // New fields for 2FA and referrals
+        isTwoFactorEnabled: users.isTwoFactorEnabled,
+        phoneNumber: users.phoneNumber,
+        referralCode: users.referralCode,
+        referredBy: users.referredBy
+      }).from(users).where(eq(users.id, id));
+      return user;
+    } catch (error) {
+      console.error("Error getting user:", error);
+      // If the error is due to missing columns, return minimal user data
+      const [userMinimal] = await db.select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        password: users.password,
+        createdAt: users.createdAt,
+        subscriptionTier: users.subscriptionTier,
+        stripeCustomerId: users.stripeCustomerId,
+        stripeSubscriptionId: users.stripeSubscriptionId,
+        notificationSettings: users.notificationSettings,
+        fantasyPoints: users.fantasyPoints,
+        totalContestsWon: users.totalContestsWon,
+        totalContestsEntered: users.totalContestsEntered
+      }).from(users).where(eq(users.id, id));
+      return userMinimal;
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.username, username));
-    return user;
+    try {
+      const [user] = await db.select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        password: users.password,
+        createdAt: users.createdAt,
+        subscriptionTier: users.subscriptionTier,
+        stripeCustomerId: users.stripeCustomerId,
+        stripeSubscriptionId: users.stripeSubscriptionId,
+        notificationSettings: users.notificationSettings,
+        fantasyPoints: users.fantasyPoints,
+        totalContestsWon: users.totalContestsWon,
+        totalContestsEntered: users.totalContestsEntered,
+        // New fields for 2FA and referrals
+        isTwoFactorEnabled: users.isTwoFactorEnabled,
+        phoneNumber: users.phoneNumber,
+        referralCode: users.referralCode,
+        referredBy: users.referredBy
+      }).from(users).where(eq(users.username, username));
+      return user;
+    } catch (error) {
+      console.error("Error getting user by username:", error);
+      // If the error is due to missing columns, return minimal user data
+      const [userMinimal] = await db.select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        password: users.password,
+        createdAt: users.createdAt,
+        subscriptionTier: users.subscriptionTier,
+        stripeCustomerId: users.stripeCustomerId,
+        stripeSubscriptionId: users.stripeSubscriptionId,
+        notificationSettings: users.notificationSettings,
+        fantasyPoints: users.fantasyPoints,
+        totalContestsWon: users.totalContestsWon,
+        totalContestsEntered: users.totalContestsEntered
+      }).from(users).where(eq(users.username, username));
+      return userMinimal;
+    }
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email));
-    return user;
+    try {
+      const [user] = await db.select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        password: users.password,
+        createdAt: users.createdAt,
+        subscriptionTier: users.subscriptionTier,
+        stripeCustomerId: users.stripeCustomerId,
+        stripeSubscriptionId: users.stripeSubscriptionId,
+        notificationSettings: users.notificationSettings,
+        fantasyPoints: users.fantasyPoints,
+        totalContestsWon: users.totalContestsWon,
+        totalContestsEntered: users.totalContestsEntered,
+        // New fields for 2FA and referrals
+        isTwoFactorEnabled: users.isTwoFactorEnabled,
+        phoneNumber: users.phoneNumber,
+        referralCode: users.referralCode,
+        referredBy: users.referredBy
+      }).from(users).where(eq(users.email, email));
+      return user;
+    } catch (error) {
+      console.error("Error getting user by email:", error);
+      // If the error is due to missing columns, return minimal user data
+      const [userMinimal] = await db.select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        password: users.password,
+        createdAt: users.createdAt,
+        subscriptionTier: users.subscriptionTier,
+        stripeCustomerId: users.stripeCustomerId,
+        stripeSubscriptionId: users.stripeSubscriptionId,
+        notificationSettings: users.notificationSettings,
+        fantasyPoints: users.fantasyPoints,
+        totalContestsWon: users.totalContestsWon,
+        totalContestsEntered: users.totalContestsEntered
+      }).from(users).where(eq(users.email, email));
+      return userMinimal;
+    }
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values({
-        ...insertUser,
-        subscriptionTier: subscriptionTiers.FREE,
-        notificationSettings: {
-          predictions: true,
-          results: true,
-          promotions: true,
+    try {
+      // Generate a unique referral code if not provided
+      const referralCode = insertUser.referralCode || 
+        `${insertUser.username.replace(/\s+/g, '').substring(0, 5).toUpperCase()}${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+      
+      const [user] = await db
+        .insert(users)
+        .values({
+          ...insertUser,
+          referralCode,
+          subscriptionTier: subscriptionTiers.FREE,
+          notificationSettings: {
+            predictions: true,
+            results: true,
+            promotions: true,
+          }
+        })
+        .returning();
+        
+      // If the user was referred by someone, create a referral record
+      if (insertUser.referredBy) {
+        try {
+          await db.insert(referrals).values({
+            referrerId: insertUser.referredBy,
+            referredId: user.id,
+            status: "pending"
+          });
+        } catch (error) {
+          console.error("Error creating referral record:", error);
         }
-      })
-      .returning();
-    return user;
+      }
+      
+      return user;
+    } catch (error) {
+      console.error("Error creating user:", error);
+      // Fall back to basic user creation if new fields aren't available
+      const [user] = await db
+        .insert(users)
+        .values({
+          username: insertUser.username,
+          email: insertUser.email,
+          password: insertUser.password,
+          subscriptionTier: subscriptionTiers.FREE,
+          notificationSettings: {
+            predictions: true,
+            results: true,
+            promotions: true,
+          }
+        })
+        .returning();
+      return user;
+    }
   }
 
   async updateUserSubscription(userId: number, tier: string): Promise<User> {
