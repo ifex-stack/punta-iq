@@ -99,14 +99,14 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
   // Create a new notification (this would typically be called by the server)
   const createNotificationMutation = useMutation({
     mutationFn: async (notification: Omit<Notification, 'id' | 'read' | 'timestamp'>) => {
-      const res = await apiRequest('POST', '/api/admin/notifications', notification);
+      const res = await apiRequest('POST', '/api/notifications', notification);
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
     },
     onError: (error: any) => {
-      toast.toast({
+      toast({
         title: 'Error',
         description: error.message || 'Failed to create notification',
         variant: 'destructive',
@@ -124,7 +124,7 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
     },
     onError: (error: any) => {
-      toast.toast({
+      toast({
         title: 'Error',
         description: error.message || 'Failed to mark notification as read',
         variant: 'destructive',
@@ -142,7 +142,7 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
     },
     onError: (error: any) => {
-      toast.toast({
+      toast({
         title: 'Error',
         description: error.message || 'Failed to mark all notifications as read',
         variant: 'destructive',

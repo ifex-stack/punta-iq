@@ -15,6 +15,7 @@ export default function HomePage() {
   const [_, navigate] = useLocation();
   const { user, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
+  const { createNotification } = useNotifications();
   const [selectedSport, setSelectedSport] = useState("all");
   
   const { data: predictions, isLoading: isPredictionsLoading } = useQuery({
@@ -31,6 +32,43 @@ export default function HomePage() {
   
   const handleSportChange = (sport: string) => {
     setSelectedSport(sport);
+  };
+  
+  // Test notification function
+  const handleSendTestNotification = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to test the notification system.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      await createNotification({
+        userId: user.id,
+        title: "Test Notification",
+        message: "This is a test notification from PuntaIQ",
+        type: "info",
+        link: null,
+        icon: null,
+        expiresAt: null,
+        data: {}
+      });
+      
+      toast({
+        title: "Success",
+        description: "Test notification sent successfully!",
+        variant: "default",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send test notification",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -192,6 +230,27 @@ export default function HomePage() {
         
         <div className="space-y-6">
           <AccumulatorPanel />
+          
+          {user && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Notifications</CardTitle>
+                <CardDescription>
+                  Test the real-time notification system
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={handleSendTestNotification}
+                  className="w-full"
+                  variant="default"
+                >
+                  <Bell className="mr-2 h-4 w-4" />
+                  Send Test Notification
+                </Button>
+              </CardContent>
+            </Card>
+          )}
           
           <Card>
             <CardHeader>
