@@ -1380,6 +1380,45 @@ export class MemStorage implements IStorage {
     return newToken;
   }
   
+  async registerPushToken(userId: number, token: string, platform: string, deviceName?: string): Promise<PushToken> {
+    // Check if user exists
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    // Check if token already exists for this user and platform
+    const existingTokens = await this.getUserPushTokens(userId);
+    const existingToken = existingTokens.find(
+      t => t.token === token && t.platform === platform
+    );
+    
+    if (existingToken) {
+      // If token exists but is inactive, reactivate it
+      if (!existingToken.isActive) {
+        const updatedToken = {
+          ...existingToken,
+          isActive: true,
+          lastUsedAt: new Date()
+        };
+        this.pushTokensMap.set(existingToken.id, updatedToken);
+        return updatedToken;
+      }
+      
+      // If token exists and is active, update the last used timestamp
+      await this.updatePushTokenLastUsed(existingToken.id);
+      return existingToken;
+    }
+    
+    // Create a new token
+    return this.createPushToken({
+      userId,
+      token,
+      platform,
+      deviceName
+    });
+  }
+  
   async updatePushTokenLastUsed(id: number): Promise<boolean> {
     const token = this.pushTokensMap.get(id);
     if (!token) return false;
