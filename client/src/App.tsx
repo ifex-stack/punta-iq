@@ -104,7 +104,7 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="dark" attribute="class">
+      <ThemeProvider defaultTheme="system" enableSystem={true} attribute="class">
         <TooltipProvider>
           <AuthProvider>
             <NotificationProvider>
