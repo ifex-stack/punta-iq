@@ -2,21 +2,17 @@
 Prediction module for the AI Sports Prediction service.
 Uses machine learning models to predict match outcomes.
 """
-import logging
 import os
-import json
+import logging
 import pickle
+import json
 import random
+from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
-from datetime import datetime
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-try:
-    import xgboost as xgb
-    XGBOOST_AVAILABLE = True
-except ImportError:
-    XGBOOST_AVAILABLE = False
-    logging.warning("XGBoost not available. Install it for better prediction performance.")
+import time
+import xgboost as xgb
 
 # Set up logging
 logging.basicConfig(
@@ -30,68 +26,80 @@ class Predictor:
     
     def __init__(self):
         """Initialize the Predictor."""
-        self.models = {
-            "football": {
-                "1X2": None,
-                "BTTS": None,
-                "Over/Under": None,
-                "Correct Score": None
-            },
-            "basketball": {
-                "Winner": None,
-                "Total Points": None,
-                "Spread": None
-            }
-        }
-        
-        # Load pre-trained models if available
+        # Load ML models
+        self.models = {}
         self._load_models()
     
     def _load_models(self):
         """Load pre-trained models from disk."""
-        models_dir = os.path.join(os.path.dirname(__file__), 'models')
-        
-        if not os.path.exists(models_dir):
-            os.makedirs(models_dir)
-            logger.info(f"Created models directory at {models_dir}")
-            return
-        
-        # Load football models
-        for prediction_type in self.models["football"]:
-            model_path = os.path.join(models_dir, f"football_{prediction_type.replace('/', '_')}.pkl")
-            if os.path.exists(model_path):
-                try:
-                    with open(model_path, 'rb') as f:
-                        self.models["football"][prediction_type] = pickle.load(f)
-                    logger.info(f"Loaded football {prediction_type} model from {model_path}")
-                except Exception as e:
-                    logger.error(f"Error loading football {prediction_type} model: {e}")
-        
-        # Load basketball models
-        for prediction_type in self.models["basketball"]:
-            model_path = os.path.join(models_dir, f"basketball_{prediction_type.replace('/', '_')}.pkl")
-            if os.path.exists(model_path):
-                try:
-                    with open(model_path, 'rb') as f:
-                        self.models["basketball"][prediction_type] = pickle.load(f)
-                    logger.info(f"Loaded basketball {prediction_type} model from {model_path}")
-                except Exception as e:
-                    logger.error(f"Error loading basketball {prediction_type} model: {e}")
+        try:
+            models_dir = os.path.join(os.path.dirname(__file__), 'models')
+            
+            if not os.path.exists(models_dir):
+                logger.warning("Models directory not found. Using statistical predictions.")
+                return
+            
+            # Football models
+            football_models = {
+                "1X2": "football_1X2.pkl",
+                "BTTS": "football_BTTS.pkl",
+                "Over_Under": "football_Over_Under.pkl"
+            }
+            
+            # Basketball models
+            basketball_models = {
+                "Winner": "basketball_Winner.pkl",
+                "Total_Points": "basketball_Total_Points.pkl"
+            }
+            
+            # Load football models
+            self.models["football"] = {}
+            for prediction_type, model_file in football_models.items():
+                model_path = os.path.join(models_dir, model_file)
+                if os.path.exists(model_path):
+                    try:
+                        with open(model_path, 'rb') as f:
+                            model = pickle.load(f)
+                            self.models["football"][prediction_type] = model
+                            logger.info(f"Loaded football {prediction_type} model")
+                    except Exception as e:
+                        logger.error(f"Error loading football {prediction_type} model: {e}")
+            
+            # Load basketball models
+            self.models["basketball"] = {}
+            for prediction_type, model_file in basketball_models.items():
+                model_path = os.path.join(models_dir, model_file)
+                if os.path.exists(model_path):
+                    try:
+                        with open(model_path, 'rb') as f:
+                            model = pickle.load(f)
+                            self.models["basketball"][prediction_type] = model
+                            logger.info(f"Loaded basketball {prediction_type} model")
+                    except Exception as e:
+                        logger.error(f"Error loading basketball {prediction_type} model: {e}")
+            
+            logger.info(f"Loaded {len(self.models.get('football', {}))} football models and {len(self.models.get('basketball', {}))} basketball models")
+            
+        except Exception as e:
+            logger.error(f"Error loading models: {e}")
     
     def _save_model(self, sport, prediction_type, model):
         """Save trained model to disk."""
-        models_dir = os.path.join(os.path.dirname(__file__), 'models')
-        
-        if not os.path.exists(models_dir):
-            os.makedirs(models_dir)
-        
-        model_path = os.path.join(models_dir, f"{sport}_{prediction_type.replace('/', '_')}.pkl")
-        
         try:
+            models_dir = os.path.join(os.path.dirname(__file__), 'models')
+            
+            if not os.path.exists(models_dir):
+                os.makedirs(models_dir)
+            
+            model_file = f"{sport}_{prediction_type}.pkl"
+            model_path = os.path.join(models_dir, model_file)
+            
             with open(model_path, 'wb') as f:
                 pickle.dump(model, f)
-            logger.info(f"Saved {sport} {prediction_type} model to {model_path}")
+            
+            logger.info(f"Saved {sport} {prediction_type} model")
             return True
+            
         except Exception as e:
             logger.error(f"Error saving {sport} {prediction_type} model: {e}")
             return False
@@ -108,43 +116,49 @@ class Predictor:
             bool: True if training was successful
         """
         try:
-            if not isinstance(historical_data, pd.DataFrame):
-                logger.error("Historical data must be a pandas DataFrame")
-                return False
-            
-            if len(historical_data) == 0:
-                logger.error("Historical data is empty")
-                return False
-            
-            # For simplicity, we'll train a single model for 1X2 prediction
-            # In a real implementation, you would train separate models for each prediction type
+            logger.info(f"Training football model with {len(historical_data)} samples using {model_type}")
             
             # Prepare features and target
-            # Example features: team_rankings, recent_form, home_advantage, etc.
             X = historical_data[['home_rank', 'away_rank', 'home_form', 'away_form', 
-                               'home_goals_for', 'home_goals_against', 
-                               'away_goals_for', 'away_goals_against']]
-            y = historical_data['result']  # 'H', 'D', or 'A' for home win, draw, away win
+                             'home_goals_for', 'home_goals_against', 
+                             'away_goals_for', 'away_goals_against']]
             
-            # Select and train model
+            # Train 1X2 model
+            y_1x2 = historical_data['result']
+            
             if model_type == "random_forest":
-                model = RandomForestClassifier(n_estimators=100, random_state=42)
+                model_1x2 = RandomForestClassifier(n_estimators=100, random_state=42)
             elif model_type == "gradient_boosting":
-                model = GradientBoostingClassifier(n_estimators=100, random_state=42)
-            elif model_type == "xgboost" and XGBOOST_AVAILABLE:
-                model = xgb.XGBClassifier(n_estimators=100, random_state=42)
+                model_1x2 = GradientBoostingClassifier(n_estimators=100, random_state=42)
+            elif model_type == "xgboost":
+                model_1x2 = xgb.XGBClassifier(n_estimators=100, random_state=42)
             else:
-                logger.warning(f"Model type {model_type} not available. Using Random Forest.")
-                model = RandomForestClassifier(n_estimators=100, random_state=42)
+                logger.error(f"Unsupported model type: {model_type}")
+                return False
             
-            # Train model
-            model.fit(X, y)
+            model_1x2.fit(X, y_1x2)
+            self._save_model("football", "1X2", model_1x2)
             
-            # Save model
-            self.models["football"]["1X2"] = model
-            self._save_model("football", "1X2", model)
+            # Store model in memory
+            if "football" not in self.models:
+                self.models["football"] = {}
+            self.models["football"]["1X2"] = model_1x2
             
-            logger.info(f"Successfully trained football 1X2 prediction model using {model_type}")
+            # Train BTTS model
+            y_btts = historical_data['btts']
+            model_btts = GradientBoostingClassifier(n_estimators=100, random_state=42)
+            model_btts.fit(X, y_btts)
+            self._save_model("football", "BTTS", model_btts)
+            self.models["football"]["BTTS"] = model_btts
+            
+            # Train Over/Under model
+            y_over = historical_data['over_2_5']
+            model_over = RandomForestClassifier(n_estimators=100, random_state=42)
+            model_over.fit(X, y_over)
+            self._save_model("football", "Over_Under", model_over)
+            self.models["football"]["Over_Under"] = model_over
+            
+            logger.info("Football models trained successfully")
             return True
             
         except Exception as e:
@@ -161,220 +175,401 @@ class Predictor:
         Returns:
             dict: Prediction results for various markets
         """
-        # Check if we have trained models
-        if not self.models["football"]["1X2"]:
-            # Use statistical approach if no model is available
-            return self._statistical_football_prediction(match_data)
-        
         try:
-            # Extract features from match data
-            # In a real implementation, you would extract the same features used for training
+            # Check if we have models
+            if "football" not in self.models or not self.models["football"]:
+                return self._statistical_football_prediction(match_data)
             
-            # For demonstration, we'll use a statistical approach instead
-            return self._statistical_football_prediction(match_data)
+            # Extract features
+            home_team = match_data['homeTeam']
+            away_team = match_data['awayTeam']
             
+            # Convert form to numeric value (W=3, D=1, L=0)
+            home_form = home_team.get('form', '')
+            away_form = away_team.get('form', '')
+            
+            home_form_value = sum(3 if res == 'W' else 1 if res == 'D' else 0 for res in home_form)
+            away_form_value = sum(3 if res == 'W' else 1 if res == 'D' else 0 for res in away_form)
+            
+            # Use rankings as proxy for goals data
+            home_rank = home_team.get('ranking', 10)
+            away_rank = away_team.get('ranking', 10)
+            
+            # Invert rankings (lower rank = better team)
+            home_rank_inv = 21 - home_rank
+            away_rank_inv = 21 - away_rank
+            
+            # Generate features
+            home_goals_for = home_rank_inv * 2  # Proxy: better rank = more goals scored
+            home_goals_against = (21 - home_rank_inv)  # Proxy: worse rank = more goals conceded
+            away_goals_for = away_rank_inv * 1.8  # Away teams score slightly less
+            away_goals_against = (21 - away_rank_inv) * 1.2  # Away teams concede slightly more
+            
+            # Create feature array
+            X = np.array([[
+                home_rank, 
+                away_rank, 
+                home_form_value, 
+                away_form_value, 
+                home_goals_for, 
+                home_goals_against, 
+                away_goals_for, 
+                away_goals_against
+            ]])
+            
+            # Get odds from match data
+            odds = match_data.get('odds', {})
+            home_odds = odds.get('home', 2.0)
+            draw_odds = odds.get('draw', 3.5)
+            away_odds = odds.get('away', 4.0)
+            
+            # 1X2 prediction
+            model_1x2 = self.models["football"].get("1X2")
+            if model_1x2:
+                result_probs = model_1x2.predict_proba(X)[0]
+                result_classes = model_1x2.classes_
+                
+                # Map probabilities to outcomes
+                home_prob = 0.0
+                draw_prob = 0.0
+                away_prob = 0.0
+                
+                for i, cls in enumerate(result_classes):
+                    if cls == 'H':
+                        home_prob = result_probs[i]
+                    elif cls == 'D':
+                        draw_prob = result_probs[i]
+                    elif cls == 'A':
+                        away_prob = result_probs[i]
+                
+                # Determine predicted outcome
+                predicted_outcome = 'H' if home_prob > max(draw_prob, away_prob) else 'D' if draw_prob > away_prob else 'A'
+                
+                # Convert probabilities to confidence
+                confidence = max(home_prob, draw_prob, away_prob) * 100
+                
+                # Check for value bet
+                value_bet = self._calculate_value_bet(
+                    predicted_result=predicted_outcome,
+                    home_prob=home_prob,
+                    draw_prob=draw_prob,
+                    away_prob=away_prob,
+                    odds={
+                        'H': home_odds,
+                        'D': draw_odds,
+                        'A': away_odds
+                    }
+                )
+                
+                # BTTS prediction
+                btts_model = self.models["football"].get("BTTS")
+                btts_prob = 0.5
+                btts_outcome = "No"
+                
+                if btts_model:
+                    btts_pred = btts_model.predict(X)[0]
+                    btts_prob = btts_model.predict_proba(X)[0][1] if 1 in btts_model.classes_ else 0.5
+                    btts_outcome = "Yes" if btts_pred == 1 else "No"
+                
+                # Over/Under prediction
+                over_model = self.models["football"].get("Over_Under")
+                over_prob = 0.5
+                over_outcome = "Under"
+                
+                if over_model:
+                    over_pred = over_model.predict(X)[0]
+                    over_prob = over_model.predict_proba(X)[0][1] if 1 in over_model.classes_ else 0.5
+                    over_outcome = "Over" if over_pred == 1 else "Under"
+                
+                # Generate correct score prediction based on model outputs
+                if predicted_outcome == 'H':
+                    # Home win
+                    if over_outcome == "Over":
+                        if btts_outcome == "Yes":
+                            # High scoring, both teams score
+                            home_score = random.choice([2, 3])
+                            away_score = random.choice([1])
+                        else:
+                            # High scoring, away doesn't score
+                            home_score = random.choice([3, 4])
+                            away_score = 0
+                    else:
+                        if btts_outcome == "Yes":
+                            # Low scoring, both teams score
+                            home_score = random.choice([2])
+                            away_score = 1
+                        else:
+                            # Low scoring, away doesn't score
+                            home_score = random.choice([1, 2])
+                            away_score = 0
+                elif predicted_outcome == 'D':
+                    # Draw
+                    if over_outcome == "Over":
+                        # High scoring draw
+                        home_score = away_score = random.choice([2, 3])
+                    else:
+                        # Low scoring draw
+                        home_score = away_score = random.choice([0, 1])
+                else:
+                    # Away win
+                    if over_outcome == "Over":
+                        if btts_outcome == "Yes":
+                            # High scoring, both teams score
+                            home_score = random.choice([1])
+                            away_score = random.choice([2, 3])
+                        else:
+                            # High scoring, home doesn't score
+                            home_score = 0
+                            away_score = random.choice([3, 4])
+                    else:
+                        if btts_outcome == "Yes":
+                            # Low scoring, both teams score
+                            home_score = 1
+                            away_score = random.choice([2])
+                        else:
+                            # Low scoring, home doesn't score
+                            home_score = 0
+                            away_score = random.choice([1, 2])
+                
+                correct_score = f"{home_score}-{away_score}"
+                
+                # Prepare prediction result
+                prediction = {
+                    "id": f"pred-{match_data['id']}",
+                    "matchId": match_data['id'],
+                    "sport": "football",
+                    "createdAt": datetime.now().isoformat(),
+                    "homeTeam": home_team['name'],
+                    "awayTeam": away_team['name'],
+                    "startTime": match_data['startTime'],
+                    "league": match_data['league']['name'],
+                    "predictedOutcome": predicted_outcome,
+                    "confidence": round(confidence, 2),
+                    "isPremium": confidence > 80,  # High confidence predictions are premium
+                    "valueBet": value_bet,
+                    "predictions": {
+                        "1X2": {
+                            "outcome": predicted_outcome,
+                            "homeWin": {
+                                "probability": round(home_prob * 100, 2),
+                                "odds": home_odds
+                            },
+                            "draw": {
+                                "probability": round(draw_prob * 100, 2),
+                                "odds": draw_odds
+                            },
+                            "awayWin": {
+                                "probability": round(away_prob * 100, 2),
+                                "odds": away_odds
+                            }
+                        },
+                        "BTTS": {
+                            "outcome": btts_outcome,
+                            "probability": round(btts_prob * 100, 2)
+                        },
+                        "Over_Under": {
+                            "line": 2.5,
+                            "outcome": over_outcome,
+                            "probability": round(over_prob * 100, 2)
+                        },
+                        "CorrectScore": {
+                            "outcome": correct_score,
+                            "probability": round(confidence * 0.3, 2)  # Correct score is less certain
+                        }
+                    }
+                }
+                
+                return prediction
+            else:
+                # Fallback to statistical prediction if no 1X2 model
+                return self._statistical_football_prediction(match_data)
+        
         except Exception as e:
-            logger.error(f"Error predicting football match: {e}")
+            logger.error(f"Error making football prediction: {e}")
+            # Fallback to statistical prediction
             return self._statistical_football_prediction(match_data)
     
     def _statistical_football_prediction(self, match_data):
         """Generate football predictions using statistical approach."""
         try:
             # Extract team data
-            home_team = match_data["homeTeam"]["name"]
-            away_team = match_data["awayTeam"]["name"]
-            league = match_data["league"]["name"]
-            country = match_data["league"]["country"]
+            home_team = match_data['homeTeam']
+            away_team = match_data['awayTeam']
             
-            # Extract rankings and form if available
-            home_rank = match_data["homeTeam"].get("ranking", random.randint(1, 20))
-            away_rank = match_data["awayTeam"].get("ranking", random.randint(1, 20))
+            home_rank = home_team.get('ranking', 10)
+            away_rank = away_team.get('ranking', 10)
             
-            home_form = match_data["homeTeam"].get("form", "")
-            away_form = match_data["awayTeam"].get("form", "")
+            # Convert form to numeric value (W=3, D=1, L=0)
+            home_form = home_team.get('form', 'WDLWW')
+            away_form = away_team.get('form', 'WDLWW')
             
-            # Calculate form points if form string is available (e.g., "WWDLW")
-            home_form_points = 0
-            away_form_points = 0
+            home_form_value = sum(3 if res == 'W' else 1 if res == 'D' else 0 for res in home_form)
+            away_form_value = sum(3 if res == 'W' else 1 if res == 'D' else 0 for res in away_form)
             
-            if home_form:
-                for result in home_form:
-                    if result == "W":
-                        home_form_points += 3
-                    elif result == "D":
-                        home_form_points += 1
+            # Calculate team strengths
+            home_strength = (21 - home_rank) * 1.2 + home_form_value / 5  # Better rank (lower number) = higher strength
+            away_strength = (21 - away_rank) + away_form_value / 5
             
-            if away_form:
-                for result in away_form:
-                    if result == "W":
-                        away_form_points += 3
-                    elif result == "D":
-                        away_form_points += 1
+            # Add home advantage
+            home_strength *= 1.3
             
-            # Home advantage factor
-            home_advantage = 1.2
-            
-            # Calculate base probabilities
-            home_strength = (21 - home_rank) * home_advantage
-            away_strength = (21 - away_rank)
-            
-            if home_form:
-                home_strength = home_strength * (1 + home_form_points / 15)
-            
-            if away_form:
-                away_strength = away_strength * (1 + away_form_points / 15)
-            
+            # Calculate probabilities
             total_strength = home_strength + away_strength
+            home_prob = home_strength / total_strength
+            away_prob = away_strength / total_strength
+            draw_prob = 1 - home_prob - away_prob
             
-            home_win_prob = home_strength / total_strength
-            away_win_prob = away_strength / total_strength
-            draw_prob = 1 - home_win_prob - away_win_prob
+            # Ensure reasonable draw probability
+            if draw_prob < 0.15:
+                adjustment = 0.15 - draw_prob
+                home_prob -= adjustment * (home_prob / (home_prob + away_prob))
+                away_prob -= adjustment * (away_prob / (home_prob + away_prob))
+                draw_prob = 0.15
             
-            # Adjust probabilities to ensure they sum to 1
-            if draw_prob < 0.1:
-                draw_prob = 0.1
-                excess = draw_prob - 0.1
-                home_win_prob -= excess * (home_win_prob / (home_win_prob + away_win_prob))
-                away_win_prob -= excess * (away_win_prob / (home_win_prob + away_win_prob))
+            # Get odds from match data
+            odds = match_data.get('odds', {})
+            home_odds = odds.get('home', 2.0)
+            draw_odds = odds.get('draw', 3.5)
+            away_odds = odds.get('away', 4.0)
             
-            # Generate 1X2 prediction
-            if home_win_prob > away_win_prob and home_win_prob > draw_prob:
-                predicted_result = "1"  # Home win
-                confidence = home_win_prob * 100
-            elif away_win_prob > home_win_prob and away_win_prob > draw_prob:
-                predicted_result = "2"  # Away win
-                confidence = away_win_prob * 100
-            else:
-                predicted_result = "X"  # Draw
-                confidence = draw_prob * 100
+            # Determine predicted outcome
+            predicted_outcome = 'H' if home_prob > max(draw_prob, away_prob) else 'D' if draw_prob > away_prob else 'A'
             
-            # Calculate expected goals
-            home_expected_goals = 1.5 * (home_strength / 20)
-            away_expected_goals = 1.2 * (away_strength / 20)
+            # Convert probabilities to confidence
+            confidence = max(home_prob, draw_prob, away_prob) * 100
             
-            # Under/Over prediction
-            total_expected_goals = home_expected_goals + away_expected_goals
-            over_under_line = 2.5
+            # Check for value bet
+            value_bet = self._calculate_value_bet(
+                predicted_result=predicted_outcome,
+                home_prob=home_prob,
+                draw_prob=draw_prob,
+                away_prob=away_prob,
+                odds={
+                    'H': home_odds,
+                    'D': draw_odds,
+                    'A': away_odds
+                }
+            )
             
-            if total_expected_goals > over_under_line:
-                over_under_prediction = "Over"
-                over_under_confidence = min(((total_expected_goals - over_under_line) / 2) * 100, 95)
-            else:
-                over_under_prediction = "Under"
-                over_under_confidence = min(((over_under_line - total_expected_goals) / 2) * 100, 95)
+            # BTTS probability based on team ranks
+            btts_prob = 0.5
+            if abs(home_rank - away_rank) < 5:
+                # Teams of similar quality more likely to both score
+                btts_prob = 0.65
+            elif min(home_rank, away_rank) < 5:
+                # At least one top team playing
+                btts_prob = 0.7
+            elif max(home_rank, away_rank) > 15:
+                # At least one weak team playing
+                btts_prob = 0.4
             
-            # BTTS (Both Teams To Score) prediction
-            btts_yes_prob = (home_expected_goals * away_expected_goals) / 4
+            btts_outcome = "Yes" if btts_prob > 0.5 else "No"
             
-            if btts_yes_prob > 0.5:
-                btts_prediction = "Yes"
-                btts_confidence = btts_yes_prob * 100
-            else:
-                btts_prediction = "No"
-                btts_confidence = (1 - btts_yes_prob) * 100
+            # Over/Under probability
+            over_prob = 0.5
+            if home_rank < 5 and away_rank > 15:
+                # Top team vs weak team - likely high scoring
+                over_prob = 0.7
+            elif home_rank < 10 and away_rank < 10:
+                # Two good teams - could be tactical
+                over_prob = 0.55
+            elif home_rank > 15 and away_rank > 15:
+                # Two weak teams - may lack quality
+                over_prob = 0.45
             
-            # Correct Score prediction
-            # Using Poisson distribution to predict scores
-            import scipy.stats
+            over_outcome = "Over" if over_prob > 0.5 else "Under"
             
-            max_prob = 0
-            predicted_score = "0-0"
+            from scipy.stats import poisson
             
+            # Expected goals based on team strengths
+            home_xg = max(0.5, home_strength / 10)
+            away_xg = max(0.3, away_strength / 12)  # Away teams score less
+            
+            # Calculate correct score probabilities using Poisson distribution
+            max_goals = 5
             score_probs = {}
-            for home_goals in range(6):
-                for away_goals in range(6):
-                    home_prob = scipy.stats.poisson.pmf(home_goals, home_expected_goals)
-                    away_prob = scipy.stats.poisson.pmf(away_goals, away_expected_goals)
-                    score_prob = home_prob * away_prob
-                    
-                    score = f"{home_goals}-{away_goals}"
-                    score_probs[score] = score_prob
-                    
-                    if score_prob > max_prob:
-                        max_prob = score_prob
-                        predicted_score = score
             
-            # Assemble prediction result
+            for h in range(max_goals + 1):
+                for a in range(max_goals + 1):
+                    home_prob = poisson.pmf(h, home_xg)
+                    away_prob = poisson.pmf(a, away_xg)
+                    score_probs[f"{h}-{a}"] = home_prob * away_prob
+            
+            # Find most likely correct score
+            correct_score = max(score_probs, key=score_probs.get)
+            correct_score_prob = score_probs[correct_score] * 100
+            
+            # Prepare prediction result
             prediction = {
-                "id": match_data.get("id", "unknown"),
+                "id": f"pred-{match_data['id']}",
+                "matchId": match_data['id'],
                 "sport": "football",
-                "league": {
-                    "id": match_data["league"]["id"],
-                    "name": league,
-                    "country": country
-                },
-                "matchup": f"{home_team} vs {away_team}",
-                "homeTeam": home_team,
-                "awayTeam": away_team,
-                "startTime": match_data["startTime"],
+                "createdAt": datetime.now().isoformat(),
+                "homeTeam": home_team['name'],
+                "awayTeam": away_team['name'],
+                "startTime": match_data['startTime'],
+                "league": match_data['league']['name'],
+                "predictedOutcome": predicted_outcome,
+                "confidence": round(confidence, 2),
+                "isPremium": confidence > 80,  # High confidence predictions are premium
+                "valueBet": value_bet,
                 "predictions": {
                     "1X2": {
-                        "predicted_outcome": predicted_result,
-                        "confidence": round(confidence, 1),
-                        "tier": "standard" if confidence < 75 else "premium",
-                        "probabilities": {
-                            "home": round(home_win_prob * 100, 1),
-                            "draw": round(draw_prob * 100, 1),
-                            "away": round(away_win_prob * 100, 1)
+                        "outcome": predicted_outcome,
+                        "homeWin": {
+                            "probability": round(home_prob * 100, 2),
+                            "odds": home_odds
                         },
-                        "odds": {
-                            "home": match_data["odds"]["home"],
-                            "draw": match_data["odds"]["draw"],
-                            "away": match_data["odds"]["away"]
+                        "draw": {
+                            "probability": round(draw_prob * 100, 2),
+                            "odds": draw_odds
                         },
-                        "value_bet": self._calculate_value_bet(predicted_result, 
-                                                            home_win_prob, draw_prob, away_win_prob,
-                                                            match_data["odds"])
-                    },
-                    "OverUnder": {
-                        "line": over_under_line,
-                        "predicted_outcome": over_under_prediction,
-                        "confidence": round(over_under_confidence, 1),
-                        "tier": "standard" if over_under_confidence < 75 else "premium",
-                        "expected_goals": {
-                            "home": round(home_expected_goals, 2),
-                            "away": round(away_expected_goals, 2),
-                            "total": round(total_expected_goals, 2)
+                        "awayWin": {
+                            "probability": round(away_prob * 100, 2),
+                            "odds": away_odds
                         }
                     },
                     "BTTS": {
-                        "predicted_outcome": btts_prediction,
-                        "confidence": round(btts_confidence, 1),
-                        "tier": "standard" if btts_confidence < 75 else "premium"
+                        "outcome": btts_outcome,
+                        "probability": round(btts_prob * 100, 2)
+                    },
+                    "Over_Under": {
+                        "line": 2.5,
+                        "outcome": over_outcome,
+                        "probability": round(over_prob * 100, 2)
                     },
                     "CorrectScore": {
-                        "predicted_outcome": predicted_score,
-                        "confidence": round(max_prob * 100, 1),
-                        "tier": "elite",
-                        "top_scores": dict(sorted(
-                            {k: round(v * 100, 1) for k, v in score_probs.items() if v > 0.03}.items(), 
-                            key=lambda item: item[1], 
-                            reverse=True
-                        )[:5])
+                        "outcome": correct_score,
+                        "probability": round(correct_score_prob, 2)
                     }
-                },
-                "analysis": {
-                    "home_strength": round(home_strength, 2),
-                    "away_strength": round(away_strength, 2),
-                    "home_form": home_form or "Unknown",
-                    "away_form": away_form or "Unknown"
-                },
-                "prediction_time": datetime.now().isoformat()
+                }
             }
             
             return prediction
             
         except Exception as e:
             logger.error(f"Error in statistical football prediction: {e}")
-            # Return bare minimum prediction
+            
+            # Even more basic fallback
             return {
-                "id": match_data.get("id", "unknown"),
+                "id": f"pred-{match_data['id']}",
+                "matchId": match_data['id'],
                 "sport": "football",
-                "matchup": f"{match_data['homeTeam']['name']} vs {match_data['awayTeam']['name']}",
+                "createdAt": datetime.now().isoformat(),
+                "homeTeam": match_data['homeTeam']['name'],
+                "awayTeam": match_data['awayTeam']['name'],
+                "startTime": match_data['startTime'],
+                "league": match_data['league']['name'],
+                "predictedOutcome": "H",  # Default to home win
+                "confidence": 60.0,
+                "isPremium": False,
+                "valueBet": None,
                 "predictions": {
                     "1X2": {
-                        "predicted_outcome": "1",
-                        "confidence": 50.0
+                        "outcome": "H",
+                        "homeWin": {"probability": 60.0, "odds": 1.8},
+                        "draw": {"probability": 25.0, "odds": 3.5},
+                        "awayWin": {"probability": 15.0, "odds": 4.5}
                     }
                 }
             }
@@ -382,66 +577,52 @@ class Predictor:
     def _calculate_value_bet(self, predicted_result, home_prob, draw_prob, away_prob, odds):
         """Calculate if there's value in the betting odds."""
         try:
-            # Convert odds to implied probabilities
-            home_implied_prob = 1 / odds["home"]
-            draw_implied_prob = 1 / odds["draw"]
-            away_implied_prob = 1 / odds["away"]
+            outcome_probs = {
+                'H': home_prob,
+                'D': draw_prob,
+                'A': away_prob
+            }
             
-            # Add a margin to our probabilities to account for bookmaker margin
-            margin_factor = 0.9
-            
-            value_options = []
-            
-            # Check for value in home win
-            if home_prob * margin_factor > home_implied_prob:
-                value = (home_prob * margin_factor) / home_implied_prob
-                value_options.append({
-                    "pick": "1", 
-                    "value_ratio": round(value, 2),
-                    "odds": odds["home"]
-                })
-            
-            # Check for value in draw
-            if draw_prob * margin_factor > draw_implied_prob:
-                value = (draw_prob * margin_factor) / draw_implied_prob
-                value_options.append({
-                    "pick": "X", 
-                    "value_ratio": round(value, 2),
-                    "odds": odds["draw"]
-                })
-            
-            # Check for value in away win
-            if away_prob * margin_factor > away_implied_prob:
-                value = (away_prob * margin_factor) / away_implied_prob
-                value_options.append({
-                    "pick": "2", 
-                    "value_ratio": round(value, 2),
-                    "odds": odds["away"]
-                })
-            
-            # Sort by value ratio
-            value_options.sort(key=lambda x: x["value_ratio"], reverse=True)
-            
-            if value_options:
-                # Check if the best value bet is the same as our prediction
-                best_value = value_options[0]
-                return {
-                    "is_value_bet": True,
-                    "best_value": best_value,
-                    "matches_prediction": best_value["pick"] == predicted_result,
-                    "options": value_options
+            # Value exists when: probability > 1/odds
+            # The greater the difference, the more value
+            values = {}
+            for outcome, prob in outcome_probs.items():
+                implied_prob = 1 / odds[outcome]
+                edge = prob - implied_prob
+                value_pct = (edge / implied_prob) * 100 if implied_prob > 0 else 0
+                values[outcome] = {
+                    "edge": round(edge, 3),
+                    "value": round(value_pct, 2),
+                    "implied_probability": round(implied_prob * 100, 2),
+                    "our_probability": round(prob * 100, 2)
                 }
-            else:
+            
+            # Find best value
+            best_value = max(values.items(), key=lambda x: x[1]["value"])
+            outcome, value_data = best_value
+            
+            if value_data["value"] > 10:  # At least 10% value
                 return {
-                    "is_value_bet": False
+                    "outcome": outcome,
+                    "odds": odds[outcome],
+                    "value": value_data["value"],
+                    "isRecommended": True
                 }
-                
+            
+            # If predicted outcome has any positive value, still show it
+            if values[predicted_result]["value"] > 0:
+                return {
+                    "outcome": predicted_result,
+                    "odds": odds[predicted_result],
+                    "value": values[predicted_result]["value"],
+                    "isRecommended": False
+                }
+            
+            return None
+            
         except Exception as e:
             logger.error(f"Error calculating value bet: {e}")
-            return {
-                "is_value_bet": False,
-                "error": str(e)
-            }
+            return None
     
     def predict_basketball_game(self, game_data):
         """
@@ -455,138 +636,161 @@ class Predictor:
         """
         try:
             # Extract team data
-            home_team = game_data["homeTeam"]["name"]
-            away_team = game_data["awayTeam"]["name"]
-            league = game_data["league"]["name"]
+            home_team = game_data['homeTeam']
+            away_team = game_data['awayTeam']
             
-            # Extract rankings and form if available
-            home_rank = game_data["homeTeam"].get("ranking", random.randint(1, 16))
-            away_rank = game_data["awayTeam"].get("ranking", random.randint(1, 16))
+            home_rank = home_team.get('ranking', 8)
+            away_rank = away_team.get('ranking', 8)
             
-            home_form = game_data["homeTeam"].get("form", "")
-            away_form = game_data["awayTeam"].get("form", "")
+            # Convert form to numeric value (W=1, L=0)
+            home_form = home_team.get('form', '')
+            away_form = away_team.get('form', '')
             
-            # Calculate form points if form string is available (e.g., "WLWLW")
-            home_form_points = 0
-            away_form_points = 0
+            home_form_value = sum(1 if res == 'W' else 0 for res in home_form)
+            away_form_value = sum(1 if res == 'W' else 0 for res in away_form)
             
-            if home_form:
-                for result in home_form:
-                    if result == "W":
-                        home_form_points += 1
+            # Get offensive and defensive ratings if available
+            home_offense = home_team.get('offense', 110)
+            home_defense = home_team.get('defense', 105)
+            away_offense = away_team.get('offense', 108)
+            away_defense = away_team.get('defense', 107)
             
-            if away_form:
-                for result in away_form:
-                    if result == "W":
-                        away_form_points += 1
+            # Calculate team strengths
+            home_strength = (16 - home_rank) + home_form_value / 5 + (home_offense - home_defense) / 10
+            away_strength = (16 - away_rank) + away_form_value / 5 + (away_offense - away_defense) / 10
             
-            # Home advantage factor
-            home_advantage = 1.15
+            # Add home advantage
+            home_strength *= 1.2
             
-            # Calculate base probabilities
-            home_strength = (17 - home_rank) * home_advantage
-            away_strength = (17 - away_rank)
-            
-            if home_form:
-                home_strength = home_strength * (1 + home_form_points / 5)
-            
-            if away_form:
-                away_strength = away_strength * (1 + away_form_points / 5)
-            
+            # Calculate winner probabilities
             total_strength = home_strength + away_strength
+            home_prob = home_strength / total_strength
+            away_prob = 1 - home_prob
             
-            home_win_prob = home_strength / total_strength
-            away_win_prob = away_strength / total_strength
+            # Get odds from game data
+            odds = game_data.get('odds', {})
+            home_odds = odds.get('home', 1.8)
+            away_odds = odds.get('away', 2.2)
             
-            # Winner prediction
-            if home_win_prob > away_win_prob:
-                predicted_winner = "home"
-                winner_confidence = home_win_prob * 100
+            # Determine predicted outcome
+            predicted_outcome = 'H' if home_prob > away_prob else 'A'
+            
+            # Convert probabilities to confidence
+            confidence = max(home_prob, away_prob) * 100
+            
+            # Check for value bet
+            value_bet = None
+            if 1 / home_odds < home_prob:
+                home_value = (home_prob - (1 / home_odds)) * 100
+                value_bet = {
+                    "outcome": "H",
+                    "odds": home_odds,
+                    "value": round(home_value, 2),
+                    "isRecommended": home_value > 5
+                }
+            elif 1 / away_odds < away_prob:
+                away_value = (away_prob - (1 / away_odds)) * 100
+                value_bet = {
+                    "outcome": "A",
+                    "odds": away_odds,
+                    "value": round(away_value, 2),
+                    "isRecommended": away_value > 5
+                }
+            
+            # Calculate over/under line and probability
+            league = game_data['league']['name']
+            over_under_line = 220.5 if league == "NBA" else 160.5
+            
+            # Calculate expected points
+            home_points = (home_offense - away_defense) + (50 if league == "NBA" else 35)
+            away_points = (away_offense - home_defense) + (45 if league == "NBA" else 32)
+            total_points = home_points + away_points
+            
+            over_prob = 0.5
+            if total_points > over_under_line:
+                over_prob = 0.65
             else:
-                predicted_winner = "away"
-                winner_confidence = away_win_prob * 100
+                over_prob = 0.35
             
-            # Generate point estimates
-            if league["name"] == "NBA":
-                base_points = 110
-            else:  # EuroLeague
-                base_points = 80
+            over_outcome = "Over" if over_prob > 0.5 else "Under"
             
-            home_expected_points = base_points * (home_strength / 16)
-            away_expected_points = base_points * 0.85 * (away_strength / 16)
+            # Calculate spread
+            spread = home_points - away_points
+            if spread > 0:
+                spread_line = round(spread / 2)  # Conservative spread
+                spread_side = "H"
+            else:
+                spread_line = round(abs(spread) / 2)
+                spread_side = "A"
             
-            total_expected_points = home_expected_points + away_expected_points
-            
-            # Spread prediction (handicap)
-            spread = round(home_expected_points - away_expected_points)
-            
-            # Assemble prediction result
+            # Prepare prediction result
             prediction = {
-                "id": game_data.get("id", "unknown"),
+                "id": f"pred-{game_data['id']}",
+                "matchId": game_data['id'],
                 "sport": "basketball",
-                "league": {
-                    "id": game_data["league"]["id"],
-                    "name": league["name"],
-                    "country": league["country"]
-                },
-                "matchup": f"{home_team} vs {away_team}",
-                "homeTeam": home_team,
-                "awayTeam": away_team,
-                "startTime": game_data["startTime"],
+                "createdAt": datetime.now().isoformat(),
+                "homeTeam": home_team['name'],
+                "awayTeam": away_team['name'],
+                "startTime": game_data['startTime'],
+                "league": game_data['league']['name'],
+                "predictedOutcome": predicted_outcome,
+                "confidence": round(confidence, 2),
+                "isPremium": confidence > 75,  # High confidence predictions are premium
+                "valueBet": value_bet,
                 "predictions": {
                     "Winner": {
-                        "predicted_outcome": predicted_winner,
-                        "confidence": round(winner_confidence, 1),
-                        "tier": "standard" if winner_confidence < 75 else "premium",
-                        "probabilities": {
-                            "home": round(home_win_prob * 100, 1),
-                            "away": round(away_win_prob * 100, 1)
+                        "outcome": predicted_outcome,
+                        "homeWin": {
+                            "probability": round(home_prob * 100, 2),
+                            "odds": home_odds
                         },
-                        "odds": {
-                            "home": game_data["odds"]["home"],
-                            "away": game_data["odds"]["away"]
+                        "awayWin": {
+                            "probability": round(away_prob * 100, 2),
+                            "odds": away_odds
                         }
                     },
                     "TotalPoints": {
-                        "line": round(total_expected_points / 5) * 5,  # Round to nearest 5
-                        "predicted_outcome": "Over" if random.random() > 0.5 else "Under",
-                        "confidence": round(random.uniform(60, 80), 1),
-                        "tier": "standard",
-                        "expected_points": {
-                            "home": round(home_expected_points, 1),
-                            "away": round(away_expected_points, 1),
-                            "total": round(total_expected_points, 1)
-                        }
+                        "line": over_under_line,
+                        "outcome": over_outcome,
+                        "probability": round(over_prob * 100, 2),
+                        "predictedTotal": round(total_points, 1)
                     },
                     "Spread": {
-                        "line": spread,
-                        "predicted_outcome": "Home" if spread > 0 else "Away",
-                        "confidence": round(min(abs(spread) * 2, 90), 1),
-                        "tier": "premium" if abs(spread) > 5 else "standard"
+                        "line": spread_line,
+                        "favored": spread_side,
+                        "probability": 60.0
+                    },
+                    "PredictedScore": {
+                        "home": round(home_points),
+                        "away": round(away_points)
                     }
-                },
-                "analysis": {
-                    "home_strength": round(home_strength, 2),
-                    "away_strength": round(away_strength, 2),
-                    "home_form": home_form or "Unknown",
-                    "away_form": away_form or "Unknown"
-                },
-                "prediction_time": datetime.now().isoformat()
+                }
             }
             
             return prediction
             
         except Exception as e:
-            logger.error(f"Error predicting basketball game: {e}")
-            # Return bare minimum prediction
+            logger.error(f"Error making basketball prediction: {e}")
+            
+            # Fallback to basic prediction
             return {
-                "id": game_data.get("id", "unknown"),
+                "id": f"pred-{game_data['id']}",
+                "matchId": game_data['id'],
                 "sport": "basketball",
-                "matchup": f"{game_data['homeTeam']['name']} vs {game_data['awayTeam']['name']}",
+                "createdAt": datetime.now().isoformat(),
+                "homeTeam": game_data['homeTeam']['name'],
+                "awayTeam": game_data['awayTeam']['name'],
+                "startTime": game_data['startTime'],
+                "league": game_data['league']['name'],
+                "predictedOutcome": "H",  # Default to home win
+                "confidence": 60.0,
+                "isPremium": False,
+                "valueBet": None,
                 "predictions": {
                     "Winner": {
-                        "predicted_outcome": "home",
-                        "confidence": 55.0
+                        "outcome": "H",
+                        "homeWin": {"probability": 60.0, "odds": 1.6},
+                        "awayWin": {"probability": 40.0, "odds": 2.4}
                     }
                 }
             }
@@ -604,23 +808,31 @@ class Predictor:
         """
         predictions = []
         
-        for match in matches_data:
-            try:
-                if sport == "football":
-                    prediction = self.predict_football_match(match)
-                elif sport == "basketball":
-                    prediction = self.predict_basketball_game(match)
-                else:
-                    logger.warning(f"Prediction not implemented for sport: {sport}")
-                    continue
+        try:
+            # Generate prediction for each match
+            for match in matches_data:
+                # Slight delay to avoid overwhelming system resources
+                time.sleep(0.01)
                 
-                predictions.append(prediction)
-                
-            except Exception as e:
-                logger.error(f"Error predicting {sport} match {match.get('id', 'unknown')}: {e}")
-        
-        logger.info(f"Generated {len(predictions)} predictions for {sport}")
-        return predictions
+                try:
+                    if sport == "football":
+                        prediction = self.predict_football_match(match)
+                    elif sport == "basketball":
+                        prediction = self.predict_basketball_game(match)
+                    else:
+                        logger.warning(f"Unsupported sport: {sport}")
+                        continue
+                    
+                    predictions.append(prediction)
+                    
+                except Exception as e:
+                    logger.error(f"Error predicting {sport} match {match.get('id', 'unknown')}: {e}")
+            
+            return predictions
+            
+        except Exception as e:
+            logger.error(f"Error predicting {sport} matches: {e}")
+            return []
     
     def generate_accumulator(self, predictions, size=2, min_confidence=75):
         """
@@ -635,92 +847,72 @@ class Predictor:
             dict: Accumulator prediction
         """
         try:
-            if not predictions or len(predictions) < size:
-                logger.warning(f"Not enough predictions to create accumulator of size {size}")
+            # Filter predictions by confidence
+            confident_predictions = [p for p in predictions if p.get('confidence', 0) >= min_confidence]
+            
+            # Sort by confidence (highest first)
+            confident_predictions.sort(key=lambda x: x.get('confidence', 0), reverse=True)
+            
+            # Take top 'size' predictions
+            top_predictions = confident_predictions[:size]
+            
+            if len(top_predictions) < size:
+                logger.warning(f"Not enough confident predictions for accumulator (size {size})")
                 return None
             
-            # Filter predictions by minimum confidence
-            high_confidence_predictions = []
+            # Calculate accumulator odds and total confidence
+            acca_odds = 1.0
+            total_confidence = 0.0
             
-            for prediction in predictions:
-                # For football, use 1X2 market confidence
-                if prediction["sport"] == "football":
-                    confidence = prediction["predictions"]["1X2"]["confidence"]
-                    if confidence >= min_confidence:
-                        high_confidence_predictions.append({
-                            "id": prediction["id"],
-                            "sport": prediction["sport"],
-                            "matchup": prediction["matchup"],
-                            "homeTeam": prediction["homeTeam"],
-                            "awayTeam": prediction["awayTeam"],
-                            "league": prediction["league"]["name"],
-                            "startTime": prediction["startTime"],
-                            "market": "1X2",
-                            "prediction": prediction["predictions"]["1X2"]["predicted_outcome"],
-                            "confidence": confidence,
-                            "odds": prediction["predictions"]["1X2"]["odds"][
-                                "home" if prediction["predictions"]["1X2"]["predicted_outcome"] == "1" else
-                                "draw" if prediction["predictions"]["1X2"]["predicted_outcome"] == "X" else
-                                "away"
-                            ]
-                        })
+            selections = []
+            for pred in top_predictions:
+                outcome = pred.get('predictedOutcome')
+                sport = pred.get('sport', 'football')
+                match_odds = pred.get('predictions', {})
                 
-                # For basketball, use Winner market confidence
-                elif prediction["sport"] == "basketball":
-                    confidence = prediction["predictions"]["Winner"]["confidence"]
-                    if confidence >= min_confidence:
-                        high_confidence_predictions.append({
-                            "id": prediction["id"],
-                            "sport": prediction["sport"],
-                            "matchup": prediction["matchup"],
-                            "homeTeam": prediction["homeTeam"],
-                            "awayTeam": prediction["awayTeam"],
-                            "league": prediction["league"]["name"],
-                            "startTime": prediction["startTime"],
-                            "market": "Winner",
-                            "prediction": prediction["predictions"]["Winner"]["predicted_outcome"],
-                            "confidence": confidence,
-                            "odds": prediction["predictions"]["Winner"]["odds"][
-                                prediction["predictions"]["Winner"]["predicted_outcome"]
-                            ]
-                        })
+                if sport == "football":
+                    market = match_odds.get('1X2', {})
+                    if outcome == 'H':
+                        odds = market.get('homeWin', {}).get('odds', 2.0)
+                    elif outcome == 'D':
+                        odds = market.get('draw', {}).get('odds', 3.5)
+                    else:  # 'A'
+                        odds = market.get('awayWin', {}).get('odds', 4.0)
+                else:  # basketball
+                    market = match_odds.get('Winner', {})
+                    if outcome == 'H':
+                        odds = market.get('homeWin', {}).get('odds', 1.8)
+                    else:  # 'A'
+                        odds = market.get('awayWin', {}).get('odds', 2.2)
+                
+                acca_odds *= odds
+                total_confidence += pred.get('confidence', 0)
+                
+                # Create selection object
+                selection = {
+                    "matchId": pred.get('matchId'),
+                    "homeTeam": pred.get('homeTeam'),
+                    "awayTeam": pred.get('awayTeam'),
+                    "league": pred.get('league'),
+                    "startTime": pred.get('startTime'),
+                    "sport": pred.get('sport'),
+                    "market": "1X2" if sport == "football" else "Winner",
+                    "outcome": outcome,
+                    "odds": odds,
+                    "confidence": pred.get('confidence')
+                }
+                
+                selections.append(selection)
             
-            if len(high_confidence_predictions) < size:
-                logger.warning(f"Not enough high confidence predictions for accumulator (needed {size}, got {len(high_confidence_predictions)})")
-                return None
-            
-            # Sort by confidence
-            high_confidence_predictions.sort(key=lambda x: x["confidence"], reverse=True)
-            
-            # Select top 'size' predictions
-            picks = high_confidence_predictions[:size]
-            
-            # Calculate accumulator odds
-            total_odds = 1.0
-            for pick in picks:
-                total_odds *= pick["odds"]
-            
-            # Generate unique ID
-            import hashlib
-            picks_str = ",".join([str(pick["id"]) for pick in picks])
-            accumulator_id = hashlib.md5(picks_str.encode()).hexdigest()[:8]
-            
-            # Calculate accumulator confidence
-            # The confidence of an accumulator decreases as more picks are added
-            # We use the geometric mean of individual confidences, with a penalty for size
-            confidences = [pick["confidence"] for pick in picks]
-            geo_mean_confidence = np.power(np.prod(confidences), 1/len(confidences))
-            size_penalty = 0.95 ** (size - 1)  # 5% penalty for each additional pick
-            accumulator_confidence = geo_mean_confidence * size_penalty
-            
+            # Create accumulator object
             accumulator = {
-                "id": accumulator_id,
-                "name": f"{size}-Fold Accumulator",
+                "id": f"acca-{size}-{int(time.time())}",
+                "createdAt": datetime.now().isoformat(),
                 "size": size,
-                "total_odds": round(total_odds, 2),
-                "confidence": round(accumulator_confidence, 1),
-                "picks": picks,
-                "created_at": datetime.now().isoformat()
+                "totalOdds": round(acca_odds, 2),
+                "confidence": round(total_confidence / len(top_predictions), 2),
+                "selections": selections,
+                "isPremium": acca_odds > 5.0  # Higher odds accumulators are premium
             }
             
             return accumulator
@@ -739,49 +931,56 @@ class Predictor:
         Returns:
             dict: Various accumulators
         """
+        accumulators = {
+            "small": [],
+            "medium": [],
+            "large": [],
+            "mega": []
+        }
+        
         try:
-            # Combine all predictions into a single list
-            all_sports_predictions = []
+            # Combine all predictions
+            combined_predictions = []
             for sport, predictions in all_predictions.items():
-                all_sports_predictions.extend(predictions)
-            
-            if not all_sports_predictions:
-                logger.warning("No predictions available for accumulator generation")
-                return {}
-            
-            accumulators = {}
+                combined_predictions.extend(predictions)
             
             # Generate different sized accumulators
-            doubles = self.generate_accumulator(all_sports_predictions, size=2, min_confidence=75)
-            if doubles:
-                accumulators["double"] = doubles
+            # Small (2-3 selections, lower odds)
+            for _ in range(3):
+                acca = self.generate_accumulator(combined_predictions, size=2, min_confidence=80)
+                if acca:
+                    accumulators["small"].append(acca)
+                    
+                acca = self.generate_accumulator(combined_predictions, size=3, min_confidence=75)
+                if acca:
+                    accumulators["small"].append(acca)
             
-            trebles = self.generate_accumulator(all_sports_predictions, size=3, min_confidence=75)
-            if trebles:
-                accumulators["treble"] = trebles
+            # Medium (4-5 selections)
+            for _ in range(2):
+                acca = self.generate_accumulator(combined_predictions, size=4, min_confidence=70)
+                if acca:
+                    accumulators["medium"].append(acca)
+                    
+                acca = self.generate_accumulator(combined_predictions, size=5, min_confidence=65)
+                if acca:
+                    accumulators["medium"].append(acca)
             
-            four_fold = self.generate_accumulator(all_sports_predictions, size=4, min_confidence=70)
-            if four_fold:
-                accumulators["four_fold"] = four_fold
+            # Large (6-8 selections)
+            acca = self.generate_accumulator(combined_predictions, size=6, min_confidence=60)
+            if acca:
+                accumulators["large"].append(acca)
+                
+            acca = self.generate_accumulator(combined_predictions, size=8, min_confidence=55)
+            if acca:
+                accumulators["large"].append(acca)
             
-            five_fold = self.generate_accumulator(all_sports_predictions, size=5, min_confidence=70)
-            if five_fold:
-                accumulators["five_fold"] = five_fold
-            
-            # Premium accumulator (higher confidence threshold)
-            premium = self.generate_accumulator(all_sports_predictions, size=3, min_confidence=85)
-            if premium:
-                accumulators["premium"] = premium
-            
-            # High odds accumulator (lower confidence but higher potential returns)
-            # For this, we'd ideally filter by odds rather than confidence, but for simplicity
-            # we'll just use a lower confidence threshold
-            high_odds = self.generate_accumulator(all_sports_predictions, size=4, min_confidence=65)
-            if high_odds:
-                accumulators["high_odds"] = high_odds
+            # Mega (10+ selections, very high odds)
+            acca = self.generate_accumulator(combined_predictions, size=10, min_confidence=50)
+            if acca:
+                accumulators["mega"].append(acca)
             
             return accumulators
             
         except Exception as e:
             logger.error(f"Error generating accumulators: {e}")
-            return {}
+            return accumulators

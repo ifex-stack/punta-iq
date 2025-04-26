@@ -2,29 +2,29 @@
 REST API for the AI Sports Prediction service.
 Provides endpoints for triggering predictions and retrieving results.
 """
-from flask import Flask, request, jsonify
-import logging
 import os
+import logging
 import json
-from datetime import datetime, timedelta
-
+from datetime import datetime
+from flask import Flask, request, jsonify
 from data_fetcher import DataFetcher
 from predictor import Predictor
 from storage import FirestoreStorage
-from config import initialize_firebase, SUPPORTED_SPORTS
+from generate_training_data import train_and_save_models
+from config import SUPPORTED_SPORTS, initialize_firebase
 
 # Set up logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger('ai_prediction_api')
+logger = logging.getLogger('api')
 
 # Initialize Flask app
 app = Flask(__name__)
 
-# Initialize components
-fetcher = DataFetcher()
+# Initialize services
+data_fetcher = DataFetcher()
 predictor = Predictor()
 storage = FirestoreStorage()
 
@@ -32,9 +32,9 @@ storage = FirestoreStorage()
 def health_check():
     """Health check endpoint."""
     return jsonify({
-        'status': 'healthy',
-        'timestamp': datetime.now().isoformat(),
-        'service': 'ai_prediction_service'
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0.0"
     })
 
 @app.route('/api/predictions/generate', methods=['POST'])
@@ -51,84 +51,102 @@ def generate_predictions():
     }
     """
     try:
-        data = request.json or {}
-        days_ahead = data.get('days_ahead', 3)
-        requested_sports = data.get('sports', None)
-        store_results = data.get('store_results', True)
-        notify_users = data.get('notify_users', True)
+        # Parse request parameters
+        request_data = request.get_json() or {}
+        days_ahead = request_data.get('days_ahead', 3)
+        sports = request_data.get('sports', None)
+        store_results = request_data.get('store_results', True)
+        notify_users = request_data.get('notify_users', True)
         
-        logger.info(f"Generating predictions for the next {days_ahead} days")
+        # Validate parameters
+        if days_ahead < 1 or days_ahead > 14:
+            return jsonify({
+                "success": False,
+                "error": "days_ahead must be between 1 and 14"
+            }), 400
         
-        # Filter sports if requested
-        if requested_sports:
-            sports_to_predict = {
-                sport: config for sport, config in SUPPORTED_SPORTS.items()
-                if sport in requested_sports and config["enabled"]
-            }
-        else:
-            sports_to_predict = {
-                sport: config for sport, config in SUPPORTED_SPORTS.items()
-                if config["enabled"]
-            }
+        # If sports not specified, use all enabled sports
+        if not sports:
+            sports = [sport for sport, config in SUPPORTED_SPORTS.items() if config["enabled"]]
         
-        # Fetch matches for selected sports
-        all_matches = {}
-        for sport in sports_to_predict:
-            logger.info(f"Fetching {sport} matches...")
-            matches = fetcher.fetch_matches_by_sport(sport, days_ahead)
-            all_matches[sport] = matches
-            logger.info(f"Found {len(matches)} {sport} matches")
+        # Validate sports
+        for sport in sports:
+            if sport not in SUPPORTED_SPORTS:
+                return jsonify({
+                    "success": False,
+                    "error": f"Sport '{sport}' is not supported"
+                }), 400
             
-        # Generate predictions
-        logger.info("Generating predictions...")
-        all_predictions = {}
+            if not SUPPORTED_SPORTS[sport]["enabled"]:
+                return jsonify({
+                    "success": False,
+                    "error": f"Sport '{sport}' is disabled"
+                }), 400
         
+        # Fetch matches for each sport
+        all_matches = {}
+        for sport in sports:
+            logger.info(f"Fetching {sport} matches for {days_ahead} days ahead")
+            matches = data_fetcher.fetch_matches_by_sport(sport, days_ahead)
+            all_matches[sport] = matches
+        
+        # Generate predictions for each sport
+        all_predictions = {}
         for sport, matches in all_matches.items():
-            if matches:
-                logger.info(f"Generating predictions for {len(matches)} {sport} matches...")
-                sport_predictions = predictor.predict_matches(matches, sport)
-                all_predictions[sport] = sport_predictions
+            if not matches:
+                logger.warning(f"No matches found for {sport}")
+                all_predictions[sport] = []
+                continue
+            
+            logger.info(f"Generating predictions for {len(matches)} {sport} matches")
+            predictions = predictor.predict_matches(matches, sport)
+            all_predictions[sport] = predictions
         
         # Generate accumulators
-        logger.info("Generating accumulator predictions...")
         accumulators = predictor.generate_accumulators(all_predictions)
         
         # Store predictions if requested
-        if store_results and storage:
-            logger.info("Storing predictions...")
+        if store_results:
             for sport, predictions in all_predictions.items():
-                success = storage.store_predictions(predictions, sport)
-                logger.info(f"Stored {sport} predictions: {'Success' if success else 'Failed'}")
+                if predictions:
+                    storage.store_predictions(predictions, sport)
             
-            # Store accumulators
-            success = storage.store_accumulators(accumulators)
-            logger.info(f"Stored accumulators: {'Success' if success else 'Failed'}")
+            if accumulators:
+                storage.store_accumulators(accumulators)
         
-        # Notify users if requested
-        if notify_users and storage:
-            logger.info("Sending notifications to users...")
-            # In a real implementation, you would fetch user IDs from Firebase
-            # based on their notification preferences
-            
-            user_ids = ["all_users"]  # Placeholder for all users
-            title = "New Predictions Available"
-            body = f"We've just updated predictions for {', '.join(all_predictions.keys())}. Check them out now!"
-            
-            success = storage.send_notification(user_ids, title, body)
-            logger.info(f"Sent notifications: {'Success' if success else 'Failed'}")
+        # Send notifications if requested
+        if notify_users and store_results:
+            total_predictions = sum(len(predictions) for predictions in all_predictions.values())
+            if total_predictions > 0:
+                notification_title = "New Predictions Available"
+                notification_body = f"{total_predictions} new predictions for {', '.join(sports)}"
+                
+                storage.send_notification(
+                    user_ids=["all_users"],
+                    title=notification_title,
+                    body=notification_body,
+                    data={
+                        "type": "new_predictions",
+                        "count": total_predictions,
+                        "sports": sports
+                    }
+                )
         
-        # Return results
-        return jsonify({
+        # Prepare response
+        response = {
             "success": True,
-            "prediction_count": {
+            "timestamp": datetime.now().isoformat(),
+            "predictions": {
                 sport: len(predictions) for sport, predictions in all_predictions.items()
             },
-            "accumulator_count": len(accumulators),
-            "timestamp": datetime.now().isoformat()
-        })
+            "total_predictions": sum(len(predictions) for predictions in all_predictions.values()),
+            "accumulators": len(accumulators)
+        }
+        
+        return jsonify(response)
     
     except Exception as e:
-        logger.error(f"Error generating predictions: {e}", exc_info=True)
+        logger.error(f"Error generating predictions: {e}")
         return jsonify({
             "success": False,
             "error": str(e)
@@ -138,23 +156,32 @@ def generate_predictions():
 def get_sport_predictions(sport):
     """Get predictions for a specific sport."""
     try:
+        # Validate sport
         if sport not in SUPPORTED_SPORTS:
             return jsonify({
                 "success": False,
-                "error": f"Sport {sport} is not supported"
+                "error": f"Sport '{sport}' is not supported"
             }), 400
-            
+        
+        if not SUPPORTED_SPORTS[sport]["enabled"]:
+            return jsonify({
+                "success": False,
+                "error": f"Sport '{sport}' is disabled"
+            }), 400
+        
+        # Get predictions from storage
         predictions = storage.get_predictions(sport)
         
         return jsonify({
             "success": True,
             "sport": sport,
             "predictions": predictions,
-            "count": len(predictions)
+            "count": len(predictions),
+            "timestamp": datetime.now().isoformat()
         })
     
     except Exception as e:
-        logger.error(f"Error getting {sport} predictions: {e}", exc_info=True)
+        logger.error(f"Error getting {sport} predictions: {e}")
         return jsonify({
             "success": False,
             "error": str(e)
@@ -164,16 +191,18 @@ def get_sport_predictions(sport):
 def get_accumulators():
     """Get accumulator predictions."""
     try:
+        # Get accumulators from storage
         accumulators = storage.get_accumulators()
         
         return jsonify({
             "success": True,
             "accumulators": accumulators,
-            "count": len(accumulators)
+            "count": len(accumulators),
+            "timestamp": datetime.now().isoformat()
         })
     
     except Exception as e:
-        logger.error(f"Error getting accumulators: {e}", exc_info=True)
+        logger.error(f"Error getting accumulators: {e}")
         return jsonify({
             "success": False,
             "error": str(e)
@@ -192,55 +221,49 @@ def train_models():
     }
     """
     try:
-        data = request.json or {}
-        sport = data.get('sport')
-        model_type = data.get('model_type', 'xgboost')
-        use_synthetic_data = data.get('use_synthetic_data', False)
+        # Parse request parameters
+        request_data = request.get_json() or {}
+        sport = request_data.get('sport')
+        model_type = request_data.get('model_type')
+        use_synthetic_data = request_data.get('use_synthetic_data', False)
         
+        # Validate parameters
         if not sport:
             return jsonify({
                 "success": False,
-                "error": "Sport is required"
+                "error": "sport is required"
             }), 400
-            
+        
         if sport not in SUPPORTED_SPORTS:
             return jsonify({
                 "success": False,
-                "error": f"Sport {sport} is not supported"
+                "error": f"Sport '{sport}' is not supported"
             }), 400
         
-        # Train the model
-        logger.info(f"Training {sport} model with {model_type}...")
+        if not model_type:
+            model_type = SUPPORTED_SPORTS[sport].get("default_model", "random_forest")
         
+        # Currently we only support synthetic data
         if use_synthetic_data:
-            # Use synthetic data for training
-            from generate_training_data import generate_football_training_data, generate_basketball_training_data
+            logger.info(f"Training {sport} models with synthetic data")
+            success = train_and_save_models()
             
-            if sport == 'football':
-                training_data = generate_football_training_data(n_samples=2000)
-                success = predictor.train_football_model(training_data, model_type=model_type)
-            elif sport == 'basketball':
-                training_data = generate_basketball_training_data(n_samples=2000)
-                # Placeholder - would be implemented in the Predictor class
-                success = False
-                logger.warning("Basketball model training not yet implemented")
-            else:
-                success = False
-                logger.warning(f"Training for {sport} not yet implemented")
+            return jsonify({
+                "success": success,
+                "sport": sport,
+                "model_type": model_type,
+                "timestamp": datetime.now().isoformat()
+            })
         else:
-            # Use real historical data (not implemented yet)
-            success = False
-            logger.warning("Training with real historical data not yet implemented")
-        
-        return jsonify({
-            "success": success,
-            "sport": sport,
-            "model_type": model_type,
-            "timestamp": datetime.now().isoformat()
-        })
+            # In a real implementation, we would use historical data from a database
+            logger.warning("Training with real historical data not implemented yet")
+            return jsonify({
+                "success": False,
+                "error": "Training with real historical data not implemented yet. Set use_synthetic_data=true."
+            }), 400
     
     except Exception as e:
-        logger.error(f"Error training model: {e}", exc_info=True)
+        logger.error(f"Error training models: {e}")
         return jsonify({
             "success": False,
             "error": str(e)
@@ -250,24 +273,34 @@ def train_models():
 def get_supported_sports():
     """Get list of supported sports and their configurations."""
     try:
+        # Filter out internal configuration details
+        sports_config = {}
+        for sport, config in SUPPORTED_SPORTS.items():
+            sports_config[sport] = {
+                "name": config["display_name"],
+                "enabled": config["enabled"],
+                "predictions": config["predictions"],
+                "leagues": config["leagues"]
+            }
+        
         return jsonify({
             "success": True,
-            "sports": SUPPORTED_SPORTS
+            "sports": sports_config,
+            "count": len(sports_config),
+            "timestamp": datetime.now().isoformat()
         })
     
     except Exception as e:
-        logger.error(f"Error getting supported sports: {e}", exc_info=True)
+        logger.error(f"Error getting supported sports: {e}")
         return jsonify({
             "success": False,
             "error": str(e)
         }), 500
 
 if __name__ == '__main__':
-    # Initialize Firebase
+    # Initialize Firebase if credentials are available
     initialize_firebase()
     
-    # Get port from environment or use default
+    # Start the server
     port = int(os.environ.get('PORT', 5001))
-    
-    # Run Flask app
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=False)

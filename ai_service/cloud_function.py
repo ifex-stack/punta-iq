@@ -3,9 +3,18 @@ Cloud function handler for the AI Sports Prediction service.
 This module is designed to be deployed as a Google Cloud Function
 that runs on a schedule to generate and store predictions.
 """
-import datetime
+import logging
 import json
+from datetime import datetime
 from main import run_prediction_pipeline
+from config import initialize_firebase
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger('cloud_function')
 
 def predict_daily(event, context):
     """
@@ -19,34 +28,56 @@ def predict_daily(event, context):
     Returns:
         dict: Summary of the prediction run
     """
-    print(f"Cloud Function trigger received at {datetime.datetime.now().isoformat()}")
-    
     try:
-        # Run prediction pipeline with default settings (store and notify)
-        results = run_prediction_pipeline(days_ahead=3, store_results=True, notify_users=True)
+        logger.info("Starting daily prediction run")
         
-        # Log summary
-        sports_count = len(results["predictions"])
-        total_predictions = sum(len(preds) for sport, preds in results["predictions"].items())
+        # Initialize Firebase
+        initialized = initialize_firebase()
+        if not initialized:
+            logger.warning("Firebase not initialized. Storage and notifications will be disabled.")
+            return {
+                "success": False,
+                "error": "Firebase not initialized",
+                "timestamp": datetime.now().isoformat()
+            }
         
-        summary = {
+        # Parse event data if any
+        days_ahead = 3
+        store_results = True
+        notify_users = True
+        
+        if event and isinstance(event, dict):
+            days_ahead = event.get('days_ahead', days_ahead)
+            store_results = event.get('store_results', store_results)
+            notify_users = event.get('notify_users', notify_users)
+        
+        # Run prediction pipeline
+        logger.info(f"Running prediction pipeline for {days_ahead} days ahead")
+        result = run_prediction_pipeline(
+            days_ahead=days_ahead,
+            store_results=store_results,
+            notify_users=notify_users
+        )
+        
+        if "error" in result:
+            logger.error(f"Prediction pipeline failed: {result['error']}")
+            return {
+                "success": False,
+                "error": result["error"],
+                "timestamp": datetime.now().isoformat()
+            }
+        
+        logger.info("Daily prediction run completed successfully")
+        return {
             "success": True,
-            "timestamp": datetime.datetime.now().isoformat(),
-            "sports_processed": sports_count,
-            "total_predictions": total_predictions,
-            "execution_time": results["execution_time"],
-            "accumulators_generated": len(results["accumulators"])
+            "result": result,
+            "timestamp": datetime.now().isoformat()
         }
-        
-        print(f"Prediction pipeline completed successfully: {json.dumps(summary)}")
-        return summary
-        
+    
     except Exception as e:
-        error_summary = {
+        logger.error(f"Error in cloud function: {e}")
+        return {
             "success": False,
-            "timestamp": datetime.datetime.now().isoformat(),
-            "error": str(e)
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
         }
-        
-        print(f"Prediction pipeline failed: {json.dumps(error_summary)}")
-        return error_summary

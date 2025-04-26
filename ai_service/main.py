@@ -3,17 +3,23 @@ Main module for the AI Sports Prediction service.
 Orchestrates the entire prediction process including data fetching,
 prediction generation, and storage.
 """
-import argparse
 import os
 import sys
-import json
+import argparse
+import logging
 from datetime import datetime
-import time
-
 from data_fetcher import DataFetcher
 from predictor import Predictor
 from storage import FirestoreStorage
 from config import SUPPORTED_SPORTS, initialize_firebase
+from generate_training_data import train_and_save_models
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger('main')
 
 def run_prediction_pipeline(days_ahead=3, store_results=True, notify_users=True):
     """
@@ -27,106 +33,139 @@ def run_prediction_pipeline(days_ahead=3, store_results=True, notify_users=True)
     Returns:
         dict: Generated predictions
     """
-    print(f"Starting prediction pipeline for the next {days_ahead} days")
-    start_time = time.time()
-    
-    # Initialize components
-    fetcher = DataFetcher()
-    predictor = Predictor()
-    storage = FirestoreStorage() if store_results else None
-    
-    # Step 1: Fetch upcoming matches for all enabled sports
-    print("Fetching upcoming matches...")
-    all_matches = fetcher.fetch_all_matches(days_ahead=days_ahead)
-    
-    total_matches = sum(len(matches) for sport, matches in all_matches.items())
-    print(f"Fetched a total of {total_matches} matches across {len(all_matches)} sports")
-    
-    # Step 2: Generate predictions for each sport
-    print("Generating predictions...")
-    all_predictions = {}
-    
-    for sport, matches in all_matches.items():
-        if matches:
-            print(f"Generating predictions for {len(matches)} {sport} matches...")
-            sport_predictions = predictor.predict_matches(matches, sport)
-            all_predictions[sport] = sport_predictions
-    
-    # Step 3: Generate accumulators
-    print("Generating accumulator predictions...")
-    accumulators = predictor.generate_accumulators(all_predictions)
-    
-    # Step 4: Store predictions if requested
-    if store_results and storage:
-        print("Storing predictions in Firebase...")
-        for sport, predictions in all_predictions.items():
-            success = storage.store_predictions(predictions, sport)
-            print(f"Stored {sport} predictions: {'Success' if success else 'Failed'}")
+    try:
+        logger.info(f"Starting prediction pipeline for {days_ahead} days ahead")
         
-        # Store accumulators
-        success = storage.store_accumulators(accumulators)
-        print(f"Stored accumulators: {'Success' if success else 'Failed'}")
-    
-    # Step 5: Send notifications if requested
-    if notify_users and storage:
-        print("Sending notifications to users...")
-        # In a real implementation, you would fetch user IDs from Firebase
-        # based on their notification preferences
+        # Initialize services
+        data_fetcher = DataFetcher()
+        predictor = Predictor()
+        storage = FirestoreStorage()
         
-        # Example notification
-        user_ids = ["all_users"]  # Placeholder for all users
-        title = "New Predictions Available"
-        body = f"We've just updated predictions for {', '.join(all_predictions.keys())}. Check them out now!"
+        # Get enabled sports
+        enabled_sports = [sport for sport, config in SUPPORTED_SPORTS.items() if config["enabled"]]
+        logger.info(f"Enabled sports: {', '.join(enabled_sports)}")
         
-        success = storage.send_notification(user_ids, title, body)
-        print(f"Sent notifications: {'Success' if success else 'Failed'}")
+        # Fetch matches for each sport
+        all_matches = {}
+        for sport in enabled_sports:
+            logger.info(f"Fetching {sport} matches for {days_ahead} days ahead")
+            matches = data_fetcher.fetch_matches_by_sport(sport, days_ahead)
+            logger.info(f"Fetched {len(matches)} {sport} matches")
+            all_matches[sport] = matches
+        
+        # Generate predictions for each sport
+        all_predictions = {}
+        for sport, matches in all_matches.items():
+            if not matches:
+                logger.warning(f"No matches found for {sport}")
+                all_predictions[sport] = []
+                continue
+            
+            logger.info(f"Generating predictions for {len(matches)} {sport} matches")
+            predictions = predictor.predict_matches(matches, sport)
+            logger.info(f"Generated {len(predictions)} {sport} predictions")
+            all_predictions[sport] = predictions
+        
+        # Generate accumulators
+        logger.info("Generating accumulator predictions")
+        accumulators = predictor.generate_accumulators(all_predictions)
+        logger.info(f"Generated {len(accumulators)} accumulators")
+        
+        # Store predictions if requested
+        if store_results:
+            logger.info("Storing predictions in Firebase")
+            for sport, predictions in all_predictions.items():
+                if predictions:
+                    storage.store_predictions(predictions, sport)
+            
+            if accumulators:
+                storage.store_accumulators(accumulators)
+        
+        # Send notifications if requested
+        if notify_users and store_results:
+            total_predictions = sum(len(predictions) for predictions in all_predictions.values())
+            if total_predictions > 0:
+                logger.info(f"Sending notification about {total_predictions} new predictions")
+                notification_title = "New Predictions Available"
+                notification_body = f"{total_predictions} new predictions for {', '.join(enabled_sports)}"
+                
+                storage.send_notification(
+                    user_ids=["all_users"],
+                    title=notification_title,
+                    body=notification_body,
+                    data={
+                        "type": "new_predictions",
+                        "count": total_predictions,
+                        "sports": enabled_sports
+                    }
+                )
+        
+        # Prepare result
+        result = {
+            "timestamp": datetime.now().isoformat(),
+            "predictions": {
+                sport: len(predictions) for sport, predictions in all_predictions.items()
+            },
+            "total_predictions": sum(len(predictions) for predictions in all_predictions.values()),
+            "accumulators": len(accumulators)
+        }
+        
+        logger.info(f"Prediction pipeline completed successfully: {result}")
+        return result
     
-    # Calculate execution time
-    execution_time = time.time() - start_time
-    print(f"Prediction pipeline completed in {execution_time:.2f} seconds")
-    
-    # Return all generated predictions
-    return {
-        "predictions": all_predictions,
-        "accumulators": accumulators,
-        "timestamp": datetime.now().isoformat(),
-        "execution_time": execution_time
-    }
+    except Exception as e:
+        logger.error(f"Error in prediction pipeline: {e}")
+        return {"error": str(e)}
 
 def main():
     """
     Main entry point for the prediction service.
     Parse command line arguments and run the pipeline.
     """
-    parser = argparse.ArgumentParser(description="AI Sports Prediction Service")
-    parser.add_argument("--days", type=int, default=3, help="Number of days ahead to predict")
-    parser.add_argument("--no-store", action="store_true", help="Don't store results in Firebase")
-    parser.add_argument("--no-notify", action="store_true", help="Don't send user notifications")
-    parser.add_argument("--output", type=str, help="Output file for predictions (JSON)")
+    parser = argparse.ArgumentParser(description='AI Sports Prediction Service')
+    parser.add_argument('--days', type=int, default=3, help='Number of days ahead to predict')
+    parser.add_argument('--no-store', action='store_true', help='Do not store results in Firebase')
+    parser.add_argument('--no-notify', action='store_true', help='Do not send notifications')
+    parser.add_argument('--train', action='store_true', help='Train models with synthetic data')
+    parser.add_argument('--serve', action='store_true', help='Start the REST API server')
     args = parser.parse_args()
     
-    try:
-        # Initialize Firebase (will only succeed if credentials are provided)
-        initialize_firebase()
-        
-        # Run prediction pipeline
-        results = run_prediction_pipeline(
-            days_ahead=args.days,
-            store_results=not args.no_store,
-            notify_users=not args.no_notify
-        )
-        
-        # Save to output file if requested
-        if args.output:
-            with open(args.output, 'w') as f:
-                json.dump(results, f, indent=2)
-            print(f"Predictions saved to {args.output}")
-        
+    # Initialize Firebase
+    if not args.no_store or not args.no_notify:
+        initialized = initialize_firebase()
+        if not initialized:
+            logger.warning("Firebase not initialized. Storage and notifications will be disabled.")
+    
+    # Train models if requested
+    if args.train:
+        logger.info("Training models with synthetic data")
+        success = train_and_save_models()
+        if success:
+            logger.info("Models trained successfully")
+        else:
+            logger.error("Failed to train models")
+            return 1
+    
+    # Start API server if requested
+    if args.serve:
+        logger.info("Starting REST API server")
+        from api import app
+        port = int(os.environ.get('PORT', 5001))
+        app.run(host='0.0.0.0', port=port, debug=False)
         return 0
-        
-    except Exception as e:
-        print(f"Error in prediction pipeline: {e}", file=sys.stderr)
+    
+    # Run prediction pipeline
+    result = run_prediction_pipeline(
+        days_ahead=args.days,
+        store_results=not args.no_store,
+        notify_users=not args.no_notify
+    )
+    
+    if "error" in result:
+        logger.error(f"Prediction pipeline failed: {result['error']}")
         return 1
+    
+    return 0
 
 if __name__ == "__main__":
     sys.exit(main())
