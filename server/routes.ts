@@ -81,17 +81,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Base flags that apply to all users
       const baseFlags = {
+        // Core features
         chatbot: true,
         notifications: true,
         historicalDashboard: true,
+        
+        // Premium features
         accumulators: true,
         premiumPredictions: true,
+        
+        // User experience and onboarding
+        onboarding: true,
+        gettingStartedGuide: true,
+        featureHighlights: true,
+        demoNotifications: true,
+        
+        // New and experimental features  
         socialSharing: false,
         userCommunity: false,
         predictionComments: false,
         trendingPredictions: false,
+        
+        // Regional features
         nigeriaSpecificContent: true,
         ukSpecificContent: true,
+        
+        // Marketing and engagement
         referralProgram: false,
         achievementBadges: false,
         streakRewards: false,

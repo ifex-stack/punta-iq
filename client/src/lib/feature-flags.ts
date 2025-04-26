@@ -14,6 +14,12 @@ const DEFAULT_FLAGS = {
   accumulators: true,
   premiumPredictions: true,
   
+  // User experience and onboarding
+  onboarding: true,
+  gettingStartedGuide: true,
+  featureHighlights: true,
+  demoNotifications: true,
+  
   // New and experimental features  
   socialSharing: false,
   userCommunity: false,
