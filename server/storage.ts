@@ -1615,36 +1615,6 @@ export class MemStorage implements IStorage {
     return true;
   }
   
-  async updateLeaderboardEntry(entry: InsertLeaderboardEntry): Promise<LeaderboardEntry> {
-    // Check if entry already exists
-    const existingEntry = Array.from(this.leaderboardEntriesMap.values()).find(
-      e => e.leaderboardId === entry.leaderboardId && e.userId === entry.userId
-    );
-    
-    if (existingEntry) {
-      // Update existing entry
-      const updatedEntry: LeaderboardEntry = {
-        ...existingEntry,
-        score: entry.score,
-        updatedAt: new Date()
-      };
-      this.leaderboardEntriesMap.set(existingEntry.id, updatedEntry);
-      return updatedEntry;
-    }
-    
-    // Create new entry
-    const id = this.leaderboardEntryIdCounter++;
-    const now = new Date();
-    const newEntry: LeaderboardEntry = {
-      ...entry,
-      id,
-      createdAt: now,
-      updatedAt: now
-    };
-    this.leaderboardEntriesMap.set(id, newEntry);
-    return newEntry;
-  }
-  
   async updateAllLeaderboards(): Promise<void> {
     // This would typically calculate and update all leaderboard entries based on
     // the latest user stats and performances. For simplicity, just updating the
@@ -2313,6 +2283,256 @@ export class DatabaseStorage implements IStorage {
       .where(eq(pushTokens.id, id));
     
     return result.rowCount > 0;
+  }
+
+  // Badge methods
+  async getAllBadges(): Promise<Badge[]> {
+    return db.select().from(badges);
+  }
+  
+  async getBadgeById(id: number): Promise<Badge | undefined> {
+    const [badge] = await db
+      .select()
+      .from(badges)
+      .where(eq(badges.id, id));
+    return badge;
+  }
+  
+  async createBadge(badge: InsertBadge): Promise<Badge> {
+    const [newBadge] = await db
+      .insert(badges)
+      .values(badge)
+      .returning();
+    return newBadge;
+  }
+  
+  async updateBadge(id: number, data: Partial<InsertBadge>): Promise<Badge | undefined> {
+    const [updatedBadge] = await db
+      .update(badges)
+      .set(data)
+      .where(eq(badges.id, id))
+      .returning();
+    return updatedBadge;
+  }
+  
+  async deleteBadge(id: number): Promise<boolean> {
+    // First delete all user badges for this badge
+    await db
+      .delete(userBadges)
+      .where(eq(userBadges.badgeId, id));
+    
+    // Then delete the badge itself
+    const result = await db
+      .delete(badges)
+      .where(eq(badges.id, id));
+    
+    return result.rowCount > 0;
+  }
+  
+  async getUserBadges(userId: number): Promise<UserBadge[]> {
+    return db
+      .select()
+      .from(userBadges)
+      .where(eq(userBadges.userId, userId));
+  }
+  
+  async awardBadgeToUser(userBadge: InsertUserBadge): Promise<UserBadge> {
+    // Check if user already has this badge
+    const [existingBadge] = await db
+      .select()
+      .from(userBadges)
+      .where(
+        and(
+          eq(userBadges.userId, userBadge.userId),
+          eq(userBadges.badgeId, userBadge.badgeId)
+        )
+      );
+    
+    if (existingBadge) {
+      // If existing but at a lower tier, update it
+      if (existingBadge.tier !== userBadge.tier) {
+        const [updatedBadge] = await db
+          .update(userBadges)
+          .set({
+            tier: userBadge.tier,
+            isViewed: false,
+            awardedAt: new Date()
+          })
+          .where(eq(userBadges.id, existingBadge.id))
+          .returning();
+        
+        // Create notification for badge upgrade
+        const badge = await this.getBadgeById(userBadge.badgeId);
+        if (badge) {
+          await this.createNotification({
+            userId: userBadge.userId,
+            title: "Badge Upgraded!",
+            message: `Your ${badge.name} badge has been upgraded to ${userBadge.tier} tier!`,
+            type: "achievement", 
+            isRead: false
+          });
+        }
+        
+        return updatedBadge;
+      }
+      return existingBadge;
+    }
+    
+    // Create new user badge
+    const [newUserBadge] = await db
+      .insert(userBadges)
+      .values({
+        ...userBadge,
+        isViewed: false,
+        awardedAt: new Date()
+      })
+      .returning();
+    
+    // Create notification for the user about the badge
+    const badge = await this.getBadgeById(userBadge.badgeId);
+    if (badge) {
+      await this.createNotification({
+        userId: userBadge.userId,
+        title: "New Badge Earned!",
+        message: `You've earned the ${badge.name} badge (${userBadge.tier} tier)`,
+        type: "achievement", 
+        isRead: false
+      });
+    }
+    
+    return newUserBadge;
+  }
+  
+  async markBadgeAsViewed(userId: number, badgeId: number): Promise<boolean> {
+    const result = await db
+      .update(userBadges)
+      .set({ isViewed: true })
+      .where(
+        and(
+          eq(userBadges.userId, userId),
+          eq(userBadges.badgeId, badgeId)
+        )
+      );
+    
+    return result.rowCount > 0;
+  }
+  
+  // Leaderboard methods
+  async getAllLeaderboards(): Promise<Leaderboard[]> {
+    return db.select().from(leaderboards);
+  }
+  
+  async getLeaderboardById(id: number): Promise<Leaderboard | undefined> {
+    const [leaderboard] = await db
+      .select()
+      .from(leaderboards)
+      .where(eq(leaderboards.id, id));
+    return leaderboard;
+  }
+  
+  async getLeaderboardWithEntries(id: number): Promise<{leaderboard: Leaderboard, entries: LeaderboardEntry[]} | undefined> {
+    const leaderboard = await this.getLeaderboardById(id);
+    if (!leaderboard) return undefined;
+    
+    const entries = await db
+      .select()
+      .from(leaderboardEntries)
+      .where(eq(leaderboardEntries.leaderboardId, id))
+      .orderBy(desc(leaderboardEntries.score));
+    
+    return { leaderboard, entries };
+  }
+  
+  async getUserLeaderboardEntries(userId: number): Promise<LeaderboardEntry[]> {
+    return db
+      .select()
+      .from(leaderboardEntries)
+      .where(eq(leaderboardEntries.userId, userId));
+  }
+  
+  async createLeaderboard(leaderboard: InsertLeaderboard): Promise<Leaderboard> {
+    const [newLeaderboard] = await db
+      .insert(leaderboards)
+      .values({
+        ...leaderboard,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return newLeaderboard;
+  }
+  
+  async updateLeaderboard(id: number, data: Partial<InsertLeaderboard>): Promise<Leaderboard | undefined> {
+    const [updatedLeaderboard] = await db
+      .update(leaderboards)
+      .set({
+        ...data,
+        updatedAt: new Date()
+      })
+      .where(eq(leaderboards.id, id))
+      .returning();
+    return updatedLeaderboard;
+  }
+  
+  async deleteLeaderboard(id: number): Promise<boolean> {
+    // First delete all entries for this leaderboard
+    await db
+      .delete(leaderboardEntries)
+      .where(eq(leaderboardEntries.leaderboardId, id));
+    
+    // Then delete the leaderboard itself
+    const result = await db
+      .delete(leaderboards)
+      .where(eq(leaderboards.id, id));
+    
+    return result.rowCount > 0;
+  }
+  
+  async updateLeaderboardEntry(entry: InsertLeaderboardEntry): Promise<LeaderboardEntry> {
+    // Check if entry already exists
+    const [existingEntry] = await db
+      .select()
+      .from(leaderboardEntries)
+      .where(
+        and(
+          eq(leaderboardEntries.leaderboardId, entry.leaderboardId),
+          eq(leaderboardEntries.userId, entry.userId)
+        )
+      );
+    
+    if (existingEntry) {
+      // Update existing entry
+      const [updatedEntry] = await db
+        .update(leaderboardEntries)
+        .set({
+          score: entry.score,
+          updatedAt: new Date()
+        })
+        .where(eq(leaderboardEntries.id, existingEntry.id))
+        .returning();
+      return updatedEntry;
+    }
+    
+    // Create new entry
+    const [newEntry] = await db
+      .insert(leaderboardEntries)
+      .values({
+        ...entry,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return newEntry;
+  }
+  
+  async updateAllLeaderboards(): Promise<void> {
+    // Update the updatedAt timestamp of all leaderboards
+    await db
+      .update(leaderboards)
+      .set({ updatedAt: new Date() });
+    
+    // In a real implementation, this would calculate new scores
+    // for leaderboard entries based on user activity
   }
 }
 

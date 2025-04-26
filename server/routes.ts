@@ -4,6 +4,7 @@ import { WebSocketServer } from "ws";
 import { setupAuth } from "./auth";
 import { setupPredictionRoutes } from "./predictions";
 import { setupNotificationRoutes } from "./notifications";
+import { setupGamificationRoutes } from "./gamification";
 import { storage } from "./storage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -15,6 +16,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up notification routes
   setupNotificationRoutes(app);
+  
+  // Set up gamification routes (badges & leaderboards)
+  setupGamificationRoutes(app);
   
   // Sports routes
   app.get("/api/sports", async (req, res) => {
@@ -296,8 +300,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Marketing and engagement
         referralProgram: false,
-        achievementBadges: false,
-        streakRewards: false,
+        achievementBadges: true,
+        streakRewards: true,
       };
       
       // If user is authenticated, we can personalize flags
