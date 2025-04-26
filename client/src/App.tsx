@@ -13,6 +13,7 @@ import SubscriptionPage from "@/pages/subscription-page";
 import ProfilePage from "@/pages/profile-page";
 import FAQPage from "@/pages/faq-page";
 import HistoricalDashboard from "@/pages/historical-dashboard";
+import FantasyContestsPage from "@/pages/fantasy-contests-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from 'next-themes';
 import { setNavigationState } from "./lib/error-handler";
@@ -51,6 +52,7 @@ const Router: React.FC = () => {
           <ProtectedRoute path="/" component={HomePage} />
           <ProtectedRoute path="/stats" component={StatsPage} />
           <ProtectedRoute path="/history" component={HistoricalDashboard} />
+          <ProtectedRoute path="/fantasy/contests" component={FantasyContestsPage} />
           <ProtectedRoute path="/subscription" component={SubscriptionPage} />
           <ProtectedRoute path="/profile" component={ProfilePage} />
           <Route path="/faq" component={FAQPage} />

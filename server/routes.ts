@@ -90,8 +90,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
       const status = req.query.status as string;
-      const contests = await storage.getAllFantasyContests(limit, status);
+      const tier = req.query.tier as string;
+      const contests = await storage.getAllFantasyContests(limit, status, tier);
       res.json(contests);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get("/api/fantasy/contests/free", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const status = req.query.status as string;
+      const contests = await storage.getFreeFantasyContests(limit, status);
+      res.json(contests);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get("/api/fantasy/contests/premium", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const status = req.query.status as string;
+      const contests = await storage.getPremiumFantasyContests(limit, status);
+      
+      // Check if user is authorized to access premium contests
+      if (req.isAuthenticated() && req.user.subscriptionTier === 'premium') {
+        res.json(contests);
+      } else {
+        // Return limited information for non-premium users
+        const limitedContests = contests.map(contest => ({
+          id: contest.id,
+          name: contest.name,
+          description: contest.description,
+          startDate: contest.startDate,
+          endDate: contest.endDate,
+          tier: contest.tier,
+          status: contest.status,
+          prizePool: contest.prizePool,
+          requiresPremium: true
+        }));
+        res.json(limitedContests);
+      }
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -226,6 +267,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Contest not found" });
       }
       
+      // Check if this is a premium contest and user has appropriate subscription
+      if (contest.tier === 'premium' && req.user.subscriptionTier !== 'premium') {
+        return res.status(403).json({ 
+          message: "This is a premium contest. Please upgrade your subscription to participate.",
+          requiresUpgrade: true
+        });
+      }
+      
       const team = await storage.getFantasyTeamById(parseInt(teamId));
       if (!team) {
         return res.status(404).json({ message: "Team not found" });
@@ -261,6 +310,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateUser(req.user.id, {
         totalContestsEntered: (req.user.totalContestsEntered || 0) + 1
       });
+      
+      // Create notification
+      if (contest.tier === 'premium') {
+        await storage.createNotification({
+          userId: req.user.id,
+          type: 'contest_entry',
+          title: 'Premium Contest Entry',
+          message: `You've successfully entered the premium contest: ${contest.name}`,
+          icon: '🏆',
+          link: `/fantasy/contests/${contestId}`
+        });
+      } else {
+        await storage.createNotification({
+          userId: req.user.id,
+          type: 'contest_entry',
+          title: 'Contest Entry',
+          message: `You've successfully entered the contest: ${contest.name}`,
+          icon: '🏆',
+          link: `/fantasy/contests/${contestId}`
+        });
+      }
       
       res.status(201).json(entry);
     } catch (error: any) {
