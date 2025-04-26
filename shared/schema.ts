@@ -6,6 +6,8 @@ import { z } from "zod";
 // Define enums
 export const playerPositionEnum = pgEnum('player_position', ['goalkeeper', 'defender', 'midfielder', 'forward']);
 export const fantasyContestStatusEnum = pgEnum('fantasy_contest_status', ['upcoming', 'active', 'completed', 'cancelled']);
+export const badgeTierEnum = pgEnum('badge_tier', ['bronze', 'silver', 'gold', 'platinum', 'diamond']);
+export const leaderboardTypeEnum = pgEnum('leaderboard_type', ['weekly', 'monthly', 'seasonal', 'all_time', 'fantasy', 'prediction_accuracy']);
 
 // User table
 export const users = pgTable("users", {
@@ -28,7 +30,7 @@ export const users = pgTable("users", {
   totalContestsEntered: integer("total_contests_entered").default(0).notNull(),
 });
 
-// User relations
+// User relations - Will add the userBadges and leaderboardEntries relations after we define them
 export const usersRelations = relations(users, ({ many }) => ({
   fantasyTeams: many(fantasyTeams),
   fantasyEntries: many(fantasyContestEntries),
@@ -515,6 +517,92 @@ export const subscriptionTiers = {
   PRO: "pro",
   ELITE: "elite",
 };
+
+// Badges table for gamification
+export const badges = pgTable("badges", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description").notNull(),
+  category: text("category").notNull(), // 'prediction', 'fantasy', 'engagement', 'achievement'
+  icon: text("icon").notNull(),
+  tier: badgeTierEnum("tier").default("bronze").notNull(),
+  points: integer("points").default(0).notNull(), // Points awarded for earning this badge
+  requirements: json("requirements").notNull(), // JSON with requirements to earn this badge
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// User Badges (junction table for users and their earned badges)
+export const userBadges = pgTable("user_badges", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  badgeId: integer("badge_id").notNull().references(() => badges.id, { onDelete: 'cascade' }),
+  earnedAt: timestamp("earned_at").defaultNow().notNull(),
+  progress: json("progress"), // For badges that have progress towards completion
+  isNew: boolean("is_new").default(true).notNull(), // Track if user has viewed this badge yet
+});
+
+// Relations for badges
+export const badgesRelations = relations(badges, ({ many }) => ({
+  userBadges: many(userBadges),
+}));
+
+// Relations for user badges
+export const userBadgesRelations = relations(userBadges, ({ one }) => ({
+  user: one(users, {
+    fields: [userBadges.userId],
+    references: [users.id],
+  }),
+  badge: one(badges, {
+    fields: [userBadges.badgeId],
+    references: [badges.id],
+  }),
+}));
+
+// Leaderboards
+export const leaderboards = pgTable("leaderboards", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: leaderboardTypeEnum("type").notNull(),
+  period: text("period"), // 'current', '2023-W01' (weekly), '2023-01' (monthly), '2023-Q1' (quarterly), '2023' (yearly)
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  rules: json("rules"), // Specific scoring rules for this leaderboard
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Leaderboard entries (user rankings)
+export const leaderboardEntries = pgTable("leaderboard_entries", {
+  id: serial("id").primaryKey(),
+  leaderboardId: integer("leaderboard_id").notNull().references(() => leaderboards.id, { onDelete: 'cascade' }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  points: integer("points").default(0).notNull(),
+  rank: integer("rank"), // Current position in the leaderboard
+  previousRank: integer("previous_rank"), // Track rank changes
+  details: json("details"), // JSON with detailed scoring breakdown
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+});
+
+// Relations for leaderboards
+export const leaderboardsRelations = relations(leaderboards, ({ many }) => ({
+  entries: many(leaderboardEntries),
+}));
+
+// Relations for leaderboard entries
+export const leaderboardEntriesRelations = relations(leaderboardEntries, ({ one }) => ({
+  leaderboard: one(leaderboards, {
+    fields: [leaderboardEntries.leaderboardId],
+    references: [leaderboards.id],
+  }),
+  user: one(users, {
+    fields: [leaderboardEntries.userId],
+    references: [users.id],
+  }),
+}));
 
 // Export types
 export type User = typeof users.$inferSelect;
