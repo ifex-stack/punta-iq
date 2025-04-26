@@ -22,8 +22,8 @@ export const LeaderboardCard: FC<LeaderboardCardProps> = ({
   entries,
   currentUserId
 }) => {
-  // Sort entries by score in descending order
-  const sortedEntries = [...entries].sort((a, b) => b.score - a.score);
+  // Sort entries by points in descending order
+  const sortedEntries = [...entries].sort((a, b) => b.points - a.points);
   
   // Limit to top 10 entries for display
   const topEntries = sortedEntries.slice(0, 10);
@@ -40,7 +40,7 @@ export const LeaderboardCard: FC<LeaderboardCardProps> = ({
             Updated: {new Date(leaderboard.updatedAt).toLocaleDateString()}
           </span>
         </div>
-        <CardDescription>{leaderboard.description}</CardDescription>
+        <CardDescription>{leaderboard.description || ''}</CardDescription>
       </CardHeader>
       
       <CardContent>
@@ -53,7 +53,7 @@ export const LeaderboardCard: FC<LeaderboardCardProps> = ({
                 <span className="text-sm">out of {sortedEntries.length} players</span>
               </div>
               <span className="font-semibold">
-                {sortedEntries[userRank - 1]?.score || 0} points
+                {sortedEntries[userRank - 1]?.points || 0} points
               </span>
             </div>
           </div>
@@ -64,7 +64,7 @@ export const LeaderboardCard: FC<LeaderboardCardProps> = ({
             <TableRow>
               <TableHead className="w-10">Rank</TableHead>
               <TableHead>User</TableHead>
-              <TableHead className="text-right">Score</TableHead>
+              <TableHead className="text-right">Points</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -95,7 +95,7 @@ export const LeaderboardCard: FC<LeaderboardCardProps> = ({
                       <span className="text-sm">User {entry.userId}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right font-bold">{entry.score}</TableCell>
+                  <TableCell className="text-right font-bold">{entry.points}</TableCell>
                 </TableRow>
               ))
             ) : (

@@ -1,6 +1,6 @@
 import { FC } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Leaderboard } from "@shared/schema";
+import { Leaderboard, LeaderboardEntry } from "@shared/schema";
 import { getQueryFn } from "@/lib/queryClient";
 import { LeaderboardCard } from "./leaderboard-card";
 import { useAuth } from "@/hooks/use-auth";
@@ -22,7 +22,7 @@ export const LeaderboardSection: FC<LeaderboardSectionProps> = ({
     error
   } = useQuery<Leaderboard[]>({
     queryKey: ["/api/leaderboards"],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn({ on401: "returnNull" }),
   });
   
   if (isLoading) {
@@ -110,6 +110,11 @@ interface LeaderboardDetailProps {
   currentUserId?: number;
 }
 
+interface LeaderboardResponse {
+  leaderboard: Leaderboard;
+  entries: LeaderboardEntry[];
+}
+
 const LeaderboardDetail: FC<LeaderboardDetailProps> = ({ 
   leaderboardId, 
   currentUserId 
@@ -118,9 +123,9 @@ const LeaderboardDetail: FC<LeaderboardDetailProps> = ({
     data,
     isLoading,
     error
-  } = useQuery({
+  } = useQuery<LeaderboardResponse>({
     queryKey: ["/api/leaderboards", leaderboardId],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn({ on401: "returnNull" }),
   });
   
   if (isLoading) {

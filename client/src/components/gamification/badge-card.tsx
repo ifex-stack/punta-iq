@@ -15,7 +15,7 @@ interface BadgeCardProps {
 export const BadgeCard: FC<BadgeCardProps> = ({ badge, userBadge, onMarkViewed }) => {
   const { toast } = useToast();
   const isEarned = !!userBadge;
-  const isNew = isEarned && !userBadge.isViewed;
+  const isNew = isEarned && userBadge.isNew;
   
   const badgeTierColors = {
     bronze: "bg-amber-700",
@@ -25,7 +25,7 @@ export const BadgeCard: FC<BadgeCardProps> = ({ badge, userBadge, onMarkViewed }
     diamond: "bg-purple-400"
   };
   
-  const tierColor = isEarned ? badgeTierColors[userBadge.tier as keyof typeof badgeTierColors] : "bg-gray-200";
+  const tierColor = isEarned ? badgeTierColors[badge.tier as keyof typeof badgeTierColors] : "bg-gray-200";
   
   const handleMarkAsViewed = async () => {
     if (isNew && userBadge) {
@@ -60,7 +60,7 @@ export const BadgeCard: FC<BadgeCardProps> = ({ badge, userBadge, onMarkViewed }
           <CardTitle className="text-lg">{badge.name}</CardTitle>
           {isEarned && (
             <UIBadge className={`${tierColor} capitalize`}>
-              {userBadge.tier}
+              {badge.tier}
             </UIBadge>
           )}
         </div>
@@ -74,13 +74,19 @@ export const BadgeCard: FC<BadgeCardProps> = ({ badge, userBadge, onMarkViewed }
           </div>
         </div>
         
-        {isEarned && userBadge.progress && (
+        {isEarned && userBadge.progress && typeof userBadge.progress === 'object' && (
           <div className="mt-2">
             <div className="flex justify-between text-xs mb-1">
               <span>Progress</span>
-              <span>{userBadge.progress.current}/{userBadge.progress.target}</span>
+              <span>
+                {userBadge.progress && 'current' in userBadge.progress && 'target' in userBadge.progress ? 
+                  `${userBadge.progress.current}/${userBadge.progress.target}` : 
+                  'In progress'}
+              </span>
             </div>
-            <Progress value={(userBadge.progress.current / userBadge.progress.target) * 100} />
+            {userBadge.progress && 'current' in userBadge.progress && 'target' in userBadge.progress && (
+              <Progress value={(userBadge.progress.current / userBadge.progress.target) * 100} />
+            )}
           </div>
         )}
       </CardContent>
@@ -88,7 +94,7 @@ export const BadgeCard: FC<BadgeCardProps> = ({ badge, userBadge, onMarkViewed }
       <CardFooter className="pt-1">
         <p className="text-xs text-muted-foreground">
           {isEarned 
-            ? `Earned on ${new Date(userBadge.awardedAt).toLocaleDateString()}`
+            ? `Earned on ${new Date(userBadge.earnedAt).toLocaleDateString()}`
             : "Complete the challenge to earn this badge"}
         </p>
       </CardFooter>

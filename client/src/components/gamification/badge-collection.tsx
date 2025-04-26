@@ -20,7 +20,7 @@ export const BadgeCollection: FC<BadgeCollectionProps> = ({ title = "Your Badges
     error: badgesError
   } = useQuery<Badge[]>({
     queryKey: ["/api/badges"],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!user,
   });
   
@@ -30,7 +30,7 @@ export const BadgeCollection: FC<BadgeCollectionProps> = ({ title = "Your Badges
     error: userBadgesError
   } = useQuery<UserBadge[]>({
     queryKey: ["/api/users", user?.id, "badges"],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!user,
   });
   
@@ -41,7 +41,7 @@ export const BadgeCollection: FC<BadgeCollectionProps> = ({ title = "Your Badges
   
   // Check if there's any unviewed badge to show a notification
   useEffect(() => {
-    if (userBadges && userBadges.some(badge => !badge.isViewed)) {
+    if (userBadges && userBadges.some(badge => badge.isNew)) {
       // You could trigger a notification here or add a badge counter to a menu
     }
   }, [userBadges]);
