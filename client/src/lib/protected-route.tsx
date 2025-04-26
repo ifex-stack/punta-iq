@@ -1,14 +1,15 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
-import { Redirect, Route } from "wouter";
+import { Redirect, Route, RouteProps } from "wouter";
+import React from 'react';
 
-export function ProtectedRoute({
-  path,
-  component: Component,
-}: {
+// Use proper wouter types to fix TypeScript errors
+interface ProtectedRouteProps {
   path: string;
-  component: () => React.JSX.Element;
-}) {
+  component: React.ComponentType<any>;
+}
+
+export function ProtectedRoute({ path, component }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -29,5 +30,7 @@ export function ProtectedRoute({
     );
   }
 
-  return <Route path={path} component={Component} />;
+  // Workaround for TypeScript issues with wouter Component types
+  const RouteWithComponent = () => <Route path={path} component={component} />;
+  return <RouteWithComponent />;
 }

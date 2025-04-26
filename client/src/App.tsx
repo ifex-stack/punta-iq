@@ -25,9 +25,10 @@ import { NotificationProvider } from "@/components/notifications/notification-pr
 import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
 import { fetchFeatureFlags } from "./lib/feature-flags";
 
-function Router() {
+// Create typed component definition to fix TypeScript errors
+const Router: React.FC = () => {
   // Track location changes to know when we're navigating
-  const [location, navigate] = useLocation();
+  const [location] = useLocation();
   
   // Set navigation state when location changes
   useEffect(() => {
