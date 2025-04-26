@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { logger, createContextLogger } from "./logger";
+import { initializeFantasyData } from "./fantasy-data-init";
 
 const app = express();
 app.use(express.json());
@@ -162,7 +163,7 @@ app.use((req, res, next) => {
     port,
     host: "0.0.0.0",
     reusePort: true,
-  }, () => {
+  }, async () => {
     appLogger.info(`PuntaIQ server running on port ${port}`, {
       port,
       host: '0.0.0.0',
@@ -171,5 +172,12 @@ app.use((req, res, next) => {
     
     // Keep old log format for compatibility
     log(`serving on port ${port}`);
+    
+    // Initialize fantasy football data
+    try {
+      await initializeFantasyData();
+    } catch (error) {
+      appLogger.error('Failed to initialize fantasy data', { error });
+    }
   });
 })();
