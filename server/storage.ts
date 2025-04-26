@@ -1388,6 +1388,243 @@ export class MemStorage implements IStorage {
     return true;
   }
 
+  // Badge methods
+  async getAllBadges(): Promise<Badge[]> {
+    return Array.from(this.badgesMap.values());
+  }
+  
+  async getBadgeById(id: number): Promise<Badge | undefined> {
+    return this.badgesMap.get(id);
+  }
+  
+  async createBadge(badge: InsertBadge): Promise<Badge> {
+    const id = this.badgeIdCounter++;
+    const now = new Date();
+    const newBadge: Badge = {
+      ...badge,
+      id,
+      createdAt: now
+    };
+    this.badgesMap.set(id, newBadge);
+    return newBadge;
+  }
+  
+  async updateBadge(id: number, data: Partial<InsertBadge>): Promise<Badge | undefined> {
+    const badge = await this.getBadgeById(id);
+    if (!badge) return undefined;
+    
+    const updatedBadge: Badge = {
+      ...badge,
+      ...data
+    };
+    this.badgesMap.set(id, updatedBadge);
+    return updatedBadge;
+  }
+  
+  async deleteBadge(id: number): Promise<boolean> {
+    if (!this.badgesMap.has(id)) return false;
+    
+    // Delete all user badges for this badge first
+    const userBadges = Array.from(this.userBadgesMap.values())
+      .filter(ub => ub.badgeId === id);
+    
+    for (const ub of userBadges) {
+      this.userBadgesMap.delete(ub.id);
+    }
+    
+    // Delete the badge itself
+    this.badgesMap.delete(id);
+    return true;
+  }
+  
+  async getUserBadges(userId: number): Promise<UserBadge[]> {
+    return Array.from(this.userBadgesMap.values())
+      .filter(userBadge => userBadge.userId === userId);
+  }
+  
+  async awardBadgeToUser(userBadge: InsertUserBadge): Promise<UserBadge> {
+    // Check if user already has this badge
+    const existing = Array.from(this.userBadgesMap.values()).find(
+      ub => ub.userId === userBadge.userId && ub.badgeId === userBadge.badgeId
+    );
+    
+    if (existing) {
+      // If existing but at a lower tier, update it
+      if (existing.tier !== userBadge.tier) {
+        const updatedBadge: UserBadge = {
+          ...existing,
+          tier: userBadge.tier,
+          isViewed: false,
+          awardedAt: new Date()
+        };
+        this.userBadgesMap.set(existing.id, updatedBadge);
+        
+        // Create notification for badge upgrade
+        const badge = this.badgesMap.get(userBadge.badgeId);
+        if (badge) {
+          this.createNotification({
+            userId: userBadge.userId,
+            title: "Badge Upgraded!",
+            message: `Your ${badge.name} badge has been upgraded to ${userBadge.tier} tier!`,
+            type: "achievement", 
+            isRead: false
+          });
+        }
+        
+        return updatedBadge;
+      }
+      return existing;
+    }
+    
+    // Create new user badge
+    const id = this.userBadgeIdCounter++;
+    const now = new Date();
+    const newUserBadge: UserBadge = {
+      ...userBadge,
+      id,
+      isViewed: false,
+      awardedAt: now
+    };
+    this.userBadgesMap.set(id, newUserBadge);
+    
+    // Create notification for the user about the badge
+    const badge = this.badgesMap.get(userBadge.badgeId);
+    if (badge) {
+      this.createNotification({
+        userId: userBadge.userId,
+        title: "New Badge Earned!",
+        message: `You've earned the ${badge.name} badge (${userBadge.tier} tier)`,
+        type: "achievement", 
+        isRead: false
+      });
+    }
+    
+    return newUserBadge;
+  }
+  
+  async markBadgeAsViewed(userId: number, badgeId: number): Promise<boolean> {
+    const userBadge = Array.from(this.userBadgesMap.values()).find(
+      ub => ub.userId === userId && ub.badgeId === badgeId
+    );
+    
+    if (!userBadge) return false;
+    
+    const updatedBadge: UserBadge = {
+      ...userBadge,
+      isViewed: true
+    };
+    this.userBadgesMap.set(userBadge.id, updatedBadge);
+    return true;
+  }
+  
+  // Leaderboard methods
+  async getAllLeaderboards(): Promise<Leaderboard[]> {
+    return Array.from(this.leaderboardsMap.values());
+  }
+  
+  async getLeaderboardById(id: number): Promise<Leaderboard | undefined> {
+    return this.leaderboardsMap.get(id);
+  }
+  
+  async getLeaderboardWithEntries(id: number): Promise<{leaderboard: Leaderboard, entries: LeaderboardEntry[]} | undefined> {
+    const leaderboard = this.leaderboardsMap.get(id);
+    if (!leaderboard) return undefined;
+    
+    const entries = Array.from(this.leaderboardEntriesMap.values())
+      .filter(entry => entry.leaderboardId === id)
+      .sort((a, b) => b.score - a.score);
+    
+    return { leaderboard, entries };
+  }
+  
+  async getUserLeaderboardEntries(userId: number): Promise<LeaderboardEntry[]> {
+    return Array.from(this.leaderboardEntriesMap.values())
+      .filter(entry => entry.userId === userId);
+  }
+  
+  async createLeaderboard(leaderboard: InsertLeaderboard): Promise<Leaderboard> {
+    const id = this.leaderboardIdCounter++;
+    const now = new Date();
+    const newLeaderboard: Leaderboard = {
+      ...leaderboard,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.leaderboardsMap.set(id, newLeaderboard);
+    return newLeaderboard;
+  }
+  
+  async updateLeaderboard(id: number, data: Partial<InsertLeaderboard>): Promise<Leaderboard | undefined> {
+    const leaderboard = this.leaderboardsMap.get(id);
+    if (!leaderboard) return undefined;
+    
+    const now = new Date();
+    const updatedLeaderboard: Leaderboard = {
+      ...leaderboard,
+      ...data,
+      updatedAt: now
+    };
+    this.leaderboardsMap.set(id, updatedLeaderboard);
+    return updatedLeaderboard;
+  }
+  
+  async deleteLeaderboard(id: number): Promise<boolean> {
+    if (!this.leaderboardsMap.has(id)) return false;
+    
+    // Delete all entries for this leaderboard
+    const entries = Array.from(this.leaderboardEntriesMap.values())
+      .filter(entry => entry.leaderboardId === id);
+    
+    for (const entry of entries) {
+      this.leaderboardEntriesMap.delete(entry.id);
+    }
+    
+    // Delete the leaderboard itself
+    this.leaderboardsMap.delete(id);
+    return true;
+  }
+  
+  async updateLeaderboardEntry(entry: InsertLeaderboardEntry): Promise<LeaderboardEntry> {
+    // Check if entry already exists
+    const existingEntry = Array.from(this.leaderboardEntriesMap.values()).find(
+      e => e.leaderboardId === entry.leaderboardId && e.userId === entry.userId
+    );
+    
+    if (existingEntry) {
+      // Update existing entry
+      const updatedEntry: LeaderboardEntry = {
+        ...existingEntry,
+        score: entry.score,
+        updatedAt: new Date()
+      };
+      this.leaderboardEntriesMap.set(existingEntry.id, updatedEntry);
+      return updatedEntry;
+    }
+    
+    // Create new entry
+    const id = this.leaderboardEntryIdCounter++;
+    const now = new Date();
+    const newEntry: LeaderboardEntry = {
+      ...entry,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.leaderboardEntriesMap.set(id, newEntry);
+    return newEntry;
+  }
+  
+  async updateAllLeaderboards(): Promise<void> {
+    // This would typically calculate and update all leaderboard entries based on
+    // the latest user stats and performances. For simplicity, just updating the
+    // updatedAt timestamp of all leaderboards.
+    const now = new Date();
+    for (const [id, leaderboard] of this.leaderboardsMap.entries()) {
+      this.leaderboardsMap.set(id, { ...leaderboard, updatedAt: now });
+    }
+  }
+
   // Initialize sample data
   private initializeSampleData() {
     // Add sample sports
