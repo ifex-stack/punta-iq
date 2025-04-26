@@ -42,6 +42,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUserSubscription(userId: number, tier: string): Promise<User>;
   updateUserStripeInfo(userId: number, info: { stripeCustomerId?: string, stripeSubscriptionId?: string }): Promise<User>;
+  updateUserNotificationSettings(userId: number, settings: any): Promise<User>;
   
   // Sport & League methods
   getAllSports(): Promise<Sport[]>;
@@ -172,6 +173,18 @@ export class MemStorage implements IStorage {
       ...user, 
       stripeCustomerId: info.stripeCustomerId || user.stripeCustomerId,
       stripeSubscriptionId: info.stripeSubscriptionId || user.stripeSubscriptionId
+    };
+    this.usersMap.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
+  async updateUserNotificationSettings(userId: number, settings: any): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    const updatedUser = { 
+      ...user, 
+      notificationSettings: settings
     };
     this.usersMap.set(userId, updatedUser);
     return updatedUser;

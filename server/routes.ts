@@ -65,15 +65,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
-      const updatedUser = { 
-        ...user, 
-        notificationSettings: {
-          ...user.notificationSettings,
-          ...settings
-        }
-      };
+      const updatedUser = await storage.updateUserNotificationSettings(user.id, {
+        ...user.notificationSettings,
+        ...settings
+      });
       
-      storage.usersMap.set(user.id, updatedUser);
       res.json({ settings: updatedUser.notificationSettings });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
