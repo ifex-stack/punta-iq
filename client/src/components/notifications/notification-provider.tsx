@@ -66,25 +66,37 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
     };
 
     newSocket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      console.log('WebSocket message received:', data);
+      try {
+        const data = JSON.parse(event.data);
+        console.log('WebSocket message received:', data);
 
-      // Handle different message types
-      if (data.type === 'notification') {
-        // Invalidate notifications query to trigger a refetch
-        queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
-        
-        // Show toast notification
-        toast({
-          title: data.title,
-          description: data.message,
-          variant: data.notificationType === 'error' ? 'destructive' : 'default',
-        });
+        // Handle different message types
+        if (data.type === 'notification') {
+          // Invalidate notifications query to trigger a refetch
+          queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+          
+          // Show toast notification
+          toast({
+            title: data.title,
+            description: data.message,
+            variant: data.notificationType === 'error' ? 'destructive' : 'default',
+          });
+        }
+      } catch (error) {
+        console.error('Error processing WebSocket message:', error);
+        // Silent fail for WebSocket message parsing errors to avoid disrupting the UI
       }
     };
 
     newSocket.onclose = () => {
       console.log('WebSocket disconnected');
+      setSocketConnected(false);
+    };
+    
+    newSocket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      // Don't show an error toast for WebSocket connection issues
+      // as they can happen frequently and would lead to UI spam
       setSocketConnected(false);
     };
 

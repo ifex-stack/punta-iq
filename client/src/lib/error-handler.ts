@@ -90,11 +90,16 @@ export const handleApiError = (error: unknown, fallbackMessage = 'An error occur
     message: fallbackMessage
   };
   
-  toast({
-    title: 'Something went wrong',
-    description: fallbackMessage,
-    variant: 'destructive',
-  });
+  // Only show toast for non-websocket errors
+  // This check helps avoid showing error toasts for common disconnections
+  if (!fallbackMessage.includes('WebSocket') && 
+      !(error instanceof Error && error.message.includes('WebSocket'))) {
+    toast({
+      title: 'Something went wrong',
+      description: fallbackMessage,
+      variant: 'destructive',
+    });
+  }
   
   return unknownError;
 };
