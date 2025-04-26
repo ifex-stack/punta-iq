@@ -10,7 +10,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
-import { ChevronLeft, Search, Mail, ArrowRight } from "lucide-react";
+import { ChevronLeft, Search, Mail, ArrowRight, X } from "lucide-react";
 
 interface FAQItem {
   id: string;
@@ -55,7 +55,7 @@ export default function FAQPage() {
     {
       id: "predictions-1",
       question: "How does PuntaIQ generate predictions?",
-      answer: "PuntaIQ uses advanced machine learning algorithms that analyze thousands of data points including team statistics, player performance, historical matchups, venue information, and many other factors. Our AI models are continuously trained on the latest data to ensure maximum accuracy.",
+      answer: "PuntaIQ uses an advanced prediction system that analyzes thousands of data points including team statistics, player performance, historical matchups, venue information, and many other factors. Our system is continuously updated with the latest data to ensure maximum accuracy.",
       category: "predictions"
     },
     {
@@ -93,13 +93,13 @@ export default function FAQPage() {
     {
       id: "accumulators-2",
       question: "How are accumulators created in PuntaIQ?",
-      answer: "Our AI analyzes all available predictions and selects the ones with the highest confidence rating. These selections are then combined to create accumulators with target odds. The system ensures that only compatible matches are included and optimizes for the best chance of success.",
+      answer: "Our system analyzes all available predictions and selects the ones with the highest confidence rating. These selections are then combined to create accumulators with target odds. The system ensures that only compatible matches are included and optimizes for the best chance of success.",
       category: "accumulators"
     },
     {
       id: "accumulators-3",
       question: "Can I create my own accumulators?",
-      answer: "Elite tier subscribers can create custom accumulators by selecting individual predictions from our platform. This feature allows you to combine your own insights with our AI recommendations.",
+      answer: "Elite tier subscribers can create custom accumulators by selecting individual predictions from our platform. This feature allows you to combine your own insights with our expert recommendations.",
       category: "accumulators"
     },
     
