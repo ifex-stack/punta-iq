@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Filter, Loader2, TrendingUp } from "lucide-react";
+import { ChevronRight, Filter, Loader2, TrendingUp, Bell } from "lucide-react";
 import PredictionCard from "@/components/predictions/prediction-card";
 import SportsTabs from "@/components/predictions/sports-tabs";
 import AccumulatorPanel from "@/components/predictions/accumulator-panel";
 import { useAuth } from "@/hooks/use-auth";
+import { useNotifications } from "@/components/notifications/notification-provider";
 
 export default function HomePage() {
   const [_, navigate] = useLocation();
