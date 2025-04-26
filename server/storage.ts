@@ -212,6 +212,16 @@ export class MemStorage implements IStorage {
     this.accumulatorsMap = new Map();
     this.accumulatorItemsMap = new Map();
     
+    // Initialize fantasy football maps
+    this.fantasyTeamsMap = new Map();
+    this.footballPlayersMap = new Map();
+    this.fantasyTeamPlayersMap = new Map();
+    this.fantasyContestsMap = new Map();
+    this.fantasyGameweeksMap = new Map();
+    this.playerGameweekStatsMap = new Map();
+    this.fantasyContestEntriesMap = new Map();
+    this.pointsTransactionsMap = new Map();
+    
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // Prune expired entries every 24h
     });
@@ -285,6 +295,25 @@ export class MemStorage implements IStorage {
       ...user, 
       notificationSettings: settings
     };
+    this.usersMap.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
+  async updateUserFantasyPoints(userId: number, points: number): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    // Create current fantasyPoints property if it doesn't exist
+    const currentPoints = user.fantasyPoints || 0;
+    
+    const updatedUser = { 
+      ...user, 
+      fantasyPoints: currentPoints + points,
+      // Increment contest stats if needed
+      totalContestsEntered: user.totalContestsEntered || 0,
+      totalContestsWon: user.totalContestsWon || 0
+    };
+    
     this.usersMap.set(userId, updatedUser);
     return updatedUser;
   }
@@ -483,6 +512,702 @@ export class MemStorage implements IStorage {
     
     return false;
   }
+  
+  // Fantasy Football Team methods
+  async getUserFantasyTeams(userId: number): Promise<FantasyTeam[]> {
+    return Array.from(this.fantasyTeamsMap.values()).filter(
+      team => team.userId === userId
+    );
+  }
+  
+  async getFantasyTeamById(id: number): Promise<FantasyTeam | undefined> {
+    return this.fantasyTeamsMap.get(id);
+  }
+  
+  async createFantasyTeam(team: InsertFantasyTeam): Promise<FantasyTeam> {
+    const id = this.fantasyTeamIdCounter++;
+    const now = new Date();
+    const newTeam: FantasyTeam = {
+      ...team,
+      id,
+      totalPoints: 0,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.fantasyTeamsMap.set(id, newTeam);
+    return newTeam;
+  }
+  
+  async updateFantasyTeam(id: number, data: Partial<InsertFantasyTeam>): Promise<FantasyTeam> {
+    const team = await this.getFantasyTeamById(id);
+    if (!team) throw new Error("Fantasy team not found");
+    
+    const now = new Date();
+    const updatedTeam: FantasyTeam = {
+      ...team,
+      ...data,
+      updatedAt: now
+    };
+    this.fantasyTeamsMap.set(id, updatedTeam);
+    return updatedTeam;
+  }
+  
+  async deleteFantasyTeam(id: number): Promise<boolean> {
+    const team = await this.getFantasyTeamById(id);
+    if (!team) return false;
+    
+    // Delete associated team players
+    const teamPlayers = await this.getFantasyTeamPlayers(id);
+    for (const player of teamPlayers) {
+      this.fantasyTeamPlayersMap.delete(player.id);
+    }
+    
+    // Delete team itself
+    this.fantasyTeamsMap.delete(id);
+    return true;
+  }
+  
+  // Football Player methods
+  async getAllFootballPlayers(limit: number = 20, offset: number = 0, filters: any = {}): Promise<FootballPlayer[]> {
+    let players = Array.from(this.footballPlayersMap.values());
+    
+    // Apply filters if any
+    if (filters.position) {
+      players = players.filter(player => player.position === filters.position);
+    }
+    if (filters.team) {
+      players = players.filter(player => player.team.includes(filters.team));
+    }
+    if (filters.league) {
+      players = players.filter(player => player.league === filters.league);
+    }
+    if (filters.active !== undefined) {
+      players = players.filter(player => player.active === filters.active);
+    }
+    
+    return players.slice(offset, offset + limit);
+  }
+  
+  async getFootballPlayerById(id: number): Promise<FootballPlayer | undefined> {
+    return this.footballPlayersMap.get(id);
+  }
+  
+  async searchFootballPlayers(query: string, position?: string, team?: string, limit: number = 20): Promise<FootballPlayer[]> {
+    let players = Array.from(this.footballPlayersMap.values()).filter(
+      player => player.name.toLowerCase().includes(query.toLowerCase())
+    );
+    
+    if (position) {
+      players = players.filter(player => player.position === position);
+    }
+    
+    if (team) {
+      players = players.filter(player => player.team.includes(team));
+    }
+    
+    return players.slice(0, limit);
+  }
+  
+  async createFootballPlayer(player: InsertFootballPlayer): Promise<FootballPlayer> {
+    const id = this.footballPlayerIdCounter++;
+    const now = new Date();
+    const newPlayer: FootballPlayer = {
+      ...player,
+      id,
+      active: true,
+      appearances: 0,
+      goals: 0,
+      assists: 0,
+      yellowCards: 0,
+      redCards: 0,
+      cleanSheets: 0,
+      minutesPlayed: 0,
+      fantasyPointsTotal: 0,
+      fantasyPointsAvg: 0,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.footballPlayersMap.set(id, newPlayer);
+    return newPlayer;
+  }
+  
+  async updateFootballPlayerStats(id: number, stats: Partial<FootballPlayer>): Promise<FootballPlayer> {
+    const player = await this.getFootballPlayerById(id);
+    if (!player) throw new Error("Football player not found");
+    
+    const now = new Date();
+    const updatedPlayer: FootballPlayer = {
+      ...player,
+      ...stats,
+      updatedAt: now
+    };
+    
+    // Calculate average points if appearances > 0
+    if (updatedPlayer.appearances > 0) {
+      updatedPlayer.fantasyPointsAvg = updatedPlayer.fantasyPointsTotal / updatedPlayer.appearances;
+    }
+    
+    this.footballPlayersMap.set(id, updatedPlayer);
+    return updatedPlayer;
+  }
+  
+  // Fantasy Team Players methods
+  async getFantasyTeamPlayers(teamId: number): Promise<FantasyTeamPlayer[]> {
+    return Array.from(this.fantasyTeamPlayersMap.values()).filter(
+      teamPlayer => teamPlayer.teamId === teamId
+    );
+  }
+  
+  async addPlayerToFantasyTeam(teamPlayer: InsertFantasyTeamPlayer): Promise<FantasyTeamPlayer> {
+    const id = this.fantasyTeamPlayerIdCounter++;
+    const now = new Date();
+    const newTeamPlayer: FantasyTeamPlayer = {
+      ...teamPlayer,
+      id,
+      addedAt: now
+    };
+    this.fantasyTeamPlayersMap.set(id, newTeamPlayer);
+    return newTeamPlayer;
+  }
+  
+  async updateFantasyTeamPlayer(id: number, data: Partial<InsertFantasyTeamPlayer>): Promise<FantasyTeamPlayer> {
+    const teamPlayer = this.fantasyTeamPlayersMap.get(id);
+    if (!teamPlayer) throw new Error("Fantasy team player not found");
+    
+    const updatedTeamPlayer: FantasyTeamPlayer = {
+      ...teamPlayer,
+      ...data
+    };
+    this.fantasyTeamPlayersMap.set(id, updatedTeamPlayer);
+    return updatedTeamPlayer;
+  }
+  
+  async removePlayerFromFantasyTeam(teamId: number, playerId: number): Promise<boolean> {
+    const teamPlayer = Array.from(this.fantasyTeamPlayersMap.values()).find(
+      tp => tp.teamId === teamId && tp.playerId === playerId
+    );
+    
+    if (teamPlayer) {
+      this.fantasyTeamPlayersMap.delete(teamPlayer.id);
+      return true;
+    }
+    
+    return false;
+  }
+  
+  // Fantasy Contest methods
+  async getAllFantasyContests(limit: number = 20, status?: string): Promise<FantasyContest[]> {
+    let contests = Array.from(this.fantasyContestsMap.values());
+    
+    if (status) {
+      contests = contests.filter(contest => contest.status === status);
+    }
+    
+    // Sort by startDate descending (newest first)
+    contests.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+    
+    return contests.slice(0, limit);
+  }
+  
+  async getFantasyContestById(id: number): Promise<FantasyContest | undefined> {
+    return this.fantasyContestsMap.get(id);
+  }
+  
+  async getUserFantasyContests(userId: number): Promise<FantasyContest[]> {
+    // Get all contest entries by this user
+    const userEntries = Array.from(this.fantasyContestEntriesMap.values())
+      .filter(entry => entry.userId === userId);
+    
+    // Get the contests for these entries
+    const contestIds = userEntries.map(entry => entry.contestId);
+    const contests = Array.from(this.fantasyContestsMap.values())
+      .filter(contest => contestIds.includes(contest.id));
+    
+    return contests;
+  }
+  
+  async createFantasyContest(contest: InsertFantasyContest): Promise<FantasyContest> {
+    const id = this.fantasyContestIdCounter++;
+    const now = new Date();
+    const newContest: FantasyContest = {
+      ...contest,
+      id,
+      status: 'upcoming',
+      playerCount: 0,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.fantasyContestsMap.set(id, newContest);
+    return newContest;
+  }
+  
+  async updateFantasyContestStatus(id: number, status: string): Promise<FantasyContest> {
+    const contest = await this.getFantasyContestById(id);
+    if (!contest) throw new Error("Fantasy contest not found");
+    
+    const now = new Date();
+    const updatedContest: FantasyContest = {
+      ...contest,
+      status,
+      updatedAt: now
+    };
+    this.fantasyContestsMap.set(id, updatedContest);
+    return updatedContest;
+  }
+  
+  // Fantasy Gameweek methods
+  async getGameweeksByContestId(contestId: number): Promise<FantasyGameweek[]> {
+    return Array.from(this.fantasyGameweeksMap.values())
+      .filter(gameweek => gameweek.contestId === contestId)
+      .sort((a, b) => a.gameweekNumber - b.gameweekNumber);
+  }
+  
+  async getGameweekById(id: number): Promise<FantasyGameweek | undefined> {
+    return this.fantasyGameweeksMap.get(id);
+  }
+  
+  async createGameweek(gameweek: InsertFantasyGameweek): Promise<FantasyGameweek> {
+    const id = this.fantasyGameweekIdCounter++;
+    const now = new Date();
+    const newGameweek: FantasyGameweek = {
+      ...gameweek,
+      id,
+      status: 'upcoming',
+      createdAt: now,
+      updatedAt: now
+    };
+    this.fantasyGameweeksMap.set(id, newGameweek);
+    return newGameweek;
+  }
+  
+  async updateGameweekStatus(id: number, status: string): Promise<FantasyGameweek> {
+    const gameweek = await this.getGameweekById(id);
+    if (!gameweek) throw new Error("Gameweek not found");
+    
+    const now = new Date();
+    const updatedGameweek: FantasyGameweek = {
+      ...gameweek,
+      status,
+      updatedAt: now
+    };
+    this.fantasyGameweeksMap.set(id, updatedGameweek);
+    return updatedGameweek;
+  }
+  
+  // Fantasy Contest Entry methods
+  async getContestEntries(contestId: number): Promise<FantasyContestEntry[]> {
+    return Array.from(this.fantasyContestEntriesMap.values())
+      .filter(entry => entry.contestId === contestId)
+      .sort((a, b) => (b.score || 0) - (a.score || 0)); // Sort by score descending
+  }
+  
+  async getUserContestEntries(userId: number): Promise<FantasyContestEntry[]> {
+    return Array.from(this.fantasyContestEntriesMap.values())
+      .filter(entry => entry.userId === userId);
+  }
+  
+  async getContestEntryById(id: number): Promise<FantasyContestEntry | undefined> {
+    return this.fantasyContestEntriesMap.get(id);
+  }
+  
+  async createContestEntry(entry: InsertFantasyContestEntry): Promise<FantasyContestEntry> {
+    const id = this.fantasyContestEntryIdCounter++;
+    const now = new Date();
+    const newEntry: FantasyContestEntry = {
+      ...entry,
+      id,
+      score: 0,
+      rank: null,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.fantasyContestEntriesMap.set(id, newEntry);
+    
+    // Update contest player count
+    const contest = await this.getFantasyContestById(entry.contestId);
+    if (contest) {
+      await this.fantasyContestsMap.set(contest.id, {
+        ...contest,
+        playerCount: contest.playerCount + 1
+      });
+      
+      // Update user stats
+      const user = await this.getUser(entry.userId);
+      if (user) {
+        await this.updateUserFantasyPoints(entry.userId, 0); // Just to make sure fantasyPoints exists
+        const updatedUser = { 
+          ...user, 
+          totalContestsEntered: (user.totalContestsEntered || 0) + 1
+        };
+        this.usersMap.set(entry.userId, updatedUser);
+      }
+    }
+    
+    return newEntry;
+  }
+  
+  async updateContestEntryScore(id: number, score: number, rank?: number): Promise<FantasyContestEntry> {
+    const entry = await this.getContestEntryById(id);
+    if (!entry) throw new Error("Contest entry not found");
+    
+    const now = new Date();
+    const updatedEntry: FantasyContestEntry = {
+      ...entry,
+      score,
+      rank: rank || entry.rank,
+      updatedAt: now
+    };
+    this.fantasyContestEntriesMap.set(id, updatedEntry);
+    return updatedEntry;
+  }
+  
+  async awardContestPrizes(contestId: number): Promise<boolean> {
+    const contest = await this.getFantasyContestById(contestId);
+    if (!contest) return false;
+    
+    // Only award prizes for completed contests
+    if (contest.status !== 'completed') return false;
+    
+    // Get all entries for this contest, sorted by score
+    const entries = await this.getContestEntries(contestId);
+    if (entries.length === 0) return false;
+    
+    // Award points based on ranking
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      const rank = i + 1;
+      
+      // Update entry rank
+      await this.updateContestEntryScore(entry.id, entry.score || 0, rank);
+      
+      // Award points based on rank
+      let pointsAwarded = 0;
+      
+      if (rank === 1) {
+        // 1st place: 100 points + bonus
+        pointsAwarded = 100 + (contest.firstPlaceBonus || 0);
+        
+        // Update user's won contests count
+        const user = await this.getUser(entry.userId);
+        if (user) {
+          const updatedUser = { 
+            ...user, 
+            totalContestsWon: (user.totalContestsWon || 0) + 1
+          };
+          this.usersMap.set(entry.userId, updatedUser);
+        }
+      } 
+      else if (rank === 2) {
+        // 2nd place: 75 points
+        pointsAwarded = 75;
+      } 
+      else if (rank === 3) {
+        // 3rd place: 50 points
+        pointsAwarded = 50;
+      } 
+      else if (rank <= 10) {
+        // Top 10: 30 points
+        pointsAwarded = 30;
+      } 
+      else if (rank <= 50) {
+        // Top 50: 15 points
+        pointsAwarded = 15;
+      } 
+      else if (rank <= 100) {
+        // Top 100: 5 points
+        pointsAwarded = 5;
+      } 
+      else {
+        // Participation points
+        pointsAwarded = 1;
+      }
+      
+      if (pointsAwarded > 0) {
+        // Add points transaction
+        await this.createPointsTransaction({
+          userId: entry.userId,
+          points: pointsAwarded,
+          type: 'contest_reward',
+          description: `${rank}${this.getOrdinalSuffix(rank)} place in ${contest.name}`,
+          relatedId: contestId
+        });
+        
+        // Update user's total fantasy points
+        await this.updateUserFantasyPoints(entry.userId, pointsAwarded);
+      }
+    }
+    
+    return true;
+  }
+  
+  // Helper method for ordinal numbers
+  private getOrdinalSuffix(i: number): string {
+    const j = i % 10;
+    const k = i % 100;
+    if (j === 1 && k !== 11) {
+      return "st";
+    }
+    if (j === 2 && k !== 12) {
+      return "nd";
+    }
+    if (j === 3 && k !== 13) {
+      return "rd";
+    }
+    return "th";
+  }
+  
+  // Player Gameweek Stats methods
+  async getPlayerGameweekStats(playerId: number, gameweekId: number): Promise<PlayerGameweekStat | undefined> {
+    return Array.from(this.playerGameweekStatsMap.values()).find(
+      stats => stats.playerId === playerId && stats.gameweekId === gameweekId
+    );
+  }
+  
+  async createPlayerGameweekStats(stats: InsertPlayerGameweekStat): Promise<PlayerGameweekStat> {
+    const id = this.playerGameweekStatIdCounter++;
+    const now = new Date();
+    const newStats: PlayerGameweekStat = {
+      ...stats,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.playerGameweekStatsMap.set(id, newStats);
+    return newStats;
+  }
+  
+  async updatePlayerGameweekStats(id: number, stats: Partial<InsertPlayerGameweekStat>): Promise<PlayerGameweekStat> {
+    const existingStats = this.playerGameweekStatsMap.get(id);
+    if (!existingStats) throw new Error("Player gameweek stats not found");
+    
+    const now = new Date();
+    const updatedStats: PlayerGameweekStat = {
+      ...existingStats,
+      ...stats,
+      updatedAt: now
+    };
+    this.playerGameweekStatsMap.set(id, updatedStats);
+    return updatedStats;
+  }
+  
+  async calculateGameweekPoints(gameweekId: number): Promise<boolean> {
+    // Get the gameweek
+    const gameweek = await this.getGameweekById(gameweekId);
+    if (!gameweek) return false;
+    
+    // Gameweek must be completed to calculate points
+    if (gameweek.status !== 'completed') return false;
+    
+    // Get all stats for this gameweek
+    const allStats = Array.from(this.playerGameweekStatsMap.values())
+      .filter(stats => stats.gameweekId === gameweekId);
+    
+    if (allStats.length === 0) return false;
+    
+    // Get all contest entries that include this gameweek's contest
+    const contestEntries = Array.from(this.fantasyContestEntriesMap.values())
+      .filter(entry => entry.contestId === gameweek.contestId);
+    
+    // For each entry, calculate their team's points for this gameweek
+    for (const entry of contestEntries) {
+      // Get the team
+      const team = await this.getFantasyTeamById(entry.teamId);
+      if (!team) continue;
+      
+      // Get all players in this team
+      const teamPlayers = await this.getFantasyTeamPlayers(team.id);
+      if (teamPlayers.length === 0) continue;
+      
+      let totalPoints = 0;
+      
+      // Calculate points for each player in the team
+      for (const teamPlayer of teamPlayers) {
+        const playerStats = allStats.find(stats => stats.playerId === teamPlayer.playerId);
+        if (!playerStats) continue;
+        
+        // Calculate base points
+        let playerPoints = playerStats.points || 0;
+        
+        // Apply captain/vice captain multipliers
+        if (teamPlayer.isCaptain) {
+          playerPoints *= 2; // Double points for captain
+        } else if (teamPlayer.isViceCaptain) {
+          playerPoints *= 1.5; // 1.5x points for vice-captain
+        }
+        
+        totalPoints += playerPoints;
+      }
+      
+      // Update entry's score
+      const currentScore = entry.score || 0;
+      await this.updateContestEntryScore(entry.id, currentScore + totalPoints);
+    }
+    
+    // After calculating all entry scores, check if this is the last gameweek
+    // and award prizes if contest is now completed
+    const contestGameweeks = await this.getGameweeksByContestId(gameweek.contestId);
+    const allCompleted = contestGameweeks.every(gw => gw.status === 'completed');
+    
+    if (allCompleted) {
+      // Mark contest as completed
+      await this.updateFantasyContestStatus(gameweek.contestId, 'completed');
+      
+      // Award prizes
+      await this.awardContestPrizes(gameweek.contestId);
+    }
+    
+    return true;
+  }
+  
+  // Points Transaction methods
+  async getUserPointsTransactions(userId: number, limit: number = 50): Promise<PointsTransaction[]> {
+    return Array.from(this.pointsTransactionsMap.values())
+      .filter(transaction => transaction.userId === userId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, limit);
+  }
+  
+  async createPointsTransaction(transaction: InsertPointsTransaction): Promise<PointsTransaction> {
+    const id = this.pointsTransactionIdCounter++;
+    const now = new Date();
+    const newTransaction: PointsTransaction = {
+      ...transaction,
+      id,
+      createdAt: now
+    };
+    this.pointsTransactionsMap.set(id, newTransaction);
+    return newTransaction;
+  }
+  
+  async getPointsLeaderboard(limit: number = 100): Promise<{userId: number, username: string, points: number}[]> {
+    // Get all users with fantasy points
+    const usersWithPoints = Array.from(this.usersMap.values())
+      .filter(user => user.fantasyPoints && user.fantasyPoints > 0)
+      .map(user => ({
+        userId: user.id,
+        username: user.username,
+        points: user.fantasyPoints || 0
+      }))
+      .sort((a, b) => b.points - a.points)
+      .slice(0, limit);
+    
+    return usersWithPoints;
+  }
+  
+  // Notification system methods
+  async getUserNotifications(userId: number, limit: number = 20): Promise<Notification[]> {
+    return Array.from(this.notificationsMap.values())
+      .filter(notification => notification.userId === userId)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, limit);
+  }
+  
+  async getNotificationById(id: number): Promise<Notification | undefined> {
+    return this.notificationsMap.get(id);
+  }
+  
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const id = this.notificationIdCounter++;
+    const now = new Date();
+    const newNotification: Notification = {
+      ...notification,
+      id,
+      read: false,
+      timestamp: now,
+    };
+    this.notificationsMap.set(id, newNotification);
+    return newNotification;
+  }
+  
+  async markNotificationAsRead(id: number): Promise<boolean> {
+    const notification = this.notificationsMap.get(id);
+    if (!notification) return false;
+    
+    notification.read = true;
+    this.notificationsMap.set(id, notification);
+    return true;
+  }
+  
+  async markAllNotificationsAsRead(userId: number): Promise<boolean> {
+    const userNotifications = Array.from(this.notificationsMap.values())
+      .filter(notification => notification.userId === userId);
+    
+    for (const notification of userNotifications) {
+      notification.read = true;
+      this.notificationsMap.set(notification.id, notification);
+    }
+    
+    return true;
+  }
+  
+  async deleteNotification(id: number): Promise<boolean> {
+    return this.notificationsMap.delete(id);
+  }
+  
+  async deleteAllNotifications(userId: number): Promise<boolean> {
+    const userNotifications = Array.from(this.notificationsMap.values())
+      .filter(notification => notification.userId === userId);
+    
+    for (const notification of userNotifications) {
+      this.notificationsMap.delete(notification.id);
+    }
+    
+    return true;
+  }
+  
+  // Push token methods for mobile and web notifications
+  async getUserPushTokens(userId: number): Promise<PushToken[]> {
+    return Array.from(this.pushTokensMap.values())
+      .filter(token => token.userId === userId && token.isActive);
+  }
+  
+  async getPushTokenById(id: number): Promise<PushToken | undefined> {
+    return this.pushTokensMap.get(id);
+  }
+  
+  async createPushToken(token: InsertPushToken): Promise<PushToken> {
+    const id = this.pushTokenIdCounter++;
+    const now = new Date();
+    const newToken: PushToken = {
+      ...token,
+      id,
+      isActive: true,
+      createdAt: now,
+      lastUsedAt: now,
+    };
+    this.pushTokensMap.set(id, newToken);
+    return newToken;
+  }
+  
+  async updatePushTokenLastUsed(id: number): Promise<boolean> {
+    const token = this.pushTokensMap.get(id);
+    if (!token) return false;
+    
+    token.lastUsedAt = new Date();
+    this.pushTokensMap.set(id, token);
+    return true;
+  }
+  
+  async deactivatePushToken(id: number): Promise<boolean> {
+    const token = this.pushTokensMap.get(id);
+    if (!token) return false;
+    
+    token.isActive = false;
+    this.pushTokensMap.set(id, token);
+    return true;
+  }
+  
+  async deactivateUserPushTokens(userId: number): Promise<boolean> {
+    const userTokens = Array.from(this.pushTokensMap.values())
+      .filter(token => token.userId === userId);
+    
+    for (const token of userTokens) {
+      token.isActive = false;
+      this.pushTokensMap.set(token.id, token);
+    }
+    
+    return true;
+  }
 
   // Initialize sample data
   private initializeSampleData() {
@@ -609,6 +1334,102 @@ export class MemStorage implements IStorage {
     ];
     
     predictionsData.forEach(prediction => this.createPrediction(prediction));
+    
+    // Initialize sample fantasy football data 
+    // Only if we have sample users
+    if (this.usersMap.size > 0) {
+      const sampleUser = this.usersMap.get(1);
+      if (sampleUser) {
+        // Add sample football players
+        const playersData: InsertFootballPlayer[] = [
+          { name: "Kevin De Bruyne", position: "midfielder", team: "Manchester City", league: "Premier League", country: "Belgium", imageUrl: "https://img.url/debruyne.jpg" },
+          { name: "Harry Kane", position: "forward", team: "Bayern Munich", league: "Bundesliga", country: "England", imageUrl: "https://img.url/kane.jpg" },
+          { name: "Virgil van Dijk", position: "defender", team: "Liverpool", league: "Premier League", country: "Netherlands", imageUrl: "https://img.url/vandijk.jpg" },
+          { name: "Alisson Becker", position: "goalkeeper", team: "Liverpool", league: "Premier League", country: "Brazil", imageUrl: "https://img.url/alisson.jpg" },
+          { name: "Jude Bellingham", position: "midfielder", team: "Real Madrid", league: "La Liga", country: "England", imageUrl: "https://img.url/bellingham.jpg" },
+          { name: "Rodri", position: "midfielder", team: "Manchester City", league: "Premier League", country: "Spain", imageUrl: "https://img.url/rodri.jpg" },
+          { name: "Erling Haaland", position: "forward", team: "Manchester City", league: "Premier League", country: "Norway", imageUrl: "https://img.url/haaland.jpg" },
+          { name: "Mohamed Salah", position: "forward", team: "Liverpool", league: "Premier League", country: "Egypt", imageUrl: "https://img.url/salah.jpg" }
+        ];
+        const players = playersData.map(player => this.createFootballPlayer(player));
+        
+        // Create sample fantasy team
+        const team = this.createFantasyTeam({
+          userId: sampleUser.id,
+          name: "Dream Team FC",
+          budget: 100,
+          remainingBudget: 83.5
+        });
+        
+        // Add players to the team
+        this.addPlayerToFantasyTeam({
+          teamId: team.id,
+          playerId: players[0].id,
+          position: 1,
+          isCaptain: true,
+          isViceCaptain: false
+        });
+        
+        this.addPlayerToFantasyTeam({
+          teamId: team.id,
+          playerId: players[1].id,
+          position: 2,
+          isCaptain: false,
+          isViceCaptain: true
+        });
+        
+        this.addPlayerToFantasyTeam({
+          teamId: team.id,
+          playerId: players[2].id,
+          position: 3,
+          isCaptain: false,
+          isViceCaptain: false
+        });
+        
+        // Create sample fantasy contest
+        const now = new Date();
+        const nextWeek = new Date(now);
+        nextWeek.setDate(now.getDate() + 7);
+        
+        const contest = this.createFantasyContest({
+          name: "Premier League Gameweek 1",
+          description: "Compete in the first gameweek of the Premier League season!",
+          startDate: now,
+          endDate: nextWeek,
+          entryFee: 0,
+          maxEntries: 1000,
+          firstPlaceBonus: 50,
+          prizes: { first: 100, second: 75, third: 50 }
+        });
+        
+        // Create gameweek for contest
+        const gameweek = this.createGameweek({
+          contestId: contest.id,
+          gameweekNumber: 1,
+          startDate: now,
+          endDate: nextWeek,
+          description: "Opening matches of the season"
+        });
+        
+        // Enter the contest with the team
+        this.createContestEntry({
+          userId: sampleUser.id,
+          contestId: contest.id,
+          teamId: team.id
+        });
+        
+        // Add some points transactions
+        this.createPointsTransaction({
+          userId: sampleUser.id,
+          points: 10,
+          type: 'signup_bonus',
+          description: 'Welcome bonus for signing up'
+        });
+        
+        // Update user's fantasy points
+        this.updateUserFantasyPoints(sampleUser.id, 10);
+      }
+    }
   }
 }
 

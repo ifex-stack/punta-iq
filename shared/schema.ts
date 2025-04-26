@@ -447,6 +447,67 @@ export const insertPointsTransactionSchema = createInsertSchema(pointsTransactio
   relatedType: true,
 });
 
+// Notifications table
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  type: text("type").notNull(), // 'info', 'success', 'warning', 'error'
+  link: text("link"),
+  icon: text("icon"),
+  read: boolean("read").default(false),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
+  data: json("data"), // Additional JSON data specific to the notification type
+});
+
+// Notifications relations
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+}));
+
+export const insertNotificationSchema = createInsertSchema(notifications).pick({
+  userId: true,
+  title: true,
+  message: true,
+  type: true,
+  link: true,
+  icon: true,
+  expiresAt: true,
+  data: true,
+});
+
+// Push tokens table for mobile and web push notifications
+export const pushTokens = pgTable("push_tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  token: text("token").notNull(),
+  platform: text("platform").notNull(), // 'ios', 'android', 'web'
+  deviceName: text("device_name"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastUsedAt: timestamp("last_used_at").defaultNow().notNull(),
+});
+
+// Push tokens relations
+export const pushTokensRelations = relations(pushTokens, ({ one }) => ({
+  user: one(users, {
+    fields: [pushTokens.userId],
+    references: [users.id],
+  }),
+}));
+
+export const insertPushTokenSchema = createInsertSchema(pushTokens).pick({
+  userId: true,
+  token: true,
+  platform: true,
+  deviceName: true,
+});
+
 // Define subscription tiers
 export const subscriptionTiers = {
   FREE: "free",
@@ -490,3 +551,9 @@ export type PlayerGameweekStat = typeof playerGameweekStats.$inferSelect;
 export type InsertPlayerGameweekStat = z.infer<typeof insertPlayerGameweekStatsSchema>;
 export type PointsTransaction = typeof pointsTransactions.$inferSelect;
 export type InsertPointsTransaction = z.infer<typeof insertPointsTransactionSchema>;
+
+// Notification types
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type PushToken = typeof pushTokens.$inferSelect;
+export type InsertPushToken = z.infer<typeof insertPushTokenSchema>;
