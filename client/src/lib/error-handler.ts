@@ -90,10 +90,28 @@ export const handleApiError = (error: unknown, fallbackMessage = 'An error occur
     message: fallbackMessage
   };
   
-  // Only show toast for non-websocket errors
-  // This check helps avoid showing error toasts for common disconnections
-  if (!fallbackMessage.includes('WebSocket') && 
-      !(error instanceof Error && error.message.includes('WebSocket'))) {
+  // Universal error filter for common navigation and connection issues
+  // This comprehensive check prevents error toasts for many common scenarios
+  const shouldSuppressToast = 
+    // WebSocket related errors 
+    fallbackMessage.includes('WebSocket') || 
+    (error instanceof Error && error.message.includes('WebSocket')) ||
+    // Navigation related errors
+    fallbackMessage.includes('aborted') ||
+    fallbackMessage.includes('navigation') ||
+    fallbackMessage.includes('cancelled') ||
+    (error instanceof Error && 
+      (error.message.includes('aborted') || 
+       error.message.includes('cancelled') || 
+       error.message.includes('navigation'))) ||
+    // Connection errors that happen during navigation
+    (error instanceof DOMException) ||
+    // General network errors during navigation
+    (typeof error === 'object' && error !== null && 
+     'name' in error && (error.name === 'AbortError' || 
+                         error.name === 'NetworkError'));
+  
+  if (!shouldSuppressToast) {
     toast({
       title: 'Something went wrong',
       description: fallbackMessage,

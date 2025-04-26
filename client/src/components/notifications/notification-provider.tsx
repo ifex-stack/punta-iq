@@ -91,6 +91,69 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
     newSocket.onclose = () => {
       console.log('WebSocket disconnected');
       setSocketConnected(false);
+      
+      // Don't attempt to reconnect if the user is not authenticated
+      if (!user) return;
+      
+      // Implement an exponential backoff for reconnection attempts
+      // but don't show any errors to the user during this process
+      let reconnectAttempt = 0;
+      const maxReconnectAttempts = 5;
+      
+      const attemptReconnect = () => {
+        reconnectAttempt++;
+        
+        // Stop trying after max attempts
+        if (reconnectAttempt > maxReconnectAttempts) {
+          console.log(`Giving up reconnection after ${maxReconnectAttempts} attempts`);
+          return;
+        }
+        
+        // Exponential backoff - wait longer between each attempt
+        const reconnectDelay = Math.min(Math.pow(2, reconnectAttempt) * 1000, 30000);
+        console.log(`Will attempt WebSocket reconnection in ${reconnectDelay}ms (attempt ${reconnectAttempt})`);
+        
+        setTimeout(() => {
+          // Don't attempt reconnection if component is unmounted
+          if (!user) return;
+          
+          try {
+            console.log(`Attempting WebSocket reconnection (attempt ${reconnectAttempt})`);
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            const reconnectSocket = new WebSocket(wsUrl);
+            
+            reconnectSocket.onopen = () => {
+              console.log('WebSocket reconnected successfully');
+              setSocketConnected(true);
+              reconnectSocket.send(JSON.stringify({
+                type: 'authenticate',
+                userId: user.id,
+              }));
+            };
+            
+            reconnectSocket.onclose = () => {
+              console.log('Reconnection failed, will try again');
+              setSocketConnected(false);
+              attemptReconnect();
+            };
+            
+            // Handle errors silently
+            reconnectSocket.onerror = () => {
+              console.log('Error during reconnection attempt');
+              // Don't show any UI errors
+            };
+            
+            setSocket(reconnectSocket);
+          } catch (error) {
+            console.error('Failed to reconnect:', error);
+            attemptReconnect();
+          }
+        }, reconnectDelay);
+      };
+      
+      // Start reconnection process
+      attemptReconnect();
     };
     
     newSocket.onerror = (error) => {
@@ -98,6 +161,36 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
       // Don't show an error toast for WebSocket connection issues
       // as they can happen frequently and would lead to UI spam
       setSocketConnected(false);
+      
+      // Attempt to silently reconnect after a delay without showing errors to the user
+      const reconnectTimeout = setTimeout(() => {
+        if (!user) return;
+        try {
+          console.log('Attempting silent WebSocket reconnection...');
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+          const wsUrl = `${protocol}//${window.location.host}/ws`;
+          const reconnectSocket = new WebSocket(wsUrl);
+          
+          // Set up minimal handlers just to reconnect
+          reconnectSocket.onopen = () => {
+            console.log('WebSocket reconnected successfully');
+            setSocketConnected(true);
+            reconnectSocket.send(JSON.stringify({
+              type: 'authenticate',
+              userId: user.id,
+            }));
+          };
+          
+          // Set new socket
+          setSocket(reconnectSocket);
+        } catch (reconnectError) {
+          console.error('Silent reconnection failed:', reconnectError);
+          // Still don't show error to user
+        }
+      }, 3000); // Try to reconnect after 3 seconds
+      
+      // Clean up timeout on component unmount
+      return () => clearTimeout(reconnectTimeout);
     };
 
     setSocket(newSocket);
