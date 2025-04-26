@@ -1,7 +1,9 @@
 import type { Express } from "express";
 import { storage } from "./storage";
 import { z } from "zod";
-import { insertAccumulatorSchema, insertUserPredictionSchema } from "@shared/schema";
+import { insertAccumulatorSchema, insertUserPredictionSchema, sports, leagues, accumulatorItems } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
+import { db } from "./db";
 
 export function setupPredictionRoutes(app: Express) {
   // Get today's predictions
@@ -20,9 +22,16 @@ export function setupPredictionRoutes(app: Express) {
         
         if (predictions.length > 0) {
           // Get associated league
-          const league = await storage.leaguesMap.get(match.leagueId);
+          const [league] = await db
+            .select()
+            .from(leagues)
+            .where(eq(leagues.id, match.leagueId));
+          
           // Get sport
-          const sport = league ? await storage.sportsMap.get(league.sportId) : null;
+          const [sport] = league ? await db
+            .select()
+            .from(sports)
+            .where(eq(sports.id, league.sportId)) : [];
           
           // For each match, combine with its predictions
           for (const prediction of predictions) {
@@ -76,7 +85,10 @@ export function setupPredictionRoutes(app: Express) {
       
       for (const match of sportMatches) {
         const predictions = await storage.getPredictionsByMatch(match.id);
-        const league = await storage.leaguesMap.get(match.leagueId);
+        const [league] = await db
+          .select()
+          .from(leagues)
+          .where(eq(leagues.id, match.leagueId));
         
         for (const prediction of predictions) {
           // Skip premium predictions for non-premium users
@@ -122,7 +134,10 @@ export function setupPredictionRoutes(app: Express) {
         if (prediction) {
           const match = await storage.getMatchById(prediction.matchId);
           if (match) {
-            const league = await storage.leaguesMap.get(match.leagueId);
+            const [league] = await db
+              .select()
+              .from(leagues)
+              .where(eq(leagues.id, match.leagueId));
             result.push({
               userPrediction,
               prediction,
@@ -240,8 +255,10 @@ export function setupPredictionRoutes(app: Express) {
       
       for (const accumulator of accumulators) {
         // Get all accumulator items
-        const items = Array.from(storage.accumulatorItemsMap.values())
-          .filter(item => item.accumulatorId === accumulator.id);
+        const items = await db
+          .select()
+          .from(accumulatorItems)
+          .where(eq(accumulatorItems.accumulatorId, accumulator.id));
         
         const predictionItems = [];
         for (const item of items) {

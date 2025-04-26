@@ -585,6 +585,19 @@ export class DatabaseStorage implements IStorage {
     if (!user) throw new Error("User not found");
     return user;
   }
+  
+  async updateUserNotificationSettings(userId: number, settings: any): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        notificationSettings: settings
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (!user) throw new Error("User not found");
+    return user;
+  }
 
   // Sport & League methods
   async getAllSports(): Promise<Sport[]> {
