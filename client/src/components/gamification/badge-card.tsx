@@ -74,19 +74,44 @@ export const BadgeCard: FC<BadgeCardProps> = ({ badge, userBadge, onMarkViewed }
           </div>
         </div>
         
-        {isEarned && userBadge.progress && typeof userBadge.progress === 'object' && (
+        {isEarned && userBadge.progress && (
           <div className="mt-2">
             <div className="flex justify-between text-xs mb-1">
               <span>Progress</span>
               <span>
-                {userBadge.progress && 'current' in userBadge.progress && 'target' in userBadge.progress ? 
-                  `${userBadge.progress.current}/${userBadge.progress.target}` : 
-                  'In progress'}
+                {(() => {
+                  // Type narrowing for userBadge.progress
+                  type ProgressType = { current: number; target: number };
+                  try {
+                    const progressData = userBadge.progress as unknown as ProgressType;
+                    if (progressData && typeof progressData === 'object' && 
+                        'current' in progressData && 'target' in progressData) {
+                      return `${progressData.current}/${progressData.target}`;
+                    }
+                    return 'In progress';
+                  } catch (e) {
+                    return 'In progress';
+                  }
+                })()}
               </span>
             </div>
-            {userBadge.progress && 'current' in userBadge.progress && 'target' in userBadge.progress && (
-              <Progress value={(userBadge.progress.current / userBadge.progress.target) * 100} />
-            )}
+            {(() => {
+              // Type narrowing for progress bar
+              type ProgressType = { current: number; target: number };
+              try {
+                const progressData = userBadge.progress as unknown as ProgressType;
+                if (progressData && typeof progressData === 'object' && 
+                    'current' in progressData && 'target' in progressData &&
+                    typeof progressData.current === 'number' && 
+                    typeof progressData.target === 'number' && 
+                    progressData.target > 0) {
+                  return <Progress value={(progressData.current / progressData.target) * 100} />;
+                }
+                return null;
+              } catch (e) {
+                return null;
+              }
+            })()}
           </div>
         )}
       </CardContent>

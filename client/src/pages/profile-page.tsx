@@ -52,8 +52,9 @@ export default function ProfilePage() {
   // Get subscription tier display name
   const subscriptionDisplayName = 
     user.subscriptionTier === subscriptionTiers.FREE ? "Free" :
-    user.subscriptionTier === subscriptionTiers.PREMIUM ? "Premium" :
-    user.subscriptionTier === subscriptionTiers.PRO ? "Pro" : "Unknown";
+    user.subscriptionTier === subscriptionTiers.BASIC ? "Basic" :
+    user.subscriptionTier === subscriptionTiers.PRO ? "Pro" :
+    user.subscriptionTier === subscriptionTiers.ELITE ? "Elite" : "Unknown";
   
   return (
     <div className="container mx-auto py-8 px-4">
