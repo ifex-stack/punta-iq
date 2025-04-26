@@ -121,6 +121,17 @@
       0 0 0 1px rgba(var(--primary), 0.1);
   }
   
+  /* Card animation for subtle hover effects */
+  .card-animation {
+    transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  
+  .card-animation:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+                0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+  
   /* Glowing effect */
   .glow {
     position: relative;
@@ -148,11 +159,30 @@
     opacity: 1;
   }
   
-  /* Pulse animation */
+  /* Pulse animation for notifications and alerts */
   .pulse-highlight {
     animation: pulse 2s ease-in-out;
     position: relative;
     z-index: 10;
+  }
+  
+  .animate-pulse-scale {
+    animation: pulse-scale 2s infinite;
+  }
+  
+  @keyframes pulse-scale {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(var(--primary), 0.4);
+    }
+    70% {
+      transform: scale(1.05);
+      box-shadow: 0 0 0 10px rgba(var(--primary), 0);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(var(--primary), 0);
+    }
   }
   
   @keyframes pulse {
@@ -167,13 +197,17 @@
     }
   }
   
-  /* Float animations */
+  /* Float animations for background elements and icons */
   .animate-float {
-    animation: float 3s ease-in-out infinite;
+    animation: float 6s ease-in-out infinite;
   }
   
   .animate-float-delayed {
-    animation: float 3s ease-in-out 1.5s infinite;
+    animation: float 6s ease-in-out 2s infinite;
+  }
+  
+  .animate-float-subtle {
+    animation: float-subtle 3s ease-in-out infinite;
   }
   
   @keyframes float {
@@ -181,7 +215,19 @@
       transform: translateY(0px);
     }
     50% {
-      transform: translateY(-10px);
+      transform: translateY(-20px);
+    }
+    100% {
+      transform: translateY(0px);
+    }
+  }
+  
+  @keyframes float-subtle {
+    0% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-5px);
     }
     100% {
       transform: translateY(0px);
@@ -202,9 +248,23 @@
     }
   }
   
-  /* Gradient text */
+  /* Gradient text with animation */
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-secondary to-accent;
+  }
+  
+  .animate-gradient-move {
+    background-size: 200% auto;
+    animation: gradient-move 4s linear infinite;
+  }
+  
+  @keyframes gradient-move {
+    0% {
+      background-position: 0% center;
+    }
+    100% {
+      background-position: 200% center;
+    }
   }
   
   /* Shimmer loading effect */
@@ -227,12 +287,42 @@
     }
   }
   
-  /* Glass morphism */
+  /* Glass morphism effects */
   .glass {
     background: rgba(var(--background), 0.7);
     backdrop-filter: blur(12px) saturate(180%);
     -webkit-backdrop-filter: blur(12px) saturate(180%);
     border: 1px solid rgba(var(--border), 0.3);
+  }
+  
+  .glass-light {
+    background: rgba(var(--background), 0.5);
+    backdrop-filter: blur(8px) saturate(160%);
+    -webkit-backdrop-filter: blur(8px) saturate(160%);
+    border: 1px solid rgba(var(--border), 0.1);
+  }
+  
+  /* 3D perspective container */
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+  
+  /* Scene rotations for 3D effects */
+  .rotate-y-15 {
+    transform: rotateY(15deg);
+  }
+  
+  .rotate-x-10 {
+    transform: rotateX(10deg);
+  }
+  
+  /* Scale transitions */
+  .scale-on-hover {
+    transition: transform 0.2s ease-in-out;
+  }
+  
+  .scale-on-hover:hover {
+    transform: scale(1.05);
   }
 }
 
