@@ -16,6 +16,7 @@ import HistoricalDashboard from "@/pages/historical-dashboard";
 import FantasyContestsPage from "@/pages/fantasy-contests-page";
 import PredictionsPage from "@/pages/predictions-page";
 import AdminPage from "@/pages/admin-page";
+import { UIShowcase } from "@/components/ui-showcase";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from 'next-themes';
 import { setNavigationState } from "./lib/error-handler";
@@ -75,6 +76,7 @@ const Router: React.FC = () => {
             <ProtectedRoute path="/profile" component={ProfilePage} />
             <ProtectedRoute path="/admin" component={AdminPage} />
             <Route path="/faq" component={FAQPage} />
+            <Route path="/ui-showcase" component={UIShowcase} />
             <Route component={NotFound} />
           </Switch>
         </AppLayout>
