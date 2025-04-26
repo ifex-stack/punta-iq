@@ -67,14 +67,33 @@ export default function PredictionCard({
     }
   };
   
-  // Format prediction description
+  // Format personalized prediction description
   const getPredictionDescription = () => {
     if (prediction.sport === "football" && prediction.predictions["1X2"]) {
       const outcome = prediction.predictions["1X2"].outcome;
-      return `${outcome === "HOME_WIN" ? prediction.homeTeam : outcome === "AWAY_WIN" ? prediction.awayTeam : "Draw"} to ${outcome === "DRAW" ? "draw" : "win"}`;
+      const team = outcome === "HOME_WIN" ? prediction.homeTeam : outcome === "AWAY_WIN" ? prediction.awayTeam : "Draw";
+      const action = outcome === "DRAW" ? "draw" : "win";
+      
+      // More personalized descriptions based on confidence
+      if (prediction.confidence >= 85) {
+        return `Strong chance for ${team} to ${action} this match`;
+      } else if (prediction.confidence >= 70) {
+        return `${team} looking likely to ${action} based on recent form`;
+      } else {
+        return `${team} may edge this one with a ${action}`;
+      }
     } else if (prediction.sport === "basketball" && prediction.predictions["Winner"]) {
       const outcome = prediction.predictions["Winner"].outcome;
-      return `${outcome === "HOME_WIN" ? prediction.homeTeam : prediction.awayTeam} to win`;
+      const team = outcome === "HOME_WIN" ? prediction.homeTeam : prediction.awayTeam;
+      
+      // Personalized basketball descriptions
+      if (prediction.confidence >= 85) {
+        return `Expect a convincing win for ${team}`;
+      } else if (prediction.confidence >= 70) {
+        return `${team} should come out on top in this matchup`;
+      } else {
+        return `${team} has a slight edge in this contest`;
+      }
     }
     return prediction.predictedOutcome;
   };
