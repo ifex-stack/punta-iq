@@ -6,6 +6,7 @@ import { z } from "zod";
 // Define enums
 export const playerPositionEnum = pgEnum('player_position', ['goalkeeper', 'defender', 'midfielder', 'forward']);
 export const fantasyContestStatusEnum = pgEnum('fantasy_contest_status', ['upcoming', 'active', 'completed', 'cancelled']);
+export const fantasyContestTierEnum = pgEnum('fantasy_contest_tier', ['free', 'premium']);
 export const badgeTierEnum = pgEnum('badge_tier', ['bronze', 'silver', 'gold', 'platinum', 'diamond']);
 export const leaderboardTypeEnum = pgEnum('leaderboard_type', ['weekly', 'monthly', 'seasonal', 'all_time', 'fantasy', 'prediction_accuracy']);
 
@@ -252,6 +253,7 @@ export const fantasyContests = pgTable("fantasy_contests", {
   prizePool: json("prize_pool").notNull(), // JSON describing prize distribution
   maxTeams: integer("max_teams"), // Optional limit on number of entries
   status: fantasyContestStatusEnum("status").default("upcoming").notNull(),
+  tier: fantasyContestTierEnum("tier").default("free").notNull(), // 'free' or 'premium'
   type: text("type").default("classic"), // "classic", "head-to-head", "league"
   gameweekIds: json("gameweek_ids"), // Array of gameweek IDs included in this contest
   rules: json("rules"), // Specific contest rules
@@ -406,6 +408,7 @@ export const insertFantasyContestSchema = createInsertSchema(fantasyContests).pi
   entryFee: true,
   prizePool: true,
   maxTeams: true,
+  tier: true,
   type: true,
   gameweekIds: true,
   rules: true,

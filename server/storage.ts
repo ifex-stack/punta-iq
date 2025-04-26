@@ -1987,6 +1987,11 @@ export class DatabaseStorage implements IStorage {
   async getAllMatches(): Promise<Match[]> {
     return db.select().from(matches);
   }
+  
+  async getCompletedMatches(): Promise<Match[]> {
+    return db.select().from(matches)
+      .where(eq(matches.isCompleted, true));
+  }
 
   async getMatchById(id: number): Promise<Match | undefined> {
     const [match] = await db
