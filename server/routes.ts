@@ -7,6 +7,7 @@ import { setupNotificationRoutes } from "./notifications";
 import { setupGamificationRoutes } from "./gamification";
 import { storage } from "./storage";
 import { getFantasyStore } from "./fantasy-data-init";
+import { PushNotificationService } from "./push-notification-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes

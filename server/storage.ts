@@ -1397,6 +1397,59 @@ export class MemStorage implements IStorage {
     return true;
   }
   
+  async sendPushNotification(userId: number, title: string, body: string, data?: any): Promise<boolean> {
+    try {
+      // 1. Get user's active push tokens
+      const tokens = await this.getUserPushTokens(userId);
+      const activeTokens = tokens.filter(token => token.isActive);
+      
+      if (activeTokens.length === 0) {
+        // No active tokens, fallback to creating an in-app notification
+        await this.createNotification({
+          userId,
+          title,
+          message: body,
+          type: 'info',
+          data
+        });
+        
+        console.log(`Created in-app notification for user ${userId} (no push tokens)`);
+        return false;
+      }
+      
+      // 2. Send web socket notification if user is connected
+      await this.notifyUserViaWebSocket(userId, {
+        type: 'push_notification',
+        title,
+        body,
+        data
+      });
+      
+      // 3. Create in-app notification as well
+      await this.createNotification({
+        userId,
+        title,
+        message: body,
+        type: 'info',
+        data
+      });
+      
+      // 4. In a real implementation, we would use Firebase Cloud Messaging for Android/iOS
+      // or Web Push API for web browsers here
+      console.log(`Sending push notification to user ${userId} with ${activeTokens.length} tokens`);
+      
+      // 5. Update lastUsedAt for each token
+      for (const token of activeTokens) {
+        await this.updatePushTokenLastUsed(token.id);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error sending push notification:', error);
+      return false;
+    }
+  }
+  
   async deactivateUserPushTokens(userId: number): Promise<boolean> {
     const userTokens = Array.from(this.pushTokensMap.values())
       .filter(token => token.userId === userId);
@@ -2309,6 +2362,62 @@ export class DatabaseStorage implements IStorage {
       .where(eq(pushTokens.id, id));
     
     return result.rowCount > 0;
+  }
+  
+  async sendPushNotification(userId: number, title: string, body: string, data?: any): Promise<boolean> {
+    try {
+      // 1. Get user's active push tokens
+      const tokens = await this.getUserPushTokens(userId);
+      const activeTokens = tokens.filter(token => token.isActive);
+      
+      if (activeTokens.length === 0) {
+        // No active tokens, fallback to creating an in-app notification
+        await this.createNotification({
+          userId,
+          title,
+          message: body,
+          type: 'info',
+          data
+        });
+        
+        console.log(`Created in-app notification for user ${userId} (no push tokens)`);
+        return false;
+      }
+      
+      // 2. Send web socket notification if user is connected
+      await this.notifyUserViaWebSocket(userId, {
+        type: 'push_notification',
+        title,
+        body,
+        data
+      });
+      
+      // 3. Create in-app notification as well
+      await this.createNotification({
+        userId,
+        title,
+        message: body,
+        type: 'info',
+        data
+      });
+      
+      // 4. In a real implementation, we would use Firebase Cloud Messaging for Android/iOS
+      // or Web Push API for web browsers here
+      console.log(`Sending push notification to user ${userId} with ${activeTokens.length} tokens`);
+      
+      // 5. Update lastUsedAt for each token
+      for (const token of activeTokens) {
+        await db
+          .update(pushTokens)
+          .set({ lastUsedAt: new Date() })
+          .where(eq(pushTokens.id, token.id));
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error sending push notification:', error);
+      return false;
+    }
   }
 
   // Badge methods
