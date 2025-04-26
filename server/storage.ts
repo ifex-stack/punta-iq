@@ -27,8 +27,12 @@ import {
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import connectPg from "connect-pg-simple";
+import { eq, desc, and, gte, sql } from "drizzle-orm";
+import { db, pool } from "./db";
 
 const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   // User methods
@@ -496,4 +500,309 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  sessionStore: session.SessionStore;
+
+  constructor() {
+    this.sessionStore = new PostgresSessionStore({ 
+      pool,
+      createTableIfMissing: true 
+    });
+  }
+
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...insertUser,
+        subscriptionTier: subscriptionTiers.FREE,
+        notificationSettings: {
+          predictions: true,
+          results: true,
+          promotions: true,
+        }
+      })
+      .returning();
+    return user;
+  }
+
+  async updateUserSubscription(userId: number, tier: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ subscriptionTier: tier })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (!user) throw new Error("User not found");
+    return user;
+  }
+
+  async updateUserStripeInfo(userId: number, info: { stripeCustomerId?: string; stripeSubscriptionId?: string; }): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        stripeCustomerId: info.stripeCustomerId,
+        stripeSubscriptionId: info.stripeSubscriptionId
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (!user) throw new Error("User not found");
+    return user;
+  }
+
+  // Sport & League methods
+  async getAllSports(): Promise<Sport[]> {
+    return db.select().from(sports);
+  }
+
+  async getActiveSports(): Promise<Sport[]> {
+    return db
+      .select()
+      .from(sports)
+      .where(eq(sports.isActive, true));
+  }
+
+  async createSport(sport: InsertSport): Promise<Sport> {
+    const [newSport] = await db
+      .insert(sports)
+      .values(sport)
+      .returning();
+    return newSport;
+  }
+
+  async getAllLeagues(): Promise<League[]> {
+    return db.select().from(leagues);
+  }
+
+  async getLeaguesBySport(sportId: number): Promise<League[]> {
+    return db
+      .select()
+      .from(leagues)
+      .where(eq(leagues.sportId, sportId));
+  }
+
+  async createLeague(league: InsertLeague): Promise<League> {
+    const [newLeague] = await db
+      .insert(leagues)
+      .values(league)
+      .returning();
+    return newLeague;
+  }
+
+  // Match methods
+  async getAllMatches(): Promise<Match[]> {
+    return db.select().from(matches);
+  }
+
+  async getMatchById(id: number): Promise<Match | undefined> {
+    const [match] = await db
+      .select()
+      .from(matches)
+      .where(eq(matches.id, id));
+    return match;
+  }
+
+  async getMatchesByLeague(leagueId: number): Promise<Match[]> {
+    return db
+      .select()
+      .from(matches)
+      .where(eq(matches.leagueId, leagueId));
+  }
+
+  async getUpcomingMatches(limit: number = 10): Promise<Match[]> {
+    const now = new Date();
+    return db
+      .select()
+      .from(matches)
+      .where(
+        and(
+          gte(matches.startTime, now),
+          eq(matches.isCompleted, false)
+        )
+      )
+      .orderBy(matches.startTime)
+      .limit(limit);
+  }
+
+  async createMatch(match: InsertMatch): Promise<Match> {
+    const [newMatch] = await db
+      .insert(matches)
+      .values({
+        ...match,
+        isCompleted: false,
+        result: null
+      })
+      .returning();
+    return newMatch;
+  }
+
+  // Prediction methods
+  async getAllPredictions(): Promise<Prediction[]> {
+    return db.select().from(predictions);
+  }
+
+  async getPredictionById(id: number): Promise<Prediction | undefined> {
+    const [prediction] = await db
+      .select()
+      .from(predictions)
+      .where(eq(predictions.id, id));
+    return prediction;
+  }
+
+  async getPredictionsByMatch(matchId: number): Promise<Prediction[]> {
+    return db
+      .select()
+      .from(predictions)
+      .where(eq(predictions.matchId, matchId));
+  }
+
+  async getFreePredictions(limit: number = 10): Promise<Prediction[]> {
+    return db
+      .select()
+      .from(predictions)
+      .where(eq(predictions.isPremium, false))
+      .limit(limit);
+  }
+
+  async getPremiumPredictions(limit: number = 10): Promise<Prediction[]> {
+    return db
+      .select()
+      .from(predictions)
+      .where(eq(predictions.isPremium, true))
+      .limit(limit);
+  }
+
+  async createPrediction(prediction: InsertPrediction): Promise<Prediction> {
+    const [newPrediction] = await db
+      .insert(predictions)
+      .values({
+        ...prediction,
+        isCorrect: null
+      })
+      .returning();
+    return newPrediction;
+  }
+
+  // User Prediction methods
+  async getUserPredictions(userId: number): Promise<UserPrediction[]> {
+    return db
+      .select()
+      .from(userPredictions)
+      .where(eq(userPredictions.userId, userId));
+  }
+
+  async saveUserPrediction(userPrediction: InsertUserPrediction): Promise<UserPrediction> {
+    const [newUserPrediction] = await db
+      .insert(userPredictions)
+      .values(userPrediction)
+      .returning();
+    return newUserPrediction;
+  }
+
+  async toggleSavedPrediction(userId: number, predictionId: number): Promise<UserPrediction> {
+    const [existing] = await db
+      .select()
+      .from(userPredictions)
+      .where(
+        and(
+          eq(userPredictions.userId, userId),
+          eq(userPredictions.predictionId, predictionId)
+        )
+      );
+
+    if (existing) {
+      const [updated] = await db
+        .update(userPredictions)
+        .set({ isSaved: !existing.isSaved })
+        .where(eq(userPredictions.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      return this.saveUserPrediction({
+        userId,
+        predictionId,
+        isSaved: true,
+        isInAccumulator: false
+      });
+    }
+  }
+
+  // Accumulator methods
+  async getUserAccumulators(userId: number): Promise<Accumulator[]> {
+    return db
+      .select()
+      .from(accumulators)
+      .where(
+        and(
+          eq(accumulators.userId, userId),
+          eq(accumulators.isActive, true)
+        )
+      );
+  }
+
+  async getAccumulatorById(id: number): Promise<Accumulator | undefined> {
+    const [accumulator] = await db
+      .select()
+      .from(accumulators)
+      .where(eq(accumulators.id, id));
+    return accumulator;
+  }
+
+  async createAccumulator(accumulator: InsertAccumulator): Promise<Accumulator> {
+    const [newAccumulator] = await db
+      .insert(accumulators)
+      .values({
+        ...accumulator,
+        isActive: true
+      })
+      .returning();
+    return newAccumulator;
+  }
+
+  async addToAccumulator(accumulatorItem: InsertAccumulatorItem): Promise<AccumulatorItem> {
+    const [newItem] = await db
+      .insert(accumulatorItems)
+      .values(accumulatorItem)
+      .returning();
+    return newItem;
+  }
+
+  async removeFromAccumulator(accumulatorId: number, predictionId: number): Promise<boolean> {
+    const result = await db
+      .delete(accumulatorItems)
+      .where(
+        and(
+          eq(accumulatorItems.accumulatorId, accumulatorId),
+          eq(accumulatorItems.predictionId, predictionId)
+        )
+      );
+    
+    return result.rowCount > 0;
+  }
+}
+
+// Use the database storage implementation
+export const storage = new DatabaseStorage();
