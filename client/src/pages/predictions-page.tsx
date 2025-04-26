@@ -1,7 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,17 +16,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Calendar,
+  Filter,
+  RefreshCw,
   ChevronDown,
   ChevronUp,
-  Filter,
-  ListFilter,
-  RefreshCw,
   SearchIcon,
   SlidersHorizontal,
 } from "lucide-react";
 
-import PredictionCard from "@/components/predictions/prediction-card";
+import EnhancedPredictionCard from "@/components/predictions/enhanced-prediction-card";
 import AccumulatorCard from "@/components/predictions/accumulator-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -431,9 +433,9 @@ export default function PredictionsPage() {
                       <SelectValue placeholder="All Confidence Levels" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Levels</SelectItem>
+                      <SelectItem value="all">All Confidence Levels</SelectItem>
                       <SelectItem value="high">High (80%+)</SelectItem>
-                      <SelectItem value="medium">Medium (65-80%)</SelectItem>
+                      <SelectItem value="medium">Medium (65-79%)</SelectItem>
                       <SelectItem value="low">Low (Below 65%)</SelectItem>
                     </SelectContent>
                   </Select>
@@ -445,122 +447,44 @@ export default function PredictionsPage() {
       </Collapsible>
       
       {hasError ? (
-        <div className="p-8 text-center">
-          <p className="text-red-500 mb-4">
-            There was an error loading predictions. Please try again.
-          </p>
-          <Button onClick={refreshAllData}>Retry</Button>
+        <div className="text-center py-12">
+          <p className="text-red-500 mb-2">Error loading predictions</p>
+          <Button onClick={refreshAllData}>Try Again</Button>
         </div>
       ) : (
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+        <Tabs defaultValue="all" className="space-y-4">
+          <TabsList className="grid grid-cols-4 md:w-[400px]">
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="football">Football</TabsTrigger>
             <TabsTrigger value="basketball">Basketball</TabsTrigger>
-            <TabsTrigger value="saved">
-              Saved
-              {bookmarkedPredictions.length > 0 && (
-                <Badge className="ml-2" variant="secondary">
-                  {bookmarkedPredictions.length}
-                </Badge>
-              )}
-            </TabsTrigger>
+            <TabsTrigger value="saved">Saved</TabsTrigger>
           </TabsList>
           
-          <div className="mt-6">
-            <TabsContent value="all">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h2 className="text-xl font-bold flex items-center gap-2">
-                    Latest Predictions
-                  </h2>
-                  
-                  {isLoading ? (
-                    Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="space-y-3">
-                        <Skeleton className="h-[200px] w-full rounded-lg" />
-                      </div>
-                    ))
-                  ) : filteredPredictions.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">No predictions found</p>
-                      {(searchTerm || sportFilter !== "all" || leagueFilter !== "all" || confidenceFilter !== "all") && (
-                        <p className="mt-2">Try adjusting your filters</p>
-                      )}
-                    </div>
-                  ) : (
-                    filteredPredictions
-                      .slice(0, 5)
-                      .map((prediction) => (
-                        <PredictionCard
-                          key={prediction.id}
-                          prediction={prediction}
-                          onSave={handleSavePrediction}
-                          onAddToAccumulator={handleAddToAccumulator}
-                          isSaved={bookmarkedPredictions.includes(prediction.id)}
-                          isInAccumulator={predictionsInAccumulator.includes(prediction.id)}
-                          subscriptionStatus={subscriptionStatus}
-                        />
-                      ))
-                  )}
-                </div>
-                
-                <div className="space-y-4">
-                  <h2 className="text-xl font-bold flex items-center gap-2">
-                    AI-Generated Accumulators
-                  </h2>
-                  
-                  {isLoadingAccumulators ? (
-                    Array.from({ length: 2 }).map((_, i) => (
-                      <div key={i} className="space-y-3">
-                        <Skeleton className="h-[200px] w-full rounded-lg" />
-                      </div>
-                    ))
-                  ) : !accumulators || allAccumulators.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">No accumulators found</p>
-                    </div>
-                  ) : (
-                    allAccumulators
-                      .slice(0, 4)
-                      .map((accumulator) => (
-                        <AccumulatorCard
-                          key={accumulator.id}
-                          accumulator={accumulator}
-                          onDelete={handleDeleteAccumulator}
-                          onPlace={handlePlaceBet}
-                          subscriptionStatus={subscriptionStatus}
-                        />
-                      ))
-                  )}
-                </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="football">
-              <div className="grid grid-cols-1 gap-4">
+          <TabsContent value="all">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
                 <h2 className="text-xl font-bold flex items-center gap-2">
-                  Football Predictions
+                  Recent Predictions
                 </h2>
                 
-                {isLoadingFootball ? (
+                {isLoading ? (
                   Array.from({ length: 3 }).map((_, i) => (
                     <div key={i} className="space-y-3">
                       <Skeleton className="h-[200px] w-full rounded-lg" />
                     </div>
                   ))
-                ) : filteredPredictions.filter(p => p.sport === "football").length === 0 ? (
+                ) : filteredPredictions.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-muted-foreground">No football predictions found</p>
-                    {(searchTerm || leagueFilter !== "all" || confidenceFilter !== "all") && (
+                    <p className="text-muted-foreground">No predictions found</p>
+                    {(searchTerm || sportFilter !== "all" || leagueFilter !== "all" || confidenceFilter !== "all") && (
                       <p className="mt-2">Try adjusting your filters</p>
                     )}
                   </div>
                 ) : (
                   filteredPredictions
-                    .filter(p => p.sport === "football")
+                    .slice(0, 5)
                     .map((prediction) => (
-                      <PredictionCard
+                      <EnhancedPredictionCard
                         key={prediction.id}
                         prediction={prediction}
                         onSave={handleSavePrediction}
@@ -572,89 +496,156 @@ export default function PredictionsPage() {
                     ))
                 )}
               </div>
-            </TabsContent>
-            
-            <TabsContent value="basketball">
-              <div className="grid grid-cols-1 gap-4">
+              
+              <div className="space-y-4">
                 <h2 className="text-xl font-bold flex items-center gap-2">
-                  Basketball Predictions
+                  AI-Generated Accumulators
                 </h2>
                 
-                {isLoadingBasketball ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="space-y-3">
-                      <Skeleton className="h-[200px] w-full rounded-lg" />
-                    </div>
-                  ))
-                ) : filteredPredictions.filter(p => p.sport === "basketball").length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">No basketball predictions found</p>
-                    {(searchTerm || leagueFilter !== "all" || confidenceFilter !== "all") && (
-                      <p className="mt-2">Try adjusting your filters</p>
-                    )}
-                  </div>
-                ) : (
-                  filteredPredictions
-                    .filter(p => p.sport === "basketball")
-                    .map((prediction) => (
-                      <PredictionCard
-                        key={prediction.id}
-                        prediction={prediction}
-                        onSave={handleSavePrediction}
-                        onAddToAccumulator={handleAddToAccumulator}
-                        isSaved={bookmarkedPredictions.includes(prediction.id)}
-                        isInAccumulator={predictionsInAccumulator.includes(prediction.id)}
-                        subscriptionStatus={subscriptionStatus}
-                      />
-                    ))
-                )}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="saved">
-              <div className="grid grid-cols-1 gap-4">
-                <h2 className="text-xl font-bold flex items-center gap-2">
-                  Saved Predictions
-                </h2>
-                
-                {!user ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground mb-4">
-                      You need to be logged in to save predictions
-                    </p>
-                    <Button>Login to Save Predictions</Button>
-                  </div>
-                ) : isLoadingSaved ? (
+                {isLoadingAccumulators ? (
                   Array.from({ length: 2 }).map((_, i) => (
                     <div key={i} className="space-y-3">
                       <Skeleton className="h-[200px] w-full rounded-lg" />
                     </div>
                   ))
-                ) : savedPredictionsList.length === 0 ? (
+                ) : !accumulators || allAccumulators.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-muted-foreground">
-                      You haven't saved any predictions yet
-                    </p>
-                    <p className="mt-2">
-                      Click the bookmark icon on predictions to save them here
-                    </p>
+                    <p className="text-muted-foreground">No accumulators found</p>
                   </div>
                 ) : (
-                  savedPredictionsList.map((prediction) => (
-                    <PredictionCard
+                  allAccumulators
+                    .slice(0, 4)
+                    .map((accumulator) => (
+                      <AccumulatorCard
+                        key={accumulator.id}
+                        accumulator={accumulator}
+                        onDelete={handleDeleteAccumulator}
+                        onPlace={handlePlaceBet}
+                        subscriptionStatus={subscriptionStatus}
+                      />
+                    ))
+                )}
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="football">
+            <div className="grid grid-cols-1 gap-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                Football Predictions
+              </h2>
+              
+              {isLoadingFootball ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="space-y-3">
+                    <Skeleton className="h-[200px] w-full rounded-lg" />
+                  </div>
+                ))
+              ) : filteredPredictions.filter(p => p.sport === "football").length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No football predictions found</p>
+                  {(searchTerm || leagueFilter !== "all" || confidenceFilter !== "all") && (
+                    <p className="mt-2">Try adjusting your filters</p>
+                  )}
+                </div>
+              ) : (
+                filteredPredictions
+                  .filter(p => p.sport === "football")
+                  .map((prediction) => (
+                    <EnhancedPredictionCard
                       key={prediction.id}
                       prediction={prediction}
                       onSave={handleSavePrediction}
                       onAddToAccumulator={handleAddToAccumulator}
-                      isSaved={true}
+                      isSaved={bookmarkedPredictions.includes(prediction.id)}
                       isInAccumulator={predictionsInAccumulator.includes(prediction.id)}
                       subscriptionStatus={subscriptionStatus}
                     />
                   ))
-                )}
-              </div>
-            </TabsContent>
-          </div>
+              )}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="basketball">
+            <div className="grid grid-cols-1 gap-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                Basketball Predictions
+              </h2>
+              
+              {isLoadingBasketball ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="space-y-3">
+                    <Skeleton className="h-[200px] w-full rounded-lg" />
+                  </div>
+                ))
+              ) : filteredPredictions.filter(p => p.sport === "basketball").length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No basketball predictions found</p>
+                  {(searchTerm || leagueFilter !== "all" || confidenceFilter !== "all") && (
+                    <p className="mt-2">Try adjusting your filters</p>
+                  )}
+                </div>
+              ) : (
+                filteredPredictions
+                  .filter(p => p.sport === "basketball")
+                  .map((prediction) => (
+                    <EnhancedPredictionCard
+                      key={prediction.id}
+                      prediction={prediction}
+                      onSave={handleSavePrediction}
+                      onAddToAccumulator={handleAddToAccumulator}
+                      isSaved={bookmarkedPredictions.includes(prediction.id)}
+                      isInAccumulator={predictionsInAccumulator.includes(prediction.id)}
+                      subscriptionStatus={subscriptionStatus}
+                    />
+                  ))
+              )}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="saved">
+            <div className="grid grid-cols-1 gap-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                Saved Predictions
+              </h2>
+              
+              {!user ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground mb-4">
+                    You need to be logged in to save predictions
+                  </p>
+                  <Button>Login to Save Predictions</Button>
+                </div>
+              ) : isLoadingSaved ? (
+                Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="space-y-3">
+                    <Skeleton className="h-[200px] w-full rounded-lg" />
+                  </div>
+                ))
+              ) : savedPredictionsList.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">
+                    You haven't saved any predictions yet
+                  </p>
+                  <p className="mt-2">
+                    Click the bookmark icon on predictions to save them here
+                  </p>
+                </div>
+              ) : (
+                savedPredictionsList.map((prediction) => (
+                  <EnhancedPredictionCard
+                    key={prediction.id}
+                    prediction={prediction}
+                    onSave={handleSavePrediction}
+                    onAddToAccumulator={handleAddToAccumulator}
+                    isSaved={true}
+                    isInAccumulator={predictionsInAccumulator.includes(prediction.id)}
+                    subscriptionStatus={subscriptionStatus}
+                  />
+                ))
+              )}
+            </div>
+          </TabsContent>
         </Tabs>
       )}
     </div>
