@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 // Type definition for notification
 type Notification = {
@@ -97,12 +98,14 @@ const TopBar = () => {
             <Bot className="h-6 w-6 text-white" />
           </div>
           <div className="ml-3">
-            <h1 className="text-lg font-bold font-sans text-foreground">AI Sports Predictions</h1>
+            <h1 className="text-lg font-bold font-sans text-foreground">PuntaIQ</h1>
           </div>
         </a>
       </Link>
       
-      <div className="flex items-center">
+      <div className="flex items-center gap-2">
+        <ThemeToggle variant="ghost" />
+        
         {user && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -150,7 +153,7 @@ const TopBar = () => {
         )}
         
         <Link href="/profile">
-          <a className="ml-3 h-8 w-8 rounded-full bg-primary/80 hover:bg-primary flex items-center justify-center text-sm text-white font-medium">
+          <a className="ml-1 h-8 w-8 rounded-full bg-primary/80 hover:bg-primary flex items-center justify-center text-sm text-white font-medium">
             {getUserInitials()}
           </a>
         </Link>

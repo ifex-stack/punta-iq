@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation } from 'wouter';
 import BottomNavigation from './bottom-navigation';
+import TopBar from './top-bar';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -22,6 +23,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   
   return (
     <div className="flex flex-col min-h-screen pb-16">
+      <TopBar />
       <main className="flex-1">
         {children}
       </main>
