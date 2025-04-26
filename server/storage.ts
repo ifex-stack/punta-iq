@@ -7,6 +7,14 @@ import {
   userPredictions, 
   accumulators, 
   accumulatorItems,
+  fantasyTeams,
+  footballPlayers,
+  fantasyTeamPlayers,
+  fantasyContests,
+  fantasyGameweeks,
+  playerGameweekStats,
+  fantasyContestEntries,
+  pointsTransactions,
   type User,
   type InsertUser,
   type Sport,
@@ -23,6 +31,22 @@ import {
   type InsertAccumulator,
   type AccumulatorItem,
   type InsertAccumulatorItem,
+  type FantasyTeam,
+  type InsertFantasyTeam,
+  type FootballPlayer,
+  type InsertFootballPlayer,
+  type FantasyTeamPlayer,
+  type InsertFantasyTeamPlayer,
+  type FantasyContest,
+  type InsertFantasyContest,
+  type FantasyGameweek,
+  type InsertFantasyGameweek,
+  type FantasyContestEntry,
+  type InsertFantasyContestEntry,
+  type PlayerGameweekStat,
+  type InsertPlayerGameweekStat,
+  type PointsTransaction,
+  type InsertPointsTransaction,
   subscriptionTiers
 } from "@shared/schema";
 import session from "express-session";
@@ -43,6 +67,7 @@ export interface IStorage {
   updateUserSubscription(userId: number, tier: string): Promise<User>;
   updateUserStripeInfo(userId: number, info: { stripeCustomerId?: string, stripeSubscriptionId?: string }): Promise<User>;
   updateUserNotificationSettings(userId: number, settings: any): Promise<User>;
+  updateUserFantasyPoints(userId: number, points: number): Promise<User>;
   
   // Sport & League methods
   getAllSports(): Promise<Sport[]>;
@@ -79,6 +104,58 @@ export interface IStorage {
   addToAccumulator(accumulatorItem: InsertAccumulatorItem): Promise<AccumulatorItem>;
   removeFromAccumulator(accumulatorId: number, predictionId: number): Promise<boolean>;
   
+  // Fantasy Football Team methods
+  getUserFantasyTeams(userId: number): Promise<FantasyTeam[]>;
+  getFantasyTeamById(id: number): Promise<FantasyTeam | undefined>;
+  createFantasyTeam(team: InsertFantasyTeam): Promise<FantasyTeam>;
+  updateFantasyTeam(id: number, data: Partial<InsertFantasyTeam>): Promise<FantasyTeam>;
+  deleteFantasyTeam(id: number): Promise<boolean>;
+  
+  // Football Player methods
+  getAllFootballPlayers(limit?: number, offset?: number, filters?: any): Promise<FootballPlayer[]>;
+  getFootballPlayerById(id: number): Promise<FootballPlayer | undefined>;
+  searchFootballPlayers(query: string, position?: string, team?: string, limit?: number): Promise<FootballPlayer[]>;
+  createFootballPlayer(player: InsertFootballPlayer): Promise<FootballPlayer>;
+  updateFootballPlayerStats(id: number, stats: Partial<FootballPlayer>): Promise<FootballPlayer>;
+  
+  // Fantasy Team Players methods
+  getFantasyTeamPlayers(teamId: number): Promise<FantasyTeamPlayer[]>;
+  addPlayerToFantasyTeam(teamPlayer: InsertFantasyTeamPlayer): Promise<FantasyTeamPlayer>;
+  updateFantasyTeamPlayer(id: number, data: Partial<InsertFantasyTeamPlayer>): Promise<FantasyTeamPlayer>;
+  removePlayerFromFantasyTeam(teamId: number, playerId: number): Promise<boolean>;
+  
+  // Fantasy Contest methods
+  getAllFantasyContests(limit?: number, status?: string): Promise<FantasyContest[]>;
+  getFantasyContestById(id: number): Promise<FantasyContest | undefined>;
+  getUserFantasyContests(userId: number): Promise<FantasyContest[]>;
+  createFantasyContest(contest: InsertFantasyContest): Promise<FantasyContest>;
+  updateFantasyContestStatus(id: number, status: string): Promise<FantasyContest>;
+  
+  // Fantasy Gameweek methods
+  getGameweeksByContestId(contestId: number): Promise<FantasyGameweek[]>;
+  getGameweekById(id: number): Promise<FantasyGameweek | undefined>;
+  createGameweek(gameweek: InsertFantasyGameweek): Promise<FantasyGameweek>;
+  updateGameweekStatus(id: number, status: string): Promise<FantasyGameweek>;
+  
+  // Fantasy Contest Entry methods
+  getContestEntries(contestId: number): Promise<FantasyContestEntry[]>;
+  getUserContestEntries(userId: number): Promise<FantasyContestEntry[]>;
+  getContestEntryById(id: number): Promise<FantasyContestEntry | undefined>;
+  createContestEntry(entry: InsertFantasyContestEntry): Promise<FantasyContestEntry>;
+  updateContestEntryScore(id: number, score: number, rank?: number): Promise<FantasyContestEntry>;
+  awardContestPrizes(contestId: number): Promise<boolean>;
+  
+  // Player Gameweek Stats methods
+  getPlayerGameweekStats(playerId: number, gameweekId: number): Promise<PlayerGameweekStat | undefined>;
+  createPlayerGameweekStats(stats: InsertPlayerGameweekStat): Promise<PlayerGameweekStat>;
+  updatePlayerGameweekStats(id: number, stats: Partial<InsertPlayerGameweekStat>): Promise<PlayerGameweekStat>;
+  calculateGameweekPoints(gameweekId: number): Promise<boolean>;
+  
+  // Points Transaction methods
+  getUserPointsTransactions(userId: number, limit?: number): Promise<PointsTransaction[]>;
+  createPointsTransaction(transaction: InsertPointsTransaction): Promise<PointsTransaction>;
+  getPointsLeaderboard(limit?: number): Promise<{userId: number, username: string, points: number}[]>;
+  
   // Session store
   sessionStore: session.SessionStore;
 }
@@ -92,8 +169,20 @@ export class MemStorage implements IStorage {
   private userPredictionsMap: Map<number, UserPrediction>;
   private accumulatorsMap: Map<number, Accumulator>;
   private accumulatorItemsMap: Map<number, AccumulatorItem>;
+  
+  // Fantasy football tables
+  private fantasyTeamsMap: Map<number, FantasyTeam>;
+  private footballPlayersMap: Map<number, FootballPlayer>;
+  private fantasyTeamPlayersMap: Map<number, FantasyTeamPlayer>;
+  private fantasyContestsMap: Map<number, FantasyContest>;
+  private fantasyGameweeksMap: Map<number, FantasyGameweek>;
+  private playerGameweekStatsMap: Map<number, PlayerGameweekStat>;
+  private fantasyContestEntriesMap: Map<number, FantasyContestEntry>;
+  private pointsTransactionsMap: Map<number, PointsTransaction>;
+  
   sessionStore: session.SessionStore;
   
+  // ID counters for entities
   private userIdCounter: number = 1;
   private sportIdCounter: number = 1;
   private leagueIdCounter: number = 1;
@@ -102,6 +191,16 @@ export class MemStorage implements IStorage {
   private userPredictionIdCounter: number = 1;
   private accumulatorIdCounter: number = 1;
   private accumulatorItemIdCounter: number = 1;
+  
+  // Fantasy football ID counters
+  private fantasyTeamIdCounter: number = 1;
+  private footballPlayerIdCounter: number = 1;
+  private fantasyTeamPlayerIdCounter: number = 1;
+  private fantasyContestIdCounter: number = 1;
+  private fantasyGameweekIdCounter: number = 1;
+  private playerGameweekStatIdCounter: number = 1;
+  private fantasyContestEntryIdCounter: number = 1;
+  private pointsTransactionIdCounter: number = 1;
 
   constructor() {
     this.usersMap = new Map();
