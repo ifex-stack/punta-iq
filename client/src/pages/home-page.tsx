@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Filter, Loader2, TrendingUp, Bell } from "lucide-react";
+import { ChevronRight, Filter, Loader2, TrendingUp, Bell, Paintbrush } from "lucide-react";
 import PredictionCard from "@/components/predictions/prediction-card";
 import SportsTabs from "@/components/predictions/sports-tabs";
 import AccumulatorPanel from "@/components/predictions/accumulator-panel";
@@ -77,7 +77,7 @@ export default function HomePage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-3xl font-bold mb-2">
-              AI Sports Predictions
+              PuntaIQ Predictions
             </h1>
             <p className="text-muted-foreground">
               Daily predictions powered by advanced machine learning algorithms
@@ -102,6 +102,14 @@ export default function HomePage() {
                 Sign In
               </Button>
             )}
+            <Button 
+              variant="secondary" 
+              onClick={() => navigate("/ui-showcase")}
+              className="flex items-center"
+            >
+              <Paintbrush className="mr-2 h-4 w-4" />
+              UI Showcase
+            </Button>
           </div>
         </div>
         

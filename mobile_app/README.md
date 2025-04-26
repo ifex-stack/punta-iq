@@ -1,6 +1,6 @@
-# AI Sports Predictions Mobile App
+# PuntaIQ Predictions Mobile App
 
-A React Native mobile application for the AI Sports Predictions platform.
+A React Native mobile application for the PuntaIQ Predictions platform.
 
 ## Features
 
@@ -97,4 +97,4 @@ Users can customize their notification preferences in the app settings.
 
 ## License
 
-Copyright © 2025 AI Sports Predictions
+Copyright © 2025 PuntaIQ Predictions
