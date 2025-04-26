@@ -1,395 +1,181 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useState, useEffect } from 'react';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
-import { 
-  Star, 
-  Award, 
-  TrendingUp, 
-  Calendar, 
-  Settings,
-  Users,
-  CreditCard,
-  MessageCircle,
-  ChevronRight
-} from "lucide-react";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from "@/components/ui/sheet";
+import { Button } from '@/components/ui/button';
+import { useOnboarding } from './onboarding-provider';
+import { Trophy, Newspaper, Calendar, ArrowRight, ArrowLeft, X } from 'lucide-react';
 
-import { useOnboarding } from "./onboarding-provider";
-import { useFeatureFlag } from "@/lib/feature-flags";
+const GUIDE_STEPS = [
+  {
+    id: 'welcome',
+    title: 'Welcome to PuntaIQ',
+    description: 'Your smart companion for sports predictions. Let\'s get you started with the basics.',
+    icon: Trophy,
+  },
+  {
+    id: 'predictions',
+    title: 'Daily Predictions',
+    description: 'Check our platform daily for new AI-generated predictions. We offer various prediction types across multiple sports.',
+    icon: Newspaper,
+  },
+  {
+    id: 'accumulators',
+    title: 'Multi-Tiered Accumulators',
+    description: 'Our system creates special accumulators with odds of 15, 20, 30, and 50 to maximize your potential returns.',
+    icon: Calendar,
+  },
+];
 
-/**
- * Getting Started Guide
- * A comprehensive guide for new users to understand the PuntaIQ platform
- */
 export function GettingStartedGuide() {
-  const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
-  const { isOnboarded, startOnboarding } = useOnboarding();
-  const showGuide = useFeatureFlag('gettingStartedGuide');
-  const [, navigate] = useLocation();
+  const { state, hideGettingStarted, markStepComplete } = useOnboarding();
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const currentStep = GUIDE_STEPS[currentStepIndex];
   
-  if (!showGuide) {
-    return null;
-  }
+  // Handle closing the guide
+  const handleClose = () => {
+    hideGettingStarted();
+    markStepComplete('getting_started_completed');
+  };
+  
+  // Go to next step
+  const handleNext = () => {
+    if (currentStepIndex < GUIDE_STEPS.length - 1) {
+      setCurrentStepIndex(prev => prev + 1);
+      markStepComplete(currentStep.id);
+    } else {
+      handleClose();
+    }
+  };
+  
+  // Go to previous step
+  const handlePrevious = () => {
+    if (currentStepIndex > 0) {
+      setCurrentStepIndex(prev => prev - 1);
+    }
+  };
+  
+  // Create the icon component for the current step
+  const IconComponent = currentStep?.icon;
   
   return (
-    <>
-      {/* Guide trigger button */}
-      <div className="fixed bottom-4 left-4 z-50">
-        <Button
-          onClick={() => setOpen(true)}
-          className="gap-2 shadow-lg"
-        >
-          <Star className="h-4 w-4" />
-          Getting Started
-        </Button>
-      </div>
-      
-      {/* Guide dialog */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">Welcome to PuntaIQ</DialogTitle>
-            <DialogDescription className="text-lg">
-              Your guide to AI-powered sports predictions
-            </DialogDescription>
-          </DialogHeader>
+    <Sheet open={state.showGettingStartedGuide} onOpenChange={hideGettingStarted}>
+      <SheetContent side="bottom" className="h-[450px] sm:h-[450px] rounded-t-xl bg-gradient-to-b from-background via-background to-background/95 border-t-primary/10 px-6">
+        <div className="absolute top-3 right-3">
+          <Button variant="ghost" size="icon" onClick={handleClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        <div className="h-full flex flex-col pt-8">
+          <SheetHeader className="text-center">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center mx-auto mb-4">
+              {IconComponent && (
+                <IconComponent className="h-8 w-8 text-primary animate-pulse" />
+              )}
+            </div>
+            
+            <SheetTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-primary-foreground bg-clip-text text-transparent">
+              {currentStep.title}
+            </SheetTitle>
+            
+            <div className="flex justify-center gap-1 mt-4 mb-2">
+              {GUIDE_STEPS.map((step, index) => (
+                <div
+                  key={step.id}
+                  className={`h-1.5 rounded-full transition-all ${
+                    index === currentStepIndex
+                      ? 'w-8 bg-primary'
+                      : index < currentStepIndex
+                      ? 'w-1.5 bg-primary/60'
+                      : 'w-1.5 bg-muted'
+                  }`}
+                />
+              ))}
+            </div>
+            
+            <SheetDescription className="text-base mt-4">
+              {currentStep.description}
+            </SheetDescription>
+          </SheetHeader>
           
-          <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-4 mb-4">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="features">Key Features</TabsTrigger>
-              <TabsTrigger value="faq">FAQ</TabsTrigger>
-              <TabsTrigger value="next-steps">Next Steps</TabsTrigger>
-            </TabsList>
-            
-            {/* Overview Tab */}
-            <TabsContent value="overview" className="space-y-4">
-              <div className="prose dark:prose-invert max-w-none">
-                <h3 className="font-semibold text-xl">What is PuntaIQ?</h3>
-                <p>
-                  PuntaIQ is an AI-powered sports prediction platform that generates daily betting predictions 
-                  with zero human intervention. Our sophisticated machine learning algorithms analyze vast amounts 
-                  of data to provide reliable predictions across multiple sports.
-                </p>
-                
-                <h3 className="font-semibold text-xl">What sets us apart?</h3>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>
-                    <span className="font-medium">100% Autonomous AI:</span> All predictions are generated 
-                    without human intervention for maximum consistency and credibility.
-                  </li>
-                  <li>
-                    <span className="font-medium">Multi-tiered Accumulators:</span> Exclusive accumulators with 
-                    odds of 15, 20, 30, and 50 - carefully balanced for risk and reward.
-                  </li>
-                  <li>
-                    <span className="font-medium">Comprehensive Analytics:</span> Track historical performance 
-                    with detailed insights into prediction accuracy over time.
-                  </li>
-                  <li>
-                    <span className="font-medium">Global Focus:</span> Specialized coverage for UK, worldwide, 
-                    and Nigerian markets.
-                  </li>
-                </ul>
-              </div>
-              
-              <div className="pt-2">
-                <Button 
-                  onClick={() => setActiveTab("features")}
-                  className="w-full"
-                >
-                  Explore Key Features
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </TabsContent>
-            
-            {/* Features Tab */}
-            <TabsContent value="features" className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-2">
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="flex items-start gap-3">
-                      <Award className="h-8 w-8 text-primary flex-shrink-0 mt-1" />
-                      <div>
-                        <h3 className="font-semibold text-lg mb-1">AI-Powered Predictions</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Daily predictions across multiple sports and markets, ranging from basic 1X2 
-                          to more complex correct score predictions.
-                        </p>
-                      </div>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="w-full max-w-sm">
+              <div className="h-[150px] relative overflow-hidden rounded-lg bg-gradient-to-r from-primary/5 to-primary/10">
+                {/* Step-specific visual content would go here */}
+                <div className="absolute inset-0 flex items-center justify-center p-4">
+                  {currentStep.id === 'welcome' && (
+                    <div className="text-center">
+                      <h3 className="text-2xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent animate-pulse">
+                        PuntaIQ
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        AI-powered sports predictions
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="flex items-start gap-3">
-                      <TrendingUp className="h-8 w-8 text-primary flex-shrink-0 mt-1" />
-                      <div>
-                        <h3 className="font-semibold text-lg mb-1">Smart Accumulators</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Specially curated accumulator bets with variable odds levels (15, 20, 30, 50) 
-                          to match your risk tolerance.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="flex items-start gap-3">
-                      <Calendar className="h-8 w-8 text-primary flex-shrink-0 mt-1" />
-                      <div>
-                        <h3 className="font-semibold text-lg mb-1">Historical Dashboard</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Track prediction accuracy over time with detailed analytics on 
-                          past performance and trends.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="flex items-start gap-3">
-                      <Settings className="h-8 w-8 text-primary flex-shrink-0 mt-1" />
-                      <div>
-                        <h3 className="font-semibold text-lg mb-1">Personalization</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Customize your experience with notification preferences, favorite sports, 
-                          and preferred prediction types.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="flex items-start gap-3">
-                      <Users className="h-8 w-8 text-primary flex-shrink-0 mt-1" />
-                      <div>
-                        <h3 className="font-semibold text-lg mb-1">Community Features</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Follow top performers, share predictions, and engage with a community 
-                          of like-minded prediction enthusiasts.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="flex items-start gap-3">
-                      <MessageCircle className="h-8 w-8 text-primary flex-shrink-0 mt-1" />
-                      <div>
-                        <h3 className="font-semibold text-lg mb-1">AI Chatbot</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Get immediate help with any questions about predictions or features from our 
-                          24/7 AI support assistant.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              <div className="pt-2">
-                <Button 
-                  onClick={() => setActiveTab("faq")}
-                  className="w-full"
-                >
-                  Frequently Asked Questions
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </TabsContent>
-            
-            {/* FAQ Tab */}
-            <TabsContent value="faq" className="space-y-4">
-              <div className="prose dark:prose-invert max-w-none">
-                <h3 className="font-semibold text-xl">Frequently Asked Questions</h3>
-                
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-medium text-lg">How accurate are the predictions?</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Our AI system maintains an average accuracy rate of 60-75% across different sports, 
-                      with performance varying by league and market type. You can view detailed historical 
-                      performance data in the Historical Dashboard section.
-                    </p>
-                  </div>
+                  )}
                   
-                  <div>
-                    <h4 className="font-medium text-lg">Are the predictions made by humans?</h4>
-                    <p className="text-sm text-muted-foreground">
-                      No, all predictions are generated by our autonomous AI system with zero human intervention. 
-                      This ensures consistency, eliminates bias, and maintains the integrity of our prediction process.
-                    </p>
-                  </div>
+                  {currentStep.id === 'predictions' && (
+                    <div className="grid grid-cols-2 gap-2 w-full max-w-xs">
+                      <div className="rounded-md bg-card p-2 animate-float border border-border">
+                        <div className="text-xs font-medium mb-1">Football</div>
+                        <div className="h-2 bg-primary/20 rounded w-3/4"></div>
+                        <div className="h-2 bg-primary/20 rounded w-1/2 mt-1"></div>
+                      </div>
+                      <div className="rounded-md bg-card p-2 animate-float-delayed border border-border">
+                        <div className="text-xs font-medium mb-1">Basketball</div>
+                        <div className="h-2 bg-primary/20 rounded w-1/2"></div>
+                        <div className="h-2 bg-primary/20 rounded w-3/4 mt-1"></div>
+                      </div>
+                    </div>
+                  )}
                   
-                  <div>
-                    <h4 className="font-medium text-lg">What sports do you cover?</h4>
-                    <p className="text-sm text-muted-foreground">
-                      We currently cover football (soccer), basketball, tennis, and rugby, with plans to expand 
-                      to additional sports in the future. Our prediction coverage is most comprehensive for major 
-                      leagues and tournaments.
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium text-lg">Do I need a subscription?</h4>
-                    <p className="text-sm text-muted-foreground">
-                      We offer both free and premium tiers. Free users can access basic predictions and features, 
-                      while premium subscribers get access to exclusive predictions, advanced statistics, priority 
-                      support, and special accumulator picks.
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium text-lg">How often are predictions updated?</h4>
-                    <p className="text-sm text-muted-foreground">
-                      New predictions are generated daily, typically available by 8:00 AM UTC. For major events 
-                      and tournaments, we may provide special prediction packages with more detailed analysis.
-                    </p>
-                  </div>
+                  {currentStep.id === 'accumulators' && (
+                    <div className="flex flex-col items-center w-full max-w-xs">
+                      <div className="grid grid-cols-4 gap-1 w-full">
+                        <div className="rounded-md bg-green-500/20 p-1 text-center text-xs font-medium animate-float">15x</div>
+                        <div className="rounded-md bg-blue-500/20 p-1 text-center text-xs font-medium animate-float-delayed">20x</div>
+                        <div className="rounded-md bg-purple-500/20 p-1 text-center text-xs font-medium animate-float">30x</div>
+                        <div className="rounded-md bg-pink-500/20 p-1 text-center text-xs font-medium animate-float-delayed">50x</div>
+                      </div>
+                      <div className="mt-2 text-xs text-center text-muted-foreground">
+                        Multiple tiers of accumulators for higher returns
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-              
-              <div className="pt-2">
-                <Button 
-                  onClick={() => setActiveTab("next-steps")}
-                  className="w-full"
-                >
-                  Next Steps
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </TabsContent>
-            
-            {/* Next Steps Tab */}
-            <TabsContent value="next-steps" className="space-y-6">
-              <div className="prose dark:prose-invert max-w-none">
-                <h3 className="font-semibold text-xl">Getting Started with PuntaIQ</h3>
-                <p>
-                  Ready to dive in? Here are some recommended steps to get the most out of your PuntaIQ experience:
-                </p>
-              </div>
-              
-              <div className="grid gap-4 md:grid-cols-2">
-                <Card className="cursor-pointer hover:bg-accent/50 transition-colors" 
-                  onClick={() => {
-                    setOpen(false);
-                    startOnboarding();
-                  }}>
-                  <CardContent className="pt-4">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white">
-                        1
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-lg mb-1">Take the Interactive Tour</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Get familiar with the interface and key features through our guided tour.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="cursor-pointer hover:bg-accent/50 transition-colors"
-                  onClick={() => {
-                    setOpen(false);
-                    navigate("/profile");
-                  }}>
-                  <CardContent className="pt-4">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white">
-                        2
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-lg mb-1">Set Up Your Profile</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Customize your preferences and notification settings to get the most relevant updates.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="cursor-pointer hover:bg-accent/50 transition-colors"
-                  onClick={() => {
-                    setOpen(false);
-                    navigate("/");
-                  }}>
-                  <CardContent className="pt-4">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white">
-                        3
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-lg mb-1">Explore Today's Predictions</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Browse through our latest AI-generated predictions across different sports and markets.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="cursor-pointer hover:bg-accent/50 transition-colors"
-                  onClick={() => {
-                    setOpen(false);
-                    navigate("/subscription");
-                  }}>
-                  <CardContent className="pt-4">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white">
-                        4
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-lg mb-1">Consider Premium Features</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Upgrade to premium to unlock exclusive predictions, detailed analytics, and more.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-          </Tabs>
+            </div>
+          </div>
           
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Close Guide
+          <SheetFooter className="flex justify-between pb-6 mt-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handlePrevious}
+              disabled={currentStepIndex === 0}
+              className="w-20"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
             </Button>
             
-            {!isOnboarded && (
-              <Button onClick={() => {
-                setOpen(false);
-                startOnboarding();
-              }}>
-                Start Interactive Tour
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+            <Button 
+              onClick={handleNext} 
+              size="sm"
+              className="w-20 group"
+            >
+              {currentStepIndex === GUIDE_STEPS.length - 1 ? 'Finish' : 'Next'}
+              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </SheetFooter>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

@@ -1,93 +1,195 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { 
-  useNotifications, 
-  NotificationType,
-  NotificationPriority,
-  type Notification
-} from '@/lib/notifications';
 import { useFeatureFlag } from '@/lib/feature-flags';
+import { useToast } from '@/hooks/use-toast';
 
-// Mock prediction examples for testing
-const PREDICTION_EXAMPLES = [
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  timestamp: Date;
+  read: boolean;
+  link?: string;
+  icon?: string;
+}
+
+interface NotificationContextType {
+  notifications: Notification[];
+  unreadCount: number;
+  addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void;
+  markAsRead: (id: string) => void;
+  markAllAsRead: () => void;
+  removeNotification: (id: string) => void;
+  clearAll: () => void;
+}
+
+const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+
+const DEMO_NOTIFICATIONS: Omit<Notification, 'id' | 'timestamp' | 'read'>[] = [
   {
-    title: 'New Football Predictions Available',
-    message: 'Check out today\'s Premier League predictions with high confidence ratings.',
+    title: 'New Predictions Available',
+    message: 'Fresh AI-generated predictions for today\'s football matches are now available!',
+    type: 'info',
+    icon: 'football',
     link: '/',
-    type: NotificationType.PREDICTION_READY,
-    priority: NotificationPriority.MEDIUM
   },
   {
-    title: 'Special Accumulator Alert',
-    message: 'A new accumulator with 30.0 odds has been generated for you.',
-    link: '/',
-    type: NotificationType.PREDICTION_READY,
-    priority: NotificationPriority.HIGH
+    title: 'Special 50x Accumulator',
+    message: 'Our AI has identified a high-confidence accumulator with potential 50x returns!',
+    type: 'success',
+    icon: 'star',
+    link: '/accumulators',
   },
   {
-    title: 'Match Starting Soon',
-    message: 'Liverpool vs Manchester United starts in 30 minutes.',
-    link: '/',
-    type: NotificationType.MATCH_STARTING,
-    priority: NotificationPriority.MEDIUM
-  }
+    title: 'Account Upgraded',
+    message: 'Your account has been upgraded to Premium tier. Enjoy exclusive predictions!',
+    type: 'success',
+    icon: 'crown',
+  },
+  {
+    title: 'Upcoming Matches',
+    message: 'Major matches starting soon. Check predictions for optimal betting strategy.',
+    type: 'warning',
+    icon: 'clock',
+    link: '/today',
+  },
 ];
 
 interface NotificationProviderProps {
   children: ReactNode;
 }
 
-// Notification context for accessing notifications across the app
-const NotificationContext = createContext<ReturnType<typeof useNotifications> | undefined>(undefined);
-
 export function NotificationProvider({ children }: NotificationProviderProps) {
-  const notificationMethods = useNotifications();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const demoNotificationsEnabled = useFeatureFlag('demoNotifications');
+  const { toast } = useToast();
   
-  // For demo purposes, add some notifications when the app first loads
+  // Initialize browser notification permission
   useEffect(() => {
-    if (demoNotificationsEnabled) {
-      // Create demo notifications with delays
-      const timer1 = setTimeout(() => {
-        notificationMethods.addNotification({
-          title: PREDICTION_EXAMPLES[0].title,
-          message: PREDICTION_EXAMPLES[0].message,
-          link: PREDICTION_EXAMPLES[0].link,
-          type: PREDICTION_EXAMPLES[0].type,
-          priority: PREDICTION_EXAMPLES[0].priority
-        });
-      }, 5000); // 5 seconds after load
-      
-      const timer2 = setTimeout(() => {
-        notificationMethods.addNotification({
-          title: PREDICTION_EXAMPLES[1].title,
-          message: PREDICTION_EXAMPLES[1].message,
-          link: PREDICTION_EXAMPLES[1].link,
-          type: PREDICTION_EXAMPLES[1].type,
-          priority: PREDICTION_EXAMPLES[1].priority
-        });
-      }, 15000); // 15 seconds after load
-      
-      // Clean up timers
-      return () => {
-        clearTimeout(timer1);
-        clearTimeout(timer2);
-      };
+    if ('Notification' in window && Notification.permission === 'default') {
+      // We don't request permission automatically to avoid disturbing the user
+      // Permission will be requested when they first interact with notifications
     }
-  }, [demoNotificationsEnabled, notificationMethods]);
+  }, []);
+  
+  // Load demo notifications if feature flag is enabled
+  useEffect(() => {
+    if (demoNotificationsEnabled && notifications.length === 0) {
+      // Add demo notifications with slight delay between them
+      DEMO_NOTIFICATIONS.forEach((notification, index) => {
+        setTimeout(() => {
+          const now = new Date();
+          // Add with random delay
+          const timestamp = new Date(now.getTime() - Math.random() * 60 * 60 * 1000 * index);
+          
+          addNotification({
+            ...notification,
+            timestamp,
+          });
+        }, index * 300); // Stagger the notification additions
+      });
+    }
+  }, [demoNotificationsEnabled]);
+  
+  const requestNotificationPermission = async () => {
+    if ('Notification' in window) {
+      try {
+        const permission = await Notification.requestPermission();
+        return permission === 'granted';
+      } catch (error) {
+        console.error('Error requesting notification permission:', error);
+        return false;
+      }
+    }
+    return false;
+  };
+  
+  const showBrowserNotification = async (notification: Notification) => {
+    if ('Notification' in window) {
+      if (Notification.permission === 'granted') {
+        new Notification(notification.title, {
+          body: notification.message,
+          icon: '/logo.png',
+        });
+      } else if (Notification.permission !== 'denied') {
+        const granted = await requestNotificationPermission();
+        if (granted) {
+          new Notification(notification.title, {
+            body: notification.message,
+            icon: '/logo.png',
+          });
+        }
+      }
+    }
+  };
+  
+  const addNotification = (newNotification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
+    const notificationObj: Notification = {
+      ...newNotification,
+      id: `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: newNotification.timestamp || new Date(),
+      read: false,
+    };
+    
+    setNotifications(prev => [notificationObj, ...prev]);
+    
+    // Show toast for new notifications
+    toast({
+      title: notificationObj.title,
+      description: notificationObj.message,
+      variant: notificationObj.type === 'error' ? 'destructive' : 'default',
+    });
+    
+    // Show browser notification if available
+    showBrowserNotification(notificationObj);
+    
+    return notificationObj.id;
+  };
+  
+  const markAsRead = (id: string) => {
+    setNotifications(prev => 
+      prev.map(note => note.id === id ? { ...note, read: true } : note)
+    );
+  };
+  
+  const markAllAsRead = () => {
+    setNotifications(prev => 
+      prev.map(note => ({ ...note, read: true }))
+    );
+  };
+  
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(note => note.id !== id));
+  };
+  
+  const clearAll = () => {
+    setNotifications([]);
+  };
+  
+  const unreadCount = notifications.filter(note => !note.read).length;
+  
+  const value = {
+    notifications,
+    unreadCount,
+    addNotification,
+    markAsRead,
+    markAllAsRead,
+    removeNotification,
+    clearAll,
+  };
   
   return (
-    <NotificationContext.Provider value={notificationMethods}>
+    <NotificationContext.Provider value={value}>
       {children}
     </NotificationContext.Provider>
   );
 }
 
-// Custom hook for using the notification context
-export function useNotificationContext() {
+export function useNotifications() {
   const context = useContext(NotificationContext);
   
   if (context === undefined) {
-    throw new Error('useNotificationContext must be used within a NotificationProvider');
+    throw new Error('useNotifications must be used within a NotificationProvider');
   }
   
   return context;

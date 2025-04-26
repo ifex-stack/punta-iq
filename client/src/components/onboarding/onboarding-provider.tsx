@@ -1,130 +1,132 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useFeatureFlag } from '@/lib/feature-flags';
 
-type OnboardingStep = 'welcome' | 'predictions' | 'accumulators' | 'history' | 'profile' | 'subscription' | 'chatbot';
-
-interface OnboardingContextType {
-  // Onboarding state
-  isOnboarded: boolean;
-  isOnboardingActive: boolean;
-  currentStep: OnboardingStep;
-  
-  // Onboarding controls
-  startOnboarding: () => void;
-  skipOnboarding: () => void;
-  completeOnboarding: () => void;
-  goToStep: (step: OnboardingStep) => void;
-  nextStep: () => void;
-  previousStep: () => void;
-  
-  // Feature discovery
-  hasSeenFeature: (featureId: string) => boolean;
-  markFeatureAsSeen: (featureId: string) => void;
+interface OnboardingState {
+  showGuidedTour: boolean;
+  showGettingStartedGuide: boolean;
+  featureHighlights: string[];
+  completedSteps: string[];
+  currentStep: string | null;
 }
 
-const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
+interface OnboardingContextType {
+  state: OnboardingState;
+  startGuidedTour: () => void;
+  endGuidedTour: () => void;
+  showGettingStarted: () => void;
+  hideGettingStarted: () => void;
+  markStepComplete: (step: string) => void;
+  setCurrentStep: (step: string | null) => void;
+  showFeatureHighlight: (featureId: string) => void;
+  hideFeatureHighlight: (featureId: string) => void;
+  hasCompletedStep: (step: string) => boolean;
+}
 
-// Steps order for navigation
-const ONBOARDING_STEPS: OnboardingStep[] = [
-  'welcome',
-  'predictions',
-  'accumulators',
-  'history',
-  'profile',
-  'subscription',
-  'chatbot'
-];
+const initialState: OnboardingState = {
+  showGuidedTour: false,
+  showGettingStartedGuide: false,
+  featureHighlights: [],
+  completedSteps: [],
+  currentStep: null,
+};
+
+const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
 
 interface OnboardingProviderProps {
   children: ReactNode;
 }
 
 export function OnboardingProvider({ children }: OnboardingProviderProps) {
-  const [isOnboarded, setIsOnboarded] = useState(false);
-  const [isOnboardingActive, setIsOnboardingActive] = useState(false);
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
+  const [state, setState] = useState<OnboardingState>(() => {
+    // Load from localStorage if available
+    const savedState = localStorage.getItem('puntaiq_onboarding');
+    return savedState ? { ...initialState, ...JSON.parse(savedState) } : initialState;
+  });
+  
   const onboardingEnabled = useFeatureFlag('onboarding');
   
-  // Check if user has completed onboarding
+  // Save state to localStorage whenever it changes
   useEffect(() => {
-    const onboardingCompleted = localStorage.getItem('puntaiq_onboarded') === 'true';
-    setIsOnboarded(onboardingCompleted);
+    localStorage.setItem('puntaiq_onboarding', JSON.stringify(state));
+  }, [state]);
+  
+  // Check if user is new and show guided tour or getting started guide
+  useEffect(() => {
+    if (!onboardingEnabled) return;
     
-    // Auto-start onboarding for new users if the feature is enabled
-    if (onboardingEnabled && !onboardingCompleted) {
-      const timer = setTimeout(() => {
-        setIsOnboardingActive(true);
-      }, 3000); // Give the app time to load before starting onboarding
+    const isNewUser = !localStorage.getItem('puntaiq_user_visited');
+    if (isNewUser) {
+      localStorage.setItem('puntaiq_user_visited', 'true');
       
-      return () => clearTimeout(timer);
+      // Determine whether to show tour or guide based on device and screen size
+      const isMobile = window.innerWidth < 768;
+      if (isMobile) {
+        setState(prev => ({ ...prev, showGettingStartedGuide: true }));
+      } else {
+        // Show guided tour after slight delay to let UI render first
+        setTimeout(() => {
+          setState(prev => ({ ...prev, showGuidedTour: true }));
+        }, 2000);
+      }
     }
   }, [onboardingEnabled]);
   
-  // Start the onboarding process
-  const startOnboarding = () => {
-    setCurrentStep('welcome');
-    setIsOnboardingActive(true);
+  const startGuidedTour = () => {
+    setState(prev => ({ ...prev, showGuidedTour: true }));
   };
   
-  // Skip the onboarding process
-  const skipOnboarding = () => {
-    setIsOnboardingActive(false);
-    localStorage.setItem('puntaiq_onboarded', 'true');
-    setIsOnboarded(true);
+  const endGuidedTour = () => {
+    setState(prev => ({ ...prev, showGuidedTour: false, currentStep: null }));
   };
   
-  // Mark onboarding as complete
-  const completeOnboarding = () => {
-    setIsOnboardingActive(false);
-    localStorage.setItem('puntaiq_onboarded', 'true');
-    setIsOnboarded(true);
+  const showGettingStarted = () => {
+    setState(prev => ({ ...prev, showGettingStartedGuide: true }));
   };
   
-  // Go to a specific step
-  const goToStep = (step: OnboardingStep) => {
-    setCurrentStep(step);
+  const hideGettingStarted = () => {
+    setState(prev => ({ ...prev, showGettingStartedGuide: false }));
   };
   
-  // Go to the next step
-  const nextStep = () => {
-    const currentIndex = ONBOARDING_STEPS.indexOf(currentStep);
-    if (currentIndex < ONBOARDING_STEPS.length - 1) {
-      setCurrentStep(ONBOARDING_STEPS[currentIndex + 1]);
-    } else {
-      completeOnboarding();
-    }
+  const markStepComplete = (step: string) => {
+    setState(prev => {
+      if (prev.completedSteps.includes(step)) return prev;
+      return { ...prev, completedSteps: [...prev.completedSteps, step] };
+    });
   };
   
-  // Go to the previous step
-  const previousStep = () => {
-    const currentIndex = ONBOARDING_STEPS.indexOf(currentStep);
-    if (currentIndex > 0) {
-      setCurrentStep(ONBOARDING_STEPS[currentIndex - 1]);
-    }
+  const setCurrentStep = (step: string | null) => {
+    setState(prev => ({ ...prev, currentStep: step }));
   };
   
-  // Check if a feature has been seen before
-  const hasSeenFeature = (featureId: string) => {
-    return localStorage.getItem(`feature_seen_${featureId}`) === 'true';
+  const showFeatureHighlight = (featureId: string) => {
+    setState(prev => {
+      if (prev.featureHighlights.includes(featureId)) return prev;
+      return { ...prev, featureHighlights: [...prev.featureHighlights, featureId] };
+    });
   };
   
-  // Mark a feature as seen
-  const markFeatureAsSeen = (featureId: string) => {
-    localStorage.setItem(`feature_seen_${featureId}`, 'true');
+  const hideFeatureHighlight = (featureId: string) => {
+    setState(prev => ({
+      ...prev,
+      featureHighlights: prev.featureHighlights.filter(id => id !== featureId)
+    }));
+  };
+  
+  const hasCompletedStep = (step: string) => {
+    return state.completedSteps.includes(step);
   };
   
   const value = {
-    isOnboarded,
-    isOnboardingActive,
-    currentStep,
-    startOnboarding,
-    skipOnboarding,
-    completeOnboarding,
-    goToStep,
-    nextStep,
-    previousStep,
-    hasSeenFeature,
-    markFeatureAsSeen
+    state,
+    startGuidedTour,
+    endGuidedTour,
+    showGettingStarted,
+    hideGettingStarted,
+    markStepComplete,
+    setCurrentStep,
+    showFeatureHighlight,
+    hideFeatureHighlight,
+    hasCompletedStep,
   };
   
   return (
@@ -134,7 +136,6 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
   );
 }
 
-// Custom hook for using the onboarding context
 export function useOnboarding() {
   const context = useContext(OnboardingContext);
   
