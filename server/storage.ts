@@ -2395,6 +2395,57 @@ export class DatabaseStorage implements IStorage {
     return newToken;
   }
   
+  async registerPushToken(userId: number, token: string, platform: string, deviceName?: string): Promise<PushToken> {
+    // Check if user exists
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    // Check if token already exists for this user and platform
+    const [existingToken] = await db
+      .select()
+      .from(pushTokens)
+      .where(
+        and(
+          eq(pushTokens.userId, userId),
+          eq(pushTokens.token, token),
+          eq(pushTokens.platform, platform)
+        )
+      );
+    
+    if (existingToken) {
+      // If token exists but is inactive, reactivate it
+      if (!existingToken.isActive) {
+        const [updatedToken] = await db
+          .update(pushTokens)
+          .set({ 
+            isActive: true,
+            lastUsedAt: new Date()
+          })
+          .where(eq(pushTokens.id, existingToken.id))
+          .returning();
+        return updatedToken;
+      }
+      
+      // If token exists and is active, update the last used timestamp
+      const [updatedToken] = await db
+        .update(pushTokens)
+        .set({ lastUsedAt: new Date() })
+        .where(eq(pushTokens.id, existingToken.id))
+        .returning();
+      return updatedToken;
+    }
+    
+    // Create a new token
+    return this.createPushToken({
+      userId,
+      token,
+      platform,
+      deviceName
+    });
+  }
+  
   async deactivatePushToken(id: number): Promise<boolean> {
     const result = await db
       .update(pushTokens)
