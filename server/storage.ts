@@ -145,7 +145,9 @@ export interface IStorage {
   removePlayerFromFantasyTeam(teamId: number, playerId: number): Promise<boolean>;
   
   // Fantasy Contest methods
-  getAllFantasyContests(limit?: number, status?: string): Promise<FantasyContest[]>;
+  getAllFantasyContests(limit?: number, status?: string, tier?: string): Promise<FantasyContest[]>;
+  getFreeFantasyContests(limit?: number, status?: string): Promise<FantasyContest[]>;
+  getPremiumFantasyContests(limit?: number, status?: string): Promise<FantasyContest[]>;
   getFantasyContestById(id: number): Promise<FantasyContest | undefined>;
   getUserFantasyContests(userId: number): Promise<FantasyContest[]>;
   createFantasyContest(contest: InsertFantasyContest): Promise<FantasyContest>;
@@ -790,17 +792,29 @@ export class MemStorage implements IStorage {
   }
   
   // Fantasy Contest methods
-  async getAllFantasyContests(limit: number = 20, status?: string): Promise<FantasyContest[]> {
+  async getAllFantasyContests(limit: number = 20, status?: string, tier?: string): Promise<FantasyContest[]> {
     let contests = Array.from(this.fantasyContestsMap.values());
     
     if (status) {
       contests = contests.filter(contest => contest.status === status);
     }
     
+    if (tier) {
+      contests = contests.filter(contest => contest.tier === tier);
+    }
+    
     // Sort by startDate descending (newest first)
     contests.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
     
     return contests.slice(0, limit);
+  }
+  
+  async getFreeFantasyContests(limit: number = 20, status?: string): Promise<FantasyContest[]> {
+    return this.getAllFantasyContests(limit, status, 'free');
+  }
+  
+  async getPremiumFantasyContests(limit: number = 20, status?: string): Promise<FantasyContest[]> {
+    return this.getAllFantasyContests(limit, status, 'premium');
   }
   
   async getFantasyContestById(id: number): Promise<FantasyContest | undefined> {
