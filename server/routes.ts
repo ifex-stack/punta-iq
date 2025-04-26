@@ -75,6 +75,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
+  
+  // Feature flags endpoint
+  app.get("/api/feature-flags", async (req, res) => {
+    try {
+      // Base flags that apply to all users
+      const baseFlags = {
+        chatbot: true,
+        notifications: true,
+        historicalDashboard: true,
+        accumulators: true,
+        premiumPredictions: true,
+        socialSharing: false,
+        userCommunity: false,
+        predictionComments: false,
+        trendingPredictions: false,
+        nigeriaSpecificContent: true,
+        ukSpecificContent: true,
+        referralProgram: false,
+        achievementBadges: false,
+        streakRewards: false,
+      };
+      
+      // If user is authenticated, we can personalize flags
+      if (req.isAuthenticated()) {
+        const user = req.user;
+        
+        // Give premium subscribers access to experimental features
+        if (user.subscriptionTier === 'premium') {
+          return res.json({
+            ...baseFlags,
+            socialSharing: true,
+            trendingPredictions: true,
+            achievementBadges: true,
+          });
+        }
+        
+        // Users with Nigerian IP might get Nigeria-specific features
+        // This is a simplification - in production, use proper IP detection
+        if (req.headers['x-user-country'] === 'NG') {
+          return res.json({
+            ...baseFlags,
+            nigeriaSpecificContent: true,
+          });
+        }
+      }
+      
+      // Default flags for non-authenticated users
+      res.json(baseFlags);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
 
   const httpServer = createServer(app);
 
