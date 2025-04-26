@@ -23,17 +23,39 @@ export async function apiRequest(
   }
   
   try {
+    // Create a controller to be able to abort requests
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    
     const res = await fetch(url, {
       method,
       headers: data ? { "Content-Type": "application/json" } : {},
       body: data ? JSON.stringify(data) : undefined,
       credentials: "include",
+      signal: controller.signal
     });
-
+    
+    clearTimeout(timeoutId);
+    
     await throwIfResNotOk(res);
     return res;
   } catch (error) {
-    // Let the error handler deal with the error
+    // Skip error handling for aborted or cancelled requests
+    if (error instanceof DOMException && 
+       (error.name === 'AbortError' || error.message.includes('aborted'))) {
+      console.log('Request was aborted:', url);
+      throw error;
+    }
+    
+    // Skip error handling for navigation-related errors
+    if (error instanceof Error && 
+        (error.message.includes('cancelled') || 
+         error.message.includes('navigation'))) {
+      console.log('Request was cancelled due to navigation:', url);
+      throw error;
+    }
+    
+    // Let the error handler deal with other errors
     handleApiError(error);
     throw error;
   }
@@ -57,9 +79,16 @@ export const getQueryFn: <T>(options: {
     }
     
     try {
+      // Create a controller to be able to abort requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
       const res = await fetch(queryKey[0] as string, {
         credentials: "include",
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {
         return null;
@@ -68,7 +97,22 @@ export const getQueryFn: <T>(options: {
       await throwIfResNotOk(res);
       return await res.json();
     } catch (error) {
-      // Let the error handler deal with the error
+      // Skip error handling for aborted or cancelled requests
+      if (error instanceof DOMException && 
+         (error.name === 'AbortError' || error.message.includes('aborted'))) {
+        console.log('Query was aborted:', queryKey[0]);
+        throw error;
+      }
+      
+      // Skip error handling for navigation-related errors
+      if (error instanceof Error && 
+          (error.message.includes('cancelled') || 
+           error.message.includes('navigation'))) {
+        console.log('Query was cancelled due to navigation:', queryKey[0]);
+        throw error;
+      }
+      
+      // Let the error handler deal with other errors
       handleApiError(error);
       throw error;
     }
@@ -82,6 +126,17 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       staleTime: Infinity,
       retry: false,
+      // This prevents error toasts from being shown when a query fails on page changes
+      retryOnMount: false,
+      // Custom error handling to prevent toast spamming
+      onError: (error) => {
+        // Silence query errors during navigation
+        if (error instanceof Error && 
+            (error.message.includes('cancelled') || 
+             error.message.includes('aborted'))) {
+          console.log('Query cancelled during navigation:', error);
+        }
+      }
     },
     mutations: {
       retry: false,
