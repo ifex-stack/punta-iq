@@ -26,6 +26,8 @@ import { NotificationProvider } from "@/components/notifications/notification-pr
 import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
 import { fetchFeatureFlags } from "./lib/feature-flags";
 
+import AppLayout from "@/components/layout/app-layout";
+
 // Create typed component definition to fix TypeScript errors
 const Router: React.FC = () => {
   // Track location changes to know when we're navigating
@@ -44,20 +46,33 @@ const Router: React.FC = () => {
     return () => clearTimeout(timeoutId);
   }, [location]);
   
+  // Don't wrap auth page in AppLayout to prevent showing the bottom navigation bar
+  if (location === '/auth') {
+    return (
+      <div className="flex h-screen">
+        <div className="flex-1 relative">
+          <AuthPage />
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="flex h-screen">
       <div className="flex-1 relative">
-        <Switch>
-          <Route path="/auth" component={AuthPage} />
-          <ProtectedRoute path="/" component={HomePage} />
-          <ProtectedRoute path="/stats" component={StatsPage} />
-          <ProtectedRoute path="/history" component={HistoricalDashboard} />
-          <ProtectedRoute path="/fantasy/contests" component={FantasyContestsPage} />
-          <ProtectedRoute path="/subscription" component={SubscriptionPage} />
-          <ProtectedRoute path="/profile" component={ProfilePage} />
-          <Route path="/faq" component={FAQPage} />
-          <Route component={NotFound} />
-        </Switch>
+        <AppLayout>
+          <Switch>
+            <ProtectedRoute path="/" component={HomePage} />
+            <ProtectedRoute path="/stats" component={StatsPage} />
+            <ProtectedRoute path="/history" component={HistoricalDashboard} />
+            <ProtectedRoute path="/fantasy/contests" component={FantasyContestsPage} />
+            <Route path="/fantasy" component={FantasyContestsPage} />
+            <ProtectedRoute path="/subscription" component={SubscriptionPage} />
+            <ProtectedRoute path="/profile" component={ProfilePage} />
+            <Route path="/faq" component={FAQPage} />
+            <Route component={NotFound} />
+          </Switch>
+        </AppLayout>
         
         {/* Positioned notification dropdown */}
         <div className="absolute top-4 right-4 z-50">
