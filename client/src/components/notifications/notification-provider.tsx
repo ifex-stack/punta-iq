@@ -87,6 +87,14 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
       }
     };
 
+    // Store the reconnection info at module level to persist across re-renders
+    const reconnectionInfo = React.useRef({
+      attempt: 0,
+      maxAttempts: 10,
+      timer: null as ReturnType<typeof setTimeout> | null,
+      isReconnecting: false
+    });
+    
     newSocket.onclose = () => {
       console.log('WebSocket disconnected');
       setSocketConnected(false);
@@ -94,58 +102,90 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
       // Don't attempt to reconnect if the user is not authenticated
       if (!user) return;
       
-      // Implement an exponential backoff for reconnection attempts
-      // but don't show any errors to the user during this process
-      let reconnectAttempt = 0;
-      const maxReconnectAttempts = 5;
+      // Clean up any existing reconnection timer
+      if (reconnectionInfo.current.timer) {
+        clearTimeout(reconnectionInfo.current.timer);
+        reconnectionInfo.current.timer = null;
+      }
       
       const attemptReconnect = () => {
-        reconnectAttempt++;
-        
-        // Stop trying after max attempts
-        if (reconnectAttempt > maxReconnectAttempts) {
-          console.log(`Giving up reconnection after ${maxReconnectAttempts} attempts`);
+        // If we're already trying to reconnect, don't start another attempt
+        if (reconnectionInfo.current.isReconnecting) {
           return;
         }
         
-        // Exponential backoff - wait longer between each attempt
-        const reconnectDelay = Math.min(Math.pow(2, reconnectAttempt) * 1000, 30000);
-        console.log(`Will attempt WebSocket reconnection in ${reconnectDelay}ms (attempt ${reconnectAttempt})`);
+        reconnectionInfo.current.attempt++;
+        reconnectionInfo.current.isReconnecting = true;
         
-        setTimeout(() => {
-          // Don't attempt reconnection if component is unmounted
-          if (!user) return;
+        // Stop trying after max attempts
+        if (reconnectionInfo.current.attempt > reconnectionInfo.current.maxAttempts) {
+          console.log(`Giving up WebSocket reconnection after ${reconnectionInfo.current.maxAttempts} attempts`);
+          reconnectionInfo.current.isReconnecting = false;
+          return;
+        }
+        
+        // Exponential backoff - wait longer between each attempt but cap at 30 seconds
+        const reconnectDelay = Math.min(Math.pow(2, reconnectionInfo.current.attempt) * 1000, 30000);
+        console.log(`Will attempt WebSocket reconnection in ${reconnectDelay}ms (attempt ${reconnectionInfo.current.attempt})`);
+        
+        reconnectionInfo.current.timer = setTimeout(() => {
+          // Don't attempt reconnection if user is gone or is navigating away
+          if (!user || document.hidden) {
+            reconnectionInfo.current.isReconnecting = false;
+            return;
+          }
           
           try {
-            console.log(`Attempting WebSocket reconnection (attempt ${reconnectAttempt})`);
+            console.log(`Attempting WebSocket reconnection (attempt ${reconnectionInfo.current.attempt})`);
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const wsUrl = `${protocol}//${window.location.host}/ws`;
-            const reconnectSocket = new WebSocket(wsUrl);
             
-            reconnectSocket.onopen = () => {
-              console.log('WebSocket reconnected successfully');
-              setSocketConnected(true);
-              reconnectSocket.send(JSON.stringify({
-                type: 'authenticate',
-                userId: user.id,
-              }));
-            };
-            
-            reconnectSocket.onclose = () => {
-              console.log('Reconnection failed, will try again');
-              setSocketConnected(false);
-              attemptReconnect();
-            };
-            
-            // Handle errors silently
-            reconnectSocket.onerror = () => {
-              console.log('Error during reconnection attempt');
-              // Don't show any UI errors
-            };
-            
-            setSocket(reconnectSocket);
+            // Create a new socket with try/catch
+            try {
+              const reconnectSocket = new WebSocket(wsUrl);
+              
+              reconnectSocket.onopen = () => {
+                console.log('WebSocket reconnected successfully');
+                setSocketConnected(true);
+                reconnectionInfo.current.attempt = 0;
+                reconnectionInfo.current.isReconnecting = false;
+                
+                try {
+                  reconnectSocket.send(JSON.stringify({
+                    type: 'authenticate',
+                    userId: user.id,
+                    token: 'placeholder-token'
+                  }));
+                } catch (sendError) {
+                  console.error('Error sending authentication after reconnect:', sendError);
+                }
+              };
+              
+              reconnectSocket.onclose = () => {
+                console.log('Reconnection failed, will try again');
+                setSocketConnected(false);
+                reconnectionInfo.current.isReconnecting = false;
+                attemptReconnect();
+              };
+              
+              // Handle errors completely silently
+              reconnectSocket.onerror = (e) => {
+                console.log('Error during reconnection attempt', e);
+                reconnectionInfo.current.isReconnecting = false;
+              };
+              
+              // Only set the socket if we haven't been unmounted
+              if (user) {
+                setSocket(reconnectSocket);
+              }
+            } catch (wsError) {
+              console.error('WebSocket creation error during reconnect:', wsError);
+              reconnectionInfo.current.isReconnecting = false;
+              attemptReconnect(); // Try again
+            }
           } catch (error) {
-            console.error('Failed to reconnect:', error);
+            console.error('Failed to reconnect (outer try/catch):', error);
+            reconnectionInfo.current.isReconnecting = false;
             attemptReconnect();
           }
         }, reconnectDelay);

@@ -139,7 +139,40 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">
 
+// Error patterns that should be silently suppressed
+const SILENT_ERROR_PATTERNS = [
+  'WebSocket',
+  'Socket',
+  'aborted',
+  'cancelled',
+  'navigation',
+  'Network',
+  'Connection'
+];
+
 function toast({ ...props }: Toast) {
+  // Aggressively filter out error toasts related to navigation and connections
+  if (props.variant === 'destructive') {
+    const description = String(props.description || '');
+    const title = String(props.title || '');
+    
+    // Check if this is a silent error we should ignore
+    const isSilentError = SILENT_ERROR_PATTERNS.some(pattern => 
+      description.includes(pattern) || title.includes(pattern)
+    );
+    
+    // Check if document is hidden (user is navigating away)
+    if (isSilentError || (typeof document !== 'undefined' && document.hidden)) {
+      console.log('Silent error toast suppressed:', { title, description });
+      // Return dummy methods but don't actually create the toast
+      return {
+        id: genId(),
+        dismiss: () => {},
+        update: () => {},
+      };
+    }
+  }
+
   const id = genId()
 
   const update = (props: ToasterToast) =>

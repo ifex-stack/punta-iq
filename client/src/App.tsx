@@ -1,4 +1,4 @@
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
 import { useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -15,6 +15,7 @@ import FAQPage from "@/pages/faq-page";
 import HistoricalDashboard from "@/pages/historical-dashboard";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from 'next-themes';
+import { setNavigationState } from "./lib/error-handler";
 
 // New components
 import { OnboardingProvider } from "@/components/onboarding/onboarding-provider";
@@ -25,6 +26,22 @@ import { NotificationDropdown } from "@/components/notifications/notification-dr
 import { fetchFeatureFlags } from "./lib/feature-flags";
 
 function Router() {
+  // Track location changes to know when we're navigating
+  const [location, navigate] = useLocation();
+  
+  // Set navigation state when location changes
+  useEffect(() => {
+    // Mark that we're navigating (will suppress errors during this time)
+    setNavigationState(true);
+    
+    // Clean up navigation flag after a delay
+    const timeoutId = setTimeout(() => {
+      setNavigationState(false);
+    }, 1000);
+    
+    return () => clearTimeout(timeoutId);
+  }, [location]);
+  
   return (
     <div className="flex h-screen">
       <div className="flex-1 relative">

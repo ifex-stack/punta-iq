@@ -24,8 +24,50 @@ export const parseApiError = async (response: Response): Promise<ApiError> => {
   }
 };
 
+// Error patterns that should be silently suppressed
+export const SILENT_ERROR_PATTERNS = [
+  'WebSocket',
+  'Socket',
+  'aborted',
+  'cancelled',
+  'navigation',
+  'Network',
+  'Connection',
+  'Failed to fetch',
+  'TypeError',
+  'error',
+  'Error',
+  'AbortError',
+  'NetworkError',
+  'Error during navigation'
+];
+
+// Global flag to track navigation state and suppress errors during navigation
+let isNavigating = false;
+
+// Set navigation state when the user is navigating between routes
+export const setNavigationState = (navigating: boolean) => {
+  isNavigating = navigating;
+  // Set a timeout to reset after navigation should be complete
+  if (navigating) {
+    setTimeout(() => {
+      isNavigating = false;
+    }, 3000); // Reset after 3 seconds
+  }
+};
+
 // Handle API errors with appropriate UI feedback
 export const handleApiError = (error: unknown, fallbackMessage = 'An error occurred'): ApiError => {
+  // If we're in the middle of navigation, suppress all errors
+  if (isNavigating || document.hidden) {
+    console.log('Error suppressed due to navigation or hidden document:', error);
+    return {
+      status: 0,
+      message: 'Navigation error suppressed',
+      code: 'NAVIGATION'
+    };
+  }
+  
   // Network error
   if (error instanceof Error && error.message === 'Failed to fetch') {
     const networkError = {
@@ -34,12 +76,8 @@ export const handleApiError = (error: unknown, fallbackMessage = 'An error occur
       code: 'NETWORK_ERROR'
     };
     
-    toast({
-      title: 'Connection Error',
-      description: networkError.message,
-      variant: 'destructive',
-    });
-    
+    // Don't show network error toasts as they're usually navigation related
+    console.log('Network error suppressed:', error);
     return networkError;
   }
   
@@ -47,13 +85,21 @@ export const handleApiError = (error: unknown, fallbackMessage = 'An error occur
   if (typeof error === 'object' && error !== null && 'status' in error && 'message' in error) {
     const apiError = error as ApiError;
     
+    // Check if this API error is silent
+    const errorMessage = String(apiError.message || '');
+    const isSilentError = SILENT_ERROR_PATTERNS.some(pattern => 
+      errorMessage.toLowerCase().includes(pattern.toLowerCase())
+    );
+    
+    if (isSilentError) {
+      console.log('Silent API error suppressed:', apiError);
+      return apiError;
+    }
+    
     // Handle different error types
     if (apiError.status === 401) {
-      toast({
-        title: 'Authentication Required',
-        description: 'Please log in to continue',
-        variant: 'destructive',
-      });
+      // Don't show auth errors, they're handled by the auth system
+      console.log('Auth error suppressed:', apiError);
     } else if (apiError.status === 403) {
       toast({
         title: 'Access Denied',
@@ -61,11 +107,8 @@ export const handleApiError = (error: unknown, fallbackMessage = 'An error occur
         variant: 'destructive',
       });
     } else if (apiError.status === 404) {
-      toast({
-        title: 'Not Found',
-        description: apiError.message || 'The requested resource was not found',
-        variant: 'destructive',
-      });
+      // Don't show 404 errors as they're often navigation related
+      console.log('404 error suppressed:', apiError);
     } else if (apiError.status >= 500) {
       toast({
         title: 'Server Error',
@@ -83,7 +126,7 @@ export const handleApiError = (error: unknown, fallbackMessage = 'An error occur
     return apiError;
   }
   
-  // Unknown error
+  // Unknown error - check if we should suppress it
   console.error('Unhandled error:', error);
   const unknownError = {
     status: 500,
@@ -92,18 +135,13 @@ export const handleApiError = (error: unknown, fallbackMessage = 'An error occur
   
   // Universal error filter for common navigation and connection issues
   // This comprehensive check prevents error toasts for many common scenarios
+  const errorMessage = error instanceof Error ? error.message : String(error);
   const shouldSuppressToast = 
-    // WebSocket related errors 
-    fallbackMessage.includes('WebSocket') || 
-    (error instanceof Error && error.message.includes('WebSocket')) ||
-    // Navigation related errors
-    fallbackMessage.includes('aborted') ||
-    fallbackMessage.includes('navigation') ||
-    fallbackMessage.includes('cancelled') ||
-    (error instanceof Error && 
-      (error.message.includes('aborted') || 
-       error.message.includes('cancelled') || 
-       error.message.includes('navigation'))) ||
+    // Check against all silent error patterns
+    SILENT_ERROR_PATTERNS.some(pattern => 
+      errorMessage.toLowerCase().includes(pattern.toLowerCase()) || 
+      fallbackMessage.toLowerCase().includes(pattern.toLowerCase())
+    ) ||
     // Connection errors that happen during navigation
     (error instanceof DOMException) ||
     // General network errors during navigation
@@ -112,11 +150,18 @@ export const handleApiError = (error: unknown, fallbackMessage = 'An error occur
                          error.name === 'NetworkError'));
   
   if (!shouldSuppressToast) {
-    toast({
-      title: 'Something went wrong',
-      description: fallbackMessage,
-      variant: 'destructive',
-    });
+    // Final check - don't show toasts if we're navigating or document is hidden
+    if (!document.hidden) {
+      toast({
+        title: 'Something went wrong',
+        description: fallbackMessage,
+        variant: 'destructive',
+      });
+    } else {
+      console.log('Toast suppressed because document is hidden:', fallbackMessage);
+    }
+  } else {
+    console.log('Toast suppressed based on error patterns:', error);
   }
   
   return unknownError;
