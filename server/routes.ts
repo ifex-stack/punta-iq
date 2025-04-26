@@ -1,7 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer } from "ws";
 import { setupAuth } from "./auth";
 import { setupPredictionRoutes } from "./predictions";
+import { setupNotificationRoutes } from "./notifications";
 import { storage } from "./storage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -10,6 +12,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up prediction-related routes
   setupPredictionRoutes(app);
+  
+  // Set up notification routes
+  setupNotificationRoutes(app);
   
   // Sports routes
   app.get("/api/sports", async (req, res) => {
@@ -144,6 +149,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // Create WebSocket server for real-time notifications
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  wss.on('connection', (ws) => {
+    console.log('WebSocket client connected');
+    
+    // Send welcome message
+    ws.send(JSON.stringify({
+      type: 'connection',
+      message: 'Connected to PuntaIQ WebSocket server'
+    }));
+    
+    // Handle incoming messages
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        console.log('Received message:', data);
+        
+        // Handle authentication
+        if (data.type === 'authenticate') {
+          // In a real implementation, we would verify the token
+          // For now, we'll just acknowledge
+          ws.send(JSON.stringify({
+            type: 'auth_response',
+            success: true
+          }));
+        }
+      } catch (error) {
+        console.error('Error processing WebSocket message:', error);
+      }
+    });
+    
+    // Handle client disconnect
+    ws.on('close', () => {
+      console.log('WebSocket client disconnected');
+    });
+  });
 
   return httpServer;
 }

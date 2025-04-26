@@ -1,196 +1,269 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useFeatureFlag } from '@/lib/feature-flags';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { Bell, BellOff, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { Notification } from '@shared/schema';
 
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  timestamp: Date;
-  read: boolean;
-  link?: string;
-  icon?: string;
-}
-
-interface NotificationContextType {
+type NotificationContextType = {
   notifications: Notification[];
   unreadCount: number;
-  addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void;
-  markAsRead: (id: string) => void;
-  markAllAsRead: () => void;
-  removeNotification: (id: string) => void;
-  clearAll: () => void;
-}
+  markAsRead: (id: number) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  deleteNotification: (id: number) => Promise<void>;
+  deleteAllNotifications: () => Promise<void>;
+  loading: boolean;
+  socket: WebSocket | null;
+  socketConnected: boolean;
+  createNotification: (notification: Omit<Notification, 'id' | 'read' | 'timestamp'>) => Promise<void>;
+};
 
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+const NotificationContext = createContext<NotificationContextType | null>(null);
 
-const DEMO_NOTIFICATIONS: Omit<Notification, 'id' | 'timestamp' | 'read'>[] = [
-  {
-    title: 'New Predictions Available',
-    message: 'Fresh AI-generated predictions for today\'s football matches are now available!',
-    type: 'info',
-    icon: 'football',
-    link: '/',
-  },
-  {
-    title: 'Special 50x Accumulator',
-    message: 'Our AI has identified a high-confidence accumulator with potential 50x returns!',
-    type: 'success',
-    icon: 'star',
-    link: '/accumulators',
-  },
-  {
-    title: 'Account Upgraded',
-    message: 'Your account has been upgraded to Premium tier. Enjoy exclusive predictions!',
-    type: 'success',
-    icon: 'crown',
-  },
-  {
-    title: 'Upcoming Matches',
-    message: 'Major matches starting soon. Check predictions for optimal betting strategy.',
-    type: 'warning',
-    icon: 'clock',
-    link: '/today',
-  },
-];
-
-interface NotificationProviderProps {
+type NotificationProviderProps = {
   children: ReactNode;
-}
+};
 
-export function NotificationProvider({ children }: NotificationProviderProps) {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const demoNotificationsEnabled = useFeatureFlag('demoNotifications');
-  const { toast } = useToast();
-  
-  // Initialize browser notification permission
+export const NotificationProvider = ({ children }: NotificationProviderProps) => {
+  const { user } = useAuth();
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const [socket, setSocket] = useState<WebSocket | null>(null);
+  const [socketConnected, setSocketConnected] = useState(false);
+
+  // Query to fetch notifications
+  const { data: notifications = [], isLoading: loading } = useQuery({
+    queryKey: ['/api/notifications'],
+    queryFn: async () => {
+      if (!user) return [];
+      const res = await apiRequest('GET', '/api/notifications');
+      return res.json();
+    },
+    enabled: !!user,
+  });
+
+  // Calculate unread count
+  const unreadCount = notifications.filter((notification: Notification) => !notification.read).length;
+
+  // Setup WebSocket connection
   useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      // We don't request permission automatically to avoid disturbing the user
-      // Permission will be requested when they first interact with notifications
-    }
-  }, []);
-  
-  // Load demo notifications if feature flag is enabled
-  useEffect(() => {
-    if (demoNotificationsEnabled && notifications.length === 0) {
-      // Add demo notifications with slight delay between them
-      DEMO_NOTIFICATIONS.forEach((notification, index) => {
-        setTimeout(() => {
-          const now = new Date();
-          // Add with random delay
-          const timestamp = new Date(now.getTime() - Math.random() * 60 * 60 * 1000 * index);
-          
-          addNotification({
-            ...notification,
-            timestamp,
-          });
-        }, index * 300); // Stagger the notification additions
-      });
-    }
-  }, [demoNotificationsEnabled]);
-  
-  const requestNotificationPermission = async () => {
-    if ('Notification' in window) {
-      try {
-        const permission = await Notification.requestPermission();
-        return permission === 'granted';
-      } catch (error) {
-        console.error('Error requesting notification permission:', error);
-        return false;
-      }
-    }
-    return false;
-  };
-  
-  const showBrowserNotification = async (notification: Notification) => {
-    if ('Notification' in window) {
-      if (Notification.permission === 'granted') {
-        new Notification(notification.title, {
-          body: notification.message,
-          icon: '/logo.png',
-        });
-      } else if (Notification.permission !== 'denied') {
-        const granted = await requestNotificationPermission();
-        if (granted) {
-          new Notification(notification.title, {
-            body: notification.message,
-            icon: '/logo.png',
-          });
-        }
-      }
-    }
-  };
-  
-  const addNotification = (newNotification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
-    const notificationObj: Notification = {
-      ...newNotification,
-      id: `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: newNotification.timestamp || new Date(),
-      read: false,
+    if (!user) return;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const newSocket = new WebSocket(wsUrl);
+
+    newSocket.onopen = () => {
+      console.log('WebSocket connected');
+      setSocketConnected(true);
+      // Authenticate with WebSocket server
+      newSocket.send(JSON.stringify({
+        type: 'authenticate',
+        userId: user.id,
+        token: 'placeholder-token' // In a real app, we would use a real auth token
+      }));
     };
-    
-    setNotifications(prev => [notificationObj, ...prev]);
-    
-    // Show toast for new notifications
-    toast({
-      title: notificationObj.title,
-      description: notificationObj.message,
-      variant: notificationObj.type === 'error' ? 'destructive' : 'default',
-    });
-    
-    // Show browser notification if available
-    showBrowserNotification(notificationObj);
-    
-    return notificationObj.id;
-  };
-  
-  const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(note => note.id === id ? { ...note, read: true } : note)
-    );
-  };
-  
-  const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(note => ({ ...note, read: true }))
-    );
-  };
-  
-  const removeNotification = (id: string) => {
-    setNotifications(prev => prev.filter(note => note.id !== id));
-  };
-  
-  const clearAll = () => {
-    setNotifications([]);
-  };
-  
-  const unreadCount = notifications.filter(note => !note.read).length;
-  
-  const value = {
-    notifications,
-    unreadCount,
-    addNotification,
-    markAsRead,
-    markAllAsRead,
-    removeNotification,
-    clearAll,
-  };
-  
+
+    newSocket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log('WebSocket message received:', data);
+
+      // Handle different message types
+      if (data.type === 'notification') {
+        // Invalidate notifications query to trigger a refetch
+        queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+        
+        // Show toast notification
+        toast.toast({
+          title: data.title,
+          description: data.message,
+          variant: data.notificationType === 'error' ? 'destructive' : 'default',
+        });
+      }
+    };
+
+    newSocket.onclose = () => {
+      console.log('WebSocket disconnected');
+      setSocketConnected(false);
+    };
+
+    setSocket(newSocket);
+
+    // Clean up on unmount
+    return () => {
+      newSocket.close();
+    };
+  }, [user, queryClient, toast]);
+
+  // Create a new notification (this would typically be called by the server)
+  const createNotificationMutation = useMutation({
+    mutationFn: async (notification: Omit<Notification, 'id' | 'read' | 'timestamp'>) => {
+      const res = await apiRequest('POST', '/api/admin/notifications', notification);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+    },
+    onError: (error: any) => {
+      toast.toast({
+        title: 'Error',
+        description: error.message || 'Failed to create notification',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Mark notification as read
+  const markAsReadMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest('PATCH', `/api/notifications/${id}/read`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+    },
+    onError: (error: any) => {
+      toast.toast({
+        title: 'Error',
+        description: error.message || 'Failed to mark notification as read',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Mark all notifications as read
+  const markAllAsReadMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('PATCH', '/api/notifications/read-all');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+    },
+    onError: (error: any) => {
+      toast.toast({
+        title: 'Error',
+        description: error.message || 'Failed to mark all notifications as read',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Delete a notification
+  const deleteNotificationMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest('DELETE', `/api/notifications/${id}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+    },
+    onError: (error: any) => {
+      toast.toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete notification',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Delete all notifications
+  const deleteAllNotificationsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('DELETE', '/api/notifications');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+    },
+    onError: (error: any) => {
+      toast.toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete all notifications',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Wrapper methods for mutations
+  const markAsRead = useCallback(async (id: number) => {
+    await markAsReadMutation.mutateAsync(id);
+  }, [markAsReadMutation]);
+
+  const markAllAsRead = useCallback(async () => {
+    await markAllAsReadMutation.mutateAsync();
+  }, [markAllAsReadMutation]);
+
+  const deleteNotification = useCallback(async (id: number) => {
+    await deleteNotificationMutation.mutateAsync(id);
+  }, [deleteNotificationMutation]);
+
+  const deleteAllNotifications = useCallback(async () => {
+    await deleteAllNotificationsMutation.mutateAsync();
+  }, [deleteAllNotificationsMutation]);
+
+  const createNotification = useCallback(async (notification: Omit<Notification, 'id' | 'read' | 'timestamp'>) => {
+    await createNotificationMutation.mutateAsync(notification);
+  }, [createNotificationMutation]);
+
   return (
-    <NotificationContext.Provider value={value}>
+    <NotificationContext.Provider
+      value={{
+        notifications,
+        unreadCount,
+        markAsRead,
+        markAllAsRead,
+        deleteNotification,
+        deleteAllNotifications,
+        loading,
+        socket,
+        socketConnected,
+        createNotification,
+      }}
+    >
       {children}
     </NotificationContext.Provider>
   );
-}
+};
 
-export function useNotifications() {
+export const useNotifications = () => {
   const context = useContext(NotificationContext);
-  
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useNotifications must be used within a NotificationProvider');
   }
-  
   return context;
+};
+
+// Helper functions to get appropriate icon based on notification type
+export function getNotificationIcon(type: string) {
+  switch (type) {
+    case 'success':
+      return <CheckCircle className="h-5 w-5 text-green-500" />;
+    case 'error':
+      return <AlertCircle className="h-5 w-5 text-red-500" />;
+    case 'warning':
+      return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+    case 'info':
+    default:
+      return <Info className="h-5 w-5 text-blue-500" />;
+  }
+}
+
+// Helper for bell icon with badge
+export function NotificationBell({ unreadCount }: { unreadCount: number }) {
+  return (
+    <div className="relative">
+      {unreadCount > 0 ? (
+        <Bell className="h-6 w-6" />
+      ) : (
+        <BellOff className="h-6 w-6 text-muted-foreground" />
+      )}
+      {unreadCount > 0 && (
+        <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white">
+          {unreadCount > 9 ? '9+' : unreadCount}
+        </span>
+      )}
+    </div>
+  );
 }

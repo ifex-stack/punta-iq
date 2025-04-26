@@ -180,6 +180,10 @@ export class MemStorage implements IStorage {
   private fantasyContestEntriesMap: Map<number, FantasyContestEntry>;
   private pointsTransactionsMap: Map<number, PointsTransaction>;
   
+  // Notification system
+  private notificationsMap: Map<number, Notification>;
+  private pushTokensMap: Map<number, PushToken>;
+  
   sessionStore: session.SessionStore;
   
   // ID counters for entities
@@ -201,6 +205,10 @@ export class MemStorage implements IStorage {
   private playerGameweekStatIdCounter: number = 1;
   private fantasyContestEntryIdCounter: number = 1;
   private pointsTransactionIdCounter: number = 1;
+  
+  // Notification system ID counters
+  private notificationIdCounter: number = 1;
+  private pushTokenIdCounter: number = 1;
 
   constructor() {
     this.usersMap = new Map();
@@ -221,6 +229,10 @@ export class MemStorage implements IStorage {
     this.playerGameweekStatsMap = new Map();
     this.fantasyContestEntriesMap = new Map();
     this.pointsTransactionsMap = new Map();
+    
+    // Initialize notification system maps
+    this.notificationsMap = new Map();
+    this.pushTokensMap = new Map();
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // Prune expired entries every 24h
