@@ -1,194 +1,168 @@
-import type { Express } from "express";
-import { mlServiceClient } from "./ml-service-client";
+import { Router, Express } from "express";
+import { z } from "zod";
+import { MLServiceClient } from "./ml-service-client";
 import { logger } from "./logger";
 
+// Create a ML Service client
+const mlClient = new MLServiceClient();
+logger.info("MLRoutes", "ML service client initialized", { client: mlClient });
+
+// Create a new router
+const router = Router();
+
 /**
- * Set up routes for interacting with the ML prediction service
+ * Health check endpoint for the ML service
  */
+router.get("/api/ml/health", async (req, res) => {
+  try {
+    const healthStatus = await mlClient.healthCheck();
+    res.json(healthStatus);
+  } catch (error) {
+    logger.error("MLRoutes", "Error checking ML service health", error);
+    res.status(500).json({ error: "Error checking ML service health" });
+  }
+});
+
+/**
+ * Generate predictions endpoint
+ * This will trigger the ML service to generate predictions for upcoming matches
+ */
+router.post("/api/ml/generate-predictions", async (req, res) => {
+  const schema = z.object({
+    daysAhead: z.number().optional().default(3),
+    sports: z.array(z.string()).optional(),
+    storeResults: z.boolean().optional().default(true),
+    notifyUsers: z.boolean().optional().default(true),
+  });
+
+  const validationResult = schema.safeParse(req.body);
+
+  if (!validationResult.success) {
+    return res.status(400).json({ errors: validationResult.error.errors });
+  }
+
+  try {
+    const { daysAhead, sports, storeResults, notifyUsers } = validationResult.data;
+    
+    logger.info("MLRoutes", "Generating predictions", { daysAhead, sports, storeResults, notifyUsers });
+    
+    const result = await mlClient.generatePredictions({
+      daysAhead,
+      sports,
+      storeResults,
+      notifyUsers,
+    });
+    
+    res.json(result);
+  } catch (error) {
+    logger.error("MLRoutes", "Error generating predictions", error);
+    res.status(500).json({ error: "Error generating predictions" });
+  }
+});
+
+/**
+ * Get predictions for a specific sport
+ */
+router.get("/api/predictions/:sport", async (req, res) => {
+  const { sport } = req.params;
+  
+  if (!sport) {
+    return res.status(400).json({ error: "Sport parameter is required" });
+  }
+  
+  try {
+    const predictions = await mlClient.getSportPredictions(sport);
+    res.json(predictions);
+  } catch (error) {
+    logger.error("MLRoutes", "Error retrieving predictions", error);
+    res.status(500).json({ error: "Error retrieving predictions" });
+  }
+});
+
+/**
+ * Get accumulator predictions
+ */
+router.get("/api/accumulators", async (req, res) => {
+  try {
+    const accumulators = await mlClient.getAccumulators();
+    res.json(accumulators);
+  } catch (error) {
+    logger.error({ error });
+    res.status(500).json({ error: "Error retrieving accumulators" });
+  }
+});
+
+/**
+ * Get a list of supported sports and their configurations
+ */
+router.get("/api/ml/sports", async (req, res) => {
+  try {
+    const sports = await mlClient.getSupportedSports();
+    res.json(sports);
+  } catch (error) {
+    logger.error({ error });
+    res.status(500).json({ error: "Error retrieving supported sports" });
+  }
+});
+
+/**
+ * Train prediction models
+ */
+router.post("/api/ml/train", async (req, res) => {
+  const schema = z.object({
+    sport: z.string(),
+    modelType: z.string().optional(),
+    useSyntheticData: z.boolean().optional().default(false),
+  });
+
+  const validationResult = schema.safeParse(req.body);
+
+  if (!validationResult.success) {
+    return res.status(400).json({ errors: validationResult.error.errors });
+  }
+
+  try {
+    const { sport, modelType, useSyntheticData } = validationResult.data;
+    
+    logger.info({ options: { sport, modelType, useSyntheticData } });
+    
+    const result = await mlClient.trainModels({
+      sport,
+      modelType,
+      useSyntheticData,
+    });
+    
+    res.json(result);
+  } catch (error) {
+    logger.error({ error });
+    res.status(500).json({ error: "Error training models" });
+  }
+});
+
+/**
+ * Get saved predictions for current user
+ */
+router.get("/api/predictions/saved", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  
+  // Mock data for now - in a real app, we would fetch from the database
+  res.json(["pred-123", "pred-456"]);
+});
+
+/**
+ * Get accumulator selections for current user
+ */
+router.get("/api/predictions/accumulator-selections", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  
+  // Mock data for now - in a real app, we would fetch from the database
+  res.json(["pred-789"]);
+});
+
 export function setupMLRoutes(app: Express) {
-  // ML service health check
-  app.get("/api/ml/health", async (req, res) => {
-    try {
-      const isHealthy = await mlServiceClient.isHealthy();
-      if (isHealthy) {
-        res.json({ status: "healthy" });
-      } else {
-        res.status(503).json({ status: "unhealthy", message: "ML service is not responding" });
-      }
-    } catch (error: any) {
-      logger.error("Error checking ML service health", { error: error.message });
-      res.status(500).json({ 
-        status: "error", 
-        message: "Failed to check ML service health", 
-        error: error.message 
-      });
-    }
-  });
-
-  // Trigger prediction generation
-  app.post("/api/ml/generate-predictions", async (req, res) => {
-    // Only admins can manually trigger prediction generation
-    if (!req.isAuthenticated() || req.user.id !== 1) {
-      return res.status(403).json({ message: "Only administrators can generate predictions" });
-    }
-
-    try {
-      const options = {
-        daysAhead: req.body.daysAhead,
-        sports: req.body.sports,
-        storeResults: req.body.storeResults !== false,
-        notifyUsers: req.body.notifyUsers !== false,
-      };
-
-      logger.info("Generating predictions", { options });
-      const result = await mlServiceClient.generatePredictions(options);
-      
-      res.json(result);
-    } catch (error: any) {
-      logger.error("Error generating predictions", { error: error.message });
-      res.status(500).json({ 
-        message: "Failed to generate predictions", 
-        error: error.message 
-      });
-    }
-  });
-
-  // Get latest predictions by sport
-  app.get("/api/ml/predictions/:sport", async (req, res) => {
-    try {
-      const sport = req.params.sport;
-      const isPremiumUser = req.isAuthenticated() && 
-        ["basic", "pro", "elite"].includes(req.user.subscriptionTier);
-      
-      // Get predictions from ML service
-      const data = await mlServiceClient.getSportPredictions(sport);
-      
-      // Filter out premium predictions for non-premium users
-      const predictions = data.predictions.map((prediction: any) => {
-        // If this is a premium prediction and user is not premium, mask some data
-        if (prediction.tier === 'elite' && !isPremiumUser) {
-          return {
-            ...prediction,
-            isLocked: true,
-            predictions: {
-              // Keep basic prediction info but remove details
-              ...Object.fromEntries(
-                Object.entries(prediction.predictions).map(([market, details]: [string, any]) => [
-                  market,
-                  {
-                    predicted_outcome: "locked",
-                    confidence: null,
-                    probabilities: null,
-                    requiresSubscription: true
-                  }
-                ])
-              )
-            }
-          };
-        }
-        return prediction;
-      });
-      
-      res.json({
-        sport,
-        predictions,
-        timestamp: data.timestamp,
-        count: predictions.length
-      });
-    } catch (error: any) {
-      logger.error(`Error getting ${req.params.sport} predictions`, { error: error.message });
-      res.status(500).json({ 
-        message: `Failed to get ${req.params.sport} predictions`, 
-        error: error.message 
-      });
-    }
-  });
-
-  // Get latest accumulator predictions
-  app.get("/api/ml/accumulators", async (req, res) => {
-    try {
-      const isPremiumUser = req.isAuthenticated() && 
-        ["basic", "pro", "elite"].includes(req.user.subscriptionTier);
-      
-      // Get accumulators from ML service
-      const data = await mlServiceClient.getAccumulators();
-      
-      // Filter accumulators based on user subscription
-      const accumulators = Object.fromEntries(
-        Object.entries(data.accumulators).map(([key, acc]: [string, any]) => {
-          // For premium accumulators, check subscription
-          if ((key === 'five_fold' || key === 'ten_fold') && !isPremiumUser) {
-            return [key, {
-              ...acc,
-              isLocked: true,
-              picks: acc.picks.map((pick: any) => ({
-                ...pick,
-                prediction: "locked",
-                confidence: null,
-                requiresSubscription: true
-              }))
-            }];
-          }
-          return [key, acc];
-        })
-      );
-      
-      res.json({
-        accumulators,
-        timestamp: data.timestamp,
-        count: Object.keys(accumulators).length
-      });
-    } catch (error: any) {
-      logger.error("Error getting accumulator predictions", { error: error.message });
-      res.status(500).json({ 
-        message: "Failed to get accumulator predictions", 
-        error: error.message 
-      });
-    }
-  });
-
-  // Train models (admin only)
-  app.post("/api/ml/train", async (req, res) => {
-    // Only admins can train models
-    if (!req.isAuthenticated() || req.user.id !== 1) {
-      return res.status(403).json({ message: "Only administrators can train models" });
-    }
-
-    try {
-      const options = {
-        sport: req.body.sport,
-        modelType: req.body.modelType,
-        useSyntheticData: req.body.useSyntheticData !== false,
-      };
-
-      if (!options.sport) {
-        return res.status(400).json({ message: "Sport is required" });
-      }
-
-      logger.info("Training prediction models", { options });
-      const result = await mlServiceClient.trainModels(options);
-      
-      res.json(result);
-    } catch (error: any) {
-      logger.error("Error training models", { error: error.message });
-      res.status(500).json({ 
-        message: "Failed to train models", 
-        error: error.message 
-      });
-    }
-  });
-
-  // Get supported sports
-  app.get("/api/ml/supported-sports", async (req, res) => {
-    try {
-      const data = await mlServiceClient.getSupportedSports();
-      res.json(data.sports);
-    } catch (error: any) {
-      logger.error("Error getting supported sports", { error: error.message });
-      res.status(500).json({ 
-        message: "Failed to get supported sports", 
-        error: error.message 
-      });
-    }
-  });
+  app.use(router);
 }
