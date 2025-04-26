@@ -4,6 +4,9 @@ import { Redirect } from 'wouter';
 import { TabsContent, Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { NotificationTestPanel } from '@/components/admin/notification-test-panel';
+import { NotificationConnectionStatus } from '@/components/admin/notification-connection-status';
+import { NotificationMetricsPanel } from '@/components/admin/notification-metrics-panel';
+import { FeatureFlagManager } from '@/components/admin/feature-flag-manager';
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -25,16 +28,31 @@ export default function AdminPage() {
       <Separator className="my-6" />
       
       <Tabs defaultValue="notifications" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-3 mb-8">
+        <TabsList className="grid w-full max-w-md grid-cols-4 mb-8">
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="features">Features</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
         
         <TabsContent value="notifications" className="space-y-8">
+          <div className="grid md:grid-cols-2 gap-8">
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Connection Status</h2>
+              <NotificationConnectionStatus />
+            </div>
+            
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Notification Testing</h2>
+              <NotificationTestPanel />
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="features" className="space-y-8">
           <div>
-            <h2 className="text-xl font-semibold mb-4">Notification Testing</h2>
-            <NotificationTestPanel />
+            <h2 className="text-xl font-semibold mb-4">Feature Flag Management</h2>
+            <FeatureFlagManager />
           </div>
         </TabsContent>
         
@@ -48,11 +66,18 @@ export default function AdminPage() {
         </TabsContent>
         
         <TabsContent value="analytics">
-          <div className="rounded-lg border p-8 text-center">
-            <h3 className="text-lg font-medium">Analytics Dashboard</h3>
-            <p className="text-muted-foreground mt-2">
-              Analytics features will be implemented here
-            </p>
+          <div className="space-y-8">
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Notification Metrics</h2>
+              <NotificationMetricsPanel />
+            </div>
+            
+            <div className="rounded-lg border p-8 text-center">
+              <h3 className="text-lg font-medium">App Usage Analytics</h3>
+              <p className="text-muted-foreground mt-2">
+                Additional analytics features will be implemented here
+              </p>
+            </div>
           </div>
         </TabsContent>
       </Tabs>
