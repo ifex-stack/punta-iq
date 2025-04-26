@@ -1,4 +1,5 @@
 import { Route, Switch } from "wouter";
+import { useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -10,30 +11,66 @@ import HomePage from "@/pages/home-page";
 import StatsPage from "@/pages/stats-page";
 import SubscriptionPage from "@/pages/subscription-page";
 import ProfilePage from "@/pages/profile-page";
+import FAQPage from "@/pages/faq-page";
+import HistoricalDashboard from "@/pages/historical-dashboard";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from 'next-themes';
 
+// New components
+import { OnboardingProvider } from "@/components/onboarding/onboarding-provider";
+import { GuidedTour } from "@/components/onboarding/guided-tour";
+import { GettingStartedGuide } from "@/components/onboarding/getting-started-guide";
+import { NotificationProvider } from "@/components/notifications/notification-provider";
+import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
+import { fetchFeatureFlags } from "./lib/feature-flags";
+
 function Router() {
   return (
-    <Switch>
-      <Route path="/auth" component={AuthPage} />
-      <ProtectedRoute path="/" component={HomePage} />
-      <ProtectedRoute path="/stats" component={StatsPage} />
-      <ProtectedRoute path="/subscription" component={SubscriptionPage} />
-      <ProtectedRoute path="/profile" component={ProfilePage} />
-      <Route component={NotFound} />
-    </Switch>
+    <div className="flex h-screen">
+      <div className="flex-1 relative">
+        <Switch>
+          <Route path="/auth" component={AuthPage} />
+          <ProtectedRoute path="/" component={HomePage} />
+          <ProtectedRoute path="/stats" component={StatsPage} />
+          <ProtectedRoute path="/history" component={HistoricalDashboard} />
+          <ProtectedRoute path="/subscription" component={SubscriptionPage} />
+          <ProtectedRoute path="/profile" component={ProfilePage} />
+          <Route path="/faq" component={FAQPage} />
+          <Route component={NotFound} />
+        </Switch>
+        
+        {/* Positioned notification dropdown */}
+        <div className="absolute top-4 right-4 z-50">
+          <NotificationDropdown />
+        </div>
+        
+        {/* Onboarding components (only shown when triggered) */}
+        <GuidedTour />
+        <GettingStartedGuide />
+      </div>
+    </div>
   );
 }
 
 function App() {
+  // Fetch feature flags on app initialization
+  useEffect(() => {
+    fetchFeatureFlags()
+      .then(() => console.log("Feature flags loaded"))
+      .catch(err => console.error("Failed to load feature flags:", err));
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark" attribute="class">
         <TooltipProvider>
           <AuthProvider>
-            <Toaster />
-            <Router />
+            <NotificationProvider>
+              <OnboardingProvider>
+                <Toaster />
+                <Router />
+              </OnboardingProvider>
+            </NotificationProvider>
           </AuthProvider>
         </TooltipProvider>
       </ThemeProvider>
