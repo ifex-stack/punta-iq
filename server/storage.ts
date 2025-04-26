@@ -1526,6 +1526,36 @@ export class MemStorage implements IStorage {
     return this.leaderboardsMap.get(id);
   }
   
+  async updateLeaderboardEntry(entry: InsertLeaderboardEntry): Promise<LeaderboardEntry> {
+    // Check if entry already exists
+    const existingEntry = Array.from(this.leaderboardEntriesMap.values()).find(
+      e => e.leaderboardId === entry.leaderboardId && e.userId === entry.userId
+    );
+    
+    if (existingEntry) {
+      // Update existing entry
+      const updatedEntry: LeaderboardEntry = {
+        ...existingEntry,
+        score: entry.score,
+        updatedAt: new Date()
+      };
+      this.leaderboardEntriesMap.set(existingEntry.id, updatedEntry);
+      return updatedEntry;
+    }
+    
+    // Create new entry
+    const id = this.leaderboardEntryIdCounter++;
+    const now = new Date();
+    const newEntry: LeaderboardEntry = {
+      ...entry,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.leaderboardEntriesMap.set(id, newEntry);
+    return newEntry;
+  }
+  
   async getLeaderboardWithEntries(id: number): Promise<{leaderboard: Leaderboard, entries: LeaderboardEntry[]} | undefined> {
     const leaderboard = this.leaderboardsMap.get(id);
     if (!leaderboard) return undefined;
