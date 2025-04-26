@@ -80,7 +80,7 @@ export default function HomePage() {
               PuntaIQ Predictions
             </h1>
             <p className="text-muted-foreground">
-              Daily predictions powered by advanced machine learning algorithms
+              Daily expert predictions to help you make smarter betting decisions
             </p>
           </div>
           

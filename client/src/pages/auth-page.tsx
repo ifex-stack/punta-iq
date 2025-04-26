@@ -296,7 +296,7 @@ export default function AuthPage() {
                 AI-Powered Sports Predictions
               </h2>
               <p className="text-muted-foreground">
-                Access daily predictions powered by advanced machine learning algorithms
+                Access daily expert predictions to help you win more consistently
               </p>
               
               <div className="mt-8 space-y-6">
@@ -307,7 +307,7 @@ export default function AuthPage() {
                   <div>
                     <h3 className="font-medium">Advanced AI Predictions</h3>
                     <p className="text-sm text-muted-foreground">
-                      Our proprietary models analyze thousands of data points for highly accurate predictions
+                      Our expert systems analyze thousands of data points to deliver accurate predictions just for you
                     </p>
                   </div>
                 </div>
