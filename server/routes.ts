@@ -221,6 +221,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Fantasy Contests endpoints
+  app.get("/api/fantasy/contests", async (req, res) => {
+    try {
+      const { status, tier, limit } = req.query;
+      let contests;
+      
+      if (tier === 'free') {
+        contests = await (storage as any).getFreeFantasyContests(
+          limit ? parseInt(limit as string) : 20,
+          status as string
+        );
+      } else if (tier === 'premium') {
+        contests = await (storage as any).getPremiumFantasyContests(
+          limit ? parseInt(limit as string) : 20,
+          status as string
+        );
+      } else {
+        contests = await (storage as any).getAllFantasyContests(
+          limit ? parseInt(limit as string) : 20,
+          status as string,
+          tier as string
+        );
+      }
+      
+      res.json(contests);
+    } catch (error: any) {
+      console.error("Error fetching contests:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch contests" });
+    }
+  });
+  
+  app.get("/api/fantasy/contests/:id", async (req, res) => {
+    try {
+      const contestId = parseInt(req.params.id);
+      const contest = await (storage as any).getFantasyContestById(contestId);
+      
+      if (!contest) {
+        return res.status(404).json({ message: "Contest not found" });
+      }
+      
+      res.json(contest);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get("/api/fantasy/contests/:id/leaderboard", async (req, res) => {
+    try {
+      const contestId = parseInt(req.params.id);
+      const entries = await (storage as any).getContestLeaderboard(contestId);
+      
+      res.json(entries);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.post("/api/fantasy/contests/:id/enter", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const contestId = parseInt(req.params.id);
+      const teamId = parseInt(req.body.teamId);
+      
+      // Validate the contest exists
+      const contest = await (storage as any).getFantasyContestById(contestId);
+      if (!contest) {
+        return res.status(404).json({ message: "Contest not found" });
+      }
+      
+      // Validate the team exists and belongs to the user
+      const team = await (storage as any).getFantasyTeamById(teamId);
+      if (!team) {
+        return res.status(404).json({ message: "Team not found" });
+      }
+      
+      if (team.userId !== req.user.id) {
+        return res.status(403).json({ message: "You can only enter with your own teams" });
+      }
+      
+      // Check if user already has an entry for this contest
+      const userEntries = await (storage as any).getUserContestEntries(req.user.id);
+      const existingEntry = userEntries.find(entry => entry.contestId === contestId);
+      
+      if (existingEntry) {
+        return res.status(400).json({ message: "You have already entered this contest" });
+      }
+      
+      // Create the entry
+      const entry = await (storage as any).createContestEntry({
+        userId: req.user.id,
+        contestId,
+        teamId,
+        totalPoints: 0
+      });
+      
+      // Update the contest player count
+      contest.playerCount = (contest.playerCount || 0) + 1;
+      await (storage as any).updateFantasyContestStatus(contestId, contest.status);
+      
+      // Update user stats
+      await (storage as any).updateUser(req.user.id, {
+        totalContestsEntered: (req.user.totalContestsEntered || 0) + 1
+      });
+      
+      res.status(201).json(entry);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
   app.post("/api/fantasy/teams/:teamId/players", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Unauthorized" });
