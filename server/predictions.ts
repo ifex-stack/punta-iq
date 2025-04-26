@@ -1,0 +1,341 @@
+import type { Express } from "express";
+import { storage } from "./storage";
+import { z } from "zod";
+import { insertAccumulatorSchema, insertUserPredictionSchema } from "@shared/schema";
+
+export function setupPredictionRoutes(app: Express) {
+  // Get today's predictions
+  app.get("/api/predictions/today", async (req, res) => {
+    try {
+      // Get user subscription status
+      const isPremiumUser = req.isAuthenticated() && 
+        ["basic", "pro", "elite"].includes(req.user.subscriptionTier);
+      
+      // Get upcoming matches with predictions
+      const upcomingMatches = await storage.getUpcomingMatches(20);
+      const result = [];
+      
+      for (const match of upcomingMatches) {
+        const predictions = await storage.getPredictionsByMatch(match.id);
+        
+        if (predictions.length > 0) {
+          // Get associated league
+          const league = await storage.leaguesMap.get(match.leagueId);
+          // Get sport
+          const sport = league ? await storage.sportsMap.get(league.sportId) : null;
+          
+          // For each match, combine with its predictions
+          for (const prediction of predictions) {
+            // Skip premium predictions for non-premium users
+            if (prediction.isPremium && !isPremiumUser) {
+              // Include prediction but mark as locked
+              result.push({
+                match,
+                prediction: {
+                  ...prediction,
+                  isLocked: true,
+                },
+                league: league || null,
+                sport: sport || null
+              });
+            } else {
+              result.push({
+                match,
+                prediction,
+                league: league || null,
+                sport: sport || null
+              });
+            }
+          }
+        }
+      }
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Get predictions by sport
+  app.get("/api/predictions/sport/:sportId", async (req, res) => {
+    try {
+      const sportId = parseInt(req.params.sportId);
+      
+      // Get leagues for this sport
+      const leagues = await storage.getLeaguesBySport(sportId);
+      const leagueIds = leagues.map(league => league.id);
+      
+      // Get matches for these leagues
+      const allMatches = await storage.getAllMatches();
+      const sportMatches = allMatches.filter(match => leagueIds.includes(match.leagueId));
+      
+      // Get predictions for these matches
+      const result = [];
+      const isPremiumUser = req.isAuthenticated() && 
+        ["basic", "pro", "elite"].includes(req.user.subscriptionTier);
+      
+      for (const match of sportMatches) {
+        const predictions = await storage.getPredictionsByMatch(match.id);
+        const league = await storage.leaguesMap.get(match.leagueId);
+        
+        for (const prediction of predictions) {
+          // Skip premium predictions for non-premium users
+          if (prediction.isPremium && !isPremiumUser) {
+            // Include prediction but mark as locked
+            result.push({
+              match,
+              prediction: {
+                ...prediction,
+                isLocked: true,
+              },
+              league: league || null
+            });
+          } else {
+            result.push({
+              match,
+              prediction,
+              league: league || null
+            });
+          }
+        }
+      }
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Get prediction history
+  app.get("/api/predictions/history", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      // Get user's viewed predictions
+      const userPredictions = await storage.getUserPredictions(req.user.id);
+      const result = [];
+      
+      for (const userPrediction of userPredictions) {
+        const prediction = await storage.getPredictionById(userPrediction.predictionId);
+        if (prediction) {
+          const match = await storage.getMatchById(prediction.matchId);
+          if (match) {
+            const league = await storage.leaguesMap.get(match.leagueId);
+            result.push({
+              userPrediction,
+              prediction,
+              match,
+              league: league || null
+            });
+          }
+        }
+      }
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Save/view a prediction
+  app.post("/api/predictions/view", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const { predictionId } = req.body;
+      if (!predictionId) {
+        return res.status(400).json({ message: "Prediction ID is required" });
+      }
+      
+      // Check if premium prediction
+      const prediction = await storage.getPredictionById(predictionId);
+      if (!prediction) {
+        return res.status(404).json({ message: "Prediction not found" });
+      }
+      
+      // Check if user has access to this prediction
+      if (prediction.isPremium && !["basic", "pro", "elite"].includes(req.user.subscriptionTier)) {
+        return res.status(403).json({ message: "Upgrade required to view premium predictions" });
+      }
+      
+      // Save the user prediction view
+      const userPrediction = await storage.saveUserPrediction({
+        userId: req.user.id,
+        predictionId,
+        isSaved: false,
+        isInAccumulator: false
+      });
+      
+      res.json(userPrediction);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Toggle saved prediction
+  app.post("/api/predictions/toggle-save", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const { predictionId } = req.body;
+      if (!predictionId) {
+        return res.status(400).json({ message: "Prediction ID is required" });
+      }
+      
+      const userPrediction = await storage.toggleSavedPrediction(req.user.id, predictionId);
+      res.json(userPrediction);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Create accumulator
+  app.post("/api/accumulator", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const validatedData = insertAccumulatorSchema.parse({
+        ...req.body,
+        userId: req.user.id
+      });
+      
+      const accumulator = await storage.createAccumulator(validatedData);
+      
+      // If prediction IDs are provided, add them to the accumulator
+      if (req.body.predictionIds && Array.isArray(req.body.predictionIds)) {
+        for (const predictionId of req.body.predictionIds) {
+          await storage.addToAccumulator({
+            accumulatorId: accumulator.id,
+            predictionId
+          });
+        }
+      }
+      
+      res.status(201).json(accumulator);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Get user's accumulators
+  app.get("/api/accumulators", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const accumulators = await storage.getUserAccumulators(req.user.id);
+      const result = [];
+      
+      for (const accumulator of accumulators) {
+        // Get all accumulator items
+        const items = Array.from(storage.accumulatorItemsMap.values())
+          .filter(item => item.accumulatorId === accumulator.id);
+        
+        const predictionItems = [];
+        for (const item of items) {
+          const prediction = await storage.getPredictionById(item.predictionId);
+          if (prediction) {
+            const match = await storage.getMatchById(prediction.matchId);
+            if (match) {
+              predictionItems.push({
+                item,
+                prediction,
+                match
+              });
+            }
+          }
+        }
+        
+        result.push({
+          accumulator,
+          items: predictionItems
+        });
+      }
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Add to accumulator
+  app.post("/api/accumulator/:id/add", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const accumulatorId = parseInt(req.params.id);
+      const { predictionId } = req.body;
+      
+      if (!predictionId) {
+        return res.status(400).json({ message: "Prediction ID is required" });
+      }
+      
+      // Check if accumulator exists and belongs to user
+      const accumulator = await storage.getAccumulatorById(accumulatorId);
+      if (!accumulator) {
+        return res.status(404).json({ message: "Accumulator not found" });
+      }
+      
+      if (accumulator.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to modify this accumulator" });
+      }
+      
+      // Add prediction to accumulator
+      const item = await storage.addToAccumulator({
+        accumulatorId,
+        predictionId
+      });
+      
+      res.status(201).json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Remove from accumulator
+  app.delete("/api/accumulator/:id/remove/:predictionId", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const accumulatorId = parseInt(req.params.id);
+      const predictionId = parseInt(req.params.predictionId);
+      
+      // Check if accumulator exists and belongs to user
+      const accumulator = await storage.getAccumulatorById(accumulatorId);
+      if (!accumulator) {
+        return res.status(404).json({ message: "Accumulator not found" });
+      }
+      
+      if (accumulator.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to modify this accumulator" });
+      }
+      
+      // Remove prediction from accumulator
+      const success = await storage.removeFromAccumulator(accumulatorId, predictionId);
+      
+      if (success) {
+        res.status(200).json({ success: true });
+      } else {
+        res.status(404).json({ message: "Item not found in accumulator" });
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+}
