@@ -194,6 +194,7 @@ export interface IStorage {
   getPushTokenById(id: number): Promise<PushToken | undefined>;
   createPushToken(token: InsertPushToken): Promise<PushToken>;
   deactivatePushToken(id: number): Promise<boolean>;
+  registerPushToken(userId: number, token: string, platform: string, deviceName?: string): Promise<PushToken>;
   sendPushNotification(userId: number, title: string, body: string, data?: any): Promise<boolean>;
   
   // Badge methods
