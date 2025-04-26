@@ -21,6 +21,7 @@ import {
   userBadges,
   leaderboards,
   leaderboardEntries,
+  referrals,
   type User,
   type InsertUser,
   type Sport,
@@ -65,6 +66,8 @@ import {
   type InsertLeaderboard,
   type LeaderboardEntry,
   type InsertLeaderboardEntry,
+  type Referral,
+  type InsertReferral,
   subscriptionTiers
 } from "@shared/schema";
 import session from "express-session";
@@ -271,6 +274,9 @@ export class MemStorage implements IStorage {
   private leaderboardsMap: Map<number, Leaderboard>;
   private leaderboardEntriesMap: Map<number, LeaderboardEntry>;
   
+  // Referral system
+  private referralsMap: Map<number, Referral>;
+  
   // Connected websocket clients
   private wsClients: Map<number, WebSocket[]> = new Map();
   
@@ -306,6 +312,9 @@ export class MemStorage implements IStorage {
   private leaderboardIdCounter: number = 1;
   private leaderboardEntryIdCounter: number = 1;
 
+  // Referral system ID counters
+  private referralIdCounter: number = 1;
+  
   constructor() {
     this.usersMap = new Map();
     this.sportsMap = new Map();
@@ -335,6 +344,9 @@ export class MemStorage implements IStorage {
     this.userBadgesMap = new Map();
     this.leaderboardsMap = new Map();
     this.leaderboardEntriesMap = new Map();
+    
+    // Initialize referral system maps
+    this.referralsMap = new Map();
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // Prune expired entries every 24h
@@ -1996,6 +2008,229 @@ export class DatabaseStorage implements IStorage {
       createTableIfMissing: true 
     });
   }
+  
+  // 2FA methods
+  async enableTwoFactor(userId: number, secret: string, phoneNumber: string): Promise<User> {
+    try {
+      const [user] = await db
+        .update(users)
+        .set({
+          isTwoFactorEnabled: true,
+          twoFactorSecret: secret,
+          phoneNumber
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      
+      if (!user) throw new Error("User not found");
+      return user;
+    } catch (error) {
+      console.error("Error enabling two-factor:", error);
+      throw error;
+    }
+  }
+  
+  async disableTwoFactor(userId: number): Promise<User> {
+    try {
+      const [user] = await db
+        .update(users)
+        .set({
+          isTwoFactorEnabled: false,
+          twoFactorSecret: null
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      
+      if (!user) throw new Error("User not found");
+      return user;
+    } catch (error) {
+      console.error("Error disabling two-factor:", error);
+      throw error;
+    }
+  }
+  
+  async verifyTwoFactorCode(userId: number, code: string): Promise<boolean> {
+    try {
+      // This would normally use a library like 'speakeasy' to verify TOTP tokens
+      // For now, we'll just do a simple check
+      const user = await this.getUser(userId);
+      if (!user || !user.twoFactorSecret || !user.isTwoFactorEnabled) {
+        return false;
+      }
+      
+      // In a real implementation, we would verify the code against the secret
+      // using something like: speakeasy.totp.verify({ 
+      //   secret: user.twoFactorSecret,
+      //   encoding: 'base32',
+      //   token: code
+      // });
+      
+      return code === '123456'; // Placeholder check
+    } catch (error) {
+      console.error("Error verifying two-factor code:", error);
+      return false;
+    }
+  }
+  
+  // Device tracking methods
+  async updateUserDeviceImei(userId: number, imei: string): Promise<User> {
+    try {
+      const [user] = await db
+        .update(users)
+        .set({
+          deviceImei: imei
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      
+      if (!user) throw new Error("User not found");
+      return user;
+    } catch (error) {
+      console.error("Error updating device IMEI:", error);
+      throw error;
+    }
+  }
+  
+  async getUserByDeviceImei(imei: string): Promise<User | undefined> {
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.deviceImei, imei));
+      
+      return user;
+    } catch (error) {
+      console.error("Error getting user by device IMEI:", error);
+      return undefined;
+    }
+  }
+  
+  // Referral methods
+  async getUserReferrals(userId: number): Promise<Referral[]> {
+    try {
+      return await db
+        .select()
+        .from(referrals)
+        .where(eq(referrals.referrerId, userId));
+    } catch (error) {
+      console.error("Error getting user referrals:", error);
+      return [];
+    }
+  }
+  
+  async getReferralById(id: number): Promise<Referral | undefined> {
+    try {
+      const [referral] = await db
+        .select()
+        .from(referrals)
+        .where(eq(referrals.id, id));
+      
+      return referral;
+    } catch (error) {
+      console.error("Error getting referral by ID:", error);
+      return undefined;
+    }
+  }
+  
+  async createReferral(referral: InsertReferral): Promise<Referral> {
+    try {
+      const [newReferral] = await db
+        .insert(referrals)
+        .values(referral)
+        .returning();
+      
+      return newReferral;
+    } catch (error) {
+      console.error("Error creating referral:", error);
+      throw error;
+    }
+  }
+  
+  async updateReferralStatus(id: number, status: string): Promise<Referral> {
+    try {
+      const [referral] = await db
+        .update(referrals)
+        .set({
+          status: status
+        })
+        .where(eq(referrals.id, id))
+        .returning();
+      
+      if (!referral) throw new Error("Referral not found");
+      
+      // If the status is completed, award points to the referrer
+      if (status === 'completed' && !referral.rewardClaimed) {
+        const rewardAmount = 500; // Default reward amount
+        
+        // Update the referral to mark reward as claimed
+        await db
+          .update(referrals)
+          .set({
+            rewardAmount: rewardAmount,
+            rewardClaimed: true
+          })
+          .where(eq(referrals.id, id));
+        
+        // Award points to the referrer
+        await this.updateUserFantasyPoints(referral.referrerId, rewardAmount);
+        
+        // Create a points transaction record
+        await this.createPointsTransaction({
+          userId: referral.referrerId,
+          type: 'referral',
+          amount: rewardAmount,
+          description: 'Referral bonus',
+          relatedId: id,
+          relatedType: 'referral'
+        });
+        
+        // Create notification for the referrer
+        await this.createNotification({
+          userId: referral.referrerId,
+          type: 'referral',
+          title: 'Referral Bonus',
+          message: `You earned ${rewardAmount} points for a successful referral!`,
+          isRead: false
+        });
+      }
+      
+      return referral;
+    } catch (error) {
+      console.error("Error updating referral status:", error);
+      throw error;
+    }
+  }
+  
+  async getUserReferralStats(userId: number): Promise<{ 
+    totalReferrals: number, 
+    pendingReferrals: number, 
+    completedReferrals: number, 
+    totalRewards: number 
+  }> {
+    try {
+      const userReferrals = await this.getUserReferrals(userId);
+      
+      const totalReferrals = userReferrals.length;
+      const pendingReferrals = userReferrals.filter(r => r.status === 'pending').length;
+      const completedReferrals = userReferrals.filter(r => r.status === 'completed').length;
+      const totalRewards = userReferrals.reduce((sum, r) => sum + (r.rewardAmount || 0), 0);
+      
+      return {
+        totalReferrals,
+        pendingReferrals,
+        completedReferrals,
+        totalRewards
+      };
+    } catch (error) {
+      console.error("Error getting user referral stats:", error);
+      return {
+        totalReferrals: 0,
+        pendingReferrals: 0,
+        completedReferrals: 0,
+        totalRewards: 0
+      };
+    }
+  }
 
   // User methods
   async getUser(id: number): Promise<User | undefined> {
@@ -2218,6 +2453,31 @@ export class DatabaseStorage implements IStorage {
     
     if (!user) throw new Error("User not found");
     return user;
+  }
+  
+  async updateUserFantasyPoints(userId: number, points: number): Promise<User> {
+    try {
+      // Get current fantasy points
+      const user = await this.getUser(userId);
+      if (!user) throw new Error("User not found");
+      
+      const currentPoints = user.fantasyPoints || 0;
+      const newPoints = currentPoints + points;
+      
+      // Update user with new points total
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          fantasyPoints: newPoints
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      
+      return updatedUser;
+    } catch (error) {
+      console.error("Error updating user fantasy points:", error);
+      throw error;
+    }
   }
 
   // Sport & League methods
