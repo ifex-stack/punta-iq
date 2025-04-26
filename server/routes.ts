@@ -81,6 +81,189 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Fantasy Football routes
+  app.get("/api/fantasy/contests", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const status = req.query.status as string;
+      const contests = await storage.getAllFantasyContests(limit, status);
+      res.json(contests);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get("/api/fantasy/contests/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const contest = await storage.getFantasyContestById(id);
+      
+      if (!contest) {
+        return res.status(404).json({ message: "Contest not found" });
+      }
+      
+      res.json(contest);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.post("/api/fantasy/contests", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.id !== 1) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const contestData = req.body;
+      const contest = await storage.createFantasyContest(contestData);
+      res.status(201).json(contest);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get("/api/fantasy/teams", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const teams = await storage.getUserFantasyTeams(req.user.id);
+      res.json(teams);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.post("/api/fantasy/teams", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const teamData = {
+        ...req.body,
+        userId: req.user.id
+      };
+      const team = await storage.createFantasyTeam(teamData);
+      res.status(201).json(team);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get("/api/fantasy/players", async (req, res) => {
+    try {
+      const { search, position, team, limit } = req.query;
+      let players;
+      
+      if (search) {
+        players = await storage.searchFootballPlayers(
+          search as string,
+          position as string,
+          team as string,
+          limit ? parseInt(limit as string) : 50
+        );
+      } else {
+        players = await storage.getAllFootballPlayers(
+          limit ? parseInt(limit as string) : 50
+        );
+      }
+      
+      res.json(players);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.post("/api/fantasy/teams/:teamId/players", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const team = await storage.getFantasyTeamById(teamId);
+      
+      if (!team) {
+        return res.status(404).json({ message: "Team not found" });
+      }
+      
+      if (team.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not your team" });
+      }
+      
+      const playerData = {
+        ...req.body,
+        teamId
+      };
+      const player = await storage.addPlayerToFantasyTeam(playerData);
+      res.status(201).json(player);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.post("/api/fantasy/contests/:contestId/enter", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const contestId = parseInt(req.params.contestId);
+      const { teamId } = req.body;
+      
+      if (!teamId) {
+        return res.status(400).json({ message: "Team ID is required" });
+      }
+      
+      const contest = await storage.getFantasyContestById(contestId);
+      if (!contest) {
+        return res.status(404).json({ message: "Contest not found" });
+      }
+      
+      const team = await storage.getFantasyTeamById(parseInt(teamId));
+      if (!team) {
+        return res.status(404).json({ message: "Team not found" });
+      }
+      
+      if (team.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not your team" });
+      }
+      
+      // Check if contest is still open for entries
+      if (contest.status !== 'upcoming') {
+        return res.status(400).json({ message: "Contest is no longer accepting entries" });
+      }
+      
+      // Check if user has already entered this contest with this team
+      const userEntries = await storage.getUserContestEntries(req.user.id);
+      const existingEntry = userEntries.find(entry => 
+        entry.contestId === contestId && entry.teamId === team.id
+      );
+      
+      if (existingEntry) {
+        return res.status(400).json({ message: "You have already entered this contest with this team" });
+      }
+      
+      // Create entry
+      const entry = await storage.createContestEntry({
+        userId: req.user.id,
+        contestId,
+        teamId: team.id
+      });
+      
+      // Update user stats
+      await storage.updateUser(req.user.id, {
+        totalContestsEntered: (req.user.totalContestsEntered || 0) + 1
+      });
+      
+      res.status(201).json(entry);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
   // Feature flags endpoint
   app.get("/api/feature-flags", async (req, res) => {
     try {

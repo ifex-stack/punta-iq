@@ -109,6 +109,25 @@ export function setupAuth(app: Express) {
         password: await hashPassword(validatedData.password),
       });
 
+      // Create welcome notification for the new user
+      try {
+        await storage.createNotification({
+          userId: user.id,
+          title: "Welcome to PuntaIQ!",
+          message: "Thanks for joining. Start exploring AI-powered sports predictions today!",
+          type: "success",
+          icon: "party-popper",
+          data: {
+            action: "onboarding",
+            section: "welcome"
+          }
+        });
+        console.log(`Created welcome notification for user ${user.id}`);
+      } catch (notificationError) {
+        console.error("Failed to create welcome notification:", notificationError);
+        // Continue with login despite notification error
+      }
+
       // Log user in
       req.login(user, (err) => {
         if (err) return next(err);

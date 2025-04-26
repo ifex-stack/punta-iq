@@ -1005,6 +1005,53 @@ export class MemStorage implements IStorage {
     return updatedStats;
   }
   
+  async calculatePlayerPoints(stats: PlayerGameweekStat, playerTeam: string): Promise<number> {
+    // Calculate points according to specified rules:
+    // - Team wins: 3 points
+    // - Player scores: 3 points
+    // - Card (yellow or red): 5 points
+    
+    let points = 0;
+    
+    // Points for goals
+    if (stats.goals > 0) {
+      points += stats.goals * 3; // 3 points per goal
+    }
+    
+    // Points for cards
+    if (stats.yellowCards > 0) {
+      points += stats.yellowCards * 5; // 5 points per yellow card
+    }
+    
+    if (stats.redCard) {
+      points += 5; // 5 points for red card
+    }
+    
+    // Check if player's team won in this gameweek
+    // We need to extract the match result from the gameweek fixtures
+    const gameweek = await this.getGameweekById(stats.gameweekId);
+    if (gameweek && gameweek.fixtures) {
+      // This is a simplified check - in a real implementation,
+      // we would need to match the player's team with fixture results
+      const fixtures = gameweek.fixtures as any[];
+      const teamFixture = fixtures.find((fixture: any) => 
+        fixture.homeTeam === playerTeam || fixture.awayTeam === playerTeam
+      );
+      
+      if (teamFixture) {
+        const isHomeTeam = teamFixture.homeTeam === playerTeam;
+        const result = teamFixture.result;
+        
+        // Check if player's team won
+        if ((isHomeTeam && result === 'home') || (!isHomeTeam && result === 'away')) {
+          points += 3; // 3 points for team win
+        }
+      }
+    }
+    
+    return points;
+  }
+  
   async calculateGameweekPoints(gameweekId: number): Promise<boolean> {
     // Get the gameweek
     const gameweek = await this.getGameweekById(gameweekId);
@@ -1040,8 +1087,12 @@ export class MemStorage implements IStorage {
         const playerStats = allStats.find(stats => stats.playerId === teamPlayer.playerId);
         if (!playerStats) continue;
         
-        // Calculate base points
-        let playerPoints = playerStats.points || 0;
+        // Get player details to determine team
+        const player = await this.getFootballPlayerById(teamPlayer.playerId);
+        if (!player) continue;
+        
+        // Calculate player points using our scoring system
+        let playerPoints = await this.calculatePlayerPoints(playerStats, player.team);
         
         // Apply captain/vice captain multipliers
         if (teamPlayer.isCaptain) {
