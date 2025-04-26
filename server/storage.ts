@@ -184,6 +184,9 @@ export class MemStorage implements IStorage {
   private notificationsMap: Map<number, Notification>;
   private pushTokensMap: Map<number, PushToken>;
   
+  // Connected websocket clients
+  private wsClients: Map<number, WebSocket[]> = new Map();
+  
   sessionStore: session.SessionStore;
   
   // ID counters for entities
@@ -1128,6 +1131,13 @@ export class MemStorage implements IStorage {
       timestamp: now,
     };
     this.notificationsMap.set(id, newNotification);
+    
+    // Send notification to connected WebSocket clients
+    await this.notifyUserViaWebSocket(notification.userId, {
+      type: 'notification',
+      data: newNotification
+    });
+    
     return newNotification;
   }
   
@@ -1165,6 +1175,39 @@ export class MemStorage implements IStorage {
     }
     
     return true;
+  }
+  
+  // WebSocket client management
+  async registerWebSocketClient(userId: number, ws: WebSocket): Promise<void> {
+    if (!this.wsClients.has(userId)) {
+      this.wsClients.set(userId, []);
+    }
+    
+    this.wsClients.get(userId)?.push(ws);
+  }
+  
+  async unregisterWebSocketClient(userId: number, ws: WebSocket): Promise<void> {
+    if (!this.wsClients.has(userId)) return;
+    
+    const clients = this.wsClients.get(userId) || [];
+    const updatedClients = clients.filter(client => client !== ws);
+    
+    if (updatedClients.length === 0) {
+      this.wsClients.delete(userId);
+    } else {
+      this.wsClients.set(userId, updatedClients);
+    }
+  }
+  
+  async notifyUserViaWebSocket(userId: number, payload: any): Promise<void> {
+    const clients = this.wsClients.get(userId) || [];
+    const message = JSON.stringify(payload);
+    
+    clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
   }
   
   // Push token methods for mobile and web notifications

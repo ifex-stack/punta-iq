@@ -155,6 +155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   wss.on('connection', (ws) => {
     console.log('WebSocket client connected');
+    let registeredUserId: number | null = null;
     
     // Send welcome message
     ws.send(JSON.stringify({
@@ -163,19 +164,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }));
     
     // Handle incoming messages
-    ws.on('message', (message) => {
+    ws.on('message', async (message) => {
       try {
         const data = JSON.parse(message.toString());
         console.log('Received message:', data);
         
         // Handle authentication
         if (data.type === 'authenticate') {
-          // In a real implementation, we would verify the token
-          // For now, we'll just acknowledge
+          const { userId } = data;
+          
+          if (!userId) {
+            ws.send(JSON.stringify({
+              type: 'auth_response',
+              success: false,
+              message: 'Missing user ID'
+            }));
+            return;
+          }
+          
+          // Verify user exists
+          const user = await storage.getUser(userId);
+          if (!user) {
+            ws.send(JSON.stringify({
+              type: 'auth_response',
+              success: false,
+              message: 'Invalid user ID'
+            }));
+            return;
+          }
+          
+          // Register this WebSocket client for the user
+          await storage.registerWebSocketClient(userId, ws);
+          registeredUserId = userId;
+          
+          // Send success response
           ws.send(JSON.stringify({
             type: 'auth_response',
-            success: true
+            success: true,
+            message: 'Successfully authenticated',
+            userId
           }));
+          
+          // Send any unread notifications
+          const notifications = await storage.getUserNotifications(userId, 10);
+          const unreadNotifications = notifications.filter(n => !n.read);
+          
+          if (unreadNotifications.length > 0) {
+            ws.send(JSON.stringify({
+              type: 'unread_notifications',
+              count: unreadNotifications.length,
+              notifications: unreadNotifications
+            }));
+          }
         }
       } catch (error) {
         console.error('Error processing WebSocket message:', error);
@@ -183,8 +223,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     // Handle client disconnect
-    ws.on('close', () => {
+    ws.on('close', async () => {
       console.log('WebSocket client disconnected');
+      
+      // Unregister from the user's client list
+      if (registeredUserId) {
+        await storage.unregisterWebSocketClient(registeredUserId, ws);
+      }
     });
   });
 
