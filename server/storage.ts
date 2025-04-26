@@ -15,6 +15,8 @@ import {
   playerGameweekStats,
   fantasyContestEntries,
   pointsTransactions,
+  notifications,
+  pushTokens,
   type User,
   type InsertUser,
   type Sport,
@@ -47,6 +49,10 @@ import {
   type InsertPlayerGameweekStat,
   type PointsTransaction,
   type InsertPointsTransaction,
+  type Notification,
+  type InsertNotification,
+  type PushToken,
+  type InsertPushToken,
   subscriptionTiers
 } from "@shared/schema";
 import session from "express-session";
@@ -54,6 +60,7 @@ import createMemoryStore from "memorystore";
 import connectPg from "connect-pg-simple";
 import { eq, desc, and, gte, sql } from "drizzle-orm";
 import { db, pool } from "./db";
+import WebSocket from "ws";
 
 const MemoryStore = createMemoryStore(session);
 const PostgresSessionStore = connectPg(session);
@@ -155,6 +162,23 @@ export interface IStorage {
   getUserPointsTransactions(userId: number, limit?: number): Promise<PointsTransaction[]>;
   createPointsTransaction(transaction: InsertPointsTransaction): Promise<PointsTransaction>;
   getPointsLeaderboard(limit?: number): Promise<{userId: number, username: string, points: number}[]>;
+  
+  // Notification system methods
+  getUserNotifications(userId: number, limit?: number): Promise<Notification[]>;
+  getNotificationById(id: number): Promise<Notification | undefined>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationAsRead(id: number): Promise<boolean>;
+  
+  // WebSocket client management
+  registerWebSocketClient(userId: number, ws: WebSocket): Promise<void>;
+  unregisterWebSocketClient(userId: number, ws: WebSocket): Promise<void>;
+  notifyUserViaWebSocket(userId: number, payload: any): Promise<void>;
+  
+  // Push token methods
+  getUserPushTokens(userId: number): Promise<PushToken[]>;
+  getPushTokenById(id: number): Promise<PushToken | undefined>;
+  createPushToken(token: InsertPushToken): Promise<PushToken>;
+  deactivatePushToken(id: number): Promise<boolean>;
   
   // Session store
   sessionStore: session.SessionStore;
@@ -1541,6 +1565,9 @@ export class MemStorage implements IStorage {
 
 export class DatabaseStorage implements IStorage {
   sessionStore: session.SessionStore;
+  
+  // Connected websocket clients
+  private wsClients: Map<number, WebSocket[]> = new Map();
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({ 
@@ -1851,6 +1878,123 @@ export class DatabaseStorage implements IStorage {
           eq(accumulatorItems.predictionId, predictionId)
         )
       );
+    
+    return result.rowCount > 0;
+  }
+
+  // Notification system methods
+  async getUserNotifications(userId: number, limit: number = 20): Promise<Notification[]> {
+    return db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.timestamp))
+      .limit(limit);
+  }
+  
+  async getNotificationById(id: number): Promise<Notification | undefined> {
+    const [notification] = await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.id, id));
+    return notification;
+  }
+  
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const [newNotification] = await db
+      .insert(notifications)
+      .values({
+        ...notification,
+        read: false,
+        timestamp: new Date()
+      })
+      .returning();
+    
+    // Send notification to connected WebSocket clients
+    await this.notifyUserViaWebSocket(notification.userId, {
+      type: 'notification',
+      data: newNotification
+    });
+    
+    return newNotification;
+  }
+  
+  async markNotificationAsRead(id: number): Promise<boolean> {
+    const result = await db
+      .update(notifications)
+      .set({ read: true })
+      .where(eq(notifications.id, id));
+    
+    return result.rowCount > 0;
+  }
+  
+  // WebSocket client management
+  async registerWebSocketClient(userId: number, ws: WebSocket): Promise<void> {
+    const clients = this.wsClients.get(userId) || [];
+    clients.push(ws);
+    this.wsClients.set(userId, clients);
+  }
+  
+  async unregisterWebSocketClient(userId: number, ws: WebSocket): Promise<void> {
+    const clients = this.wsClients.get(userId) || [];
+    const updatedClients = clients.filter(client => client !== ws);
+    
+    if (updatedClients.length > 0) {
+      this.wsClients.set(userId, updatedClients);
+    } else {
+      this.wsClients.delete(userId);
+    }
+  }
+  
+  async notifyUserViaWebSocket(userId: number, payload: any): Promise<void> {
+    const clients = this.wsClients.get(userId) || [];
+    const message = JSON.stringify(payload);
+    
+    clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
+  }
+  
+  // Push token methods for mobile and web notifications
+  async getUserPushTokens(userId: number): Promise<PushToken[]> {
+    return db
+      .select()
+      .from(pushTokens)
+      .where(
+        and(
+          eq(pushTokens.userId, userId),
+          eq(pushTokens.isActive, true)
+        )
+      );
+  }
+  
+  async getPushTokenById(id: number): Promise<PushToken | undefined> {
+    const [token] = await db
+      .select()
+      .from(pushTokens)
+      .where(eq(pushTokens.id, id));
+    return token;
+  }
+  
+  async createPushToken(token: InsertPushToken): Promise<PushToken> {
+    const [newToken] = await db
+      .insert(pushTokens)
+      .values({
+        ...token,
+        isActive: true,
+        lastUsedAt: new Date()
+      })
+      .returning();
+    return newToken;
+  }
+  
+  async deactivatePushToken(id: number): Promise<boolean> {
+    const result = await db
+      .update(pushTokens)
+      .set({ isActive: false })
+      .where(eq(pushTokens.id, id));
     
     return result.rowCount > 0;
   }
