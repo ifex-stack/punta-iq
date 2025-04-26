@@ -16,6 +16,12 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  deviceImei: text("device_imei"), // IMEI for mobile device identification
+  phoneNumber: text("phone_number"), // For 2FA
+  isTwoFactorEnabled: boolean("is_two_factor_enabled").default(false),
+  twoFactorSecret: text("two_factor_secret"), // Secret for 2FA
+  referralCode: text("referral_code"), // Unique referral code for this user
+  referredBy: integer("referred_by"), // ID of user who referred this user
   createdAt: timestamp("created_at").defaultNow().notNull(),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
@@ -31,6 +37,18 @@ export const users = pgTable("users", {
   totalContestsEntered: integer("total_contests_entered").default(0).notNull(),
 });
 
+// Referrals table
+export const referrals = pgTable("referrals", {
+  id: serial("id").primaryKey(),
+  referrerId: integer("referrer_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  referredId: integer("referred_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  status: text("status").default("pending").notNull(), // pending, completed, rewarded
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+  rewardAmount: integer("reward_amount"),
+  rewardDate: timestamp("reward_date"),
+});
+
 // User relations
 export const usersRelations = relations(users, ({ many }) => ({
   fantasyTeams: many(fantasyTeams),
@@ -38,12 +56,38 @@ export const usersRelations = relations(users, ({ many }) => ({
   pointsTransactions: many(pointsTransactions),
   userBadges: many(userBadges),
   leaderboardEntries: many(leaderboardEntries),
+  referralsAsReferrer: many(referrals, { relationName: "referrer" }),
+  referralsAsReferred: many(referrals, { relationName: "referred" }),
 }));
+
+// Referrals relations
+export const referralsRelations = relations(referrals, ({ one }) => ({
+  referrer: one(users, {
+    fields: [referrals.referrerId],
+    references: [users.id],
+    relationName: "referrer",
+  }),
+  referred: one(users, {
+    fields: [referrals.referredId],
+    references: [users.id],
+    relationName: "referred",
+  }),
+}));
+
+export const insertReferralSchema = createInsertSchema(referrals).pick({
+  referrerId: true,
+  referredId: true,
+  status: true,
+});
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   email: true,
   password: true,
+  deviceImei: true,
+  phoneNumber: true,
+  referralCode: true,
+  referredBy: true,
 });
 
 // Sports table
@@ -701,3 +745,7 @@ export type Leaderboard = typeof leaderboards.$inferSelect;
 export type InsertLeaderboard = z.infer<typeof insertLeaderboardSchema>;
 export type LeaderboardEntry = typeof leaderboardEntries.$inferSelect;
 export type InsertLeaderboardEntry = z.infer<typeof insertLeaderboardEntrySchema>;
+
+// Referral types
+export type Referral = typeof referrals.$inferSelect;
+export type InsertReferral = z.infer<typeof insertReferralSchema>;
