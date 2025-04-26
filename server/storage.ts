@@ -98,6 +98,7 @@ export interface IStorage {
   
   // Match methods
   getAllMatches(): Promise<Match[]>;
+  getCompletedMatches(): Promise<Match[]>;
   getMatchById(id: number): Promise<Match | undefined>;
   getMatchesByLeague(leagueId: number): Promise<Match[]>;
   getUpcomingMatches(limit?: number): Promise<Match[]>;
@@ -442,6 +443,11 @@ export class MemStorage implements IStorage {
   // Match methods
   async getAllMatches(): Promise<Match[]> {
     return Array.from(this.matchesMap.values());
+  }
+  
+  async getCompletedMatches(): Promise<Match[]> {
+    return Array.from(this.matchesMap.values())
+      .filter(match => match.isCompleted === true);
   }
 
   async getMatchById(id: number): Promise<Match | undefined> {

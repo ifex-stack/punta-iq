@@ -6,6 +6,152 @@ import { eq, and } from "drizzle-orm";
 import { db } from "./db";
 
 export function setupPredictionRoutes(app: Express) {
+  // Get prediction statistics
+  app.get("/api/predictions/stats", async (req, res) => {
+    try {
+      const period = req.query.period || 'all';
+      const userId = req.isAuthenticated() ? req.user.id : null;
+      
+      // Get all predictions with their matches
+      const allPredictions = await storage.getAllPredictions();
+      const completedMatches = await storage.getCompletedMatches();
+      const completedMatchIds = completedMatches.map(m => m.id);
+      
+      // Filter predictions to only those with completed matches
+      const predictions = allPredictions.filter(p => completedMatchIds.includes(p.matchId));
+      
+      // Calculate statistics
+      const totalPredictions = predictions.length;
+      const successfulPredictions = predictions.filter(p => p.isCorrect === true).length;
+      const successRate = totalPredictions > 0 ? (successfulPredictions / totalPredictions) * 100 : 0;
+      
+      // Get user-specific statistics if authenticated
+      let userStats = null;
+      if (userId) {
+        const userPredictions = await storage.getUserPredictions(userId);
+        const userPredictionIds = userPredictions.map(up => up.predictionId);
+        
+        const viewedPredictions = predictions.filter(p => userPredictionIds.includes(p.id));
+        const userSuccessfulPredictions = viewedPredictions.filter(p => p.isCorrect === true).length;
+        const userTotalPredictions = viewedPredictions.length;
+        
+        userStats = {
+          totalViewed: userTotalPredictions,
+          successfulPredictions: userSuccessfulPredictions,
+          successRate: userTotalPredictions > 0 ? (userSuccessfulPredictions / userTotalPredictions) * 100 : 0,
+        };
+      }
+      
+      // Generate historical data (success rate by month)
+      const now = new Date();
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      
+      // Group by month and calculate success rate
+      const historicalData = [];
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      
+      for (let m = 0; m < 6; m++) {
+        const month = new Date();
+        month.setMonth(month.getMonth() - m);
+        
+        const monthPredictions = predictions.filter(p => {
+          const predDate = new Date(p.createdAt);
+          return predDate.getMonth() === month.getMonth() && 
+                 predDate.getFullYear() === month.getFullYear();
+        });
+        
+        const monthSuccess = monthPredictions.filter(p => p.isCorrect === true).length;
+        const monthRate = monthPredictions.length > 0 ? (monthSuccess / monthPredictions.length) * 100 : 0;
+        
+        historicalData.unshift({
+          month: monthNames[month.getMonth()],
+          successRate: Math.round(monthRate),
+          totalPredictions: monthPredictions.length,
+          correctPredictions: monthSuccess
+        });
+      }
+      
+      // Get market type breakdown
+      const marketTypes = {};
+      for (const prediction of predictions) {
+        const type = prediction.predictedOutcome;
+        if (!marketTypes[type]) {
+          marketTypes[type] = { total: 0, correct: 0 };
+        }
+        marketTypes[type].total += 1;
+        if (prediction.isCorrect === true) {
+          marketTypes[type].correct += 1;
+        }
+      }
+      
+      // Convert to array and calculate success rates
+      const marketTypeStats = Object.entries(marketTypes).map(([type, data]) => {
+        const { total, correct } = data as { total: number, correct: number };
+        return {
+          type,
+          total,
+          correct,
+          successRate: total > 0 ? Math.round((correct / total) * 100) : 0
+        };
+      });
+      
+      res.json({
+        overall: {
+          totalPredictions,
+          successfulPredictions,
+          successRate: Math.round(successRate),
+          pendingPredictions: allPredictions.length - totalPredictions
+        },
+        userStats,
+        historicalData,
+        marketTypes: marketTypeStats
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Get sports breakdown statistics
+  app.get("/api/predictions/sports", async (req, res) => {
+    try {
+      const allSports = await storage.getActiveSports();
+      const allPredictions = await storage.getAllPredictions();
+      const completedMatches = await storage.getCompletedMatches();
+      
+      const result = [];
+      
+      for (const sport of allSports) {
+        // Get leagues for this sport
+        const leagues = await storage.getLeaguesBySport(sport.id);
+        const leagueIds = leagues.map(l => l.id);
+        
+        // Get matches for these leagues
+        const sportMatches = completedMatches.filter(m => leagueIds.includes(m.leagueId));
+        const sportMatchIds = sportMatches.map(m => m.id);
+        
+        // Get predictions for these matches
+        const sportPredictions = allPredictions.filter(p => sportMatchIds.includes(p.matchId));
+        
+        const totalPredictions = sportPredictions.length;
+        const successfulPredictions = sportPredictions.filter(p => p.isCorrect === true).length;
+        const successRate = totalPredictions > 0 ? (successfulPredictions / totalPredictions) * 100 : 0;
+        
+        result.push({
+          sport,
+          stats: {
+            totalPredictions,
+            successfulPredictions,
+            successRate: Math.round(successRate)
+          }
+        });
+      }
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
   // Get today's predictions
   app.get("/api/predictions/today", async (req, res) => {
     try {
