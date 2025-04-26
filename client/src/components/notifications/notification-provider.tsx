@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { Bell, BellOff, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -27,7 +27,6 @@ type NotificationProviderProps = {
 
 export const NotificationProvider = ({ children }: NotificationProviderProps) => {
   const { user } = useAuth();
-  const toast = useToast();
   const queryClient = useQueryClient();
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [socketConnected, setSocketConnected] = useState(false);
@@ -199,7 +198,7 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
     return () => {
       newSocket.close();
     };
-  }, [user, queryClient, toast]);
+  }, [user, queryClient]);
 
   // Create a new notification (this would typically be called by the server)
   const createNotificationMutation = useMutation({
