@@ -311,6 +311,12 @@ export class MemStorage implements IStorage {
   private userBadgeIdCounter: number = 1;
   private leaderboardIdCounter: number = 1;
   private leaderboardEntryIdCounter: number = 1;
+  
+  // Referral system ID counters
+  private referralIdCounter: number = 1;
+  private userBadgeIdCounter: number = 1;
+  private leaderboardIdCounter: number = 1;
+  private leaderboardEntryIdCounter: number = 1;
 
   // Referral system ID counters
   private referralIdCounter: number = 1;
@@ -345,8 +351,22 @@ export class MemStorage implements IStorage {
     this.leaderboardsMap = new Map();
     this.leaderboardEntriesMap = new Map();
     
-    // Initialize referral system maps
+    // Initialize referral system map
     this.referralsMap = new Map();
+    
+    // Include a sample referral for demonstration
+    const sampleReferral: Referral = {
+      id: 1,
+      status: 'pending',
+      referrerId: 1, // Assigned to the first user
+      referredId: 2, // Will be created later
+      createdAt: new Date(),
+      rewardAmount: 0,
+      completedAt: null,
+      rewardDate: null
+    };
+    this.referralsMap.set(1, sampleReferral);
+    this.referralIdCounter = 2; // Next ID to use
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // Prune expired entries every 24h
@@ -442,6 +462,179 @@ export class MemStorage implements IStorage {
     
     this.usersMap.set(userId, updatedUser);
     return updatedUser;
+  }
+  
+  // 2FA Methods
+  async enableTwoFactor(userId: number, secret: string, phoneNumber: string): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    const updatedUser = {
+      ...user,
+      isTwoFactorEnabled: true,
+      twoFactorSecret: secret,
+      phoneNumber: phoneNumber
+    };
+    
+    this.usersMap.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
+  async disableTwoFactor(userId: number): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    const updatedUser = {
+      ...user,
+      isTwoFactorEnabled: false,
+      twoFactorSecret: null
+    };
+    
+    this.usersMap.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
+  async verifyTwoFactorCode(userId: number, code: string): Promise<boolean> {
+    const user = await this.getUser(userId);
+    if (!user || !user.twoFactorSecret || !user.isTwoFactorEnabled) {
+      return false;
+    }
+    
+    // This is a simplified implementation for testing purposes
+    // In a real implementation, we would validate the TOTP code
+    return code === '123456';
+  }
+  
+  // Device tracking methods
+  async updateUserDeviceImei(userId: number, imei: string): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    // Check if another user already has this IMEI
+    const existingUser = await this.getUserByDeviceImei(imei);
+    if (existingUser && existingUser.id !== userId) {
+      throw new Error("This device is already registered to another user");
+    }
+    
+    // Generate a referral code if the user doesn't have one
+    const referralCode = user.referralCode || this.generateReferralCode(user.username);
+    
+    const updatedUser = {
+      ...user,
+      deviceImei: imei,
+      referralCode
+    };
+    
+    this.usersMap.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
+  async getUserByDeviceImei(imei: string): Promise<User | undefined> {
+    return Array.from(this.usersMap.values()).find(
+      user => user.deviceImei === imei
+    );
+  }
+  
+  // Referral Methods
+  async getUserReferrals(userId: number): Promise<Referral[]> {
+    return Array.from(this.referralsMap.values()).filter(
+      referral => referral.referrerId === userId
+    );
+  }
+  
+  async getReferralById(id: number): Promise<Referral | undefined> {
+    return this.referralsMap.get(id);
+  }
+  
+  async createReferral(referral: InsertReferral): Promise<Referral> {
+    const id = this.referralIdCounter++;
+    const newReferral: Referral = {
+      ...referral,
+      id,
+      createdAt: new Date(),
+      rewardAmount: 0,
+      completedAt: null,
+      rewardDate: null
+    };
+    
+    this.referralsMap.set(id, newReferral);
+    return newReferral;
+  }
+  
+  async updateReferralStatus(id: number, status: string): Promise<Referral> {
+    const referral = this.referralsMap.get(id);
+    if (!referral) throw new Error("Referral not found");
+    
+    const updatedReferral = {
+      ...referral,
+      status
+    };
+    
+    // If the status is completed, award points to the referrer
+    if (status === 'completed' && !referral.rewardDate) {
+      const rewardAmount = 500; // Default reward amount
+      const now = new Date();
+      
+      // Update the referral with reward info
+      updatedReferral.rewardAmount = rewardAmount;
+      updatedReferral.completedAt = now;
+      updatedReferral.rewardDate = now;
+      
+      // Award points to the referrer
+      await this.updateUserFantasyPoints(referral.referrerId, rewardAmount);
+      
+      // Create a points transaction
+      await this.createPointsTransaction({
+        userId: referral.referrerId,
+        type: 'referral',
+        amount: rewardAmount,
+        description: 'Referral bonus',
+        relatedId: id,
+        relatedType: 'referral'
+      });
+      
+      // Create notification for the referrer
+      await this.createNotification({
+        userId: referral.referrerId,
+        type: 'referral',
+        title: 'Referral Bonus',
+        message: `You earned ${rewardAmount} points for a successful referral!`,
+        isRead: false
+      });
+    }
+    
+    this.referralsMap.set(id, updatedReferral);
+    return updatedReferral;
+  }
+  
+  async getUserReferralStats(userId: number): Promise<{
+    totalReferrals: number,
+    pendingReferrals: number,
+    completedReferrals: number,
+    totalRewards: number
+  }> {
+    const userReferrals = Array.from(this.referralsMap.values()).filter(
+      referral => referral.referrerId === userId
+    );
+    
+    const totalReferrals = userReferrals.length;
+    const pendingReferrals = userReferrals.filter(r => r.status === 'pending').length;
+    const completedReferrals = userReferrals.filter(r => r.status === 'completed').length;
+    const totalRewards = userReferrals.reduce((sum, r) => sum + (r.rewardAmount || 0), 0);
+    
+    return {
+      totalReferrals,
+      pendingReferrals,
+      completedReferrals,
+      totalRewards
+    };
+  }
+  
+  // Helper method to generate referral code (for both Memory and DB implementations)
+  private generateReferralCode(username: string): string {
+    const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const usernamePart = username.substring(0, 3).toUpperCase();
+    return `${usernamePart}-${randomPart}`;
   }
 
   // Sport & League methods
@@ -2075,6 +2268,12 @@ export class DatabaseStorage implements IStorage {
   // Device tracking methods
   async updateUserDeviceImei(userId: number, imei: string): Promise<User> {
     try {
+      // Check if another user already has this IMEI
+      const existingUser = await this.getUserByDeviceImei(imei);
+      if (existingUser && existingUser.id !== userId) {
+        throw new Error("This device is already registered to another user");
+      }
+      
       const [user] = await db
         .update(users)
         .set({
@@ -2084,11 +2283,32 @@ export class DatabaseStorage implements IStorage {
         .returning();
       
       if (!user) throw new Error("User not found");
+      
+      // Generate a referral code if user doesn't have one
+      if (!user.referralCode) {
+        const referralCode = this.generateReferralCode(user.username);
+        await db
+          .update(users)
+          .set({
+            referralCode
+          })
+          .where(eq(users.id, userId));
+          
+        user.referralCode = referralCode;
+      }
+      
       return user;
     } catch (error) {
       console.error("Error updating device IMEI:", error);
       throw error;
     }
+  }
+  
+  // Helper method to generate referral code
+  private generateReferralCode(username: string): string {
+    const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const usernamePart = username.substring(0, 3).toUpperCase();
+    return `${usernamePart}-${randomPart}`;
   }
   
   async getUserByDeviceImei(imei: string): Promise<User | undefined> {
