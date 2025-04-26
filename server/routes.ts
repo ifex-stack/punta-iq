@@ -6,6 +6,7 @@ import { setupPredictionRoutes } from "./predictions";
 import { setupNotificationRoutes } from "./notifications";
 import { setupGamificationRoutes } from "./gamification";
 import { storage } from "./storage";
+import { getFantasyStore } from "./fantasy-data-init";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
@@ -85,7 +86,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Fantasy Football routes
+  // Fantasy Football routes - Using main storage (these will be replaced by the memory store implementation below)
+  /*
   app.get("/api/fantasy/contests", async (req, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
@@ -166,6 +168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
+  */
   
   app.get("/api/fantasy/teams", async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -222,27 +225,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Fantasy Contests endpoints
+  const fantasyStore = getFantasyStore();
+  
   app.get("/api/fantasy/contests", async (req, res) => {
     try {
       const { status, tier, limit } = req.query;
       let contests;
+      const limitNumber = limit ? parseInt(limit as string) : 20;
       
       if (tier === 'free') {
-        contests = await (storage as any).getFreeFantasyContests(
-          limit ? parseInt(limit as string) : 20,
-          status as string
-        );
+        contests = fantasyStore.getFreeFantasyContests(limitNumber, status as string);
       } else if (tier === 'premium') {
-        contests = await (storage as any).getPremiumFantasyContests(
-          limit ? parseInt(limit as string) : 20,
-          status as string
-        );
+        contests = fantasyStore.getPremiumFantasyContests(limitNumber, status as string);
       } else {
-        contests = await (storage as any).getAllFantasyContests(
-          limit ? parseInt(limit as string) : 20,
-          status as string,
-          tier as string
-        );
+        contests = fantasyStore.getAllFantasyContests(limitNumber, status as string, tier as string);
       }
       
       res.json(contests);
@@ -255,7 +251,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/fantasy/contests/:id", async (req, res) => {
     try {
       const contestId = parseInt(req.params.id);
-      const contest = await (storage as any).getFantasyContestById(contestId);
+      const contest = fantasyStore.getFantasyContestById(contestId);
       
       if (!contest) {
         return res.status(404).json({ message: "Contest not found" });
@@ -270,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/fantasy/contests/:id/leaderboard", async (req, res) => {
     try {
       const contestId = parseInt(req.params.id);
-      const entries = await (storage as any).getContestLeaderboard(contestId);
+      const entries = fantasyStore.getContestLeaderboard(contestId);
       
       res.json(entries);
     } catch (error: any) {
@@ -288,13 +284,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const teamId = parseInt(req.body.teamId);
       
       // Validate the contest exists
-      const contest = await (storage as any).getFantasyContestById(contestId);
+      const contest = fantasyStore.getFantasyContestById(contestId);
       if (!contest) {
         return res.status(404).json({ message: "Contest not found" });
       }
       
       // Validate the team exists and belongs to the user
-      const team = await (storage as any).getFantasyTeamById(teamId);
+      const team = fantasyStore.getFantasyTeamById(teamId);
       if (!team) {
         return res.status(404).json({ message: "Team not found" });
       }
@@ -304,7 +300,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if user already has an entry for this contest
-      const userEntries = await (storage as any).getUserContestEntries(req.user.id);
+      const userEntries = fantasyStore.getUserContestEntries(req.user.id);
       const existingEntry = userEntries.find(entry => entry.contestId === contestId);
       
       if (existingEntry) {
@@ -312,20 +308,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Create the entry
-      const entry = await (storage as any).createContestEntry({
+      const entry = fantasyStore.createContestEntry({
         userId: req.user.id,
         contestId,
         teamId,
         totalPoints: 0
-      });
-      
-      // Update the contest player count
-      contest.playerCount = (contest.playerCount || 0) + 1;
-      await (storage as any).updateFantasyContestStatus(contestId, contest.status);
-      
-      // Update user stats
-      await (storage as any).updateUser(req.user.id, {
-        totalContestsEntered: (req.user.totalContestsEntered || 0) + 1
       });
       
       res.status(201).json(entry);
@@ -362,6 +349,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Using main storage - commented out in favor of the memory implementation above
+  /*
   app.post("/api/fantasy/contests/:contestId/enter", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -450,6 +439,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
+  */
   
   // Feature flags endpoint
   app.get("/api/feature-flags", async (req, res) => {
