@@ -248,6 +248,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Add specific endpoints for free and premium contests
+  app.get("/api/fantasy/contests/free", async (req, res) => {
+    try {
+      const { status, limit } = req.query;
+      const limitNumber = limit ? parseInt(limit as string) : 20;
+      const contests = fantasyStore.getFreeFantasyContests(limitNumber, status as string);
+      res.json(contests);
+    } catch (error: any) {
+      console.error("Error fetching free contests:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch free contests" });
+    }
+  });
+  
+  app.get("/api/fantasy/contests/premium", async (req, res) => {
+    try {
+      const { status, limit } = req.query;
+      const limitNumber = limit ? parseInt(limit as string) : 20;
+      const contests = fantasyStore.getPremiumFantasyContests(limitNumber, status as string);
+      
+      // Check if user is authorized to access premium contests
+      if (req.isAuthenticated() && req.user.subscriptionTier === 'premium') {
+        res.json(contests);
+      } else {
+        // Return limited information for non-premium users
+        const limitedContests = contests.map(contest => ({
+          id: contest.id,
+          name: contest.name,
+          description: contest.description,
+          startDate: contest.startDate,
+          endDate: contest.endDate,
+          tier: contest.tier,
+          status: contest.status,
+          prizePool: contest.prizePool,
+          requiresPremium: true
+        }));
+        res.json(limitedContests);
+      }
+    } catch (error: any) {
+      console.error("Error fetching premium contests:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch premium contests" });
+    }
+  });
+  
   app.get("/api/fantasy/contests/:id", async (req, res) => {
     try {
       const contestId = parseInt(req.params.id);
