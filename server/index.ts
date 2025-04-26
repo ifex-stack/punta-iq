@@ -1,35 +1,88 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { logger, createContextLogger } from "./logger";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Create a logger specific to HTTP requests
+const httpLogger = createContextLogger('HTTP');
+
+// Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
+  const method = req.method;
+  const userId = req.user?.id;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
+  // Log basic request info at the start
+  if (path.startsWith("/api")) {
+    httpLogger.debug(`${method} ${path} started`, { 
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      userId
+    });
+  }
+
+  // Capture the response body for logging
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
     capturedJsonResponse = bodyJson;
     return originalResJson.apply(res, [bodyJson, ...args]);
   };
 
+  // Log request completion
   res.on("finish", () => {
     const duration = Date.now() - start;
+    
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      const statusCode = res.statusCode;
+      const logData = {
+        method,
+        path,
+        statusCode,
+        duration: `${duration}ms`,
+        userId
+      };
+      
+      // Don't log sensitive response data
+      if (capturedJsonResponse && !path.includes('password') && !path.includes('/auth')) {
+        const responseForLog = { ...capturedJsonResponse };
+        // Sanitize any potentially sensitive fields
+        if (responseForLog.token) responseForLog.token = '[REDACTED]';
+        if (responseForLog.apiKey) responseForLog.apiKey = '[REDACTED]';
+        
+        logData['response'] = responseForLog;
       }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
+      
+      // Log with appropriate level based on status code
+      if (statusCode >= 500) {
+        httpLogger.error(`${method} ${path} ${statusCode} in ${duration}ms`, logData);
+      } else if (statusCode >= 400) {
+        httpLogger.warn(`${method} ${path} ${statusCode} in ${duration}ms`, logData);
+      } else {
+        // Keep old log format for compatibility
+        let legacyLogLine = `${method} ${path} ${statusCode} in ${duration}ms`;
+        if (capturedJsonResponse) {
+          try {
+            const jsonStr = JSON.stringify(capturedJsonResponse);
+            if (jsonStr.length > 50) {
+              legacyLogLine += ` :: ${jsonStr.slice(0, 49)}…`;
+            } else {
+              legacyLogLine += ` :: ${jsonStr}`;
+            }
+          } catch (e) {
+            // Ignore serialization errors for legacy logging
+          }
+        }
+        log(legacyLogLine);
+        
+        // Also log to new system
+        httpLogger.info(`${method} ${path} ${statusCode} in ${duration}ms`, logData);
       }
-
-      log(logLine);
     }
   });
 
@@ -39,12 +92,49 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  // Create a logger for errors
+  const errorLogger = createContextLogger('ERROR');
+  
+  // Global error handling middleware
+  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
+    const path = req.path;
+    const method = req.method;
+    const userId = req.user?.id;
+    
+    // Log the error with appropriate severity
+    const errorData = {
+      status,
+      method,
+      path,
+      userId,
+      stack: err.stack,
+      body: req.body && !path.includes('password') ? req.body : '[REDACTED]'
+    };
+    
+    if (status >= 500) {
+      errorLogger.critical(`${status} ${message}`, errorData);
+    } else if (status >= 400) {
+      errorLogger.error(`${status} ${message}`, errorData);
+    } else {
+      errorLogger.warn(`${status} ${message}`, errorData);
+    }
+    
+    // Send structured error response
+    const errorResponse = { 
+      message,
+      code: err.code || 'INTERNAL_ERROR',
+      status
+    };
+    
+    // Add validation errors if present (for form validation)
+    if (err.errors) {
+      errorResponse['errors'] = err.errors;
+    }
+    
+    // Send the response
+    res.status(status).json(errorResponse);
   });
 
   // importantly only setup vite in development and after
@@ -60,11 +150,26 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = 5000;
+  const appLogger = createContextLogger('APP');
+  
+  appLogger.info('Application starting up', {
+    environment: app.get('env'),
+    nodeVersion: process.version,
+    timestamp: new Date().toISOString()
+  });
+  
   server.listen({
     port,
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
+    appLogger.info(`PuntaIQ server running on port ${port}`, {
+      port,
+      host: '0.0.0.0',
+      appVersion: process.env.npm_package_version || '1.0.0',
+    });
+    
+    // Keep old log format for compatibility
     log(`serving on port ${port}`);
   });
 })();
