@@ -94,7 +94,7 @@ export function GettingStartedGuide() {
                     <FeatureCard
                       icon={<BrainCircuit className="h-5 w-5 text-indigo-500" />}
                       title="AI Predictions"
-                      description="Our machine learning algorithms generate high-confidence predictions across football, basketball, and other sports."
+                      description="Our expert prediction system generates high-confidence tips across football, basketball, and other sports."
                     />
                     <FeatureCard
                       icon={<Trophy className="h-5 w-5 text-yellow-500" />}
@@ -129,7 +129,7 @@ export function GettingStartedGuide() {
                     <div className="space-y-1">
                       <h3 className="text-lg font-semibold">How Our AI Works</h3>
                       <p className="text-sm text-muted-foreground">
-                        PuntaIQ uses advanced machine learning algorithms to analyze vast amounts of sports data and generate predictions with high confidence levels. Here's how it works:
+                        PuntaIQ uses sophisticated prediction technology to analyze vast amounts of sports data and generate tips with high confidence levels. Here's how it works:
                       </p>
                     </div>
                     
@@ -142,12 +142,12 @@ export function GettingStartedGuide() {
                       <StepCard
                         number={2}
                         title="AI Processing"
-                        description="Machine learning models analyze patterns and correlations in the data to identify high-probability outcomes for upcoming matches."
+                        description="Our expert system analyzes patterns and trends in the data to identify high-probability outcomes for upcoming matches."
                       />
                       <StepCard
                         number={3}
                         title="Prediction Generation"
-                        description="The AI generates predictions across various markets with confidence ratings to help you make informed betting decisions."
+                        description="Our system generates predictions across various markets with confidence ratings to help you make informed betting decisions."
                       />
                       <StepCard
                         number={4}
@@ -200,7 +200,7 @@ export function GettingStartedGuide() {
                     <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
                       <h4 className="font-medium mb-2 text-warning">Important Reminder</h4>
                       <p className="text-sm text-muted-foreground">
-                        While our AI system aims for high accuracy, no prediction system is perfect. Always bet responsibly and within your means. Sports predictions carry inherent uncertainty.
+                        While our prediction system aims for high accuracy, no system is perfect. Always bet responsibly and within your means. Sports predictions carry inherent uncertainty.
                       </p>
                     </div>
                   </div>

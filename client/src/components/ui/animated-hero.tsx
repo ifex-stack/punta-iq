@@ -128,7 +128,7 @@ export function AnimatedHero({ onGetStarted }: HeroProps) {
             </h1>
             
             <p className="text-base md:text-lg text-muted-foreground max-w-xl">
-              Our advanced machine learning algorithms generate high-confidence predictions across multiple sports, helping you make informed betting decisions.
+              Our expert prediction system delivers high-confidence tips across multiple sports, helping you make smarter betting choices.
             </p>
           </div>
           
