@@ -3,6 +3,11 @@ import { z } from "zod";
 import { storage } from "./storage";
 import { insertNotificationSchema, insertPushTokenSchema } from "@shared/schema";
 
+// Helper function to validate if a user is an admin
+const isAdmin = (req: any): boolean => {
+  return req.isAuthenticated() && req.user.id === 1; // Consider user ID 1 as admin for testing
+};
+
 export function setupNotificationRoutes(app: Express) {
   // Get current user's notifications
   app.get("/api/notifications", async (req, res) => {
@@ -217,7 +222,7 @@ export function setupNotificationRoutes(app: Express) {
     }
   });
   
-  // Test push notification
+  // Test push notification for the current user
   app.post("/api/notifications/test", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -260,6 +265,67 @@ export function setupNotificationRoutes(app: Express) {
       } else {
         return res.status(500).json({ success: false, message: "Failed to send test notification" });
       }
+    } catch (error: any) {
+      return res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Admin endpoint: Send test notification to any user
+  app.post("/api/admin/send-notification", async (req, res) => {
+    if (!isAdmin(req)) {
+      return res.status(403).json({ message: "Forbidden - Admin access required" });
+    }
+    
+    try {
+      const { userId, title, body, type = "info", data } = req.body;
+      
+      if (!userId || !title || !body) {
+        return res.status(400).json({ 
+          message: "userId, title, and body are required",
+          example: {
+            userId: 1,
+            title: "New Prediction Available",
+            body: "Check out our latest prediction for the upcoming match!",
+            type: "info", // optional: info, success, warning, error
+            data: { 
+              matchId: 123, 
+              redirectTo: "/predictions/123" 
+            } // optional
+          }
+        });
+      }
+      
+      // Create an in-app notification
+      const notification = await storage.createNotification({
+        userId,
+        title,
+        message: body,
+        type: type as any,
+        data
+      });
+      
+      // Send through WebSocket if user is connected
+      await storage.notifyUserViaWebSocket(userId, {
+        type: 'notification',
+        title,
+        body,
+        data
+      });
+      
+      // Use the push notification service
+      const success = await storage.sendPushNotification(
+        userId,
+        title,
+        body,
+        data
+      );
+      
+      return res.json({ 
+        success: true, 
+        message: "Admin notification sent successfully", 
+        notification,
+        pushDelivered: success
+      });
     } catch (error: any) {
       return res.status(500).json({ message: error.message });
     }

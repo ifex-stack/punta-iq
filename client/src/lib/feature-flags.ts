@@ -98,6 +98,49 @@ export function useFeatureFlag(key: FeatureFlagKey): boolean {
   return isEnabled;
 }
 
+// Hook for using all feature flags in components
+export function useFeatureFlags() {
+  const [flags, setFlags] = useState<FeatureFlags>(() => {
+    // Initialize with current values of all flags
+    const initialFlags = { ...DEFAULT_FLAGS };
+    (Object.keys(DEFAULT_FLAGS) as FeatureFlagKey[]).forEach(key => {
+      initialFlags[key] = getFeatureFlag(key);
+    });
+    return initialFlags;
+  });
+  
+  useEffect(() => {
+    // Update state when any feature flag changes
+    const checkFlags = () => {
+      const currentFlags = { ...DEFAULT_FLAGS };
+      (Object.keys(DEFAULT_FLAGS) as FeatureFlagKey[]).forEach(key => {
+        currentFlags[key] = getFeatureFlag(key);
+      });
+      setFlags(currentFlags);
+    };
+    
+    // Check on window focus, in case flags were changed in another tab
+    window.addEventListener('focus', checkFlags);
+    
+    // Clean up event listener
+    return () => {
+      window.removeEventListener('focus', checkFlags);
+    };
+  }, []);
+  
+  const setFlag = (key: FeatureFlagKey, value: boolean) => {
+    setFeatureFlag(key, value);
+    setFlags(prev => ({ ...prev, [key]: value }));
+  };
+  
+  const resetFlag = (key: FeatureFlagKey) => {
+    resetFeatureFlag(key);
+    setFlags(prev => ({ ...prev, [key]: DEFAULT_FLAGS[key] }));
+  };
+  
+  return { flags, setFlag, resetFlag };
+}
+
 // Fetch server-side feature flags (to be called during app initialization)
 export async function fetchFeatureFlags(): Promise<void> {
   try {
