@@ -75,7 +75,7 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
         queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
         
         // Show toast notification
-        toast.toast({
+        toast({
           title: data.title,
           description: data.message,
           variant: data.notificationType === 'error' ? 'destructive' : 'default',
@@ -160,7 +160,7 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
     },
     onError: (error: any) => {
-      toast.toast({
+      toast({
         title: 'Error',
         description: error.message || 'Failed to delete notification',
         variant: 'destructive',
@@ -178,7 +178,7 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
     },
     onError: (error: any) => {
-      toast.toast({
+      toast({
         title: 'Error',
         description: error.message || 'Failed to delete all notifications',
         variant: 'destructive',
