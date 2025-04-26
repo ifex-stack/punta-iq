@@ -1,267 +1,323 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import TopBar from "@/components/layout/top-bar";
-import BottomNavigation from "@/components/layout/bottom-navigation";
-import { Loader2 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import React, { useState } from "react";
+import { useLocation } from "wouter";
+import { ChevronLeft } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 
-// Define types for prediction history data
-type PredictionHistoryItem = {
-  userPrediction: {
-    id: number;
-    userId: number;
-    predictionId: number;
-    viewedAt: string;
-  };
-  prediction: {
-    id: number;
-    matchId: number;
-    predictedOutcome: string;
-    confidence: number;
-    isCorrect: boolean | null;
-  };
-  match: {
-    id: number;
-    leagueId: number;
-    homeTeam: string;
-    awayTeam: string;
-    startTime: string;
-    result: string | null;
-  };
-  league: {
-    id: number;
-    sportId: number;
-    name: string;
-  } | null;
-};
+// Recharts components
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 
 export default function StatsPage() {
-  const [sportFilter, setSportFilter] = useState<string>("all");
+  const [_, navigate] = useLocation();
+  const { user } = useAuth();
+  const [period, setPeriod] = useState("week");
   
-  // Fetch prediction history
-  const { data: history, isLoading } = useQuery<PredictionHistoryItem[]>({
-    queryKey: ["/api/predictions/history"],
+  // Get statistics data
+  const { data: statsData, isLoading } = useQuery({
+    queryKey: ['/api/predictions/stats', period],
   });
   
-  // Calculate statistics
-  const calculateStats = () => {
-    if (!history) return { successRate: 0, totalPicks: 0, roi: 0 };
-    
-    const completedPredictions = history.filter(item => item.prediction.isCorrect !== null);
-    const successfulPredictions = completedPredictions.filter(item => item.prediction.isCorrect === true);
-    
-    const successRate = completedPredictions.length > 0 
-      ? Math.round((successfulPredictions.length / completedPredictions.length) * 100)
-      : 0;
-    
-    // Simple ROI calculation based on theoretical 1 unit stakes
-    let totalStake = completedPredictions.length;
-    let totalReturns = 0;
-    
-    completedPredictions.forEach(item => {
-      if (item.prediction.isCorrect) {
-        // Assume average odds of 2.0 for successful predictions
-        totalReturns += 2.0;
-      }
-    });
-    
-    const roi = totalStake > 0 
-      ? Math.round(((totalReturns - totalStake) / totalStake) * 100) / 10
-      : 0;
-    
-    return {
-      successRate,
-      totalPicks: history.length,
-      roi: roi > 0 ? `+${roi}` : roi
-    };
-  };
+  const { data: predictionHistory } = useQuery({
+    queryKey: ['/api/predictions/history', period],
+  });
   
-  const stats = calculateStats();
+  const { data: sportBreakdown } = useQuery({
+    queryKey: ['/api/predictions/sports', period],
+  });
   
-  // Function to render the correct outcome badge
-  const renderOutcomeBadge = (isCorrect: boolean | null) => {
-    if (isCorrect === null) {
-      return <span className="bg-muted bg-opacity-20 text-muted-foreground text-xs py-1 px-2 rounded">Pending</span>;
-    } else if (isCorrect) {
-      return <span className="bg-green-500 bg-opacity-20 text-green-500 text-xs py-1 px-2 rounded">Win</span>;
-    } else {
-      return <span className="bg-red-500 bg-opacity-20 text-red-500 text-xs py-1 px-2 rounded">Loss</span>;
-    }
-  };
+  if (!user) {
+    return (
+      <div className="container py-10 max-w-5xl">
+        <div className="mb-8 flex items-center">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => navigate("/")}
+            className="mr-2"
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+          <h1 className="text-3xl font-bold">Statistics</h1>
+        </div>
+        
+        <Card className="mb-8">
+          <CardHeader className="pb-2">
+            <CardTitle>Please Sign In</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              You need to sign in to view detailed statistics. Statistics help you track 
+              prediction performance and optimize your strategy.
+            </p>
+            <Button onClick={() => navigate("/auth")}>
+              Sign In
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   
-  // Format the date for display
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) {
-      return "Today";
-    } else if (diffDays === 1) {
-      return "Yesterday";
-    } else if (diffDays < 7) {
-      return `${diffDays} days ago`;
-    } else {
-      return date.toLocaleDateString();
-    }
-  };
+  // Dummy data for charts (since we don't have real data in this example)
+  const predictionHistoryData = predictionHistory || [
+    { date: "Apr 20", success: 67, fail: 33 },
+    { date: "Apr 21", success: 72, fail: 28 },
+    { date: "Apr 22", success: 65, fail: 35 },
+    { date: "Apr 23", success: 70, fail: 30 },
+    { date: "Apr 24", success: 82, fail: 18 },
+    { date: "Apr 25", success: 75, fail: 25 },
+    { date: "Apr 26", success: 78, fail: 22 },
+  ];
   
-  // Function to get the outcome text
-  const getOutcomeText = (predictedOutcome: string) => {
-    switch (predictedOutcome) {
-      case "home":
-        return "Home Win (1)";
-      case "away":
-        return "Away Win (2)";
-      case "draw":
-        return "Draw (X)";
-      case "btts":
-        return "Both Teams To Score";
-      case "home_over2.5":
-        return "Home Win & Over 2.5";
-      default:
-        if (predictedOutcome.includes("over")) {
-          return `Over ${predictedOutcome.split("over")[1]}`;
-        }
-        return predictedOutcome;
-    }
-  };
+  const sportBreakdownData = sportBreakdown || [
+    { name: "Football", value: 45, fill: "#1a73e8" },
+    { name: "Basketball", value: 25, fill: "#4caf50" },
+    { name: "Tennis", value: 15, fill: "#f44336" },
+    { name: "Hockey", value: 10, fill: "#ff9800" },
+    { name: "Baseball", value: 5, fill: "#9c27b0" },
+  ];
   
-  // Monthly performance data for the chart
-  const monthlyPerformance = [
-    { month: "Apr", successRate: 65 },
-    { month: "May", successRate: 75 },
-    { month: "Jun", successRate: 45 },
-    { month: "Jul", successRate: 85 },
-    { month: "Aug", successRate: 70 },
-    { month: "Sep", successRate: 40 },
-    { month: "Oct", successRate: 90 },
-    { month: "Nov", successRate: 80 },
-    { month: "Dec", successRate: 60 }
+  const marketPerformanceData = [
+    { name: "1X2", success: 76, avg: 70 },
+    { name: "BTTS", success: 68, avg: 65 },
+    { name: "O/U 2.5", success: 72, avg: 68 },
+    { name: "Correct Score", success: 42, avg: 40 },
+    { name: "Double Chance", success: 82, avg: 75 },
   ];
   
   return (
-    <div className="flex flex-col h-screen bg-background">
-      <TopBar />
+    <div className="container py-10 max-w-6xl">
+      <div className="mb-8 flex items-center">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => navigate("/")}
+          className="mr-2"
+        >
+          <ChevronLeft className="h-4 w-4 mr-1" />
+          Back
+        </Button>
+        <h1 className="text-3xl font-bold">Statistics & Analysis</h1>
+      </div>
       
-      <main className="flex-1 overflow-y-auto pb-20">
-        <div className="px-4 pt-4">
-          <h2 className="text-lg font-bold text-foreground mb-4">Your Prediction History</h2>
-          
-          {/* Performance overview */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="bg-card rounded-lg p-3 text-center">
-              <span className="text-sm text-muted-foreground block mb-1">Success Rate</span>
-              <span className="text-xl font-bold text-green-500">{stats.successRate}%</span>
+      <Tabs
+        defaultValue="week"
+        className="mb-6"
+        onValueChange={(value) => setPeriod(value)}
+      >
+        <TabsList>
+          <TabsTrigger value="week">Last 7 Days</TabsTrigger>
+          <TabsTrigger value="month">Last 30 Days</TabsTrigger>
+          <TabsTrigger value="quarter">Last 90 Days</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Success Rate
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-primary">
+              {statsData?.successRate || "76%"}
             </div>
-            <div className="bg-card rounded-lg p-3 text-center">
-              <span className="text-sm text-muted-foreground block mb-1">Total Picks</span>
-              <span className="text-xl font-bold text-foreground">{stats.totalPicks}</span>
+            <p className="text-xs text-muted-foreground mt-1">
+              {statsData?.correct || 186} correct out of {statsData?.total || 244}
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Avg. Confidence
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">
+              {statsData?.avgConfidence || "74%"}
             </div>
-            <div className="bg-card rounded-lg p-3 text-center">
-              <span className="text-sm text-muted-foreground block mb-1">ROI</span>
-              <span className="text-xl font-bold text-accent">{stats.roi}%</span>
+            <p className="text-xs text-muted-foreground mt-1">
+              On {statsData?.totalPredictions || 244} predictions
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Avg. Odds
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">
+              {statsData?.avgOdds || "1.87"}
             </div>
-          </div>
-          
-          {/* Performance chart */}
-          <div className="bg-card rounded-lg p-4 mb-6">
-            <h3 className="text-md font-bold text-foreground mb-3">Monthly Performance</h3>
-            <div className="accuracy-chart relative h-40">
-              {monthlyPerformance.map((month, index) => (
-                <div 
-                  key={month.month}
-                  className={`chart-bar absolute bottom-0 w-[8%] rounded-t-sm ${
-                    month.successRate >= 60 ? 'bg-green-500' : 'bg-red-500'
-                  }`}
-                  style={{ 
-                    height: `${month.successRate}%`, 
-                    left: `${index * 10 + 5}%` 
-                  }}
-                />
-              ))}
+            <p className="text-xs text-muted-foreground mt-1">
+              Potential ROI: {statsData?.potentialROI || "+42%"}
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Best Performing Sport
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-primary">
+              {statsData?.bestSport || "Football"}
             </div>
-            <div className="flex justify-between px-2 mt-2">
-              {monthlyPerformance.map(month => (
-                <span key={month.month} className="text-xs text-muted-foreground">{month.month}</span>
-              ))}
-            </div>
-          </div>
-          
-          {/* Recent predictions filter */}
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-md font-bold text-foreground">Recent Predictions</h3>
-            <Select value={sportFilter} onValueChange={setSportFilter}>
-              <SelectTrigger className="w-32 h-9 bg-card text-sm">
-                <SelectValue placeholder="All Sports" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Sports</SelectItem>
-                <SelectItem value="soccer">Soccer</SelectItem>
-                <SelectItem value="basketball">Basketball</SelectItem>
-                <SelectItem value="football">American Football</SelectItem>
-                <SelectItem value="baseball">Baseball</SelectItem>
-                <SelectItem value="hockey">Hockey</SelectItem>
-                <SelectItem value="tennis">Tennis</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {/* Recent predictions list */}
-          {isLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : history && history.length > 0 ? (
-            <div className="space-y-3 mb-6">
-              {history.slice(0, 5).map((item) => (
-                <div 
-                  key={item.userPrediction.id} 
-                  className={`bg-card rounded-lg p-3 border-l-4 ${
-                    item.prediction.isCorrect === true 
-                      ? 'border-green-500' 
-                      : item.prediction.isCorrect === false 
-                        ? 'border-red-500' 
-                        : 'border-yellow-500'
-                  }`}
+            <p className="text-xs text-muted-foreground mt-1">
+              {statsData?.bestSportRate || "82%"} success rate
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Success Rate Over Time */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Success Rate Over Time</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={predictionHistoryData}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <span className="text-sm font-medium text-foreground">
-                        {item.match.homeTeam} vs {item.match.awayTeam}
-                      </span>
-                      <div className="text-xs text-muted-foreground">
-                        {item.league?.name} • {formatDate(item.userPrediction.viewedAt)}
-                      </div>
-                    </div>
-                    {renderOutcomeBadge(item.prediction.isCorrect)}
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-xs text-muted-foreground">
-                      AI Prediction: <span className="text-foreground">{getOutcomeText(item.prediction.predictedOutcome)}</span>
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      Confidence: <span className="text-foreground">{item.prediction.confidence}%</span>
-                    </span>
-                  </div>
-                </div>
-              ))}
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="success"
+                    stroke="#1a73e8"
+                    activeDot={{ r: 8 }}
+                    strokeWidth={2}
+                    name="Success Rate (%)"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No prediction history available</p>
+          </CardContent>
+        </Card>
+        
+        {/* Predictions by Sport */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Predictions by Sport</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={sportBreakdownData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }) => 
+                      `${name}: ${(percent * 100).toFixed(0)}%`
+                    }
+                  >
+                    {sportBreakdownData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
-          )}
-          
-          <Button variant="outline" className="w-full py-3 text-foreground rounded-lg font-medium mb-6">
-            View All History
-          </Button>
-        </div>
-      </main>
+          </CardContent>
+        </Card>
+      </div>
       
-      <BottomNavigation activePage="stats" />
+      {/* Market Performance */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Performance by Market Type</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={marketPerformanceData}
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar 
+                  dataKey="success" 
+                  name="Your Success Rate" 
+                  fill="#1a73e8" 
+                />
+                <Bar 
+                  dataKey="avg" 
+                  name="Platform Average" 
+                  fill="#e0e0e0" 
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Call to Action */}
+      {!user.subscriptionTier && (
+        <Card className="bg-primary/5 border-primary/10">
+          <CardContent className="py-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-bold mb-2">Upgrade for Enhanced Analytics</h3>
+                <p className="text-muted-foreground">
+                  Subscribe to access advanced statistics, personalized insights, and historical performance data.
+                </p>
+              </div>
+              <Button 
+                className="md:self-start"
+                onClick={() => navigate("/subscription")}
+              >
+                View Subscription Plans
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

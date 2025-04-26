@@ -1,185 +1,244 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import TopBar from "@/components/layout/top-bar";
-import BottomNavigation from "@/components/layout/bottom-navigation";
-import PremiumBanner from "@/components/predictions/premium-banner";
-import SportsTabs from "@/components/predictions/sports-tabs";
+import { ChevronRight, Filter, Loader2, TrendingUp } from "lucide-react";
 import PredictionCard from "@/components/predictions/prediction-card";
+import SportsTabs from "@/components/predictions/sports-tabs";
 import AccumulatorPanel from "@/components/predictions/accumulator-panel";
-import { Loader2 } from "lucide-react";
-import { Sport } from "@shared/schema";
-
-type Prediction = {
-  id: number;
-  matchId: number;
-  predictedOutcome: string;
-  confidence: number;
-  isPremium: boolean;
-  isLocked?: boolean;
-  additionalPredictions: any;
-};
-
-type Match = {
-  id: number;
-  leagueId: number;
-  homeTeam: string;
-  awayTeam: string;
-  startTime: string;
-  homeOdds: number;
-  drawOdds: number | null;
-  awayOdds: number;
-  isCompleted: boolean;
-};
-
-type League = {
-  id: number;
-  sportId: number;
-  name: string;
-};
-
-type PredictionItem = {
-  prediction: Prediction;
-  match: Match;
-  league: League | null;
-  sport: Sport | null;
-};
-
-type AccumulatorItem = {
-  predictionId: number;
-  match: Match;
-  outcome: string;
-  odds: number;
-};
+import { useAuth } from "@/hooks/use-auth";
 
 export default function HomePage() {
-  const [selectedSportId, setSelectedSportId] = useState<number>(1); // Default to Soccer (sportId: 1)
-  const [accumulatorItems, setAccumulatorItems] = useState<AccumulatorItem[]>([]);
+  const [_, navigate] = useLocation();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const { toast } = useToast();
+  const [selectedSport, setSelectedSport] = useState("all");
   
-  // Fetch sports
-  const { data: sports, isLoading: isLoadingSports } = useQuery<Sport[]>({
-    queryKey: ["/api/sports"],
+  const { data: predictions, isLoading: isPredictionsLoading } = useQuery({
+    queryKey: ['/api/predictions', selectedSport],
+    enabled: true, // Load predictions even for non-authenticated users (free tier)
   });
   
-  // Fetch predictions
-  const { data: predictions, isLoading: isLoadingPredictions } = useQuery<PredictionItem[]>({
-    queryKey: ["/api/predictions/sport", selectedSportId],
-    queryFn: async () => {
-      const response = await fetch(`/api/predictions/sport/${selectedSportId}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch predictions");
-      }
-      return response.json();
-    },
+  const { data: stats } = useQuery({
+    queryKey: ['/api/predictions/stats'],
+    enabled: !!user, // Only load stats for authenticated users
   });
   
-  // Calculate total odds for accumulator
-  const totalOdds = accumulatorItems.reduce((total, item) => total * item.odds, 1);
+  const isLoading = isAuthLoading || isPredictionsLoading;
   
-  // Calculate confidence for accumulator (average confidence weighted by odds)
-  const calculateConfidence = () => {
-    if (accumulatorItems.length === 0) return 0;
-    
-    const totalWeight = accumulatorItems.reduce((sum, item) => sum + item.odds, 0);
-    const weightedConfidence = accumulatorItems.reduce(
-      (sum, item) => sum + (item.odds / totalWeight) * 0.7, // Multiplying by 0.7 to account for combination risk
-      0
-    );
-    
-    return Math.round(weightedConfidence * 100);
+  const handleSportChange = (sport: string) => {
+    setSelectedSport(sport);
   };
-  
-  // Handle adding prediction to accumulator
-  const handleAddToAccumulator = (predictionId: number, match: Match, outcome: string, odds: number) => {
-    // Check if already in accumulator
-    const existingIndex = accumulatorItems.findIndex(item => item.predictionId === predictionId);
-    
-    if (existingIndex >= 0) {
-      // Remove if already exists
-      setAccumulatorItems(prev => prev.filter(item => item.predictionId !== predictionId));
-    } else {
-      // Add new item
-      setAccumulatorItems(prev => [
-        ...prev, 
-        { predictionId, match, outcome, odds }
-      ]);
-    }
-  };
-  
-  // Handle clearing accumulator
-  const handleClearAccumulator = () => {
-    setAccumulatorItems([]);
-  };
-  
-  // Handle removing item from accumulator
-  const handleRemoveFromAccumulator = (predictionId: number) => {
-    setAccumulatorItems(prev => prev.filter(item => item.predictionId !== predictionId));
-  };
-  
+
   return (
-    <div className="flex flex-col h-screen bg-background">
-      <TopBar />
-      
-      <main className="flex-1 overflow-y-auto">
-        <PremiumBanner />
-        
-        <div className="px-4 mt-4">
-          <h2 className="text-lg font-bold text-foreground mb-3">Today's Predictions</h2>
+    <div className="container py-8 max-w-6xl">
+      <section className="mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">
+              AI Sports Predictions
+            </h1>
+            <p className="text-muted-foreground">
+              Daily predictions powered by advanced machine learning algorithms
+            </p>
+          </div>
           
-          {isLoadingSports ? (
-            <div className="flex justify-center py-4">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <SportsTabs 
-              sports={sports || []} 
-              activeSportId={selectedSportId}
-              onSelect={setSelectedSportId}
-            />
-          )}
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate("/stats")}
+              className="flex items-center"
+            >
+              <TrendingUp className="mr-2 h-4 w-4" />
+              Stats
+            </Button>
+            {user ? (
+              <Button onClick={() => navigate("/profile")}>
+                My Profile
+              </Button>
+            ) : (
+              <Button onClick={() => navigate("/auth")}>
+                Sign In
+              </Button>
+            )}
+          </div>
         </div>
         
-        <div className="px-4 mt-4 pb-4">
-          {isLoadingPredictions ? (
-            <div className="flex flex-col items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-              <p className="text-muted-foreground">Loading predictions...</p>
-            </div>
-          ) : predictions && predictions.length > 0 ? (
-            <div className="space-y-4">
-              {predictions.map((item) => (
-                <PredictionCard 
-                  key={item.prediction.id}
-                  prediction={item.prediction}
-                  match={item.match}
-                  league={item.league}
-                  isInAccumulator={accumulatorItems.some(accItem => accItem.predictionId === item.prediction.id)}
-                  onAddToAccumulator={(outcome, odds) => 
-                    handleAddToAccumulator(item.prediction.id, item.match, outcome, odds)
-                  }
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No predictions available for this sport</p>
-            </div>
-          )}
-        </div>
-        
-        {accumulatorItems.length > 0 && (
-          <div className="mx-4 mb-6">
-            <AccumulatorPanel 
-              items={accumulatorItems}
-              totalOdds={totalOdds.toFixed(2)}
-              confidence={calculateConfidence()}
-              onClearAll={handleClearAccumulator}
-              onRemoveItem={handleRemoveFromAccumulator}
-            />
+        {stats && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Success Rate (7 days)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {stats.weekSuccessRate}%
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {stats.weekCorrect} correct out of {stats.weekTotal}
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Success Rate (30 days)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {stats.monthSuccessRate}%
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {stats.monthCorrect} correct out of {stats.monthTotal}
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Avg. Confidence
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {stats.avgConfidence}%
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Based on {stats.totalPredictions} predictions
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Today's Predictions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {stats.todayCount}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Across {stats.todaySports} sports
+                </p>
+              </CardContent>
+            </Card>
           </div>
         )}
-      </main>
+      </section>
       
-      <BottomNavigation activePage="predictions" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2 space-y-6">
+          <div className="bg-background shadow-sm border rounded-lg p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Today's Predictions</h2>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-sm gap-1"
+                onClick={() => {}}
+              >
+                <Filter className="h-4 w-4" />
+                Filter
+              </Button>
+            </div>
+            
+            <SportsTabs 
+              selectedSport={selectedSport}
+              onSelectSport={handleSportChange}
+            />
+            
+            {isLoading ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : !predictions || predictions.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <p>No predictions available for this selection.</p>
+                <p className="text-sm mt-2">Try selecting a different sport or check back later.</p>
+              </div>
+            ) : (
+              <div className="space-y-4 mt-4">
+                {predictions.slice(0, 10).map((prediction: any) => (
+                  <PredictionCard 
+                    key={prediction.id} 
+                    prediction={prediction}
+                  />
+                ))}
+                
+                {predictions.length > 10 && (
+                  <Button 
+                    variant="outline" 
+                    className="w-full mt-4"
+                    onClick={() => navigate("/predictions")}
+                  >
+                    View All Predictions
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+        
+        <div className="space-y-6">
+          <AccumulatorPanel />
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Subscription Status</CardTitle>
+              <CardDescription>
+                {user ? "Manage your prediction subscription" : "Sign up for premium predictions"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {user ? (
+                <>
+                  <div className="mb-4">
+                    <p className="font-medium mb-1">Current Plan:</p>
+                    <p className="text-primary font-semibold text-lg">
+                      {user.subscriptionTier || "Free Tier"}
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={() => navigate("/subscription")}
+                    className="w-full"
+                  >
+                    {user.subscriptionTier ? "Manage Subscription" : "Upgrade Now"}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    Sign up for a subscription to access premium predictions and advanced features.
+                  </p>
+                  <Button 
+                    onClick={() => navigate("/auth")}
+                    className="w-full mb-2"
+                  >
+                    Sign In
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => navigate("/subscription")}
+                    className="w-full"
+                  >
+                    View Plans
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

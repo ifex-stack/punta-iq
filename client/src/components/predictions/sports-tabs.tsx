@@ -1,37 +1,62 @@
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sport } from "@shared/schema";
+import React from "react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useQuery } from "@tanstack/react-query";
 
-interface SportTabsProps {
-  sports: Sport[];
-  activeSportId: number;
-  onSelect: (sportId: number) => void;
+interface Sport {
+  id: number;
+  name: string;
+  slug: string;
+  isActive: boolean;
+  iconName: string;
 }
 
-const SportsTabs = ({ sports, activeSportId, onSelect }: SportTabsProps) => {
-  // Function to get icon component
-  const getSportIcon = (iconName: string) => {
-    return iconName.replace('fa-', '');
+interface SportsTabsProps {
+  selectedSport: string;
+  onSelectSport: (sport: string) => void;
+}
+
+export function SportsTabs({ selectedSport, onSelectSport }: SportsTabsProps) {
+  const { data: sports, isLoading } = useQuery<Sport[]>({
+    queryKey: ['/api/sports'],
+  });
+
+  const handleChange = (value: string) => {
+    onSelectSport(value);
   };
-  
-  return (
-    <ScrollArea className="w-full">
-      <div className="flex overflow-x-auto pb-2 no-scrollbar">
-        {sports.map((sport) => (
-          <button
-            key={sport.id}
-            className={`sport-tab whitespace-nowrap px-4 py-2 mr-3 text-sm font-medium rounded-full
-              ${activeSportId === sport.id 
-                ? 'bg-primary/10 text-primary border-b-2 border-primary' 
-                : 'bg-card text-muted-foreground'
-              }`}
-            onClick={() => onSelect(sport.id)}
-          >
-            <i className={`fas ${sport.icon} mr-1`}></i> {sport.name}
-          </button>
-        ))}
+
+  if (isLoading) {
+    return (
+      <div className="w-full overflow-x-auto py-2">
+        <div className="flex space-x-1">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div 
+              key={i} 
+              className="h-9 w-24 bg-muted animate-pulse rounded-md"
+            />
+          ))}
+        </div>
       </div>
-    </ScrollArea>
+    );
+  }
+
+  // If we don't have any sports, show a default "All" tab
+  const displaySports = sports?.length 
+    ? [{ id: 0, name: "All", slug: "all", isActive: true, iconName: "globe" }, ...sports]
+    : [{ id: 0, name: "All", slug: "all", isActive: true, iconName: "globe" }];
+
+  return (
+    <div className="w-full overflow-x-auto py-2">
+      <Tabs value={selectedSport} onValueChange={handleChange} className="w-max">
+        <TabsList>
+          {displaySports.map((sport) => (
+            <TabsTrigger key={sport.id} value={sport.slug}>
+              {sport.name}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+    </div>
   );
-};
+}
 
 export default SportsTabs;

@@ -1,191 +1,186 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import React from "react";
+import { useLocation } from "wouter";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  LockIcon, 
-  CheckCircleIcon, 
-  PlusIcon,
-  BoltIcon, 
-  CheckIcon
-} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
+import { Bookmark, BookmarkPlus, Calendar, Trophy } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 interface PredictionCardProps {
   prediction: {
     id: number;
     matchId: number;
-    predictedOutcome: string;
-    confidence: number;
-    isPremium: boolean;
-    isLocked?: boolean;
-    additionalPredictions: any;
-  };
-  match: {
-    id: number;
+    sport: string;
+    league: string;
     homeTeam: string;
     awayTeam: string;
     startTime: string;
-    homeOdds: number;
-    drawOdds: number | null;
-    awayOdds: number;
+    market: string;
+    selection: string;
+    odds: number;
+    confidence: number;
+    isPremium: boolean;
+    reasoning: string;
   };
-  league: {
-    id: number;
-    name: string;
-  } | null;
-  isInAccumulator: boolean;
-  onAddToAccumulator: (outcome: string, odds: number) => void;
+  compact?: boolean;
+  className?: string;
 }
 
-const PredictionCard = ({ prediction, match, league, isInAccumulator, onAddToAccumulator }: PredictionCardProps) => {
-  // Format match time
-  const formatMatchTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+export function PredictionCard({ prediction, compact = false, className }: PredictionCardProps) {
+  const [_, navigate] = useLocation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const [isSaved, setIsSaved] = React.useState(false);
+
+  const {
+    id,
+    matchId,
+    sport,
+    league,
+    homeTeam,
+    awayTeam,
+    startTime,
+    market,
+    selection,
+    odds,
+    confidence,
+    isPremium,
+    reasoning,
+  } = prediction;
   
-  // Get prediction text
-  const getPredictionText = () => {
-    switch (prediction.predictedOutcome) {
-      case "home":
-        return "Home Win (1)";
-      case "away":
-        return "Away Win (2)";
-      case "draw":
-        return "Draw (X)";
-      case "home_over2.5":
-        return "Home Win & Over 2.5";
-      default:
-        return prediction.predictedOutcome;
+  const toggleSaveMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/user-predictions/toggle`, {
+        userId: user?.id,
+        predictionId: id,
+      });
+      return await res.json();
+    },
+    onSuccess: () => {
+      setIsSaved(!isSaved);
+      queryClient.invalidateQueries({ queryKey: ['/api/user-predictions'] });
+      toast({
+        title: isSaved ? "Prediction removed" : "Prediction saved",
+        description: isSaved 
+          ? "Prediction has been removed from your saved list." 
+          : "Prediction has been added to your saved list.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleToggleSave = () => {
+    if (!user) {
+      navigate("/auth");
+      return;
     }
+    toggleSaveMutation.mutate();
   };
-  
-  // Get odds for predicted outcome
-  const getPredictionOdds = () => {
-    switch (prediction.predictedOutcome) {
-      case "home":
-        return match.homeOdds;
-      case "away":
-        return match.awayOdds;
-      case "draw":
-        return match.drawOdds || 0;
-      default:
-        return match.homeOdds;
-    }
+
+  const handleViewDetails = () => {
+    navigate(`/predictions/${id}`);
   };
-  
+
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 80) return "bg-green-500";
+    if (confidence >= 60) return "bg-amber-500";
+    return "bg-red-500";
+  };
+
   return (
-    <Card className="prediction-card overflow-hidden border border-border transition-all duration-200 hover:-translate-y-1">
-      <CardContent className="p-4">
-        <div className="flex justify-between items-start mb-3">
-          <div>
-            <div className="flex items-center mb-1">
-              <Badge variant="outline" className="bg-primary/10 text-primary font-medium py-1 text-xs">
-                {league?.name || "Unknown League"}
-              </Badge>
-              <span className="ml-2 text-xs text-muted-foreground">
-                Today, {formatMatchTime(match.startTime)}
-              </span>
+    <Card className={cn("overflow-hidden", className)}>
+      <CardHeader className="pb-3 pt-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <div className="bg-primary/10 p-1.5 rounded-sm">
+              <Trophy className="h-4 w-4 text-primary" />
             </div>
-            <h3 className="font-medium text-foreground">
-              {match.homeTeam} vs {match.awayTeam}
-            </h3>
+            <div className="flex flex-col">
+              <span className="text-xs text-muted-foreground">{sport}</span>
+              <span className="text-sm font-medium">{league}</span>
+            </div>
           </div>
-          <div>
-            {prediction.isPremium ? (
-              <Badge variant="outline" className="bg-accent/10 text-accent text-xs font-medium">
-                <CrownIcon className="h-3 w-3 mr-1" /> Premium
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="bg-green-500/10 text-green-500 text-xs font-medium">
-                <CheckCircleIcon className="h-3 w-3 mr-1" /> Free
+          <div className="flex items-center space-x-2">
+            <div className="flex items-center text-xs text-muted-foreground">
+              <Calendar className="h-3 w-3 mr-1" />
+              {format(new Date(startTime), "MMM d, h:mm a")}
+            </div>
+            {isPremium && (
+              <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">
+                PREMIUM
               </Badge>
             )}
           </div>
         </div>
-        
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex-1">
-            <div className="flex items-center justify-between px-3 py-2 bg-background rounded-lg">
-              <div className="text-center">
-                <div className="text-sm text-muted-foreground mb-1">1</div>
-                <div className="text-lg font-bold text-foreground">{match.homeOdds.toFixed(2)}</div>
-              </div>
-              {match.drawOdds !== null && (
-                <div className="text-center">
-                  <div className="text-sm text-muted-foreground mb-1">X</div>
-                  <div className="text-lg font-bold text-foreground">{match.drawOdds.toFixed(2)}</div>
-                </div>
-              )}
-              <div className="text-center">
-                <div className="text-sm text-muted-foreground mb-1">2</div>
-                <div className="text-lg font-bold text-foreground">{match.awayOdds.toFixed(2)}</div>
-              </div>
-            </div>
+      </CardHeader>
+      <CardContent className="pb-4">
+        <div className="flex justify-between items-center mb-4">
+          <div className="space-y-1">
+            <div className="font-semibold text-base">{homeTeam}</div>
+            <div className="font-semibold text-base">{awayTeam}</div>
           </div>
-        </div>
-        
-        <div className="mb-4">
-          <div className="flex justify-between mb-1">
-            <span className="text-sm font-medium">
-              AI Prediction: {' '}
-              <span className={prediction.isLocked ? "blur-sm text-muted-foreground" : "text-foreground"}>
-                {getPredictionText()}
-              </span>
-            </span>
-            <span className={`text-sm font-medium ${prediction.isLocked ? "blur-sm text-muted-foreground" : "text-foreground"}`}>
-              {prediction.confidence}%
-            </span>
-          </div>
-          <div className="h-2 rounded overflow-hidden bg-background">
+          <div className="flex flex-col items-center">
             <div 
-              className={`h-full ${prediction.isPremium ? 'bg-accent' : 'bg-primary'}`} 
-              style={{ width: `${prediction.confidence}%` }}
-            ></div>
-          </div>
-        </div>
-        
-        <div className="flex items-center justify-between">
-          <div className={`flex items-center ${prediction.isLocked ? "blur-sm" : ""}`}>
-            {prediction.additionalPredictions?.overUnder && (
-              <Badge variant="outline" className="bg-background text-xs mr-2">
-                <BoltIcon className="h-3 w-3 text-accent mr-1" /> 
-                {prediction.additionalPredictions.overUnder}
-              </Badge>
-            )}
-            {prediction.additionalPredictions?.btts && (
-              <Badge variant="outline" className="bg-background text-xs">
-                <CheckIcon className="h-3 w-3 text-green-500 mr-1" /> BTTS
-              </Badge>
-            )}
-          </div>
-          
-          {prediction.isLocked ? (
-            <Button size="sm" variant="outline" className="text-xs bg-card text-muted-foreground">
-              <LockIcon className="h-3 w-3 mr-1" /> Locked
-            </Button>
-          ) : (
-            <Button 
-              size="sm" 
-              variant={isInAccumulator ? "default" : "outline"}
-              className={`text-xs ${isInAccumulator ? 'bg-primary' : 'bg-primary/10 text-primary'}`}
-              onClick={() => onAddToAccumulator(prediction.predictedOutcome, getPredictionOdds())}
+              className={cn("px-3 py-2 rounded-md text-white font-medium", 
+                getConfidenceColor(confidence)
+              )}
             >
-              {isInAccumulator ? 'In Accumulator' : 'Add to Acca'} <PlusIcon className="h-3 w-3 ml-1" />
-            </Button>
-          )}
+              <div className="text-center">{selection}</div>
+              <div className="text-xs text-center">{confidence}% confidence</div>
+            </div>
+            <div className="text-sm font-medium mt-1.5">
+              Odds: {odds.toFixed(2)}
+            </div>
+          </div>
         </div>
         
-        {/* Overlay for premium locked predictions */}
-        {prediction.isLocked && (
-          <div className="absolute inset-0 flex items-center justify-center bg-card/80 backdrop-blur-sm">
-            <Button className="px-4 py-2 rounded-full bg-accent text-white">
-              <LockIcon className="h-4 w-4 mr-2" /> Unlock Premium
-            </Button>
+        {!compact && (
+          <div className="text-sm text-muted-foreground mt-2 mb-3">
+            <strong className="font-medium text-foreground">Analysis:</strong> {reasoning.length > 120 ? `${reasoning.substring(0, 120)}...` : reasoning}
           </div>
         )}
       </CardContent>
+      <CardFooter className="bg-muted/30 px-4 py-2.5 flex justify-between">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={handleToggleSave}
+          disabled={toggleSaveMutation.isPending}
+        >
+          {isSaved ? (
+            <>
+              <Bookmark className="h-4 w-4 mr-1.5" />
+              Saved
+            </>
+          ) : (
+            <>
+              <BookmarkPlus className="h-4 w-4 mr-1.5" />
+              Save
+            </>
+          )}
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={handleViewDetails}
+        >
+          View Details
+        </Button>
+      </CardFooter>
     </Card>
   );
-};
+}
 
 export default PredictionCard;

@@ -1,253 +1,217 @@
-import { useState } from "react";
-import { useAuth } from "@/hooks/use-auth";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import TopBar from "@/components/layout/top-bar";
-import BottomNavigation from "@/components/layout/bottom-navigation";
-import { useToast } from "@/hooks/use-toast";
-import { CheckIcon, XIcon, CrownIcon, StarIcon } from "lucide-react";
+import React, { useState } from "react";
+import { useLocation } from "wouter";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle2, ChevronLeft, CreditCard, Loader2, Sparkles, Trophy } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
-type SubscriptionPlan = {
-  id: string;
-  name: string;
-  price: number;
-  features: string[];
-  disabledFeatures?: string[];
-  isPopular?: boolean;
-  ctaColor?: string;
-};
+const SUBSCRIPTION_PLANS = [
+  {
+    id: "basic",
+    name: "Basic",
+    price: 9.99,
+    description: "Get started with essential predictions",
+    features: [
+      "1 sport of your choice",
+      "2-fold accumulators",
+      "Basic statistics dashboard",
+      "Daily predictions",
+      "Email support"
+    ],
+    color: "bg-slate-100 dark:bg-slate-800",
+    accentColor: "text-slate-600 dark:text-slate-400",
+    popular: false
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    price: 19.99,
+    description: "The perfect plan for serious enthusiasts",
+    features: [
+      "All sports included",
+      "2-fold and 5-fold accumulators",
+      "Advanced statistics dashboard",
+      "Trend analysis and insights",
+      "Priority notifications",
+      "Priority support"
+    ],
+    color: "bg-primary/10 dark:bg-primary/20",
+    accentColor: "text-primary dark:text-primary",
+    popular: true
+  },
+  {
+    id: "elite",
+    name: "Elite",
+    price: 29.99,
+    description: "Maximum accuracy and premium features",
+    features: [
+      "All sports with highest accuracy",
+      "2, 5, and 10-fold accumulators",
+      "Premium statistical analysis",
+      "Instant alerts for high-value opportunities",
+      "Personal prediction strategy",
+      "24/7 priority support"
+    ],
+    color: "bg-amber-100 dark:bg-amber-900/30",
+    accentColor: "text-amber-600 dark:text-amber-400",
+    popular: false
+  }
+];
 
 export default function SubscriptionPage() {
-  const { user } = useAuth();
+  const [_, navigate] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   
-  // Define subscription plans
-  const subscriptionPlans: SubscriptionPlan[] = [
-    {
-      id: "basic",
-      name: "Basic",
-      price: 9.99,
-      features: [
-        "Daily predictions (3 sports)",
-        "Basic stats dashboard",
-        "Standard notifications"
-      ],
-      disabledFeatures: [
-        "Custom accumulators"
-      ]
-    },
-    {
-      id: "pro",
-      name: "Pro",
-      price: 19.99,
-      features: [
-        "Daily predictions (all sports)",
-        "Advanced stats & filters",
-        "Priority notifications",
-        "Custom 2 & 5 accumulators"
-      ],
-      isPopular: true,
-      ctaColor: "bg-accent"
-    },
-    {
-      id: "elite",
-      name: "Elite",
-      price: 29.99,
-      features: [
-        "Premium AI predictions (95%+ accuracy)",
-        "Full statistics dashboard",
-        "Instant alerts for high-value bets",
-        "Custom 2, 5 & 10 accumulators"
-      ]
-    }
-  ];
-  
-  // Handle subscription update
-  const updateSubscription = useMutation({
-    mutationFn: async (tier: string) => {
-      const res = await apiRequest("POST", "/api/subscription/update", { tier });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      toast({
-        title: "Subscription updated",
-        description: `You're now subscribed to the ${selectedPlan} plan!`,
+  const subscribeMutation = useMutation({
+    mutationFn: async (planId: string) => {
+      const res = await apiRequest("POST", "/api/create-subscription", {
+        userId: user?.id,
+        planId
       });
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      // Redirect to Stripe Checkout
+      window.location.href = data.url;
     },
     onError: (error: Error) => {
       toast({
-        title: "Subscription update failed",
+        title: "Error",
         description: error.message,
-        variant: "destructive",
+        variant: "destructive"
       });
-    },
+    }
   });
   
-  const handleSelectPlan = (planId: string) => {
-    setSelectedPlan(planId);
+  const handleSubscribe = (planId: string) => {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
     
-    // In a real app, this would navigate to payment flow
-    // For this MVP, we'll just update the subscription instantly
-    updateSubscription.mutate(planId);
+    setSelectedPlan(planId);
+    subscribeMutation.mutate(planId);
   };
-  
-  // Check if user is already subscribed to this plan
-  const isCurrentPlan = (planId: string) => {
-    return user?.subscriptionTier === planId;
-  };
-  
-  // Testimonials data
-  const testimonials = [
-    {
-      id: 1,
-      name: "Mike Johnson",
-      initial: "M",
-      tier: "Pro Member",
-      duration: "8 months",
-      rating: 5,
-      text: "The AI predictions have been incredible for my betting success. The custom accumulators feature is a game-changer, and I've seen a 30% increase in my returns since upgrading to Pro."
-    },
-    {
-      id: 2,
-      name: "Sarah Williams",
-      initial: "S",
-      tier: "Elite Member",
-      duration: "3 months",
-      rating: 5,
-      text: "Worth every penny! The Elite plan gives me access to the highest accuracy predictions, and the statistical dashboard helps me make informed decisions. Love the instant alerts feature."
-    }
-  ];
-  
-  // FAQ data
-  const faqs = [
-    {
-      question: "How accurate are the AI predictions?",
-      answer: "Our AI system averages 68-75% accuracy for standard predictions, while premium predictions exceed 90% accuracy based on historical data analysis."
-    },
-    {
-      question: "Can I cancel my subscription anytime?",
-      answer: "Yes, you can cancel your subscription at any time. You'll continue to have access until the end of your billing period."
-    },
-    {
-      question: "How often are predictions updated?",
-      answer: "Our AI engine refreshes predictions daily, with premium alerts for high-value opportunities sent in real-time as they're discovered."
-    }
-  ];
   
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <TopBar />
+    <div className="container py-10 max-w-5xl">
+      <div className="mb-8 flex items-center">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => navigate("/")}
+          className="mr-2"
+        >
+          <ChevronLeft className="h-4 w-4 mr-1" />
+          Back
+        </Button>
+        <h1 className="text-3xl font-bold">Subscription Plans</h1>
+      </div>
+
+      <div className="text-center mb-10">
+        <h2 className="text-2xl font-bold mb-4">Choose the Right Plan for You</h2>
+        <p className="text-muted-foreground max-w-2xl mx-auto">
+          Access our AI-powered sports predictions with a subscription that fits your needs. 
+          Upgrade anytime as your strategy evolves.
+        </p>
+      </div>
       
-      <main className="flex-1 overflow-y-auto pb-20">
-        <div className="pt-4 px-4">
-          <h2 className="text-lg font-bold text-foreground mb-1">Upgrade Your Experience</h2>
-          <p className="text-muted-foreground mb-6">Get exclusive access to premium predictions and features</p>
-          
-          {/* Subscription plans */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            {subscriptionPlans.map((plan) => (
-              <Card 
-                key={plan.id}
-                className={`relative overflow-hidden border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${
-                  plan.isPopular ? 'border-2 border-primary transform scale-105 shadow-md' : 'border-border'
-                }`}
+      <div className="grid md:grid-cols-3 gap-6">
+        {SUBSCRIPTION_PLANS.map((plan) => (
+          <Card 
+            key={plan.id} 
+            className={`${plan.popular ? 'border-primary shadow-lg shadow-primary/10' : 'border-border'} overflow-hidden`}
+          >
+            {plan.popular && (
+              <div className="bg-primary text-primary-foreground text-center py-1.5 text-sm font-medium">
+                <Sparkles className="h-3.5 w-3.5 inline-block mr-1" /> Most Popular
+              </div>
+            )}
+            <CardHeader className={`${plan.color}`}>
+              <CardTitle className="flex justify-between items-center">
+                <span>{plan.name}</span>
+                <Badge variant={plan.popular ? "default" : "outline"} className="text-xs">
+                  Monthly
+                </Badge>
+              </CardTitle>
+              <div className="mt-2">
+                <span className="text-3xl font-bold">${plan.price}</span>
+                <span className="text-muted-foreground ml-1">/month</span>
+              </div>
+              <CardDescription className="mt-2">
+                {plan.description}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <ul className="space-y-3">
+                {plan.features.map((feature, i) => (
+                  <li key={i} className="flex items-start">
+                    <CheckCircle2 className={`h-5 w-5 mr-2 ${plan.accentColor} shrink-0 mt-0.5`} />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+            <CardFooter className="flex justify-center pt-2 pb-6">
+              <Button 
+                onClick={() => handleSubscribe(plan.id)}
+                disabled={subscribeMutation.isPending && selectedPlan === plan.id}
+                className="w-full"
+                variant={plan.popular ? "default" : "outline"}
               >
-                {plan.isPopular && (
-                  <div className="absolute top-0 left-0 right-0 bg-primary text-primary-foreground text-xs font-bold text-center py-1">
-                    MOST POPULAR
-                  </div>
+                {subscribeMutation.isPending && selectedPlan === plan.id ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Processing
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Subscribe
+                  </>
                 )}
-                
-                <CardContent className={`p-5 ${plan.isPopular ? 'pt-8' : ''}`}>
-                  <h3 className="text-lg font-bold text-foreground mb-1">{plan.name}</h3>
-                  <div className="flex items-baseline mb-4">
-                    <span className="text-2xl font-bold text-foreground">${plan.price}</span>
-                    <span className="text-muted-foreground text-sm ml-1">/month</span>
-                  </div>
-                  
-                  <ul className="space-y-2 mb-5">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-start">
-                        <CheckIcon className="h-4 w-4 text-green-500 mt-1 mr-2" />
-                        <span className="text-sm text-foreground">{feature}</span>
-                      </li>
-                    ))}
-                    
-                    {plan.disabledFeatures?.map((feature) => (
-                      <li key={feature} className="flex items-start opacity-50">
-                        <XIcon className="h-4 w-4 text-red-500 mt-1 mr-2" />
-                        <span className="text-sm text-foreground">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  
-                  <Button 
-                    className={`w-full ${plan.ctaColor || 'bg-primary'}`}
-                    onClick={() => handleSelectPlan(plan.id)}
-                    disabled={isCurrentPlan(plan.id) || updateSubscription.isPending}
-                  >
-                    {isCurrentPlan(plan.id) 
-                      ? "Current Plan" 
-                      : updateSubscription.isPending && selectedPlan === plan.id
-                        ? "Upgrading..."
-                        : "Select Plan"
-                    }
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          
-          {/* Testimonials */}
-          <h3 className="text-md font-bold text-foreground mb-4">What Our Users Say</h3>
-          <div className="grid grid-cols-1 gap-4 mb-6">
-            {testimonials.map((testimonial) => (
-              <Card key={testimonial.id} className="bg-card">
-                <CardContent className="p-4">
-                  <div className="flex items-center mb-3">
-                    <div className={`h-10 w-10 rounded-full ${
-                      testimonial.tier.includes("Pro") ? 'bg-primary' : 'bg-accent'
-                    } flex items-center justify-center text-white font-bold`}>
-                      {testimonial.initial}
-                    </div>
-                    <div className="ml-3">
-                      <div className="text-foreground font-medium">{testimonial.name}</div>
-                      <div className="text-muted-foreground text-xs">{testimonial.tier} • {testimonial.duration}</div>
-                    </div>
-                    <div className="ml-auto flex">
-                      {[...Array(testimonial.rating)].map((_, i) => (
-                        <StarIcon key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-sm text-foreground">
-                    "{testimonial.text}"
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          
-          {/* FAQ Section */}
-          <h3 className="text-md font-bold text-foreground mb-4">Frequently Asked Questions</h3>
-          <div className="space-y-3 mb-6">
-            {faqs.map((faq, index) => (
-              <Card key={index} className="bg-card">
-                <CardContent className="p-4">
-                  <h4 className="text-foreground font-medium mb-2">{faq.question}</h4>
-                  <p className="text-sm text-muted-foreground">{faq.answer}</p>
-                </CardContent>
-              </Card>
-            ))}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+      
+      <div className="mt-12 bg-muted/50 rounded-lg p-6 max-w-3xl mx-auto">
+        <div className="flex items-start">
+          <Trophy className="h-6 w-6 text-primary mr-4 mt-1" />
+          <div>
+            <h3 className="text-xl font-medium mb-2">Subscription Benefits</h3>
+            <p className="text-muted-foreground mb-4">
+              All subscriptions include unlimited access to your selected prediction tier, with no hidden fees 
+              or long-term commitments. You can cancel your subscription at any time.
+            </p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div className="flex items-center">
+                <CheckCircle2 className="h-4 w-4 text-green-500 mr-2" />
+                <span className="text-sm">Secure payments via Stripe</span>
+              </div>
+              <div className="flex items-center">
+                <CheckCircle2 className="h-4 w-4 text-green-500 mr-2" />
+                <span className="text-sm">Cancel anytime, no contracts</span>
+              </div>
+              <div className="flex items-center">
+                <CheckCircle2 className="h-4 w-4 text-green-500 mr-2" />
+                <span className="text-sm">Switch plans anytime</span>
+              </div>
+              <div className="flex items-center">
+                <CheckCircle2 className="h-4 w-4 text-green-500 mr-2" />
+                <span className="text-sm">New predictions every day</span>
+              </div>
+            </div>
           </div>
         </div>
-      </main>
-      
-      <BottomNavigation activePage="subscription" />
+      </div>
     </div>
   );
 }

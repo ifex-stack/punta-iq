@@ -1,303 +1,289 @@
-import { useState } from "react";
-import { useAuth } from "@/hooks/use-auth";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import TopBar from "@/components/layout/top-bar";
-import BottomNavigation from "@/components/layout/bottom-navigation";
-import { useToast } from "@/hooks/use-toast";
-import { 
-  ChevronRightIcon, 
-  LogOutIcon,
-  BellIcon,
-  LockIcon,
-  GlobeIcon,
-  CrownIcon,
-  HelpCircleIcon,
-  BookOpenIcon,
-  MailIcon
-} from "lucide-react";
+import React, { useState } from "react";
+import { useLocation } from "wouter";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
+import { ChevronLeft, CreditCard, LogOut, Save, User as UserIcon } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function ProfilePage() {
+  const [_, navigate] = useLocation();
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
-  const [notificationSettings, setNotificationSettings] = useState({
-    predictions: user?.notificationSettings?.predictions || true,
-    results: user?.notificationSettings?.results || true,
-    promotions: user?.notificationSettings?.promotions || false
+  const [activeTab, setActiveTab] = useState("account");
+  
+  const [formData, setFormData] = useState({
+    name: user?.displayName || "",
+    email: user?.email || "",
   });
   
-  // Update notification settings
-  const updateNotificationSettings = useMutation({
-    mutationFn: async (settings: typeof notificationSettings) => {
-      const res = await apiRequest("PATCH", "/api/user/notification-settings", settings);
-      return res.json();
+  const { data: userPredictions, isLoading: isLoadingPredictions } = useQuery({
+    queryKey: ['/api/user-predictions'],
+    enabled: !!user,
+  });
+  
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      const res = await apiRequest("PATCH", `/api/user/${user?.id}`, data);
+      return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
-        title: "Settings updated",
-        description: "Your notification preferences have been saved",
+        title: "Profile Updated",
+        description: "Your profile has been updated successfully.",
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to update settings",
+        title: "Error",
         description: error.message,
         variant: "destructive",
       });
-    },
+    }
   });
   
-  // Handle notification toggle
-  const handleNotificationToggle = (setting: keyof typeof notificationSettings) => {
-    const newSettings = {
-      ...notificationSettings,
-      [setting]: !notificationSettings[setting]
-    };
-    
-    setNotificationSettings(newSettings);
-    updateNotificationSettings.mutate(newSettings);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
   
-  // Get avatar initials from username
-  const getInitials = () => {
-    if (!user?.username) return "";
-    
-    return user.username
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateProfileMutation.mutate(formData);
   };
   
-  // Get subscription display name
-  const getSubscriptionName = () => {
-    if (!user?.subscriptionTier) return "Free";
-    
-    switch (user.subscriptionTier) {
-      case "basic":
-        return "Basic";
-      case "pro":
-        return "Pro";
-      case "elite":
-        return "Elite";
-      default:
-        return "Free";
-    }
+  const handleLogout = () => {
+    logoutMutation.mutate();
   };
-  
-  // Get next payment date (mock data for MVP)
-  const getNextPaymentDate = () => {
-    const date = new Date();
-    date.setDate(date.getDate() + 30);
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  };
-  
+
+  if (!user) {
+    navigate("/auth");
+    return null;
+  }
+
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <TopBar />
+    <div className="container py-10 max-w-5xl">
+      <div className="mb-8 flex items-center">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => navigate("/")}
+          className="mr-2"
+        >
+          <ChevronLeft className="h-4 w-4 mr-1" />
+          Back
+        </Button>
+        <h1 className="text-3xl font-bold">Profile</h1>
+      </div>
       
-      <main className="flex-1 overflow-y-auto pb-20">
-        <div className="pt-4 px-4">
-          {/* User profile header */}
-          <div className="flex flex-col items-center mb-6">
-            <div className="h-20 w-20 rounded-full bg-primary flex items-center justify-center text-white text-xl font-bold mb-3">
-              {getInitials()}
-            </div>
-            <h2 className="text-lg font-bold text-foreground">{user?.username}</h2>
-            <p className="text-muted-foreground">{user?.email}</p>
-            <div className="bg-primary bg-opacity-20 text-primary text-xs font-medium px-3 py-1 rounded-full mt-2">
-              {getSubscriptionName()} Member
-            </div>
-          </div>
-          
-          {/* Account settings */}
-          <Card className="rounded-xl mb-6">
-            <h3 className="text-md font-bold text-foreground p-4 border-b border-border">Account Settings</h3>
-            <div className="divide-y divide-border">
-              {/* Notification settings */}
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center">
-                    <BellIcon className="h-5 w-5 text-muted-foreground mr-2" />
-                    <h4 className="text-foreground font-medium">Notification Settings</h4>
-                  </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="col-span-1">
+          <Card>
+            <CardHeader className="text-center">
+              <Avatar className="h-24 w-24 mx-auto mb-2">
+                <AvatarImage src={user.photoURL || undefined} alt={user.displayName || user.username} />
+                <AvatarFallback>
+                  {user.displayName?.charAt(0) || user.username?.charAt(0) || "U"}
+                </AvatarFallback>
+              </Avatar>
+              <CardTitle>{user.displayName || user.username}</CardTitle>
+              <CardDescription>{user.email}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Account Type</span>
+                  <Badge variant={user.subscriptionTier ? "default" : "outline"}>
+                    {user.subscriptionTier || "Free Tier"}
+                  </Badge>
                 </div>
-                
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="predictions" className="text-sm text-foreground">New Predictions</Label>
-                    <Switch 
-                      id="predictions" 
-                      checked={notificationSettings.predictions}
-                      onCheckedChange={() => handleNotificationToggle('predictions')}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="results" className="text-sm text-foreground">Prediction Results</Label>
-                    <Switch 
-                      id="results" 
-                      checked={notificationSettings.results}
-                      onCheckedChange={() => handleNotificationToggle('results')}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="promotions" className="text-sm text-foreground">Promotions & Offers</Label>
-                    <Switch 
-                      id="promotions" 
-                      checked={notificationSettings.promotions}
-                      onCheckedChange={() => handleNotificationToggle('promotions')}
-                    />
-                  </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Member Since</span>
+                  <span className="text-sm">
+                    {new Date(user.createdAt || Date.now()).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Saved Predictions</span>
+                  <span className="text-sm">
+                    {userPredictions?.length || 0}
+                  </span>
                 </div>
               </div>
-              
-              {/* Change password */}
-              <div className="flex items-center justify-between p-4">
-                <div className="flex items-center">
-                  <LockIcon className="h-5 w-5 text-muted-foreground mr-2" />
-                  <div>
-                    <h4 className="text-foreground font-medium">Change Password</h4>
-                    <p className="text-xs text-muted-foreground">Update your security credentials</p>
-                  </div>
-                </div>
-                <ChevronRightIcon className="h-5 w-5 text-muted-foreground" />
-              </div>
-              
-              {/* Language */}
-              <div className="flex items-center justify-between p-4">
-                <div className="flex items-center">
-                  <GlobeIcon className="h-5 w-5 text-muted-foreground mr-2" />
-                  <div>
-                    <h4 className="text-foreground font-medium">Language</h4>
-                    <p className="text-xs text-muted-foreground">English (US)</p>
-                  </div>
-                </div>
-                <ChevronRightIcon className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </div>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={handleLogout}
+                disabled={logoutMutation.isPending}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                {logoutMutation.isPending ? "Logging out..." : "Log Out"}
+              </Button>
+            </CardFooter>
           </Card>
-          
-          {/* Subscription info */}
-          <Card className="rounded-xl mb-6">
-            <h3 className="text-md font-bold text-foreground p-4 border-b border-border">Your Subscription</h3>
-            <div className="p-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-foreground font-medium">Current Plan</span>
-                <span className="text-primary font-medium">{getSubscriptionName()}</span>
-              </div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-foreground font-medium">Billing Cycle</span>
-                <span className="text-muted-foreground">Monthly</span>
-              </div>
-              
-              {user?.subscriptionTier && user.subscriptionTier !== "free" && (
-                <>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-foreground font-medium">Next Payment</span>
-                    <span className="text-muted-foreground">{getNextPaymentDate()}</span>
-                  </div>
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-foreground font-medium">Amount</span>
-                    <span className="text-muted-foreground">
-                      ${user.subscriptionTier === "basic" ? "9.99" : user.subscriptionTier === "pro" ? "19.99" : "29.99"}
-                    </span>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button variant="outline" className="text-primary bg-primary bg-opacity-10">
-                      Change Plan
-                    </Button>
-                    <Button variant="outline" className="text-destructive bg-destructive bg-opacity-10">
-                      Cancel Plan
-                    </Button>
-                  </div>
-                </>
-              )}
-              
-              {(!user?.subscriptionTier || user.subscriptionTier === "free") && (
-                <div className="mt-2">
-                  <Button 
-                    className="w-full bg-primary"
-                    onClick={() => window.location.href = "/subscription"}
-                  >
-                    <CrownIcon className="h-4 w-4 mr-2" />
-                    Upgrade to Premium
-                  </Button>
-                </div>
-              )}
-            </div>
-          </Card>
-          
-          {/* Help and support */}
-          <Card className="rounded-xl mb-6">
-            <h3 className="text-md font-bold text-foreground p-4 border-b border-border">Help & Support</h3>
-            <div className="divide-y divide-border">
-              <div className="flex items-center justify-between p-4">
-                <div className="flex items-center">
-                  <HelpCircleIcon className="h-5 w-5 text-muted-foreground mr-2" />
-                  <div>
-                    <h4 className="text-foreground font-medium">Support Center</h4>
-                    <p className="text-xs text-muted-foreground">Get help with your account</p>
-                  </div>
-                </div>
-                <ChevronRightIcon className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div className="flex items-center justify-between p-4">
-                <div className="flex items-center">
-                  <BookOpenIcon className="h-5 w-5 text-muted-foreground mr-2" />
-                  <div>
-                    <h4 className="text-foreground font-medium">FAQs</h4>
-                    <p className="text-xs text-muted-foreground">Frequently asked questions</p>
-                  </div>
-                </div>
-                <ChevronRightIcon className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div className="flex items-center justify-between p-4">
-                <div className="flex items-center">
-                  <MailIcon className="h-5 w-5 text-muted-foreground mr-2" />
-                  <div>
-                    <h4 className="text-foreground font-medium">Contact Us</h4>
-                    <p className="text-xs text-muted-foreground">Reach our support team</p>
-                  </div>
-                </div>
-                <ChevronRightIcon className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </div>
-          </Card>
-          
-          <Button 
-            variant="outline" 
-            className="w-full py-3 text-foreground rounded-lg font-medium mb-6"
-            onClick={() => logoutMutation.mutate()}
-            disabled={logoutMutation.isPending}
-          >
-            {logoutMutation.isPending 
-              ? "Logging out..." 
-              : (
-                <>
-                  <LogOutIcon className="h-4 w-4 mr-2" />
-                  Log Out
-                </>
-              )
-            }
-          </Button>
-          
-          <div className="text-center text-xs text-muted-foreground mb-8">
-            <p>AI Sports Predictions v1.0.3</p>
-            <p className="mt-1">© 2023 AI Sports Predictions. All rights reserved.</p>
-          </div>
         </div>
-      </main>
-      
-      <BottomNavigation activePage="profile" />
+        
+        <div className="col-span-1 md:col-span-2">
+          <Tabs 
+            value={activeTab} 
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
+            <TabsList className="grid grid-cols-2 mb-6">
+              <TabsTrigger value="account">
+                <UserIcon className="h-4 w-4 mr-2" />
+                Account
+              </TabsTrigger>
+              <TabsTrigger value="subscription">
+                <CreditCard className="h-4 w-4 mr-2" />
+                Subscription
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="account">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Account Information</CardTitle>
+                  <CardDescription>
+                    Update your account details and preferences.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSubmit}>
+                    <div className="grid gap-6">
+                      <div className="grid gap-3">
+                        <Label htmlFor="name">Display Name</Label>
+                        <Input
+                          id="name"
+                          name="name"
+                          value={formData.name}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                      <div className="grid gap-3">
+                        <Label htmlFor="email">Email Address</Label>
+                        <Input
+                          id="email"
+                          name="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                      <Button 
+                        type="submit" 
+                        disabled={updateProfileMutation.isPending}
+                      >
+                        {updateProfileMutation.isPending ? (
+                          <>Saving...</>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4 mr-2" />
+                            Save Changes
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                  
+                  <Separator className="my-6" />
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">Notification Preferences</h4>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Manage how you receive notifications about new predictions and results.
+                      </p>
+                      <div className="space-y-2">
+                        {/* Notification preferences would go here */}
+                        <p className="text-sm text-muted-foreground">
+                          Notification preferences will be available in a future update.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="subscription">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Subscription Management</CardTitle>
+                  <CardDescription>
+                    {user.subscriptionTier 
+                      ? "Manage your current subscription plan and billing details." 
+                      : "Subscribe to access premium predictions and features."}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {user.subscriptionTier ? (
+                    <div className="space-y-6">
+                      <div className="bg-primary/5 border border-primary/10 rounded-lg p-4">
+                        <h4 className="font-medium mb-2">Current Plan</h4>
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <div className="text-lg font-bold text-primary">
+                              {user.subscriptionTier} Plan
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              Renews on {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <Badge>Active</Badge>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <h4 className="font-medium">Payment Method</h4>
+                        <div className="flex items-center gap-3 border rounded-lg p-3">
+                          <CreditCard className="h-5 w-5 text-muted-foreground" />
+                          <div>
+                            <div className="font-medium">•••• •••• •••• 4242</div>
+                            <div className="text-xs text-muted-foreground">Expires 12/2026</div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <Button variant="outline" className="flex-1" onClick={() => navigate("/subscription")}>
+                          Change Plan
+                        </Button>
+                        <Button variant="outline" className="flex-1 text-destructive" onClick={() => {}}>
+                          Cancel Subscription
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        You are currently on the free tier. Upgrade to a premium plan to 
+                        access more predictions, advanced statistics, and exclusive features.
+                      </p>
+                      <Button onClick={() => navigate("/subscription")}>
+                        View Subscription Plans
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
     </div>
   );
 }
