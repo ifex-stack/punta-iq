@@ -3,79 +3,83 @@ Configuration module for the AI Sports Prediction service.
 Loads environment variables and initializes Firebase.
 """
 import os
+import logging
 from dotenv import load_dotenv
-import firebase_admin
-from firebase_admin import credentials, firestore
 
 # Load environment variables
 load_dotenv()
 
-# API keys
-API_FOOTBALL_KEY = os.getenv("API_FOOTBALL_KEY")
-SPORTRADAR_KEY = os.getenv("SPORTRADAR_KEY")
+# Set up logging
+logger = logging.getLogger(__name__)
 
-# Firebase configuration
-FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID")
-FIREBASE_PRIVATE_KEY = os.getenv("FIREBASE_PRIVATE_KEY")
-FIREBASE_CLIENT_EMAIL = os.getenv("FIREBASE_CLIENT_EMAIL")
-FIREBASE_DATABASE_URL = os.getenv("FIREBASE_DATABASE_URL")
-
-# Prediction schedule
-PREDICTION_SCHEDULE = os.getenv("PREDICTION_SCHEDULE", "0 0 * * *")  # Default: run at midnight
-
-# Sports to predict
+# Supported sports configuration
 SUPPORTED_SPORTS = {
     "football": {
         "enabled": True,
-        "api": "api_football",
-        "markets": ["1X2", "over_under", "btts", "correct_score"]
+        "display_name": "Football",
+        "predictions": ["1X2", "Under/Over", "BTTS", "Correct Score"],
+        "default_model": "xgboost",
+        "leagues": [
+            {"id": 1, "name": "Premier League", "country": "England"},
+            {"id": 2, "name": "La Liga", "country": "Spain"},
+            {"id": 3, "name": "Serie A", "country": "Italy"},
+            {"id": 4, "name": "Bundesliga", "country": "Germany"},
+            {"id": 5, "name": "Ligue 1", "country": "France"},
+            {"id": 6, "name": "Nigerian Professional League", "country": "Nigeria"}
+        ]
     },
     "basketball": {
         "enabled": True,
-        "api": "sportradar",
-        "markets": ["moneyline", "spread", "over_under"]
+        "display_name": "Basketball",
+        "predictions": ["Winner", "Total Points", "Spread"],
+        "default_model": "gradient_boosting",
+        "leagues": [
+            {"id": 1, "name": "NBA", "country": "USA"},
+            {"id": 2, "name": "EuroLeague", "country": "Europe"}
+        ]
     },
     "tennis": {
-        "enabled": True,
-        "api": "sportradar",
-        "markets": ["match_winner", "set_winner"]
-    },
-    "baseball": {
-        "enabled": True,
-        "api": "sportradar",
-        "markets": ["moneyline", "run_line", "over_under"]
-    },
-    "hockey": {
-        "enabled": True,
-        "api": "sportradar",
-        "markets": ["moneyline", "puck_line", "over_under"]
+        "enabled": False,
+        "display_name": "Tennis",
+        "predictions": ["Winner", "Total Games", "Set Score"],
+        "default_model": "random_forest",
+        "leagues": [
+            {"id": 1, "name": "ATP", "country": "International"},
+            {"id": 2, "name": "WTA", "country": "International"}
+        ]
     }
 }
 
-# Initialize Firebase (if credentials are available)
-firebase_app = None
-db = None
+# API Keys
+FOOTBALL_API_KEY = os.getenv("FOOTBALL_API_KEY")
+BASKETBALL_API_KEY = os.getenv("BASKETBALL_API_KEY")
+
+# Firebase configuration
+FIREBASE_CREDENTIALS = os.getenv("FIREBASE_CREDENTIALS")
 
 def initialize_firebase():
     """Initialize Firebase connection if credentials are available."""
-    global firebase_app, db
-    
-    try:
-        if not firebase_app and all([FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL]):
-            cred = credentials.Certificate({
-                "type": "service_account",
-                "project_id": FIREBASE_PROJECT_ID,
-                "private_key": FIREBASE_PRIVATE_KEY.replace('\\n', '\n'),
-                "client_email": FIREBASE_CLIENT_EMAIL
-            })
+    if FIREBASE_CREDENTIALS:
+        try:
+            import firebase_admin
+            from firebase_admin import credentials
             
-            firebase_app = firebase_admin.initialize_app(cred, {
-                'databaseURL': FIREBASE_DATABASE_URL
-            })
-            
-            db = firestore.client()
-            print("Firebase initialized successfully")
-        else:
-            print("Firebase credentials not found or already initialized")
-    except Exception as e:
-        print(f"Error initializing Firebase: {e}")
+            # Load credentials from environment variable or file
+            if os.path.exists(FIREBASE_CREDENTIALS):
+                # Load from file
+                cred = credentials.Certificate(FIREBASE_CREDENTIALS)
+            else:
+                # Try to parse JSON from environment variable
+                import json
+                cred_json = json.loads(FIREBASE_CREDENTIALS)
+                cred = credentials.Certificate(cred_json)
+                
+            firebase_admin.initialize_app(cred)
+            logger.info("Firebase initialized successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to initialize Firebase: {e}")
+            return False
+    else:
+        logger.warning("Firebase credentials not found. Firebase functionality will be disabled.")
+        return False

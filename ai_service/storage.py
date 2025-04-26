@@ -2,17 +2,52 @@
 Storage module for the AI Sports Prediction service.
 Handles storing predictions in Firebase Firestore.
 """
-from datetime import datetime
+import logging
 import json
-from config import db, initialize_firebase
+import os
+from datetime import datetime
+from config import initialize_firebase
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger('storage')
 
 class FirestoreStorage:
     """Class to store and retrieve predictions from Firebase Firestore."""
     
     def __init__(self):
         """Initialize the FirestoreStorage."""
-        initialize_firebase()
+        self.db = None
+        self.initialized = False
         
+        try:
+            # Try to import Firebase libraries
+            import firebase_admin
+            from firebase_admin import firestore
+            
+            # Check if Firebase is already initialized
+            try:
+                # Get existing app
+                firebase_admin.get_app()
+                self.initialized = True
+            except ValueError:
+                # Initialize Firebase if not already initialized
+                self.initialized = initialize_firebase()
+            
+            if self.initialized:
+                self.db = firestore.client()
+                logger.info("Firestore storage initialized successfully")
+            else:
+                logger.warning("Firebase not initialized. Storage operations will be disabled.")
+                
+        except ImportError:
+            logger.warning("Firebase libraries not installed. Storage operations will be disabled.")
+        except Exception as e:
+            logger.error(f"Error initializing Firestore storage: {e}")
+    
     def store_predictions(self, predictions, sport):
         """
         Store predictions for a sport in Firestore.
@@ -24,40 +59,47 @@ class FirestoreStorage:
         Returns:
             bool: True if storage was successful
         """
-        if not db:
-            print("Firebase not initialized. Cannot store predictions.")
+        if not self.initialized or not self.db:
+            logger.warning("Firestore storage not initialized. Cannot store predictions.")
             return False
         
         try:
-            batch = db.batch()
-            predictions_ref = db.collection('predictions').document(sport)
+            # Get a reference to the sport collection
+            collection_ref = self.db.collection('predictions').document(sport).collection('matches')
             
-            # Store the predictions with timestamp
-            data = {
-                'matches': predictions,
-                'updated_at': datetime.now(),
-                'count': len(predictions)
-            }
+            # Batch write for efficiency
+            from firebase_admin import firestore
+            batch = self.db.batch()
             
-            batch.set(predictions_ref, data)
+            for prediction in predictions:
+                # Use the prediction ID as the document ID
+                doc_id = str(prediction.get('id', f"unknown-{datetime.now().timestamp()}"))
+                doc_ref = collection_ref.document(doc_id)
+                
+                # Add prediction creation time if not present
+                if 'created_at' not in prediction:
+                    prediction['created_at'] = datetime.now().isoformat()
+                
+                # Convert datetime objects to ISO strings for JSON serialization
+                prediction_json = self._convert_datetime_to_iso(prediction)
+                
+                # Add the prediction to the batch
+                batch.set(doc_ref, prediction_json, merge=True)
             
-            # Also store individual matches for easier querying
-            for match in predictions:
-                match_id = match.get('match_id')
-                if match_id:
-                    match_ref = db.collection('matches').document(f"{sport}_{match_id}")
-                    batch.set(match_ref, {
-                        **match,
-                        'sport': sport,
-                        'updated_at': datetime.now()
-                    })
-            
+            # Commit the batch
             batch.commit()
-            print(f"Stored {len(predictions)} {sport} predictions in Firestore")
+            
+            # Update the last updated timestamp
+            self.db.collection('predictions').document('metadata').set({
+                'last_updated': firestore.SERVER_TIMESTAMP,
+                f'{sport}_count': len(predictions)
+            }, merge=True)
+            
+            logger.info(f"Successfully stored {len(predictions)} {sport} predictions")
             return True
             
         except Exception as e:
-            print(f"Error storing predictions in Firestore: {e}")
+            logger.error(f"Error storing {sport} predictions: {e}")
             return False
     
     def store_accumulators(self, accumulators):
@@ -70,25 +112,32 @@ class FirestoreStorage:
         Returns:
             bool: True if storage was successful
         """
-        if not db:
-            print("Firebase not initialized. Cannot store accumulators.")
+        if not self.initialized or not self.db:
+            logger.warning("Firestore storage not initialized. Cannot store accumulators.")
             return False
         
         try:
-            accumulators_ref = db.collection('accumulators').document('daily')
+            # Get a reference to the accumulators collection
+            collection_ref = self.db.collection('predictions').document('accumulators')
             
-            # Store the accumulators with timestamp
-            data = {
-                'accumulators': accumulators,
-                'updated_at': datetime.now()
-            }
+            # Convert datetime objects to ISO strings for JSON serialization
+            accumulator_json = self._convert_datetime_to_iso(accumulators)
             
-            accumulators_ref.set(data)
-            print(f"Stored {len(accumulators)} accumulator types in Firestore")
+            # Store the accumulators
+            collection_ref.set(accumulator_json)
+            
+            # Update the last updated timestamp
+            from firebase_admin import firestore
+            self.db.collection('predictions').document('metadata').set({
+                'last_updated': firestore.SERVER_TIMESTAMP,
+                'accumulators_count': len(accumulators)
+            }, merge=True)
+            
+            logger.info(f"Successfully stored {len(accumulators)} accumulators")
             return True
             
         except Exception as e:
-            print(f"Error storing accumulators in Firestore: {e}")
+            logger.error(f"Error storing accumulators: {e}")
             return False
     
     def get_predictions(self, sport):
@@ -101,23 +150,28 @@ class FirestoreStorage:
         Returns:
             list: List of match predictions
         """
-        if not db:
-            print("Firebase not initialized. Cannot get predictions.")
+        if not self.initialized or not self.db:
+            logger.warning("Firestore storage not initialized. Cannot get predictions.")
             return []
         
         try:
-            predictions_ref = db.collection('predictions').document(sport)
-            doc = predictions_ref.get()
+            # Get a reference to the sport collection
+            collection_ref = self.db.collection('predictions').document(sport).collection('matches')
             
-            if doc.exists:
-                data = doc.to_dict()
-                return data.get('matches', [])
-            else:
-                print(f"No predictions found for {sport}")
-                return []
-                
+            # Get the most recent predictions (up to 100)
+            query = collection_ref.order_by('created_at', direction='DESCENDING').limit(100)
+            docs = query.get()
+            
+            predictions = []
+            for doc in docs:
+                prediction = doc.to_dict()
+                predictions.append(prediction)
+            
+            logger.info(f"Retrieved {len(predictions)} {sport} predictions")
+            return predictions
+            
         except Exception as e:
-            print(f"Error getting predictions from Firestore: {e}")
+            logger.error(f"Error getting {sport} predictions: {e}")
             return []
     
     def get_accumulators(self):
@@ -127,25 +181,46 @@ class FirestoreStorage:
         Returns:
             dict: Dictionary of accumulator predictions
         """
-        if not db:
-            print("Firebase not initialized. Cannot get accumulators.")
+        if not self.initialized or not self.db:
+            logger.warning("Firestore storage not initialized. Cannot get accumulators.")
             return {}
         
         try:
-            accumulators_ref = db.collection('accumulators').document('daily')
-            doc = accumulators_ref.get()
+            # Get a reference to the accumulators document
+            doc_ref = self.db.collection('predictions').document('accumulators')
+            doc = doc_ref.get()
             
             if doc.exists:
-                data = doc.to_dict()
-                return data.get('accumulators', {})
+                accumulators = doc.to_dict()
+                logger.info(f"Retrieved {len(accumulators)} accumulators")
+                return accumulators
             else:
-                print("No accumulators found")
+                logger.warning("No accumulators found")
                 return {}
                 
         except Exception as e:
-            print(f"Error getting accumulators from Firestore: {e}")
+            logger.error(f"Error getting accumulators: {e}")
             return {}
     
+    def _convert_datetime_to_iso(self, obj):
+        """
+        Recursively convert datetime objects to ISO strings for JSON serialization.
+        
+        Args:
+            obj: The object to convert
+            
+        Returns:
+            The object with datetime objects converted to ISO strings
+        """
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        elif isinstance(obj, dict):
+            return {k: self._convert_datetime_to_iso(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self._convert_datetime_to_iso(item) for item in obj]
+        else:
+            return obj
+            
     def send_notification(self, user_ids, title, body, data=None):
         """
         Send a push notification to users.
@@ -159,35 +234,55 @@ class FirestoreStorage:
         Returns:
             bool: True if notification was sent successfully
         """
-        if not db:
-            print("Firebase not initialized. Cannot send notification.")
+        if not self.initialized:
+            logger.warning("Firebase not initialized. Cannot send notifications.")
             return False
         
         try:
-            # Store the notification in Firestore
-            notifications_ref = db.collection('notifications')
+            from firebase_admin import messaging
             
-            notification = {
-                'title': title,
-                'body': body,
-                'data': data or {},
-                'user_ids': user_ids,
-                'sent_at': datetime.now(),
-                'read_by': []
-            }
-            
-            notifications_ref.add(notification)
-            
-            # In a real implementation, this would use Firebase Cloud Messaging (FCM)
-            # to send push notifications to the user's devices
-            print(f"Sent notification to {len(user_ids)} users")
-            return True
-            
-        except Exception as e:
-            print(f"Error sending notification: {e}")
+            # If all_users is specified, send to a topic instead of individual users
+            if user_ids == ["all_users"]:
+                message = messaging.Message(
+                    notification=messaging.Notification(
+                        title=title,
+                        body=body
+                    ),
+                    data=data or {},
+                    topic="predictions"  # Topic that all users can subscribe to
+                )
+                
+                response = messaging.send(message)
+                logger.info(f"Successfully sent notification to all users: {response}")
+                return True
+            else:
+                # Send to specific users
+                messages = []
+                for user_id in user_ids:
+                    message = messaging.Message(
+                        notification=messaging.Notification(
+                            title=title,
+                            body=body
+                        ),
+                        data=data or {},
+                        token=user_id  # This should be the FCM token, not user ID
+                    )
+                    messages.append(message)
+                
+                if messages:
+                    response = messaging.send_all(messages)
+                    logger.info(f"Successfully sent {response.success_count} notifications to users")
+                    if response.failure_count > 0:
+                        failures = response.responses
+                        logger.warning(f"Failed to send {response.failure_count} notifications: {failures}")
+                    
+                    return response.success_count > 0
+                
+                return False
+                
+        except ImportError:
+            logger.warning("Firebase Messaging library not installed. Cannot send notifications.")
             return False
-
-# Example usage
-if __name__ == "__main__":
-    storage = FirestoreStorage()
-    # This would store real predictions in a production system
+        except Exception as e:
+            logger.error(f"Error sending notifications: {e}")
+            return False
