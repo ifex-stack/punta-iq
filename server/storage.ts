@@ -192,6 +192,25 @@ export interface IStorage {
   createPushToken(token: InsertPushToken): Promise<PushToken>;
   deactivatePushToken(id: number): Promise<boolean>;
   
+  // Badge methods
+  getAllBadges(): Promise<Badge[]>;
+  getBadgeById(id: number): Promise<Badge | undefined>;
+  createBadge(badge: InsertBadge): Promise<Badge>;
+  updateBadge(id: number, data: Partial<InsertBadge>): Promise<Badge | undefined>;
+  deleteBadge(id: number): Promise<boolean>;
+  getUserBadges(userId: number): Promise<UserBadge[]>;
+  awardBadgeToUser(userBadge: InsertUserBadge): Promise<UserBadge>;
+  markBadgeAsViewed(userId: number, badgeId: number): Promise<boolean>;
+  
+  // Leaderboard methods
+  getAllLeaderboards(): Promise<Leaderboard[]>;
+  getLeaderboardWithEntries(id: number): Promise<{leaderboard: Leaderboard, entries: LeaderboardEntry[]} | undefined>;
+  getUserLeaderboardEntries(userId: number): Promise<LeaderboardEntry[]>;
+  createLeaderboard(leaderboard: InsertLeaderboard): Promise<Leaderboard>;
+  updateLeaderboard(id: number, data: Partial<InsertLeaderboard>): Promise<Leaderboard | undefined>;
+  deleteLeaderboard(id: number): Promise<boolean>;
+  updateAllLeaderboards(): Promise<void>;
+  
   // Session store
   sessionStore: session.SessionStore;
 }
@@ -219,6 +238,12 @@ export class MemStorage implements IStorage {
   // Notification system
   private notificationsMap: Map<number, Notification>;
   private pushTokensMap: Map<number, PushToken>;
+  
+  // Gamification system
+  private badgesMap: Map<number, Badge>;
+  private userBadgesMap: Map<number, UserBadge>;
+  private leaderboardsMap: Map<number, Leaderboard>;
+  private leaderboardEntriesMap: Map<number, LeaderboardEntry>;
   
   // Connected websocket clients
   private wsClients: Map<number, WebSocket[]> = new Map();
@@ -248,6 +273,12 @@ export class MemStorage implements IStorage {
   // Notification system ID counters
   private notificationIdCounter: number = 1;
   private pushTokenIdCounter: number = 1;
+  
+  // Gamification system ID counters
+  private badgeIdCounter: number = 1;
+  private userBadgeIdCounter: number = 1;
+  private leaderboardIdCounter: number = 1;
+  private leaderboardEntryIdCounter: number = 1;
 
   constructor() {
     this.usersMap = new Map();
@@ -272,6 +303,12 @@ export class MemStorage implements IStorage {
     // Initialize notification system maps
     this.notificationsMap = new Map();
     this.pushTokensMap = new Map();
+    
+    // Initialize gamification system maps
+    this.badgesMap = new Map();
+    this.userBadgesMap = new Map();
+    this.leaderboardsMap = new Map();
+    this.leaderboardEntriesMap = new Map();
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // Prune expired entries every 24h
