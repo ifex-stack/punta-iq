@@ -21,7 +21,23 @@ export function setupNewsRoutes(app: Express) {
       
       console.log("Fetching saved articles for user:", userId);
       
-      // Use direct SQL with proper join to avoid any Drizzle ORM issues
+      // Check if the user_saved_news table exists
+      const tableCheckResult = await pool.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'user_saved_news'
+        );
+      `);
+      
+      // If the table doesn't exist, return an empty array instead of an error
+      if (!tableCheckResult.rows[0].exists) {
+        console.log("user_saved_news table doesn't exist yet");
+        return res.json([]);
+      }
+      
+      // Use direct SQL with LEFT JOIN to avoid errors if no articles are saved
+      // or if an article was deleted but reference remains
       const { rows } = await pool.query(`
         SELECT 
           usn.id,
@@ -51,7 +67,7 @@ export function setupNewsRoutes(app: Express) {
           na.updated_at AS "article.updatedAt"
         FROM 
           user_saved_news AS usn
-        INNER JOIN 
+        LEFT JOIN 
           news_articles AS na ON usn.article_id = na.id
         WHERE 
           usn.user_id = $1
@@ -60,28 +76,31 @@ export function setupNewsRoutes(app: Express) {
       `, [userId]);
       
       // Process the results to create the expected nested structure
-      const results = rows.map(row => {
-        // Create a nested structure by processing all fields that start with "article."
-        const article: any = {};
-        const savedArticle: any = {};
-        
-        // Extract base fields
-        Object.keys(row).forEach(key => {
-          if (key.startsWith("article.")) {
-            // This is an article property
-            const articleProp = key.replace("article.", "");
-            article[articleProp] = row[key];
-          } else {
-            // This is a saved article property
-            savedArticle[key] = row[key];
-          }
+      // Filter out any null articles (in case an article was deleted)
+      const results = rows
+        .filter(row => row["article.id"] !== null) // Skip entries where the article no longer exists
+        .map(row => {
+          // Create a nested structure by processing all fields that start with "article."
+          const article: any = {};
+          const savedArticle: any = {};
+          
+          // Extract base fields
+          Object.keys(row).forEach(key => {
+            if (key.startsWith("article.")) {
+              // This is an article property
+              const articleProp = key.replace("article.", "");
+              article[articleProp] = row[key];
+            } else {
+              // This is a saved article property
+              savedArticle[key] = row[key];
+            }
+          });
+          
+          // Add the article object to the result
+          savedArticle.article = article;
+          
+          return savedArticle;
         });
-        
-        // Add the article object to the result
-        savedArticle.article = article;
-        
-        return savedArticle;
-      });
       
       console.log(`Found ${results.length} saved articles for user ${userId}`);
       res.json(results);
@@ -89,6 +108,137 @@ export function setupNewsRoutes(app: Express) {
       console.error("Error fetching saved articles:", error);
       res.status(500).json({ 
         message: error.message || "Failed to fetch saved articles"
+      });
+    }
+  });
+  
+  // Save a news article - fixed version
+  app.post("/api/news/:id/save-fixed", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const userId = req.user?.id;
+      if (!userId || isNaN(Number(userId))) {
+        return res.status(400).json({ message: "Invalid user identification" });
+      }
+      
+      // Parse and validate article ID
+      const articleId = parseInt(req.params.id);
+      if (isNaN(articleId)) {
+        return res.status(400).json({ message: "Invalid article ID" });
+      }
+      
+      // Check if article exists
+      const articleCheckResult = await pool.query(`
+        SELECT EXISTS (
+          SELECT id FROM news_articles WHERE id = $1
+        );
+      `, [articleId]);
+      
+      if (!articleCheckResult.rows[0].exists) {
+        return res.status(404).json({ message: "Article not found" });
+      }
+      
+      // Check if the user_saved_news table exists, create it if not
+      const tableCheckResult = await pool.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'user_saved_news'
+        );
+      `);
+      
+      if (!tableCheckResult.rows[0].exists) {
+        console.log("Creating user_saved_news table");
+        await pool.query(`
+          CREATE TABLE user_saved_news (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            article_id INTEGER NOT NULL,
+            saved_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            is_read BOOLEAN DEFAULT FALSE,
+            read_at TIMESTAMP
+          );
+        `);
+      }
+      
+      // Check if article is already saved
+      const checkSavedResult = await pool.query(`
+        SELECT EXISTS (
+          SELECT id FROM user_saved_news WHERE user_id = $1 AND article_id = $2
+        );
+      `, [userId, articleId]);
+      
+      if (checkSavedResult.rows[0].exists) {
+        return res.status(200).json({ message: "Article already saved" });
+      }
+      
+      // Save the article
+      const saveResult = await pool.query(`
+        INSERT INTO user_saved_news (user_id, article_id)
+        VALUES ($1, $2)
+        RETURNING id, user_id, article_id, saved_at
+      `, [userId, articleId]);
+      
+      res.status(201).json(saveResult.rows[0]);
+    } catch (error: any) {
+      console.error("Error saving article:", error);
+      res.status(500).json({ 
+        message: error.message || "Failed to save article"
+      });
+    }
+  });
+  
+  // Unsave a news article - fixed version
+  app.delete("/api/news/:id/save-fixed", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const userId = req.user?.id;
+      if (!userId || isNaN(Number(userId))) {
+        return res.status(400).json({ message: "Invalid user identification" });
+      }
+      
+      // Parse and validate article ID
+      const articleId = parseInt(req.params.id);
+      if (isNaN(articleId)) {
+        return res.status(400).json({ message: "Invalid article ID" });
+      }
+      
+      // Check if the user_saved_news table exists
+      const tableCheckResult = await pool.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'user_saved_news'
+        );
+      `);
+      
+      if (!tableCheckResult.rows[0].exists) {
+        // If table doesn't exist, nothing to unsave
+        return res.status(404).json({ message: "Article not saved" });
+      }
+      
+      // Delete the saved article entry
+      const deleteResult = await pool.query(`
+        DELETE FROM user_saved_news
+        WHERE user_id = $1 AND article_id = $2
+        RETURNING id
+      `, [userId, articleId]);
+      
+      if (deleteResult.rows.length === 0) {
+        return res.status(404).json({ message: "Article not saved" });
+      }
+      
+      res.status(200).json({ message: "Article unsaved successfully" });
+    } catch (error: any) {
+      console.error("Error unsaving article:", error);
+      res.status(500).json({ 
+        message: error.message || "Failed to unsave article"
       });
     }
   });

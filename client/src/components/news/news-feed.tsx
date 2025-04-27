@@ -53,14 +53,14 @@ export function NewsArticleCard({ article }: { article: NewsArticle }) {
     
     try {
       if (isSaved) {
-        await apiRequest("DELETE", `/api/news/${article.id}/save`);
+        await apiRequest("DELETE", `/api/news/${article.id}/save-fixed`);
         setIsSaved(false);
         toast({
           title: "Removed from saved articles",
           description: "The article has been removed from your saved list",
         });
       } else {
-        await apiRequest("POST", `/api/news/${article.id}/save`);
+        await apiRequest("POST", `/api/news/${article.id}/save-fixed`);
         setIsSaved(true);
         toast({
           title: "Article saved",
