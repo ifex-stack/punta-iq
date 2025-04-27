@@ -123,6 +123,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Stripe subscription creation endpoint
+  app.post("/api/create-subscription", async (req, res) => {
+    try {
+      const { planId, isYearly, currencyCode } = req.body;
+      
+      if (!planId) {
+        return res.status(400).json({ message: "Plan ID is required" });
+      }
+      
+      // In a real implementation, we would interact with Stripe API
+      // to create a checkout session or payment intent
+      
+      // For now, return a mock response to prevent the UI from breaking
+      res.json({
+        success: true,
+        message: "Subscription initiated",
+        url: "/subscription-success", // This would normally be a Stripe checkout URL
+        planId,
+        isYearly,
+        currencyCode
+      });
+    } catch (error: any) {
+      console.error("Error creating subscription:", error);
+      res.status(500).json({ message: error.message || "Failed to create subscription" });
+    }
+  });
+  
   // Profile settings routes
   app.patch("/api/user/notification-settings", async (req, res) => {
     if (!req.isAuthenticated()) {

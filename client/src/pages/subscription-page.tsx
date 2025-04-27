@@ -324,15 +324,15 @@ export default function SubscriptionPage() {
                 variant={plan.popular ? "default" : "outline"}
               >
                 {subscribeMutation.isPending && selectedPlan === plan.id ? (
-                  <>
+                  <div className="flex items-center justify-center">
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Processing
-                  </>
+                    <span>Processing</span>
+                  </div>
                 ) : (
-                  <>
+                  <div className="flex items-center justify-center">
                     <CreditCard className="h-4 w-4 mr-2" />
-                    Subscribe
-                  </>
+                    <span>Subscribe</span>
+                  </div>
                 )}
               </Button>
             </CardFooter>
