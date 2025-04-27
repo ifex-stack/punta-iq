@@ -2846,6 +2846,34 @@ export class DatabaseStorage implements IStorage {
       return userMinimal;
     }
   }
+  
+  async getUserByReferralCode(referralCode: string): Promise<User | undefined> {
+    try {
+      const [user] = await db.select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        password: users.password,
+        createdAt: users.createdAt,
+        subscriptionTier: users.subscriptionTier,
+        stripeCustomerId: users.stripeCustomerId,
+        stripeSubscriptionId: users.stripeSubscriptionId,
+        notificationSettings: users.notificationSettings,
+        fantasyPoints: users.fantasyPoints,
+        totalContestsWon: users.totalContestsWon,
+        totalContestsEntered: users.totalContestsEntered,
+        // New fields for 2FA and referrals
+        isTwoFactorEnabled: users.isTwoFactorEnabled,
+        phoneNumber: users.phoneNumber,
+        referralCode: users.referralCode,
+        referredBy: users.referredBy
+      }).from(users).where(eq(users.referralCode, referralCode));
+      return user;
+    } catch (error) {
+      console.error("Error getting user by referral code:", error);
+      return undefined;
+    }
+  }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     try {
