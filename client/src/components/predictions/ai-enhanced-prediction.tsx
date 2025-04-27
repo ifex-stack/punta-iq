@@ -611,18 +611,24 @@ export const AiEnhancedPrediction: React.FC<AiPredictionProps> = ({
                         <div className="flex items-start gap-3">
                           <LinkIcon className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                           <div>
-                            <a 
-                              href={citation} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline flex items-center"
-                            >
-                              {new URL(citation).hostname}
-                              <ExternalLink className="h-3 w-3 ml-1" />
-                            </a>
-                            <p className="text-muted-foreground text-xs mt-1 truncate">
-                              {citation}
-                            </p>
+                            {citation.startsWith('http') ? (
+                              <>
+                                <a 
+                                  href={citation} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline flex items-center"
+                                >
+                                  {new URL(citation).hostname}
+                                  <ExternalLink className="h-3 w-3 ml-1" />
+                                </a>
+                                <p className="text-muted-foreground text-xs mt-1 truncate">
+                                  {citation}
+                                </p>
+                              </>
+                            ) : (
+                              <p className="text-muted-foreground">{citation}</p>
+                            )}
                           </div>
                         </div>
                       </li>
@@ -640,7 +646,7 @@ export const AiEnhancedPrediction: React.FC<AiPredictionProps> = ({
                     <div>
                       <p className="text-sm font-medium">About AI Analysis</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        These insights are generated using Perplexity's advanced AI models trained on sports data. 
+                        These insights are generated using OpenAI's GPT-4o model trained on sports statistics and trends. 
                         The analysis is meant to supplement your own research and should not be the sole basis for betting decisions.
                       </p>
                     </div>

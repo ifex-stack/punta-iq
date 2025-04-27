@@ -2,15 +2,15 @@ import { Router, Express } from "express";
 import { z } from "zod";
 import { MLServiceClient } from "./ml-service-client";
 import { enhancedMLClient } from "./enhanced-ml-client";
-import { perplexityClient } from "./perplexity-client";
+import { openaiClient } from "./openai-client";
 import { logger } from "./logger";
 
-// Use enhanced ML client if Perplexity API key is available, otherwise fall back to basic client
-const mlClient = perplexityClient.hasApiKey() ? enhancedMLClient : new MLServiceClient();
+// Use enhanced ML client if OpenAI API key is available, otherwise fall back to basic client
+const mlClient = openaiClient.hasApiKey() ? enhancedMLClient : new MLServiceClient();
 logger.info("MLRoutes", "ML service client initialized", { 
   client: mlClient,
-  enhanced: perplexityClient.hasApiKey(),
-  aiCapabilities: perplexityClient.hasApiKey() ? "available" : "unavailable"
+  enhanced: openaiClient.hasApiKey(),
+  aiCapabilities: openaiClient.hasApiKey() ? "available" : "unavailable"
 });
 
 // Create a new router
@@ -268,20 +268,31 @@ router.get("/api/predictions/team-trends/:teamId", async (req, res) => {
  * Check availability of advanced AI-powered predictions
  */
 router.get("/api/predictions/ai-status", (req, res) => {
-  const aiStatus = {
-    enabled: mlClient === enhancedMLClient,
-    capabilities: [
-      { name: "match_insights", available: mlClient === enhancedMLClient },
-      { name: "trend_analysis", available: mlClient === enhancedMLClient },
-      { name: "ai_explanations", available: mlClient === enhancedMLClient },
-      { name: "enhanced_accumulators", available: mlClient === enhancedMLClient },
-    ],
-    apiProvider: "Perplexity AI",
-    apiStatus: perplexityClient.hasApiKey() ? "connected" : "unavailable",
-    requiresApiKey: !perplexityClient.hasApiKey()
-  };
-  
-  res.json(aiStatus);
+  try {
+    const aiStatus = {
+      enabled: mlClient === enhancedMLClient,
+      capabilities: [
+        { name: "match_insights", available: mlClient === enhancedMLClient },
+        { name: "trend_analysis", available: mlClient === enhancedMLClient },
+        { name: "ai_explanations", available: mlClient === enhancedMLClient },
+        { name: "enhanced_accumulators", available: mlClient === enhancedMLClient },
+      ],
+      apiProvider: "OpenAI",
+      model: "gpt-4o",
+      apiStatus: openaiClient.hasApiKey() ? "connected" : "unavailable",
+      requiresApiKey: !openaiClient.hasApiKey()
+    };
+    
+    logger.info('MLRoutes', 'Checking AI status', { 
+      enabled: aiStatus.enabled, 
+      apiStatus: aiStatus.apiStatus 
+    });
+    
+    res.json(aiStatus);
+  } catch (error) {
+    logger.error('MLRoutes', 'Error getting AI status', error);
+    res.status(500).json({ error: "Error checking AI status" });
+  }
 });
 
 export function setupMLRoutes(app: Express) {
