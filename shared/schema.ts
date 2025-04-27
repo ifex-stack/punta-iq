@@ -416,10 +416,13 @@ export const newsArticles = pgTable("news_articles", {
   sportId: integer("sport_id").references(() => sports.id),
   leagueId: integer("league_id").references(() => leagues.id),
   teams: json("teams"), // Array of team names related to the article
+  team: text("team"), // Single team name (for legacy compatibility)
   type: newsTypeEnum("type").default("article").notNull(),
   aiGenerated: boolean("ai_generated").default(false).notNull(),
   aiEnhanced: boolean("ai_enhanced").default(false).notNull(),
   isPremium: boolean("is_premium").default(false).notNull(),
+  views: integer("views").default(0),
+  likes: integer("likes").default(0),
   tags: json("tags"), // Array of tags for categorizing
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -494,10 +497,13 @@ export const insertNewsArticleSchema = createInsertSchema(newsArticles).pick({
   sportId: true,
   leagueId: true,
   teams: true,
+  team: true,
   type: true,
   aiGenerated: true,
   aiEnhanced: true,
   isPremium: true,
+  views: true,
+  likes: true,
   tags: true,
 });
 
