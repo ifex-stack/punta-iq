@@ -225,34 +225,77 @@ router.get("/api/predictions/:sport", async (req, res) => {
  */
 router.get("/api/ai-accumulators", async (req, res) => {
   try {
+    logger.info("MLRoutes", "Starting AI accumulator generation for all sports");
+    
     // Get today's real matches from different sports
+    logger.info("MLRoutes", "Fetching real-time matches from sports APIs");
+    
     const footballMatches = await realTimeMatchesService.getMatchesForDate('football', 0);
     const basketballMatches = await realTimeMatchesService.getMatchesForDate('basketball', 0);
     const tennisMatches = await realTimeMatchesService.getMatchesForDate('tennis', 0);
     const cricketMatches = await realTimeMatchesService.getMatchesForDate('cricket', 0);
     const baseballMatches = await realTimeMatchesService.getMatchesForDate('baseball', 0);
     
+    logger.info("MLRoutes", "Match data fetched", {
+      rawFootballMatches: Object.keys(footballMatches).length,
+      rawBasketballMatches: Object.keys(basketballMatches).length,
+      rawTennisMatches: Object.keys(tennisMatches).length,
+      rawCricketMatches: Object.keys(cricketMatches).length,
+      rawBaseballMatches: Object.keys(baseballMatches).length
+    });
+    
     // Filter matches for only those that haven't started yet
     const now = new Date();
-    const upcomingFootballMatches = Object.values(footballMatches).filter(match => 
-      new Date(match.startTime) > now && match.status === 'NS'
-    ).slice(0, 10); // Limit to 10 matches
+    logger.info("MLRoutes", "Current date/time for filtering", { now: now.toISOString() });
     
-    const upcomingBasketballMatches = Object.values(basketballMatches).filter(match => 
-      new Date(match.startTime) > now && match.status === 'NS'
-    ).slice(0, 5); // Limit to 5 matches
+    const upcomingFootballMatches = Object.values(footballMatches)
+      .filter(match => {
+        const matchTime = new Date(match.startTime);
+        return matchTime > now && match.status === 'NS';
+      })
+      .slice(0, 10); // Limit to 10 matches
     
-    const upcomingTennisMatches = Object.values(tennisMatches).filter(match => 
-      new Date(match.startTime) > now && match.status === 'NS'
-    ).slice(0, 5); // Limit to 5 matches
+    const upcomingBasketballMatches = Object.values(basketballMatches)
+      .filter(match => {
+        const matchTime = new Date(match.startTime);
+        return matchTime > now && match.status === 'NS';
+      })
+      .slice(0, 5); // Limit to 5 matches
     
-    const upcomingCricketMatches = Object.values(cricketMatches).filter(match => 
-      new Date(match.startTime) > now && match.status === 'NS'
-    ).slice(0, 3); // Limit to 3 matches
+    const upcomingTennisMatches = Object.values(tennisMatches)
+      .filter(match => {
+        const matchTime = new Date(match.startTime);
+        return matchTime > now && match.status === 'NS';
+      })
+      .slice(0, 5); // Limit to 5 matches
     
-    const upcomingBaseballMatches = Object.values(baseballMatches).filter(match => 
-      new Date(match.startTime) > now && match.status === 'NS'
-    ).slice(0, 5); // Limit to 5 matches
+    const upcomingCricketMatches = Object.values(cricketMatches)
+      .filter(match => {
+        const matchTime = new Date(match.startTime);
+        return matchTime > now && match.status === 'NS';
+      })
+      .slice(0, 3); // Limit to 3 matches
+    
+    const upcomingBaseballMatches = Object.values(baseballMatches)
+      .filter(match => {
+        const matchTime = new Date(match.startTime);
+        return matchTime > now && match.status === 'NS';
+      })
+      .slice(0, 5); // Limit to 5 matches
+    
+    logger.info("MLRoutes", "Filtered upcoming matches", {
+      upcomingFootballMatches: upcomingFootballMatches.length,
+      upcomingBasketballMatches: upcomingBasketballMatches.length,
+      upcomingTennisMatches: upcomingTennisMatches.length,
+      upcomingCricketMatches: upcomingCricketMatches.length,
+      upcomingBaseballMatches: upcomingBaseballMatches.length
+    });
+    
+    if (upcomingFootballMatches.length > 0) {
+      logger.info("MLRoutes", "Sample football match data", {
+        sample: JSON.stringify(upcomingFootballMatches[0])
+      });
+    }
     
     // Use real match data for accumulators
     const enhancedData = {
@@ -286,30 +329,56 @@ router.get("/api/ai-accumulators", async (req, res) => {
     // If we have real match data, use it to enhance the accumulators from ML service
     // otherwise fall back to the ML service accumulators
     let accumulators;
-    if (upcomingFootballMatches.length > 0 || 
+    const hasRealData = upcomingFootballMatches.length > 0 || 
         upcomingBasketballMatches.length > 0 || 
         upcomingTennisMatches.length > 0 || 
         upcomingCricketMatches.length > 0 ||
-        upcomingBaseballMatches.length > 0) {
+        upcomingBaseballMatches.length > 0;
+        
+    if (hasRealData) {
       // Use enhanced ML client to generate accumulators from real match data
+      logger.info("MLRoutes", "Generating accumulators with real match data");
+      
       accumulators = await enhancedMLClient.generateAccumulatorsFromRealMatches(enhancedData);
-      logger.info("MLRoutes", "Generated accumulators using real match data", {
+      
+      logger.info("MLRoutes", "Successfully generated accumulators using real match data", {
         footballMatchCount: upcomingFootballMatches.length,
         basketballMatchCount: upcomingBasketballMatches.length,
         tennisMatchCount: upcomingTennisMatches.length,
         cricketMatchCount: upcomingCricketMatches.length,
-        baseballMatchCount: upcomingBaseballMatches.length
+        baseballMatchCount: upcomingBaseballMatches.length,
+        // Sample one accumulator if available
+        accumulatorSample: accumulators?.daily?.length > 0 ? 
+          JSON.stringify({
+            name: accumulators.daily[0].name,
+            totalOdds: accumulators.daily[0].totalOdds,
+            confidence: accumulators.daily[0].confidence,
+            selectionCount: accumulators.daily[0].selections?.length
+          }) : 'No accumulators generated'
       });
     } else {
-      // Fall back to ML service accumulators if no real matches are available
-      accumulators = await mlClient.getAccumulators();
-      logger.warn("MLRoutes", "No upcoming matches found, using ML service accumulators");
+      // Fall back to ML service accumulators
+      logger.warn("MLRoutes", "No real match data available, falling back to ML service accumulators");
+      accumulators = await enhancedMLClient.getAccumulators();
     }
     
-    res.json(accumulators);
+    // Add timestamp to track when the predictions were generated
+    const response = {
+      ...accumulators,
+      usingRealMatchData: hasRealData,
+      generatedAt: new Date().toISOString(),
+      supportedSports: ['football', 'basketball', 'tennis', 'cricket', 'baseball']
+    };
+    
+    logger.info("MLRoutes", "Returning AI accumulators response");
+    return res.json(response);
   } catch (error) {
-    logger.error("MLRoutes", "Error retrieving accumulators", error);
-    res.status(500).json({ error: "Error retrieving accumulators" });
+    logger.error("MLRoutes", "Error generating AI accumulators", error);
+    return res.status(500).json({ 
+      error: "Error generating AI accumulators",
+      message: error.message,
+      timestamp: new Date().toISOString() 
+    });
   }
 });
 
