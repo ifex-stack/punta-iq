@@ -520,7 +520,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ukSpecificContent: true,
         
         // Marketing and engagement
-        referralProgram: false,
+        referralProgram: true,
         achievementBadges: true,
         streakRewards: true,
       };
@@ -583,6 +583,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Note: The push notification test endpoint is now defined in the notifications.ts file
+
+  // Referral System endpoints
+  app.post("/api/referrals/validate", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const { referralCode } = req.body;
+      
+      if (!referralCode) {
+        return res.status(400).json({ message: "Referral code is required" });
+      }
+      
+      // Find user with this referral code
+      const allUsers = await storage.getAllUsers();
+      const referrer = allUsers.find(user => user.referralCode === referralCode);
+      
+      if (!referrer) {
+        return res.status(404).json({ message: "Invalid referral code" });
+      }
+      
+      // Prevent self-referrals
+      if (referrer.id === req.user.id) {
+        return res.status(400).json({ message: "You cannot refer yourself" });
+      }
+      
+      // Check if this user has already been referred
+      const existingReferrals = await storage.getAllReferrals();
+      const alreadyReferred = existingReferrals.some(
+        ref => ref.referredId === req.user.id
+      );
+      
+      if (alreadyReferred) {
+        return res.status(400).json({ message: "You have already been referred by someone" });
+      }
+      
+      // Create the referral
+      const referral = await storage.createReferral({
+        referrerId: referrer.id,
+        referredId: req.user.id,
+        status: 'pending'
+      });
+      
+      res.status(201).json({ 
+        success: true, 
+        message: "Referral code applied successfully!",
+        referral
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get("/api/referrals/stats", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const stats = await storage.getUserReferralStats(req.user.id);
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get("/api/referrals", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const referrals = await storage.getUserReferrals(req.user.id);
+      res.json(referrals);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get("/api/user/referral-code", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const user = await storage.getUser(req.user.id);
+      
+      if (!user || !user.referralCode) {
+        // Generate a referral code if user doesn't have one
+        const updatedUser = await storage.updateUserReferralCode(req.user.id);
+        res.json({ referralCode: updatedUser.referralCode });
+      } else {
+        res.json({ referralCode: user.referralCode });
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
 
   const httpServer = createServer(app);
   

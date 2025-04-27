@@ -314,12 +314,6 @@ export class MemStorage implements IStorage {
   
   // Referral system ID counters
   private referralIdCounter: number = 1;
-  private userBadgeIdCounter: number = 1;
-  private leaderboardIdCounter: number = 1;
-  private leaderboardEntryIdCounter: number = 1;
-
-  // Referral system ID counters
-  private referralIdCounter: number = 1;
   
   constructor() {
     this.usersMap = new Map();
@@ -533,6 +527,25 @@ export class MemStorage implements IStorage {
     return Array.from(this.usersMap.values()).find(
       user => user.deviceImei === imei
     );
+  }
+  
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.usersMap.values());
+  }
+  
+  async getAllReferrals(): Promise<Referral[]> {
+    return Array.from(this.referralsMap.values());
+  }
+  
+  async updateUserReferralCode(userId: number): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    const referralCode = this.generateReferralCode(user.username);
+    const updatedUser = { ...user, referralCode };
+    
+    this.usersMap.set(userId, updatedUser);
+    return updatedUser;
   }
   
   // Referral Methods
@@ -2322,6 +2335,43 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error getting user by device IMEI:", error);
       return undefined;
+    }
+  }
+  
+  async getAllUsers(): Promise<User[]> {
+    try {
+      return await db.select().from(users);
+    } catch (error) {
+      console.error("Error getting all users:", error);
+      return [];
+    }
+  }
+  
+  async getAllReferrals(): Promise<Referral[]> {
+    try {
+      return await db.select().from(referrals);
+    } catch (error) {
+      console.error("Error getting all referrals:", error);
+      return [];
+    }
+  }
+  
+  async updateUserReferralCode(userId: number): Promise<User> {
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user) throw new Error("User not found");
+      
+      const referralCode = this.generateReferralCode(user.username);
+      const [updatedUser] = await db
+        .update(users)
+        .set({ referralCode })
+        .where(eq(users.id, userId))
+        .returning();
+        
+      return updatedUser;
+    } catch (error) {
+      console.error("Error updating user referral code:", error);
+      throw error;
     }
   }
   
