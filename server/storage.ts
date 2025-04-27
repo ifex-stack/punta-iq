@@ -1012,6 +1012,18 @@ export class MemStorage implements IStorage {
       });
     }
   }
+  
+  async getUserSavedPredictions(userId: number): Promise<UserPrediction[]> {
+    return Array.from(this.userPredictionsMap.values()).filter(
+      up => up.userId === userId && up.isSaved === true
+    );
+  }
+  
+  async getUserAccumulatorSelections(userId: number): Promise<UserPrediction[]> {
+    return Array.from(this.userPredictionsMap.values()).filter(
+      up => up.userId === userId && up.isInAccumulator === true
+    );
+  }
 
   // Accumulator methods
   async getUserAccumulators(userId: number): Promise<Accumulator[]> {
@@ -3335,6 +3347,30 @@ export class DatabaseStorage implements IStorage {
         isInAccumulator: false
       });
     }
+  }
+  
+  async getUserSavedPredictions(userId: number): Promise<UserPrediction[]> {
+    return db
+      .select()
+      .from(userPredictions)
+      .where(
+        and(
+          eq(userPredictions.userId, userId),
+          eq(userPredictions.isSaved, true)
+        )
+      );
+  }
+  
+  async getUserAccumulatorSelections(userId: number): Promise<UserPrediction[]> {
+    return db
+      .select()
+      .from(userPredictions)
+      .where(
+        and(
+          eq(userPredictions.userId, userId),
+          eq(userPredictions.isInAccumulator, true)
+        )
+      );
   }
 
   // Accumulator methods
