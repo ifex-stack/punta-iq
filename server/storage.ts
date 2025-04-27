@@ -4013,15 +4013,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSavedNewsWithArticles(userId: number): Promise<(UserSavedNews & { article: NewsArticle })[]> {
-    return db
-      .select({
-        ...userSavedNews,
-        article: newsArticles
-      })
-      .from(userSavedNews)
-      .innerJoin(newsArticles, eq(userSavedNews.articleId, newsArticles.id))
-      .where(eq(userSavedNews.userId, userId))
-      .orderBy(desc(userSavedNews.savedAt));
+    try {
+      // First validate that userId is a valid integer
+      if (!userId || isNaN(userId)) {
+        throw new Error("Invalid user ID");
+      }
+      
+      return await db
+        .select({
+          ...userSavedNews,
+          article: newsArticles
+        })
+        .from(userSavedNews)
+        .innerJoin(newsArticles, eq(userSavedNews.articleId, newsArticles.id))
+        .where(eq(userSavedNews.userId, userId))
+        .orderBy(desc(userSavedNews.savedAt));
+    } catch (error) {
+      console.error("Error in getSavedNewsWithArticles:", error);
+      return [];
+    }
   }
 
   async saveNewsArticle(data: InsertUserSavedNews): Promise<UserSavedNews> {
