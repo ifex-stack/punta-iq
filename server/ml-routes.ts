@@ -6,6 +6,7 @@ import { openaiClient } from "./openai-client";
 import { logger } from "./logger";
 import { advancedPredictionEngine } from "./advanced-prediction-engine";
 import { historicalDataClient } from "./historical-data-client";
+import { realTimeMatchesService } from "./real-time-matches-service";
 
 // Use enhanced ML client if OpenAI API key is available, otherwise fall back to basic client
 const mlClient = openaiClient.hasApiKey() ? enhancedMLClient : new MLServiceClient();
@@ -486,6 +487,33 @@ router.get("/api/predictions/advanced-capabilities", async (req, res) => {
   } catch (error) {
     logger.error("MLRoutes", "Error checking advanced capabilities", error);
     res.status(500).json({ error: "Error checking advanced capabilities" });
+  }
+});
+
+/**
+ * Get real-time matches for today
+ */
+router.get("/api/predictions/real-time-matches", async (req, res) => {
+  const { sport } = req.query;
+  
+  try {
+    if (sport) {
+      // Get matches for specific sport
+      if (sport === 'football') {
+        const matches = await realTimeMatchesService.getTodayFootballMatches();
+        return res.json(matches);
+      } else if (sport === 'basketball') {
+        const matches = await realTimeMatchesService.getTodayBasketballMatches();
+        return res.json(matches);
+      }
+    }
+    
+    // Get all sports matches if no specific sport requested
+    const allMatches = await realTimeMatchesService.getAllTodaySportsMatches();
+    res.json(allMatches);
+  } catch (error) {
+    logger.error("MLRoutes", "Error fetching real-time matches", error);
+    res.status(500).json({ error: "Error fetching real-time matches" });
   }
 });
 
