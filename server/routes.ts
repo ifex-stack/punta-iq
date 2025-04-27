@@ -682,6 +682,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
+  
+  // Referral leaderboard
+  app.get("/api/referrals/leaderboard", async (req, res) => {
+    try {
+      const leaderboard = await storage.getReferralLeaderboard();
+      res.json(leaderboard);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
 
   const httpServer = createServer(app);
   

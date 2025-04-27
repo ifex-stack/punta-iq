@@ -112,6 +112,15 @@ export interface IStorage {
     totalRewards: number 
   }>;
   
+  getReferralLeaderboard(limit?: number): Promise<Array<{
+    userId: number;
+    username: string;
+    totalReferrals: number;
+    completedReferrals: number;
+    tier: string;
+    rank: number;
+  }>>;
+  
   // Sport & League methods
   getAllSports(): Promise<Sport[]>;
   getActiveSports(): Promise<Sport[]>;
@@ -724,6 +733,63 @@ export class MemStorage implements IStorage {
       streakCount,
       lastReferralDate
     };
+  }
+  
+  // Get referral leaderboard
+  async getReferralLeaderboard(limit: number = 10): Promise<Array<{
+    userId: number;
+    username: string;
+    totalReferrals: number;
+    completedReferrals: number;
+    tier: string;
+    rank: number;
+  }>> {
+    // Get all users with their referrals
+    const users = Array.from(this.usersMap.values());
+    const allReferrals = Array.from(this.referralsMap.values());
+    
+    // Count referrals for each user
+    const referralCounts = users.map(user => {
+      const userReferrals = allReferrals.filter(r => r.referrerId === user.id);
+      const totalReferrals = userReferrals.length;
+      const completedReferrals = userReferrals.filter(r => r.status === 'completed').length;
+      
+      // Determine tier
+      let tier = 'none';
+      if (completedReferrals >= 25) tier = 'platinum';
+      else if (completedReferrals >= 10) tier = 'gold';
+      else if (completedReferrals >= 5) tier = 'silver';
+      else if (completedReferrals >= 1) tier = 'bronze';
+      
+      return {
+        userId: user.id,
+        username: user.username,
+        totalReferrals,
+        completedReferrals,
+        tier
+      };
+    });
+    
+    // Sort by completed referrals in descending order
+    const sortedLeaderboard = referralCounts
+      .filter(entry => entry.totalReferrals > 0) // Only include users with at least one referral
+      .sort((a, b) => {
+        // First sort by completed referrals
+        if (b.completedReferrals !== a.completedReferrals) {
+          return b.completedReferrals - a.completedReferrals;
+        }
+        // If tie, sort by total referrals
+        return b.totalReferrals - a.totalReferrals;
+      });
+    
+    // Add rank
+    const rankedLeaderboard = sortedLeaderboard.map((entry, index) => ({
+      ...entry,
+      rank: index + 1
+    }));
+    
+    // Return top N entries
+    return rankedLeaderboard.slice(0, limit);
   }
   
   // Helper method to generate referral code (for both Memory and DB implementations)
