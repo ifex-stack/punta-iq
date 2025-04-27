@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { ReferralCard } from "@/components/referrals/referral-card";
 import { ReferralTiers } from "@/components/referrals/referral-tiers";
 import { ReferralHistory } from "@/components/referrals/referral-history";
+import { ReferralBadge } from "@/components/referrals/referral-badge";
+import { ReferralLeaderboard } from "@/components/referrals/referral-leaderboard";
 import { PageHeader } from "@/components/layout/page-header";
 import { Gift, ScrollText, Share, ChartBar, Trophy, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -192,7 +194,11 @@ export default function ReferralsPage() {
         </TabsContent>
         
         <TabsContent value="tiers" className="mt-0">
-          <ReferralTiers totalReferrals={referralStats?.completedReferrals || 0} />
+          <div className="grid md:grid-cols-2 gap-6">
+            <ReferralBadge />
+            <ReferralTiers userId={user.id} />
+            <ReferralLeaderboard limit={5} className="md:col-span-2" />
+          </div>
         </TabsContent>
         
         <TabsContent value="history" className="mt-0">

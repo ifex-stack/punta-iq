@@ -25,7 +25,7 @@ const tierInfo = {
     name: 'Bronze Referrer',
     color: 'border-amber-700 text-amber-700',
     bgColor: 'bg-amber-700/10',
-    description: 'You've made your first successful referral',
+    description: "You've made your first successful referral",
     benefits: ['500 points bonus', 'Bronze badge display on your profile', 'Early access to new features']
   },
   'silver': {
@@ -33,7 +33,7 @@ const tierInfo = {
     name: 'Silver Referrer',
     color: 'border-gray-400 text-gray-400',
     bgColor: 'bg-gray-200/20',
-    description: 'You've successfully referred 5 or more friends',
+    description: "You've successfully referred 5 or more friends",
     benefits: ['1,500 points bonus', 'Silver badge display', 'One free premium prediction per week']
   },
   'gold': {
@@ -41,7 +41,7 @@ const tierInfo = {
     name: 'Gold Referrer',
     color: 'border-yellow-400 text-yellow-400',
     bgColor: 'bg-yellow-400/10',
-    description: 'You've successfully referred 10 or more friends',
+    description: "You've successfully referred 10 or more friends",
     benefits: ['5,000 points bonus', 'Gold badge display', 'One week free premium access']
   },
   'platinum': {

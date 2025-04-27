@@ -1,14 +1,18 @@
 import { FC } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Trophy, Users, Medal, Gift, Star, Crown } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { Trophy, Medal, Award, Users, ArrowUpRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cva } from "class-variance-authority";
+import { ReferralBadge } from "./referral-badge";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 
 interface ReferralLeaderboardProps {
   limit?: number;
+  className?: string;
 }
 
 interface LeaderboardEntry {
@@ -20,130 +24,163 @@ interface LeaderboardEntry {
   rank: number;
 }
 
-export const ReferralLeaderboard: FC<ReferralLeaderboardProps> = ({ limit = 10 }) => {
+// Define tier badge styles
+const tierBadgeVariants = cva("h-6 w-6 flex items-center justify-center rounded-full", {
+  variants: {
+    tier: {
+      none: "bg-gray-200 text-gray-500",
+      bronze: "bg-amber-700/20 text-amber-700",
+      silver: "bg-gray-300/30 text-gray-500",
+      gold: "bg-yellow-400/20 text-yellow-400",
+      platinum: "bg-blue-300/20 text-blue-300"
+    }
+  },
+  defaultVariants: {
+    tier: "none"
+  }
+});
+
+export const ReferralLeaderboard: FC<ReferralLeaderboardProps> = ({ limit = 10, className }) => {
   const { user } = useAuth();
   
-  // Fetch referral leaderboard
-  const { data: leaderboard, isLoading } = useQuery({
+  // Fetch leaderboard data
+  const { data: leaderboard, isLoading } = useQuery<LeaderboardEntry[]>({
     queryKey: ['/api/referrals/leaderboard'],
     queryFn: async () => {
-      const res = await apiRequest('GET', '/api/referrals/leaderboard');
+      const res = await apiRequest('GET', `/api/referrals/leaderboard?limit=${limit}`);
       return res.json();
     }
   });
   
-  // Get icon by rank
-  const getRankIcon = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return <Trophy className="h-5 w-5 text-yellow-400" />;
-      case 2:
-        return <Medal className="h-5 w-5 text-gray-400" />;
-      case 3:
-        return <Medal className="h-5 w-5 text-amber-700" />;
+  // Get tier icon based on tier
+  const getTierIcon = (tier: string) => {
+    switch (tier) {
+      case 'platinum':
+        return <Award className="h-4 w-4" />;
+      case 'gold':
+        return <Trophy className="h-4 w-4" />;
+      case 'silver':
+      case 'bronze':
+        return <Medal className="h-4 w-4" />;
       default:
-        return <Star className="h-5 w-5 text-primary" />;
+        return <Users className="h-4 w-4" />;
     }
   };
   
-  // Get tier badge color
-  const getTierColor = (tier: string) => {
-    switch (tier) {
-      case 'bronze':
-        return 'bg-amber-700 text-white';
-      case 'silver':
-        return 'bg-gray-400 text-white';
-      case 'gold':
-        return 'bg-yellow-400 text-black';
-      case 'platinum':
-        return 'bg-blue-300 text-black';
-      default:
-        return 'bg-muted text-muted-foreground';
-    }
+  // Get user's position in leaderboard
+  const getUserPosition = () => {
+    if (!leaderboard || !user) return null;
+    
+    return leaderboard.find(entry => entry.userId === user.id);
   };
+  
+  const userPosition = getUserPosition();
   
   return (
-    <Card className="overflow-hidden">
+    <Card className={className}>
       <CardHeader className="pb-3">
         <CardTitle className="text-xl flex items-center gap-2">
-          <Crown className="w-5 h-5 text-primary" />
-          Referral Champions
+          <Trophy className="w-5 h-5 text-primary" />
+          Referral Leaderboard
         </CardTitle>
         <CardDescription>
-          Our top referrers this month
+          Top referrers this month
         </CardDescription>
       </CardHeader>
       
-      <CardContent className="p-0">
+      <CardContent>
         {isLoading ? (
-          // Loading skeleton
-          <div className="space-y-2 p-4">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
+          <div className="space-y-2">
+            {Array(3).fill(0).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 py-2">
                 <Skeleton className="h-8 w-8 rounded-full" />
                 <div className="space-y-1 flex-1">
                   <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-3 w-20" />
                 </div>
-                <Skeleton className="h-6 w-10" />
-              </div>
-            ))}
-          </div>
-        ) : leaderboard && leaderboard.length > 0 ? (
-          <div className="divide-y">
-            {leaderboard.slice(0, limit).map((entry: LeaderboardEntry) => (
-              <div 
-                key={entry.userId} 
-                className={`flex items-center justify-between p-4 ${
-                  user?.id === entry.userId ? 'bg-primary/5' : ''
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="relative w-10 h-10 flex items-center justify-center">
-                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                      {entry.rank <= 3 ? (
-                        getRankIcon(entry.rank)
-                      ) : (
-                        <Users className="h-5 w-5 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div className="absolute -bottom-1 -right-1 bg-background rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold border">
-                      {entry.rank}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium text-sm">
-                        {entry.username}
-                      </h3>
-                      {user?.id === entry.userId && (
-                        <Badge variant="outline" className="text-xs py-0 px-1 h-4">You</Badge>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Badge variant="outline" className={`text-xs py-0 px-1 h-4 ${getTierColor(entry.tier)} capitalize`}>
-                        {entry.tier}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="text-center">
-                  <div className="text-lg font-bold">{entry.completedReferrals}</div>
-                  <div className="text-xs text-muted-foreground">Referrals</div>
-                </div>
+                <Skeleton className="h-6 w-12" />
               </div>
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
-            <Gift className="h-10 w-10 text-muted-foreground mb-3" />
-            <h3 className="font-medium">No Referrals Yet</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Be the first to refer friends and top the leaderboard!
-            </p>
+          <div className="space-y-6">
+            {/* User's position if in leaderboard */}
+            {userPosition && (
+              <div className="bg-muted p-3 rounded-lg flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-medium">
+                    {userPosition.rank}
+                  </div>
+                  <div>
+                    <div className="font-medium flex items-center">
+                      {user.username}
+                      <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">You</span>
+                    </div>
+                    <ReferralBadge minimal />
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-semibold">{userPosition.completedReferrals}</div>
+                  <div className="text-xs text-muted-foreground">Referrals</div>
+                </div>
+              </div>
+            )}
+            
+            {/* Top positions */}
+            <div className="space-y-1">
+              {leaderboard?.slice(0, limit).map((entry) => (
+                <div 
+                  key={entry.userId}
+                  className={cn(
+                    "flex items-center py-2 px-3 rounded-md",
+                    entry.userId === user?.id ? "bg-primary/5" : "hover:bg-muted/50"
+                  )}
+                >
+                  <div className="flex items-center gap-3 flex-1">
+                    {/* Rank indicator */}
+                    <div className={cn(
+                      "w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium",
+                      entry.rank === 1 ? "bg-yellow-400/20 text-yellow-500" :
+                      entry.rank === 2 ? "bg-gray-300/30 text-gray-600" :
+                      entry.rank === 3 ? "bg-amber-700/20 text-amber-700" :
+                      "bg-muted text-muted-foreground"
+                    )}>
+                      {entry.rank}
+                    </div>
+                    
+                    {/* User info */}
+                    <div>
+                      <div className="font-medium flex items-center gap-1">
+                        {entry.username}
+                        {entry.userId === user?.id && (
+                          <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">You</span>
+                        )}
+                      </div>
+                      <div className="flex items-center text-xs text-muted-foreground gap-1">
+                        <span className={tierBadgeVariants({ tier: entry.tier })}>
+                          {getTierIcon(entry.tier)}
+                        </span>
+                        <span className="capitalize">{entry.tier} Tier</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Referral count */}
+                  <div className="text-right">
+                    <div className="font-semibold">{entry.completedReferrals}</div>
+                    <div className="text-xs text-muted-foreground">Referrals</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* View all button */}
+            {(leaderboard?.length || 0) > 5 && (
+              <Button variant="ghost" size="sm" className="w-full mt-2 text-xs">
+                View Full Leaderboard
+                <ArrowUpRight className="ml-1 h-3 w-3" />
+              </Button>
+            )}
           </div>
         )}
       </CardContent>

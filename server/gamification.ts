@@ -300,4 +300,71 @@ export function setupGamificationRoutes(app: Express) {
       res.status(500).json({ message: error.message });
     }
   });
+  
+  // ========== REFERRAL ROUTES ==========
+  
+  // GET referrals for the logged-in user
+  app.get("/api/referrals", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const referrals = await storage.getUserReferrals(req.user!.id);
+      res.json(referrals);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // GET referral stats for the logged-in user
+  app.get("/api/referrals/stats", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const stats = await storage.getUserReferralStats(req.user!.id);
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // GET referral leaderboard
+  app.get("/api/referrals/leaderboard", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const limit = parseInt(req.query.limit as string) || 10;
+      const leaderboard = await storage.getReferralLeaderboard(limit);
+      res.json(leaderboard);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // POST validate a referral code
+  app.post("/api/referrals/validate", async (req, res) => {
+    const { code } = req.body;
+    
+    if (!code) {
+      return res.status(400).json({ valid: false, message: "Referral code is required" });
+    }
+    
+    try {
+      // Find user by referral code (simple validation for now)
+      const referrer = await storage.getUserByReferralCode(code);
+      
+      if (!referrer) {
+        return res.status(404).json({ valid: false, message: "Invalid referral code" });
+      }
+      
+      return res.json({ valid: true, referrerId: referrer.id });
+    } catch (error: any) {
+      res.status(500).json({ valid: false, message: "Error validating referral code" });
+    }
+  });
 }
