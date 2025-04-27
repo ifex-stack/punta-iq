@@ -7,49 +7,33 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Info, Check, AlertTriangle, TrendingUp, History, Scale, Award } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2, Info, Check, AlertTriangle, TrendingUp, History, Scale, Award, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import footballMatchImage from "@/assets/football-match.svg";
 
-// Sample match data for demonstration
-const sampleMatches = [
-  {
-    id: "match-1",
-    homeTeam: "Manchester United",
-    awayTeam: "Liverpool",
-    league: "Premier League",
-    sport: "football",
-    startTime: new Date(Date.now() + 86400000).toISOString(),
-  },
-  {
-    id: "match-2",
-    homeTeam: "Arsenal",
-    awayTeam: "Chelsea",
-    league: "Premier League",
-    sport: "football",
-    startTime: new Date(Date.now() + 2 * 86400000).toISOString(),
-  },
-  {
-    id: "match-3",
-    homeTeam: "Barcelona",
-    awayTeam: "Real Madrid",
-    league: "La Liga",
-    sport: "football",
-    startTime: new Date(Date.now() + 3 * 86400000).toISOString(),
-  },
-  {
-    id: "match-4",
-    homeTeam: "Los Angeles Lakers",
-    awayTeam: "Boston Celtics",
-    league: "NBA",
-    sport: "basketball",
-    startTime: new Date(Date.now() + 86400000).toISOString(),
-  },
-];
+// Match type definition
+interface RealTimeMatch {
+  id: string;
+  homeTeam: string;
+  awayTeam: string;
+  league: string;
+  sport: string;
+  startTime: string;
+  status?: string;
+  homeScore?: number;
+  awayScore?: number;
+  homeOdds?: number;
+  drawOdds?: number;
+  awayOdds?: number;
+  venue?: string;
+}
 
 const AdvancedPredictionsPage = () => {
-  const [selectedMatch, setSelectedMatch] = useState<any>(null);
+  const [selectedMatch, setSelectedMatch] = useState<RealTimeMatch | null>(null);
   const [generatingPrediction, setGeneratingPrediction] = useState(false);
   const [prediction, setPrediction] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<string>("football");
   const { toast } = useToast();
 
   // Fetch available ML capabilities
@@ -57,6 +41,40 @@ const AdvancedPredictionsPage = () => {
     queryKey: ["/api/predictions/advanced-capabilities"],
     queryFn: getQueryFn(),
   });
+  
+  // Fetch real-time football matches
+  const { 
+    data: footballMatches = [], 
+    isLoading: isLoadingFootball,
+    refetch: refetchFootball
+  } = useQuery<RealTimeMatch[]>({
+    queryKey: ["/api/predictions/real-time-matches", { sport: "football" }],
+    queryFn: () => 
+      fetch(`/api/predictions/real-time-matches?sport=football`)
+        .then(res => res.json()),
+  });
+  
+  // Fetch real-time basketball matches
+  const { 
+    data: basketballMatches = [], 
+    isLoading: isLoadingBasketball,
+    refetch: refetchBasketball
+  } = useQuery<RealTimeMatch[]>({
+    queryKey: ["/api/predictions/real-time-matches", { sport: "basketball" }],
+    queryFn: () => 
+      fetch(`/api/predictions/real-time-matches?sport=basketball`)
+        .then(res => res.json()),
+  });
+  
+  // Refresh all matches data
+  const refreshMatches = () => {
+    refetchFootball();
+    refetchBasketball();
+    toast({
+      title: "Data Refreshed",
+      description: "Match data has been updated with the latest information",
+    });
+  };
 
   const generateAdvancedPrediction = async (match: any) => {
     try {
@@ -137,34 +155,129 @@ const AdvancedPredictionsPage = () => {
             </Card>
 
             <Card>
-              <CardHeader>
-                <CardTitle>Upcoming Matches</CardTitle>
-                <CardDescription>
-                  Select a match to generate an advanced prediction
-                </CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <div>
+                  <CardTitle>Today's Matches</CardTitle>
+                  <CardDescription>
+                    Select a match to generate an advanced prediction
+                  </CardDescription>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={refreshMatches}
+                  title="Refresh match data"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {sampleMatches.map((match) => (
-                    <Card
-                      key={match.id}
-                      className={`cursor-pointer transition-colors hover:bg-muted ${
-                        selectedMatch?.id === match.id ? "border-primary" : ""
-                      }`}
-                      onClick={() => generateAdvancedPrediction(match)}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="font-semibold">{match.homeTeam} vs {match.awayTeam}</p>
-                            <p className="text-sm text-muted-foreground">{match.league}</p>
-                          </div>
-                          <Badge variant="outline">{match.sport}</Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="mb-6">
+                  <TabsList className="grid grid-cols-2 w-full">
+                    <TabsTrigger value="football">Football</TabsTrigger>
+                    <TabsTrigger value="basketball">Basketball</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+                
+                {activeTab === "football" && (
+                  <>
+                    {isLoadingFootball ? (
+                      <div className="space-y-4">
+                        {Array.from({ length: 3 }).map((_, index) => (
+                          <Card key={index} className="overflow-hidden">
+                            <CardContent className="p-4">
+                              <div className="space-y-3">
+                                <Skeleton className="h-5 w-4/5" />
+                                <Skeleton className="h-4 w-2/5" />
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : footballMatches.length === 0 ? (
+                      <div className="text-center py-8 space-y-3">
+                        <img 
+                          src={footballMatchImage} 
+                          alt="No football matches" 
+                          className="h-24 mx-auto opacity-40" 
+                        />
+                        <p className="text-muted-foreground">No football matches available today</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {footballMatches.map((match) => (
+                          <Card
+                            key={match.id}
+                            className={`cursor-pointer transition-colors hover:bg-muted ${
+                              selectedMatch?.id === match.id ? "border-primary" : ""
+                            }`}
+                            onClick={() => generateAdvancedPrediction(match)}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <p className="font-semibold">{match.homeTeam} vs {match.awayTeam}</p>
+                                  <p className="text-sm text-muted-foreground">{match.league}</p>
+                                </div>
+                                {match.status && <Badge>{match.status}</Badge>}
+                                {match.homeOdds && match.awayOdds && (
+                                  <div className="text-xs text-muted-foreground">
+                                    {match.homeOdds.toFixed(2)} | {match.drawOdds?.toFixed(2) || "-"} | {match.awayOdds.toFixed(2)}
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+                
+                {activeTab === "basketball" && (
+                  <>
+                    {isLoadingBasketball ? (
+                      <div className="space-y-4">
+                        {Array.from({ length: 3 }).map((_, index) => (
+                          <Card key={index} className="overflow-hidden">
+                            <CardContent className="p-4">
+                              <div className="space-y-3">
+                                <Skeleton className="h-5 w-4/5" />
+                                <Skeleton className="h-4 w-2/5" />
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : basketballMatches.length === 0 ? (
+                      <div className="text-center py-8 space-y-3">
+                        <p className="text-muted-foreground">No basketball matches available today</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {basketballMatches.map((match) => (
+                          <Card
+                            key={match.id}
+                            className={`cursor-pointer transition-colors hover:bg-muted ${
+                              selectedMatch?.id === match.id ? "border-primary" : ""
+                            }`}
+                            onClick={() => generateAdvancedPrediction(match)}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <p className="font-semibold">{match.homeTeam} vs {match.awayTeam}</p>
+                                  <p className="text-sm text-muted-foreground">{match.league}</p>
+                                </div>
+                                {match.status && <Badge>{match.status}</Badge>}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
