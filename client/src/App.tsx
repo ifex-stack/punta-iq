@@ -18,6 +18,7 @@ import PredictionsPage from "@/pages/predictions-page";
 import ReferralsPage from "@/pages/referrals-page";
 import AdminPage from "@/pages/admin-page";
 import FeedbackPage from "@/pages/feedback";
+import NewsPage from "@/pages/news-page";
 import PrivacyPolicyPage from "@/pages/legal/privacy-policy";
 import TermsConditionsPage from "@/pages/legal/terms-conditions";
 import ResponsibleGamblingPage from "@/pages/legal/responsible-gambling";
@@ -81,6 +82,7 @@ const Router: React.FC = () => {
             <ProtectedRoute path="/profile" component={ProfilePage} />
             <ProtectedRoute path="/referrals" component={ReferralsPage} />
             <ProtectedRoute path="/admin" component={AdminPage} />
+            <Route path="/news" component={NewsPage} />
             <Route path="/faq" component={FAQPage} />
             <Route path="/feedback" component={FeedbackPage} />
             <Route path="/legal/privacy-policy" component={PrivacyPolicyPage} />
