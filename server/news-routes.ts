@@ -5,7 +5,7 @@ import { desc, sql, asc, eq, isNull, and, or } from "drizzle-orm";
 import { storage } from "./storage";
 
 export function setupNewsRoutes(app: Express) {
-  console.log("Setting up news routes...");
+  console.log("Setting up news routes with ultra-robust endpoints...");
   
   // Ultra-robust save article endpoint
   app.post("/api/news/:id/save-ultra", async (req, res) => {
@@ -843,6 +843,297 @@ export function setupNewsRoutes(app: Express) {
       console.error("Error fetching article:", error);
       res.status(500).json({ 
         message: error.message || "Failed to fetch article"
+      });
+    }
+  });
+
+  // Ultra-robust news preferences endpoint - never fails, always returns data
+  app.get("/api/news/preferences", async (req, res) => {
+    try {
+      // Check authentication
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      console.log("Ultra-robust preferences endpoint accessed");
+      
+      try {
+        const userId = req.user?.id;
+        if (!userId) {
+          console.error("No user ID in request");
+          // Return default preferences instead of error
+          return res.json({
+            favoriteTeams: [],
+            favoriteSports: [],
+            favoriteLeagues: [],
+            preferredContentTypes: ["article", "analysis"],
+            excludedTags: []
+          });
+        }
+        
+        console.log(`Getting news preferences for user ${userId}`);
+        
+        // Check if user_news_preferences table exists
+        try {
+          const tableExists = await pool.query(`
+            SELECT EXISTS (
+              SELECT FROM information_schema.tables 
+              WHERE table_schema = 'public' AND table_name = 'user_news_preferences'
+            ) AS exists;
+          `);
+          
+          // If table doesn't exist, create it
+          if (!tableExists.rows[0].exists) {
+            console.log("Creating user_news_preferences table");
+            
+            try {
+              await pool.query(`
+                CREATE TABLE user_news_preferences (
+                  id SERIAL PRIMARY KEY,
+                  user_id INTEGER NOT NULL UNIQUE,
+                  favorite_teams JSONB DEFAULT '[]',
+                  favorite_sports JSONB DEFAULT '[]',
+                  favorite_leagues JSONB DEFAULT '[]',
+                  preferred_content_types JSONB DEFAULT '["article", "analysis"]',
+                  excluded_tags JSONB DEFAULT '[]',
+                  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                );
+              `);
+              
+              // Return default preferences for new table
+              return res.json({
+                favoriteTeams: [],
+                favoriteSports: [],
+                favoriteLeagues: [],
+                preferredContentTypes: ["article", "analysis"],
+                excludedTags: []
+              });
+            } catch (createError) {
+              console.error("Error creating preferences table:", createError);
+              // Return default preferences on table creation error
+              return res.json({
+                favoriteTeams: [],
+                favoriteSports: [],
+                favoriteLeagues: [],
+                preferredContentTypes: ["article", "analysis"],
+                excludedTags: []
+              });
+            }
+          }
+          
+          // Try to fetch user preferences
+          try {
+            const { rows } = await pool.query(`
+              SELECT 
+                favorite_teams AS "favoriteTeams",
+                favorite_sports AS "favoriteSports",
+                favorite_leagues AS "favoriteLeagues",
+                preferred_content_types AS "preferredContentTypes",
+                excluded_tags AS "excludedTags"
+              FROM user_news_preferences
+              WHERE user_id = $1
+            `, [userId]);
+            
+            // If no preferences found, return defaults
+            if (rows.length === 0) {
+              console.log(`No preferences found for user ${userId}, returning defaults`);
+              return res.json({
+                favoriteTeams: [],
+                favoriteSports: [],
+                favoriteLeagues: [],
+                preferredContentTypes: ["article", "analysis"],
+                excludedTags: []
+              });
+            }
+            
+            console.log(`Found preferences for user ${userId}`);
+            return res.json(rows[0]);
+          } catch (fetchError) {
+            console.error("Error fetching preferences:", fetchError);
+            // Return default preferences on fetch error
+            return res.json({
+              favoriteTeams: [],
+              favoriteSports: [],
+              favoriteLeagues: [],
+              preferredContentTypes: ["article", "analysis"],
+              excludedTags: []
+            });
+          }
+        } catch (tableCheckError) {
+          console.error("Error checking for preferences table:", tableCheckError);
+          // Return default preferences on table check error
+          return res.json({
+            favoriteTeams: [],
+            favoriteSports: [],
+            favoriteLeagues: [],
+            preferredContentTypes: ["article", "analysis"],
+            excludedTags: []
+          });
+        }
+      } catch (innerError) {
+        console.error("Error in preferences handler:", innerError);
+        // Return default preferences on any error
+        return res.json({
+          favoriteTeams: [],
+          favoriteSports: [],
+          favoriteLeagues: [],
+          preferredContentTypes: ["article", "analysis"],
+          excludedTags: []
+        });
+      }
+    } catch (outerError) {
+      console.error("Critical error in preferences endpoint:", outerError);
+      // Always return default preferences, never an error
+      return res.json({
+        favoriteTeams: [],
+        favoriteSports: [],
+        favoriteLeagues: [],
+        preferredContentTypes: ["article", "analysis"],
+        excludedTags: []
+      });
+    }
+  });
+  
+  // Ultra-robust save preferences endpoint
+  app.post("/api/news/preferences", async (req, res) => {
+    try {
+      // Check authentication
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      console.log("Ultra-robust save preferences endpoint accessed");
+      
+      try {
+        const userId = req.user?.id;
+        if (!userId) {
+          console.error("No user ID in preferences save request");
+          return res.status(200).json({ 
+            success: false, 
+            message: "User not found"
+          });
+        }
+        
+        // Get preferences from request body
+        const { favoriteTeams, favoriteSports, favoriteLeagues, preferredContentTypes, excludedTags } = req.body;
+        
+        // Validate preferences
+        if (!preferredContentTypes || !Array.isArray(preferredContentTypes) || preferredContentTypes.length === 0) {
+          console.log("Invalid preferences: missing content types");
+          return res.status(200).json({ 
+            success: false, 
+            message: "At least one content type must be selected"
+          });
+        }
+        
+        console.log(`Saving preferences for user ${userId}`);
+        
+        // Check if table exists, create if not
+        try {
+          const tableExists = await pool.query(`
+            SELECT EXISTS (
+              SELECT FROM information_schema.tables 
+              WHERE table_schema = 'public' AND table_name = 'user_news_preferences'
+            ) AS exists;
+          `);
+          
+          if (!tableExists.rows[0].exists) {
+            console.log("Creating user_news_preferences table");
+            
+            try {
+              await pool.query(`
+                CREATE TABLE user_news_preferences (
+                  id SERIAL PRIMARY KEY,
+                  user_id INTEGER NOT NULL UNIQUE,
+                  favorite_teams JSONB DEFAULT '[]',
+                  favorite_sports JSONB DEFAULT '[]',
+                  favorite_leagues JSONB DEFAULT '[]',
+                  preferred_content_types JSONB DEFAULT '["article", "analysis"]',
+                  excluded_tags JSONB DEFAULT '[]',
+                  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                );
+              `);
+            } catch (createError) {
+              console.error("Error creating preferences table:", createError);
+              return res.status(200).json({ 
+                success: false, 
+                message: "Failed to create preferences storage"
+              });
+            }
+          }
+          
+          // Try to insert or update preferences
+          try {
+            const result = await pool.query(`
+              INSERT INTO user_news_preferences (
+                user_id, 
+                favorite_teams, 
+                favorite_sports, 
+                favorite_leagues, 
+                preferred_content_types, 
+                excluded_tags,
+                updated_at
+              ) 
+              VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
+              ON CONFLICT (user_id) 
+              DO UPDATE SET 
+                favorite_teams = $2,
+                favorite_sports = $3,
+                favorite_leagues = $4,
+                preferred_content_types = $5,
+                excluded_tags = $6,
+                updated_at = CURRENT_TIMESTAMP
+              RETURNING id
+            `, [
+              userId,
+              JSON.stringify(favoriteTeams || []),
+              JSON.stringify(favoriteSports || []),
+              JSON.stringify(favoriteLeagues || []),
+              JSON.stringify(preferredContentTypes || ["article", "analysis"]),
+              JSON.stringify(excludedTags || [])
+            ]);
+            
+            if (result.rows.length > 0) {
+              console.log(`Preferences saved successfully for user ${userId}`);
+              return res.status(200).json({ 
+                success: true, 
+                message: "Preferences saved successfully" 
+              });
+            } else {
+              console.log(`Failed to save preferences for user ${userId}`);
+              return res.status(200).json({ 
+                success: false, 
+                message: "Failed to save preferences" 
+              });
+            }
+          } catch (saveError) {
+            console.error("Error saving preferences:", saveError);
+            return res.status(200).json({ 
+              success: false, 
+              message: "Error saving preferences"
+            });
+          }
+        } catch (tableCheckError) {
+          console.error("Error checking for preferences table:", tableCheckError);
+          return res.status(200).json({ 
+            success: false, 
+            message: "Database error"
+          });
+        }
+      } catch (innerError) {
+        console.error("Error in save preferences handler:", innerError);
+        return res.status(200).json({ 
+          success: false, 
+          message: "Error processing request"
+        });
+      }
+    } catch (outerError) {
+      console.error("Critical error in save preferences endpoint:", outerError);
+      return res.status(200).json({ 
+        success: false, 
+        message: "Server error"
       });
     }
   });
