@@ -892,10 +892,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
-      const savedNews = await storage.getSavedNewsWithArticles(req.user.id);
-      res.json(savedNews);
+      // Ensure we have a valid user ID
+      const userId = req.user?.id;
+      if (!userId || isNaN(Number(userId))) {
+        return res.status(400).json({ message: "Invalid user identification" });
+      }
+      
+      // Convert to number explicitly to avoid potential type issues
+      const savedNews = await storage.getSavedNewsWithArticles(Number(userId));
+      
+      // Return empty array instead of null/undefined to avoid client-side errors
+      res.json(savedNews || []);
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      console.error("Error retrieving saved news:", error);
+      res.status(500).json({ message: "Could not retrieve saved articles" });
     }
   });
   
@@ -906,7 +916,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
+      const userId = req.user?.id;
+      if (!userId || isNaN(Number(userId))) {
+        return res.status(400).json({ message: "Invalid user identification" });
+      }
+      
+      // Parse and validate article ID
       const articleId = parseInt(req.params.id);
+      if (isNaN(articleId)) {
+        return res.status(400).json({ message: "Invalid article ID" });
+      }
       
       // Check if article exists
       const article = await storage.getNewsArticleById(articleId);
@@ -915,13 +934,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const savedArticle = await storage.saveNewsArticle({
-        userId: req.user.id,
+        userId: Number(userId),
         articleId
       });
       
       res.status(201).json(savedArticle);
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      console.error("Error saving news article:", error);
+      res.status(500).json({ message: "Failed to save article" });
     }
   });
   
@@ -932,7 +952,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
+      const userId = req.user?.id;
+      if (!userId || isNaN(Number(userId))) {
+        return res.status(400).json({ message: "Invalid user identification" });
+      }
+      
+      // Parse and validate article ID
       const articleId = parseInt(req.params.id);
+      if (isNaN(articleId)) {
+        return res.status(400).json({ message: "Invalid article ID" });
+      }
       
       // Check if article exists
       const article = await storage.getNewsArticleById(articleId);
@@ -940,10 +969,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "News article not found" });
       }
       
-      const readArticle = await storage.markNewsArticleAsRead(req.user.id, articleId);
+      const readArticle = await storage.markNewsArticleAsRead(Number(userId), articleId);
       res.json(readArticle);
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      console.error("Error marking article as read:", error);
+      res.status(500).json({ message: "Failed to mark article as read" });
     }
   });
   
@@ -954,8 +984,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
+      const userId = req.user?.id;
+      if (!userId || isNaN(Number(userId))) {
+        return res.status(400).json({ message: "Invalid user identification" });
+      }
+      
+      // Parse and validate article ID
       const articleId = parseInt(req.params.id);
-      const result = await storage.unsaveNewsArticle(req.user.id, articleId);
+      if (isNaN(articleId)) {
+        return res.status(400).json({ message: "Invalid article ID" });
+      }
+      
+      const result = await storage.unsaveNewsArticle(Number(userId), articleId);
       
       if (!result) {
         return res.status(404).json({ message: "Saved article not found" });
@@ -963,7 +1003,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(204).send();
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      console.error("Error unsaving news article:", error);
+      res.status(500).json({ message: "Failed to unsave article" });
     }
   });
   
@@ -974,13 +1015,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
-      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+      const userId = req.user?.id;
+      if (!userId || isNaN(Number(userId))) {
+        return res.status(400).json({ message: "Invalid user identification" });
+      }
       
-      const feed = await storage.getPersonalizedNewsFeed(req.user.id, limit, offset);
-      res.json(feed);
+      // Parse and validate pagination parameters
+      let limit = 20;
+      let offset = 0;
+      
+      if (req.query.limit) {
+        const parsedLimit = parseInt(req.query.limit as string);
+        if (!isNaN(parsedLimit) && parsedLimit > 0) {
+          limit = parsedLimit;
+        }
+      }
+      
+      if (req.query.offset) {
+        const parsedOffset = parseInt(req.query.offset as string);
+        if (!isNaN(parsedOffset) && parsedOffset >= 0) {
+          offset = parsedOffset;
+        }
+      }
+      
+      const feed = await storage.getPersonalizedNewsFeed(Number(userId), limit, offset);
+      
+      // Always return an array, even if empty
+      res.json(feed || []);
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      console.error("Error retrieving personalized news feed:", error);
+      res.status(500).json({ message: "Could not retrieve personalized news feed" });
     }
   });
 

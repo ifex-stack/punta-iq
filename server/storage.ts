@@ -4015,19 +4015,26 @@ export class DatabaseStorage implements IStorage {
   async getSavedNewsWithArticles(userId: number): Promise<(UserSavedNews & { article: NewsArticle })[]> {
     try {
       // First validate that userId is a valid integer
-      if (!userId || isNaN(userId)) {
+      if (!userId || isNaN(Number(userId))) {
+        console.error("Invalid user ID in getSavedNewsWithArticles:", userId);
         throw new Error("Invalid user ID");
       }
       
-      return await db
+      // Ensure userId is a number type
+      const userIdNumber = Number(userId);
+      
+      // Execute query with explicit type conversion
+      const results = await db
         .select({
           ...userSavedNews,
           article: newsArticles
         })
         .from(userSavedNews)
         .innerJoin(newsArticles, eq(userSavedNews.articleId, newsArticles.id))
-        .where(eq(userSavedNews.userId, userId))
+        .where(eq(userSavedNews.userId, userIdNumber))
         .orderBy(desc(userSavedNews.savedAt));
+      
+      return results || [];
     } catch (error) {
       console.error("Error in getSavedNewsWithArticles:", error);
       return [];
@@ -4064,115 +4071,186 @@ export class DatabaseStorage implements IStorage {
   }
 
   async markNewsArticleAsRead(userId: number, articleId: number): Promise<UserSavedNews> {
-    // Check if saved
-    const [saved] = await db
-      .select()
-      .from(userSavedNews)
-      .where(
-        and(
-          eq(userSavedNews.userId, userId),
-          eq(userSavedNews.articleId, articleId)
-        )
-      );
-    
-    if (!saved) {
-      // If not saved, save it and mark as read
-      return this.saveNewsArticle({
-        userId,
-        articleId,
-        isRead: true
-      });
+    try {
+      // Validate inputs
+      if (!userId || isNaN(Number(userId))) {
+        console.error("Invalid user ID in markNewsArticleAsRead:", userId);
+        throw new Error("Invalid user ID");
+      }
+      
+      if (!articleId || isNaN(Number(articleId))) {
+        console.error("Invalid article ID in markNewsArticleAsRead:", articleId);
+        throw new Error("Invalid article ID");
+      }
+      
+      // Ensure numeric types
+      const userIdNumber = Number(userId);
+      const articleIdNumber = Number(articleId);
+      
+      // Check if saved
+      const [saved] = await db
+        .select()
+        .from(userSavedNews)
+        .where(
+          and(
+            eq(userSavedNews.userId, userIdNumber),
+            eq(userSavedNews.articleId, articleIdNumber)
+          )
+        );
+      
+      if (!saved) {
+        // If not saved, save it and mark as read
+        return this.saveNewsArticle({
+          userId: userIdNumber,
+          articleId: articleIdNumber,
+          isRead: true
+        });
+      }
+      
+      // Update read status
+      const [updated] = await db
+        .update(userSavedNews)
+        .set({ isRead: true })
+        .where(eq(userSavedNews.id, saved.id))
+        .returning();
+      
+      return updated;
+    } catch (error) {
+      console.error("Error in markNewsArticleAsRead:", error);
+      throw error;
     }
-    
-    // Update read status
-    const [updated] = await db
-      .update(userSavedNews)
-      .set({ isRead: true })
-      .where(eq(userSavedNews.id, saved.id))
-      .returning();
-    
-    return updated;
   }
 
   async unsaveNewsArticle(userId: number, articleId: number): Promise<boolean> {
-    const result = await db
-      .delete(userSavedNews)
-      .where(
-        and(
-          eq(userSavedNews.userId, userId),
-          eq(userSavedNews.articleId, articleId)
-        )
-      );
-    
-    return result.rowCount > 0;
+    try {
+      // Validate inputs
+      if (!userId || isNaN(Number(userId))) {
+        console.error("Invalid user ID in unsaveNewsArticle:", userId);
+        return false;
+      }
+      
+      if (!articleId || isNaN(Number(articleId))) {
+        console.error("Invalid article ID in unsaveNewsArticle:", articleId);
+        return false;
+      }
+      
+      // Ensure numeric types
+      const userIdNumber = Number(userId);
+      const articleIdNumber = Number(articleId);
+      
+      const result = await db
+        .delete(userSavedNews)
+        .where(
+          and(
+            eq(userSavedNews.userId, userIdNumber),
+            eq(userSavedNews.articleId, articleIdNumber)
+          )
+        );
+      
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error("Error in unsaveNewsArticle:", error);
+      return false;
+    }
   }
 
   // Personalized News Feed
   async getPersonalizedNewsFeed(userId: number, limit = 20, offset = 0): Promise<NewsArticle[]> {
-    const userPrefs = await this.getUserNewsPreferences(userId);
+    try {
+      // Validate inputs
+      if (!userId || isNaN(Number(userId))) {
+        console.error("Invalid user ID in getPersonalizedNewsFeed:", userId);
+        throw new Error("Invalid user ID");
+      }
+      
+      // Ensure numeric types
+      const userIdNumber = Number(userId);
+      const limitNumber = Number(limit);
+      const offsetNumber = Number(offset);
+      
+      // Validate limit and offset
+      if (isNaN(limitNumber) || limitNumber <= 0) {
+        console.warn("Invalid limit in getPersonalizedNewsFeed:", limit);
+        // Default to 20 if invalid
+        limit = 20;
+      }
+      
+      if (isNaN(offsetNumber) || offsetNumber < 0) {
+        console.warn("Invalid offset in getPersonalizedNewsFeed:", offset);
+        // Default to 0 if invalid
+        offset = 0;
+      }
     
-    if (!userPrefs) {
-      // If no preferences, return general news
-      return this.getAllNewsArticles(limit, offset);
+      const userPrefs = await this.getUserNewsPreferences(userIdNumber);
+      
+      if (!userPrefs) {
+        // If no preferences, return general news
+        return this.getAllNewsArticles(limit, offset);
+      }
+      
+      // Start building a query with user preferences
+      let query = db
+        .select()
+        .from(newsArticles);
+      
+      // We'll gather conditions to apply using OR/AND logic
+      const sportConditions = [];
+      const leagueConditions = [];
+      const topicConditions = [];
+      const excludeConditions = [];
+      
+      // Apply sport preferences if any
+      if (userPrefs.favoriteSports && Array.isArray(userPrefs.favoriteSports) && userPrefs.favoriteSports.length > 0) {
+        sportConditions.push(inArray(newsArticles.sportId, userPrefs.favoriteSports));
+      }
+      
+      // Apply league preferences if any
+      if (userPrefs.favoriteLeagues && Array.isArray(userPrefs.favoriteLeagues) && userPrefs.favoriteLeagues.length > 0) {
+        leagueConditions.push(inArray(newsArticles.leagueId, userPrefs.favoriteLeagues));
+      }
+      
+      // Apply topic preferences if any
+      if (userPrefs.preferredTopics && Array.isArray(userPrefs.preferredTopics) && userPrefs.preferredTopics.length > 0) {
+        topicConditions.push(inArray(newsArticles.type, userPrefs.preferredTopics));
+      }
+      
+      // Apply exclusions if any
+      if (userPrefs.excludedTopics && Array.isArray(userPrefs.excludedTopics) && userPrefs.excludedTopics.length > 0) {
+        excludeConditions.push(not(inArray(newsArticles.type, userPrefs.excludedTopics)));
+      }
+      
+      // Combine conditions
+      const conditions = [];
+      
+      // Add sport OR league conditions (user might be interested in either)
+      if (sportConditions.length > 0 || leagueConditions.length > 0) {
+        conditions.push(or(...sportConditions, ...leagueConditions));
+      }
+      
+      // Add topic conditions
+      if (topicConditions.length > 0) {
+        conditions.push(or(...topicConditions));
+      }
+      
+      // Add exclusion conditions (these are always AND)
+      conditions.push(...excludeConditions);
+      
+      // Apply all conditions if we have any
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+      
+      // Apply ordering, limit and offset
+      const results = await query
+        .orderBy(desc(newsArticles.publishedAt))
+        .limit(limit)
+        .offset(offset);
+      
+      return results || [];
+    } catch (error) {
+      console.error("Error in getPersonalizedNewsFeed:", error);
+      return [];
     }
-    
-    // Start building a query with user preferences
-    let query = db
-      .select()
-      .from(newsArticles);
-    
-    // We'll gather conditions to apply using OR/AND logic
-    const sportConditions = [];
-    const leagueConditions = [];
-    const topicConditions = [];
-    const excludeConditions = [];
-    
-    // Apply sport preferences if any
-    if (userPrefs.favoriteSports && userPrefs.favoriteSports.length > 0) {
-      sportConditions.push(inArray(newsArticles.sportId, userPrefs.favoriteSports));
-    }
-    
-    // Apply league preferences if any
-    if (userPrefs.favoriteLeagues && userPrefs.favoriteLeagues.length > 0) {
-      leagueConditions.push(inArray(newsArticles.leagueId, userPrefs.favoriteLeagues));
-    }
-    
-    // Apply topic preferences if any
-    if (userPrefs.preferredTopics && userPrefs.preferredTopics.length > 0) {
-      topicConditions.push(inArray(newsArticles.type, userPrefs.preferredTopics));
-    }
-    
-    // Apply exclusions if any
-    if (userPrefs.excludedTopics && userPrefs.excludedTopics.length > 0) {
-      excludeConditions.push(not(inArray(newsArticles.type, userPrefs.excludedTopics)));
-    }
-    
-    // Combine conditions
-    const conditions = [];
-    
-    // Add sport OR league conditions (user might be interested in either)
-    if (sportConditions.length > 0 || leagueConditions.length > 0) {
-      conditions.push(or(...sportConditions, ...leagueConditions));
-    }
-    
-    // Add topic conditions
-    if (topicConditions.length > 0) {
-      conditions.push(or(...topicConditions));
-    }
-    
-    // Add exclusion conditions (these are always AND)
-    conditions.push(...excludeConditions);
-    
-    // Apply all conditions if we have any
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-    
-    // Apply ordering, limit and offset
-    return query
-      .orderBy(desc(newsArticles.publishedAt))
-      .limit(limit)
-      .offset(offset);
   }
 }
 
