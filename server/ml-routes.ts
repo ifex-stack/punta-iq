@@ -4,6 +4,8 @@ import { MLServiceClient } from "./ml-service-client";
 import { enhancedMLClient } from "./enhanced-ml-client";
 import { openaiClient } from "./openai-client";
 import { logger } from "./logger";
+import { advancedPredictionEngine } from "./advanced-prediction-engine";
+import { historicalDataClient } from "./historical-data-client";
 
 // Use enhanced ML client if OpenAI API key is available, otherwise fall back to basic client
 const mlClient = openaiClient.hasApiKey() ? enhancedMLClient : new MLServiceClient();
@@ -270,9 +272,222 @@ router.get("/api/predictions/team-trends/:teamId", async (req, res) => {
 });
 
 /**
- * Check availability of advanced AI-powered predictions 
- * Note: This endpoint has been moved to ai-status-route.ts
+ * Generate advanced prediction for a specific match
  */
+router.post("/api/predictions/advanced", async (req, res) => {
+  // Require authentication for premium predictions
+  if (!req.isAuthenticated() && req.body.premium) {
+    return res.status(401).json({ error: "Authentication required for premium predictions" });
+  }
+  
+  const schema = z.object({
+    matchData: z.object({
+      id: z.string().or(z.number()).optional(),
+      homeTeam: z.string(),
+      awayTeam: z.string(),
+      league: z.string().optional(),
+      sport: z.string().default("football"),
+      startTime: z.string().optional(),
+    }),
+    historicalData: z.any().optional(),
+    liveOdds: z.any().optional(),
+    premium: z.boolean().optional().default(false),
+  });
+
+  const validationResult = schema.safeParse(req.body);
+
+  if (!validationResult.success) {
+    return res.status(400).json({ errors: validationResult.error.errors });
+  }
+
+  try {
+    const { matchData, historicalData, liveOdds, premium } = validationResult.data;
+    
+    logger.info("MLRoutes", "Generating advanced prediction", { 
+      homeTeam: matchData.homeTeam,
+      awayTeam: matchData.awayTeam,
+      sport: matchData.sport,
+      premium
+    });
+    
+    // Process through advanced prediction engine
+    const advancedPrediction = await advancedPredictionEngine.generateAdvancedPrediction(
+      matchData,
+      historicalData,
+      liveOdds
+    );
+    
+    res.json(advancedPrediction);
+  } catch (error) {
+    logger.error("MLRoutes", "Error generating advanced prediction", error);
+    res.status(500).json({ error: "Error generating advanced prediction" });
+  }
+});
+
+/**
+ * Get historical data for a team
+ */
+router.get("/api/predictions/historical/team/:teamName", async (req, res) => {
+  const { teamName } = req.params;
+  
+  if (!teamName) {
+    return res.status(400).json({ error: "Team name is required" });
+  }
+  
+  try {
+    // Get team statistics
+    const teamStats = await historicalDataClient.getTeamStats(teamName);
+    
+    // Get recent form
+    const recentForm = await historicalDataClient.getTeamForm(teamName, 10);
+    
+    res.json({
+      team: teamName,
+      stats: teamStats,
+      recentForm,
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error("MLRoutes", "Error retrieving historical team data", error);
+    res.status(500).json({ error: "Error retrieving historical team data" });
+  }
+});
+
+/**
+ * Get head-to-head data between two teams
+ */
+router.get("/api/predictions/historical/h2h", async (req, res) => {
+  const { homeTeam, awayTeam } = req.query;
+  
+  if (!homeTeam || !awayTeam) {
+    return res.status(400).json({ error: "Both homeTeam and awayTeam parameters are required" });
+  }
+  
+  try {
+    // Get head-to-head matches
+    const h2hMatches = await historicalDataClient.getHeadToHeadMatches(
+      homeTeam as string,
+      awayTeam as string,
+      10
+    );
+    
+    res.json({
+      homeTeam,
+      awayTeam,
+      matches: h2hMatches,
+      count: h2hMatches.length,
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error("MLRoutes", "Error retrieving head-to-head data", error);
+    res.status(500).json({ error: "Error retrieving head-to-head data" });
+  }
+});
+
+/**
+ * Get prediction accuracy statistics
+ */
+router.get("/api/predictions/accuracy", async (req, res) => {
+  const { market, minConfidence } = req.query;
+  
+  try {
+    const marketType = (market as string) || "1X2";
+    const confidenceThreshold = minConfidence ? parseInt(minConfidence as string, 10) : 70;
+    
+    // Get prediction accuracy stats
+    const accuracyStats = await historicalDataClient.getPredictionAccuracy(
+      marketType,
+      confidenceThreshold
+    );
+    
+    res.json({
+      ...accuracyStats,
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error("MLRoutes", "Error retrieving prediction accuracy", error);
+    res.status(500).json({ error: "Error retrieving prediction accuracy" });
+  }
+});
+
+/**
+ * Generate advanced accumulators
+ */
+router.post("/api/predictions/advanced-accumulators", async (req, res) => {
+  // Require authentication for premium accumulators
+  if (!req.isAuthenticated() && req.body.premium) {
+    return res.status(401).json({ error: "Authentication required for premium accumulators" });
+  }
+  
+  const schema = z.object({
+    predictions: z.array(z.any()),
+    options: z.object({
+      minConfidence: z.number().optional().default(65),
+      premium: z.boolean().optional().default(false),
+    }).optional().default({}),
+  });
+
+  const validationResult = schema.safeParse(req.body);
+
+  if (!validationResult.success) {
+    return res.status(400).json({ errors: validationResult.error.errors });
+  }
+
+  try {
+    const { predictions, options } = validationResult.data;
+    
+    if (!predictions || predictions.length < 2) {
+      return res.status(400).json({ error: "At least 2 predictions are required" });
+    }
+    
+    logger.info("MLRoutes", "Generating advanced accumulators", { 
+      predictionsCount: predictions.length,
+      options
+    });
+    
+    // Generate advanced accumulators
+    const advancedAccumulators = await advancedPredictionEngine.generateAdvancedAccumulators(
+      predictions,
+      options
+    );
+    
+    res.json(advancedAccumulators);
+  } catch (error) {
+    logger.error("MLRoutes", "Error generating advanced accumulators", error);
+    res.status(500).json({ error: "Error generating advanced accumulators" });
+  }
+});
+
+/**
+ * Check availability of advanced ML capabilities
+ */
+router.get("/api/predictions/advanced-capabilities", async (req, res) => {
+  try {
+    // Get available capabilities
+    const capabilities = {
+      advancedPredictions: true,
+      historicalAnalysis: true,
+      aiEnhanced: openaiClient.hasApiKey(),
+      explainablePredictions: true,
+      confidenceFactors: true,
+      valueBetIdentification: true,
+      predictionMethods: [
+        "statistical-model",
+        "historical-trend-analysis",
+        "poisson-distribution",
+        "points-distribution",
+        ...(openaiClient.hasApiKey() ? ["ai-enhanced", "gpt-4o"] : [])
+      ],
+      status: "available",
+      version: "1.0.0"
+    };
+    
+    res.json(capabilities);
+  } catch (error) {
+    logger.error("MLRoutes", "Error checking advanced capabilities", error);
+    res.status(500).json({ error: "Error checking advanced capabilities" });
+  }
+});
 
 export function setupMLRoutes(app: Express) {
   app.use(router);

@@ -1,6 +1,6 @@
 import { logger } from './logger';
 import { db } from './db';
-import { eq, and, lt, gt, desc, sql } from 'drizzle-orm';
+import { eq, and, lt, gt, desc, sql, SQL } from 'drizzle-orm';
 import { matches, predictions } from '@shared/schema';
 
 /**
@@ -130,8 +130,8 @@ export class HistoricalDataClient {
         .where(
           and(
             sql`${predictions.additionalPredictions}->>'market' = ${market}`,
-            gte(predictions.confidence, minConfidence),
-            isNotNull(predictions.isCorrect)
+            this.gte(predictions.confidence, minConfidence),
+            this.isNotNull(predictions.isCorrect)
           )
         )
         .limit(1000);
@@ -398,14 +398,14 @@ export class HistoricalDataClient {
   /**
    * SQL helper for IS NOT NULL condition
    */
-  private isNotNull(column: any) {
+  private isNotNull(column: any): SQL {
     return sql`${column} IS NOT NULL`;
   }
   
   /**
    * SQL helper for greater than or equal condition
    */
-  private gte(column: any, value: any) {
+  private gte(column: any, value: any): SQL {
     return sql`${column} >= ${value}`;
   }
 }
