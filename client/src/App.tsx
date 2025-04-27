@@ -15,6 +15,7 @@ import FAQPage from "@/pages/faq-page";
 import HistoricalDashboard from "@/pages/historical-dashboard";
 import FantasyContestsPage from "@/pages/fantasy-contests-page";
 import PredictionsPage from "@/pages/predictions-page";
+import AdvancedPredictionsPage from "@/pages/advanced-predictions-page";
 import ReferralsPage from "@/pages/referrals-page";
 import AdminPage from "@/pages/admin-page";
 import FeedbackPage from "@/pages/feedback";
@@ -76,6 +77,7 @@ const Router: React.FC = () => {
             <ProtectedRoute path="/stats" component={StatsPage} />
             <ProtectedRoute path="/history" component={HistoricalDashboard} />
             <ProtectedRoute path="/predictions" component={PredictionsPage} />
+            <ProtectedRoute path="/predictions/advanced" component={AdvancedPredictionsPage} />
             <ProtectedRoute path="/fantasy/contests" component={FantasyContestsPage} />
             <Route path="/fantasy" component={FantasyContestsPage} />
             <ProtectedRoute path="/subscription" component={SubscriptionPage} />
