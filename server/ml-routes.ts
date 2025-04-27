@@ -72,6 +72,11 @@ router.post("/api/ml/generate-predictions", async (req, res) => {
 router.get("/api/predictions/:sport", async (req, res) => {
   const { sport } = req.params;
   
+  // Skip this handler for the ai-status endpoint which should be handled by the dedicated AI status router
+  if (sport === 'ai-status') {
+    return res.status(404).json({ error: "Not found" });  // Will be handled by the next matching route
+  }
+  
   if (!sport) {
     return res.status(400).json({ error: "Sport parameter is required" });
   }

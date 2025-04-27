@@ -25,14 +25,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up gamification routes (badges & leaderboards)
   setupGamificationRoutes(app);
   
-  // Set up ML-based prediction routes
-  setupMLRoutes(app);
-  
-  // Set up AI status route
+  // Set up AI status route (register this BEFORE the ML routes to prevent path conflicts)
   setupAiStatusRoutes(app);
   
   // Set up test AI status route
   setupTestAiStatusRoute(app);
+  
+  // Set up ML-based prediction routes 
+  setupMLRoutes(app);
   
   // Sports routes
   app.get("/api/sports", async (req, res) => {

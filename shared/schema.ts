@@ -9,6 +9,7 @@ export const fantasyContestStatusEnum = pgEnum('fantasy_contest_status', ['upcom
 export const fantasyContestTierEnum = pgEnum('fantasy_contest_tier', ['free', 'premium']);
 export const badgeTierEnum = pgEnum('badge_tier', ['bronze', 'silver', 'gold', 'platinum', 'diamond']);
 export const leaderboardTypeEnum = pgEnum('leaderboard_type', ['weekly', 'monthly', 'seasonal', 'all_time', 'fantasy', 'prediction_accuracy']);
+export const newsTypeEnum = pgEnum('news_type', ['article', 'analysis', 'preview', 'recap', 'interview', 'opinion']);
 
 // User table
 export const users = pgTable("users", {
@@ -401,6 +402,120 @@ export const fantasyContestEntriesRelations = relations(fantasyContestEntries, (
   }),
 }));
 
+// News Articles
+export const newsArticles = pgTable("news_articles", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  summary: text("summary").notNull(),
+  author: text("author"),
+  source: text("source"),
+  sourceUrl: text("source_url"),
+  publishedAt: timestamp("published_at").notNull(),
+  imageUrl: text("image_url"),
+  sportId: integer("sport_id").references(() => sports.id),
+  leagueId: integer("league_id").references(() => leagues.id),
+  teams: json("teams"), // Array of team names related to the article
+  type: newsTypeEnum("type").default("article").notNull(),
+  aiGenerated: boolean("ai_generated").default(false).notNull(),
+  aiEnhanced: boolean("ai_enhanced").default(false).notNull(),
+  isPremium: boolean("is_premium").default(false).notNull(),
+  tags: json("tags"), // Array of tags for categorizing
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// User News Preferences
+export const userNewsPreferences = pgTable("user_news_preferences", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  favoriteTeams: json("favorite_teams").default([]), // Array of team names
+  favoriteSports: json("favorite_sports").default([]), // Array of sport IDs
+  favoriteLeagues: json("favorite_leagues").default([]), // Array of league IDs
+  preferredContentTypes: json("preferred_content_types").default(["article", "analysis"]), // Types of content the user prefers
+  excludedTags: json("excluded_tags").default([]), // Tags to exclude from feed
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// User Saved News
+export const userSavedNews = pgTable("user_saved_news", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  articleId: integer("article_id").notNull().references(() => newsArticles.id, { onDelete: 'cascade' }),
+  savedAt: timestamp("saved_at").defaultNow().notNull(),
+  isRead: boolean("is_read").default(false),
+  readAt: timestamp("read_at"),
+});
+
+// News Articles Relations
+export const newsArticlesRelations = relations(newsArticles, ({ one, many }) => ({
+  sport: one(sports, {
+    fields: [newsArticles.sportId],
+    references: [sports.id],
+  }),
+  league: one(leagues, {
+    fields: [newsArticles.leagueId],
+    references: [leagues.id],
+  }),
+  savedBy: many(userSavedNews),
+}));
+
+// User News Preferences Relations
+export const userNewsPreferencesRelations = relations(userNewsPreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [userNewsPreferences.userId],
+    references: [users.id],
+  }),
+}));
+
+// User Saved News Relations
+export const userSavedNewsRelations = relations(userSavedNews, ({ one }) => ({
+  user: one(users, {
+    fields: [userSavedNews.userId],
+    references: [users.id],
+  }),
+  article: one(newsArticles, {
+    fields: [userSavedNews.articleId],
+    references: [newsArticles.id],
+  }),
+}));
+
+// Insert Schemas for News
+export const insertNewsArticleSchema = createInsertSchema(newsArticles).pick({
+  title: true,
+  content: true,
+  summary: true,
+  author: true,
+  source: true,
+  sourceUrl: true,
+  publishedAt: true,
+  imageUrl: true,
+  sportId: true,
+  leagueId: true,
+  teams: true,
+  type: true,
+  aiGenerated: true,
+  aiEnhanced: true,
+  isPremium: true,
+  tags: true,
+});
+
+export const insertUserNewsPreferencesSchema = createInsertSchema(userNewsPreferences).pick({
+  userId: true,
+  favoriteTeams: true,
+  favoriteSports: true,
+  favoriteLeagues: true,
+  preferredContentTypes: true,
+  excludedTags: true,
+});
+
+export const insertUserSavedNewsSchema = createInsertSchema(userSavedNews).pick({
+  userId: true,
+  articleId: true,
+  isRead: true,
+});
+
 // Points Transactions
 export const pointsTransactions = pgTable("points_transactions", {
   id: serial("id").primaryKey(),
@@ -562,6 +677,15 @@ export const insertPushTokenSchema = createInsertSchema(pushTokens).pick({
   platform: true,
   deviceName: true,
 });
+
+// Add news-related relations to users table
+export const userNewsRelations = relations(users, ({ one, many }) => ({
+  newsPreferences: one(userNewsPreferences, {
+    fields: [users.id],
+    references: [userNewsPreferences.userId],
+  }),
+  savedArticles: many(userSavedNews),
+}));
 
 // Define subscription tiers
 export const subscriptionTiers = {
@@ -753,3 +877,11 @@ export type InsertLeaderboardEntry = z.infer<typeof insertLeaderboardEntrySchema
 // Referral types
 export type Referral = typeof referrals.$inferSelect;
 export type InsertReferral = z.infer<typeof insertReferralSchema>;
+
+// News types
+export type NewsArticle = typeof newsArticles.$inferSelect;
+export type InsertNewsArticle = z.infer<typeof insertNewsArticleSchema>;
+export type UserNewsPreferences = typeof userNewsPreferences.$inferSelect;
+export type InsertUserNewsPreferences = z.infer<typeof insertUserNewsPreferencesSchema>;
+export type UserSavedNews = typeof userSavedNews.$inferSelect;
+export type InsertUserSavedNews = z.infer<typeof insertUserSavedNewsSchema>;
