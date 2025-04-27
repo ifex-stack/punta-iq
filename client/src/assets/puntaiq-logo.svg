@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="backgroundGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e40af" />
+      <stop offset="100%" stop-color="#4338ca" />
+    </linearGradient>
+    <linearGradient id="ballGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#e2e8f0" />
+    </linearGradient>
+    <linearGradient id="brainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded background -->
+  <rect width="512" height="512" rx="80" fill="url(#backgroundGradient)" />
+  
+  <!-- Football/soccer ball elements -->
+  <circle cx="260" cy="256" r="120" fill="url(#ballGradient)" />
+  
+  <!-- Football/soccer ball hexagons -->
+  <polygon points="260,156 290,176 280,216 240,216 230,176" fill="#1e293b" />
+  <polygon points="260,356 290,336 280,296 240,296 230,336" fill="#1e293b" />
+  <polygon points="160,256 190,236 230,256 230,296 190,276" fill="#1e293b" />
+  <polygon points="360,256 330,236 290,256 290,296 330,276" fill="#1e293b" />
+  <polygon points="200,196 240,176 280,196 280,236 240,256 200,236" fill="#1e293b" />
+  <polygon points="200,316 240,336 280,316 280,276 240,256 200,276" fill="#1e293b" />
+  
+  <!-- AI brain circuit elements overlapping the ball -->
+  <path d="M380 200 L410 200 L410 280 L380 280 Z" fill="url(#brainGradient)" />
+  <path d="M410 220 L450 220 L450 260 L410 260 Z" fill="url(#brainGradient)" />
+  <path d="M380 220 L340 220 L340 260 L380 260 Z" fill="url(#brainGradient)" />
+  
+  <!-- Connection lines -->
+  <line x1="380" y1="230" x2="340" y2="230" stroke="#a5b4fc" stroke-width="4" />
+  <line x1="380" y1="250" x2="340" y2="250" stroke="#a5b4fc" stroke-width="4" />
+  <line x1="410" y1="230" x2="450" y2="230" stroke="#a5b4fc" stroke-width="4" />
+  <line x1="410" y1="250" x2="450" y2="250" stroke="#a5b4fc" stroke-width="4" />
+  
+  <!-- Circuit dots -->
+  <circle cx="380" cy="230" r="4" fill="#e0f2fe" />
+  <circle cx="380" cy="250" r="4" fill="#e0f2fe" />
+  <circle cx="410" cy="230" r="4" fill="#e0f2fe" />
+  <circle cx="410" cy="250" r="4" fill="#e0f2fe" />
+  
+  <!-- IQ text -->
+  <text x="82" y="390" font-family="Arial, sans-serif" font-weight="bold" font-size="80" fill="#ffffff">PuntaIQ</text>
+</svg>

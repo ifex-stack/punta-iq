@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="500" viewBox="0 0 800 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background field gradient -->
+  <defs>
+    <linearGradient id="fieldGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#16a34a" />
+      <stop offset="50%" stop-color="#22c55e" />
+      <stop offset="100%" stop-color="#16a34a" />
+    </linearGradient>
+    <linearGradient id="jerseyGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444" />
+      <stop offset="100%" stop-color="#b91c1c" />
+    </linearGradient>
+    <linearGradient id="jerseyGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#1e40af" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Football pitch -->
+  <rect width="800" height="500" fill="url(#fieldGradient)" />
+  
+  <!-- Field markings -->
+  <!-- Center circle -->
+  <circle cx="400" cy="250" r="70" stroke="#ffffff" stroke-width="2" fill="none" />
+  <circle cx="400" cy="250" r="5" fill="#ffffff" />
+  
+  <!-- Center line -->
+  <line x1="400" y1="0" x2="400" y2="500" stroke="#ffffff" stroke-width="2" />
+  
+  <!-- Penalty areas -->
+  <rect x="50" y="125" width="120" height="250" stroke="#ffffff" stroke-width="2" fill="none" />
+  <rect x="630" y="125" width="120" height="250" stroke="#ffffff" stroke-width="2" fill="none" />
+  
+  <!-- Goal areas -->
+  <rect x="50" y="175" width="50" height="150" stroke="#ffffff" stroke-width="2" fill="none" />
+  <rect x="700" y="175" width="50" height="150" stroke="#ffffff" stroke-width="2" fill="none" />
+  
+  <!-- Goals -->
+  <rect x="30" y="200" width="20" height="100" fill="#f8fafc" stroke="#94a3b8" stroke-width="1" />
+  <rect x="750" y="200" width="20" height="100" fill="#f8fafc" stroke="#94a3b8" stroke-width="1" />
+  
+  <!-- Penalty spots -->
+  <circle cx="130" cy="250" r="3" fill="#ffffff" />
+  <circle cx="670" cy="250" r="3" fill="#ffffff" />
+  
+  <!-- Corner arcs -->
+  <path d="M50,0 A20,20 0 0,1 70,20" stroke="#ffffff" stroke-width="2" fill="none" />
+  <path d="M750,0 A20,20 0 0,0 730,20" stroke="#ffffff" stroke-width="2" fill="none" />
+  <path d="M50,500 A20,20 0 0,0 70,480" stroke="#ffffff" stroke-width="2" fill="none" />
+  <path d="M750,500 A20,20 0 0,1 730,480" stroke="#ffffff" stroke-width="2" fill="none" />
+  
+  <!-- Football players (simplified) -->
+  <!-- Team 1 (Red) -->
+  <g transform="translate(250, 250)">
+    <!-- Body -->
+    <circle cx="0" cy="0" r="15" fill="url(#jerseyGradient1)" />
+    <!-- Head -->
+    <circle cx="0" cy="-25" r="10" fill="#f8fafc" />
+    <!-- Number -->
+    <text x="0" y="5" font-family="Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="middle">9</text>
+  </g>
+  
+  <g transform="translate(200, 150)">
+    <!-- Body -->
+    <circle cx="0" cy="0" r="15" fill="url(#jerseyGradient1)" />
+    <!-- Head -->
+    <circle cx="0" cy="-25" r="10" fill="#f8fafc" />
+    <!-- Number -->
+    <text x="0" y="5" font-family="Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="middle">7</text>
+  </g>
+  
+  <g transform="translate(200, 350)">
+    <!-- Body -->
+    <circle cx="0" cy="0" r="15" fill="url(#jerseyGradient1)" />
+    <!-- Head -->
+    <circle cx="0" cy="-25" r="10" fill="#f8fafc" />
+    <!-- Number -->
+    <text x="0" y="5" font-family="Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="middle">11</text>
+  </g>
+  
+  <g transform="translate(150, 250)">
+    <!-- Body -->
+    <circle cx="0" cy="0" r="15" fill="url(#jerseyGradient1)" />
+    <!-- Head -->
+    <circle cx="0" cy="-25" r="10" fill="#f8fafc" />
+    <!-- Number -->
+    <text x="0" y="5" font-family="Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="middle">10</text>
+  </g>
+  
+  <g transform="translate(100, 200)">
+    <!-- Body -->
+    <circle cx="0" cy="0" r="15" fill="url(#jerseyGradient1)" />
+    <!-- Head -->
+    <circle cx="0" cy="-25" r="10" fill="#f8fafc" />
+    <!-- Number -->
+    <text x="0" y="5" font-family="Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="middle">4</text>
+  </g>
+  
+  <g transform="translate(100, 300)">
+    <!-- Body -->
+    <circle cx="0" cy="0" r="15" fill="url(#jerseyGradient1)" />
+    <!-- Head -->
+    <circle cx="0" cy="-25" r="10" fill="#f8fafc" />
+    <!-- Number -->
+    <text x="0" y="5" font-family="Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="middle">6</text>
+  </g>
+  
+  <!-- Team 2 (Blue) -->
+  <g transform="translate(550, 250)">
+    <!-- Body -->
+    <circle cx="0" cy="0" r="15" fill="url(#jerseyGradient2)" />
+    <!-- Head -->
+    <circle cx="0" cy="-25" r="10" fill="#f8fafc" />
+    <!-- Number -->
+    <text x="0" y="5" font-family="Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="middle">9</text>
+  </g>
+  
+  <g transform="translate(600, 150)">
+    <!-- Body -->
+    <circle cx="0" cy="0" r="15" fill="url(#jerseyGradient2)" />
+    <!-- Head -->
+    <circle cx="0" cy="-25" r="10" fill="#f8fafc" />
+    <!-- Number -->
+    <text x="0" y="5" font-family="Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="middle">7</text>
+  </g>
+  
+  <g transform="translate(600, 350)">
+    <!-- Body -->
+    <circle cx="0" cy="0" r="15" fill="url(#jerseyGradient2)" />
+    <!-- Head -->
+    <circle cx="0" cy="-25" r="10" fill="#f8fafc" />
+    <!-- Number -->
+    <text x="0" y="5" font-family="Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="middle">11</text>
+  </g>
+  
+  <g transform="translate(650, 250)">
+    <!-- Body -->
+    <circle cx="0" cy="0" r="15" fill="url(#jerseyGradient2)" />
+    <!-- Head -->
+    <circle cx="0" cy="-25" r="10" fill="#f8fafc" />
+    <!-- Number -->
+    <text x="0" y="5" font-family="Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="middle">10</text>
+  </g>
+  
+  <g transform="translate(700, 200)">
+    <!-- Body -->
+    <circle cx="0" cy="0" r="15" fill="url(#jerseyGradient2)" />
+    <!-- Head -->
+    <circle cx="0" cy="-25" r="10" fill="#f8fafc" />
+    <!-- Number -->
+    <text x="0" y="5" font-family="Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="middle">4</text>
+  </g>
+  
+  <g transform="translate(700, 300)">
+    <!-- Body -->
+    <circle cx="0" cy="0" r="15" fill="url(#jerseyGradient2)" />
+    <!-- Head -->
+    <circle cx="0" cy="-25" r="10" fill="#f8fafc" />
+    <!-- Number -->
+    <text x="0" y="5" font-family="Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="middle">6</text>
+  </g>
+  
+  <!-- Football -->
+  <circle cx="400" cy="250" r="10" fill="#f8fafc" stroke="#1e293b" stroke-width="1" />
+  <path d="M395,245 L405,255 M395,255 L405,245" stroke="#1e293b" stroke-width="1" />
+  <circle cx="400" cy="250" r="3" fill="#1e293b" />
+</svg>
