@@ -94,14 +94,57 @@ router.get("/api/predictions/:sport", async (req, res) => {
 });
 
 /**
- * Get accumulator predictions
+ * Get accumulator predictions using real-time match data
  */
 router.get("/api/accumulators", async (req, res) => {
   try {
-    const accumulators = await mlClient.getAccumulators();
+    // Get today's real matches from different sports
+    const footballMatches = await realTimeMatchesService.getMatchesForDate('football', 0);
+    const basketballMatches = await realTimeMatchesService.getMatchesForDate('basketball', 0);
+    
+    // Filter matches for only those that haven't started yet
+    const now = new Date();
+    const upcomingFootballMatches = Object.values(footballMatches).filter(match => 
+      new Date(match.startTime) > now && match.status === 'NS'
+    ).slice(0, 10); // Limit to 10 matches
+    
+    const upcomingBasketballMatches = Object.values(basketballMatches).filter(match => 
+      new Date(match.startTime) > now && match.status === 'NS'
+    ).slice(0, 5); // Limit to 5 matches
+    
+    // Use real match data for accumulators
+    const enhancedData = {
+      football: {
+        matches: upcomingFootballMatches,
+        leagues: [...new Set(upcomingFootballMatches.map(m => m.league))],
+        countries: [...new Set(upcomingFootballMatches.map(m => m.country))]
+      },
+      basketball: {
+        matches: upcomingBasketballMatches,
+        leagues: [...new Set(upcomingBasketballMatches.map(m => m.league))],
+        countries: [...new Set(upcomingBasketballMatches.map(m => m.country))]
+      }
+    };
+    
+    // If we have real match data, use it to enhance the accumulators from ML service
+    // otherwise fall back to the ML service accumulators
+    let accumulators;
+    if (upcomingFootballMatches.length > 0 || upcomingBasketballMatches.length > 0) {
+      // Use enhanced ML client to generate accumulators from real match data
+      accumulators = await enhancedMLClient.generateAccumulatorsFromRealMatches(enhancedData);
+      logger.info("MLRoutes", "Generated accumulators using real match data", {
+        footballMatchCount: upcomingFootballMatches.length,
+        basketballMatchCount: upcomingBasketballMatches.length
+      });
+    } else {
+      // Fall back to ML service accumulators if no real matches are available
+      accumulators = await mlClient.getAccumulators();
+      logger.warn("MLRoutes", "No upcoming matches found, using ML service accumulators");
+    }
+    
     res.json(accumulators);
   } catch (error) {
-    logger.error({ error });
+    logger.error("MLRoutes", "Error retrieving accumulators", error);
     res.status(500).json({ error: "Error retrieving accumulators" });
   }
 });
