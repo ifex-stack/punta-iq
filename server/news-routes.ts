@@ -21,6 +21,20 @@ export function setupNewsRoutes(app: Express) {
       
       console.log("Fetching saved articles for user:", userId);
       
+      // Check if news_articles table exists (before we check for user_saved_news)
+      const articlesTableCheck = await pool.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'news_articles'
+        );
+      `);
+      
+      if (!articlesTableCheck.rows[0].exists) {
+        console.log("news_articles table doesn't exist yet");
+        return res.json([]);
+      }
+      
       // Check if the user_saved_news table exists
       const tableCheckResult = await pool.query(`
         SELECT EXISTS (
@@ -32,82 +46,119 @@ export function setupNewsRoutes(app: Express) {
       
       // If the table doesn't exist, return an empty array instead of an error
       if (!tableCheckResult.rows[0].exists) {
-        console.log("user_saved_news table doesn't exist yet");
+        console.log("user_saved_news table doesn't exist yet - creating it...");
+        
+        // Create the table
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS user_saved_news (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            article_id INTEGER NOT NULL,
+            saved_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            is_read BOOLEAN DEFAULT FALSE,
+            read_at TIMESTAMP
+          );
+        `);
+        
+        // Return empty array since a newly created table will have no records
         return res.json([]);
       }
       
-      // Use direct SQL with LEFT JOIN to avoid errors if no articles are saved
-      // or if an article was deleted but reference remains
-      const { rows } = await pool.query(`
-        SELECT 
-          usn.id,
-          usn.user_id AS "userId",
-          usn.article_id AS "articleId",
-          usn.saved_at AS "savedAt",
-          na.id AS "article.id",
-          na.title AS "article.title",
-          na.summary AS "article.summary",
-          na.content AS "article.content",
-          na.author AS "article.author",
-          na.source AS "article.source",
-          na.source_url AS "article.sourceUrl",
-          na.published_at AS "article.publishedAt",
-          na.image_url AS "article.imageUrl",
-          na.sport_id AS "article.sportId",
-          na.league_id AS "article.leagueId",
-          na.teams AS "article.teams",
-          na.type AS "article.type",
-          na.ai_generated AS "article.aiGenerated",
-          na.ai_enhanced AS "article.aiEnhanced",
-          na.is_premium AS "article.isPremium",
-          COALESCE(na.tags, '[]') AS "article.tags",
-          COALESCE(na.views, 0) AS "article.views",
-          COALESCE(na.likes, 0) AS "article.likes",
-          na.created_at AS "article.createdAt",
-          na.updated_at AS "article.updatedAt"
-        FROM 
-          user_saved_news AS usn
-        LEFT JOIN 
-          news_articles AS na ON usn.article_id = na.id
-        WHERE 
-          usn.user_id = $1
-        ORDER BY 
-          usn.saved_at DESC
-      `, [userId]);
-      
-      // Process the results to create the expected nested structure
-      // Filter out any null articles (in case an article was deleted)
-      const results = rows
-        .filter(row => row["article.id"] !== null) // Skip entries where the article no longer exists
-        .map(row => {
-          // Create a nested structure by processing all fields that start with "article."
-          const article: any = {};
-          const savedArticle: any = {};
-          
-          // Extract base fields
-          Object.keys(row).forEach(key => {
-            if (key.startsWith("article.")) {
-              // This is an article property
-              const articleProp = key.replace("article.", "");
-              article[articleProp] = row[key];
-            } else {
-              // This is a saved article property
-              savedArticle[key] = row[key];
-            }
+      try {
+        // Use direct SQL with LEFT JOIN to avoid errors if no articles are saved
+        // or if an article was deleted but reference remains
+        const { rows } = await pool.query(`
+          SELECT 
+            usn.id,
+            usn.user_id AS "userId",
+            usn.article_id AS "articleId",
+            usn.saved_at AS "savedAt",
+            na.id AS "article.id",
+            na.title AS "article.title",
+            na.summary AS "article.summary",
+            na.content AS "article.content",
+            na.author AS "article.author",
+            na.source AS "article.source",
+            na.source_url AS "article.sourceUrl",
+            na.published_at AS "article.publishedAt",
+            na.image_url AS "article.imageUrl",
+            na.sport_id AS "article.sportId",
+            na.league_id AS "article.leagueId",
+            na.teams AS "article.teams",
+            na.type AS "article.type",
+            na.ai_generated AS "article.aiGenerated",
+            na.ai_enhanced AS "article.aiEnhanced",
+            na.is_premium AS "article.isPremium",
+            COALESCE(na.tags, '[]') AS "article.tags",
+            COALESCE(na.views, 0) AS "article.views",
+            COALESCE(na.likes, 0) AS "article.likes",
+            na.created_at AS "article.createdAt",
+            na.updated_at AS "article.updatedAt"
+          FROM 
+            user_saved_news AS usn
+          LEFT JOIN 
+            news_articles AS na ON usn.article_id = na.id
+          WHERE 
+            usn.user_id = $1
+          ORDER BY 
+            usn.saved_at DESC
+        `, [userId]);
+        
+        // Process the results to create the expected nested structure
+        // Filter out any null articles (in case an article was deleted)
+        const results = rows
+          .filter(row => row["article.id"] !== null) // Skip entries where the article no longer exists
+          .map(row => {
+            // Create a nested structure by processing all fields that start with "article."
+            const article: any = {};
+            const savedArticle: any = {};
+            
+            // Extract base fields
+            Object.keys(row).forEach(key => {
+              if (key.startsWith("article.")) {
+                // This is an article property
+                const articleProp = key.replace("article.", "");
+                article[articleProp] = row[key];
+              } else {
+                // This is a saved article property
+                savedArticle[key] = row[key];
+              }
+            });
+            
+            // Add the article object to the result
+            savedArticle.article = article;
+            
+            return savedArticle;
           });
-          
-          // Add the article object to the result
-          savedArticle.article = article;
-          
-          return savedArticle;
-        });
-      
-      console.log(`Found ${results.length} saved articles for user ${userId}`);
-      res.json(results);
+        
+        console.log(`Found ${results.length} saved articles for user ${userId}`);
+        res.json(results);
+      } catch (queryError: any) {
+        console.error("SQL error in saved articles query:", queryError);
+        
+        // If there's an "invalid input syntax" or "invalid article ID" related error,
+        // return empty results instead of error response
+        if (queryError.message && 
+            (queryError.message.includes("invalid input syntax") || 
+             queryError.message.includes("Invalid article ID"))) {
+          console.log("Handling invalid article ID gracefully");
+          return res.json([]);
+        }
+        
+        // For other errors, pass through to the main error handler
+        throw queryError;
+      }
     } catch (error: any) {
       console.error("Error fetching saved articles:", error);
+      
+      // Don't expose "Invalid article ID" errors to the client
+      if (error.message && error.message.includes("Invalid article ID")) {
+        console.log("Handling invalid article ID error");
+        return res.json([]);
+      }
+      
       res.status(500).json({ 
-        message: error.message || "Failed to fetch saved articles"
+        message: "Failed to fetch saved articles" 
       });
     }
   });

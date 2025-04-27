@@ -219,7 +219,7 @@ export function NewsFeed({ initialTab = "personalized" }: { initialTab?: string 
         Sports News Feed
       </h1>
       
-      <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4 mb-6">
           <TabsTrigger value="personalized" disabled={!user}>
             For You
