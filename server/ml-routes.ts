@@ -93,7 +93,17 @@ router.get("/api/predictions/:sport", async (req, res) => {
     
     // Check if the requested sport is supported by our real-time service
     // All sports are supported now through API-SPORTS integration
-    const supportedSports = ['football', 'basketball', 'baseball', 'hockey', 'rugby', 'american_football'];
+    const supportedSports = [
+      'football', 
+      'basketball', 
+      'baseball', 
+      'hockey', 
+      'rugby', 
+      'american_football', 
+      'tennis', 
+      'cricket', 
+      'formula1'
+    ];
     // Always attempt to use real-time data first for better prediction quality
     if (supportedSports.includes(sport)) {
       logger.info("MLRoutes", "Getting real-time matches for sport", { sport, date });
@@ -218,6 +228,9 @@ router.get("/api/ai-accumulators", async (req, res) => {
     // Get today's real matches from different sports
     const footballMatches = await realTimeMatchesService.getMatchesForDate('football', 0);
     const basketballMatches = await realTimeMatchesService.getMatchesForDate('basketball', 0);
+    const tennisMatches = await realTimeMatchesService.getMatchesForDate('tennis', 0);
+    const cricketMatches = await realTimeMatchesService.getMatchesForDate('cricket', 0);
+    const baseballMatches = await realTimeMatchesService.getMatchesForDate('baseball', 0);
     
     // Filter matches for only those that haven't started yet
     const now = new Date();
@@ -226,6 +239,18 @@ router.get("/api/ai-accumulators", async (req, res) => {
     ).slice(0, 10); // Limit to 10 matches
     
     const upcomingBasketballMatches = Object.values(basketballMatches).filter(match => 
+      new Date(match.startTime) > now && match.status === 'NS'
+    ).slice(0, 5); // Limit to 5 matches
+    
+    const upcomingTennisMatches = Object.values(tennisMatches).filter(match => 
+      new Date(match.startTime) > now && match.status === 'NS'
+    ).slice(0, 5); // Limit to 5 matches
+    
+    const upcomingCricketMatches = Object.values(cricketMatches).filter(match => 
+      new Date(match.startTime) > now && match.status === 'NS'
+    ).slice(0, 3); // Limit to 3 matches
+    
+    const upcomingBaseballMatches = Object.values(baseballMatches).filter(match => 
       new Date(match.startTime) > now && match.status === 'NS'
     ).slice(0, 5); // Limit to 5 matches
     
@@ -240,18 +265,40 @@ router.get("/api/ai-accumulators", async (req, res) => {
         matches: upcomingBasketballMatches,
         leagues: [...new Set(upcomingBasketballMatches.map(m => m.league))],
         countries: [...new Set(upcomingBasketballMatches.map(m => m.country))]
+      },
+      tennis: {
+        matches: upcomingTennisMatches,
+        leagues: [...new Set(upcomingTennisMatches.map(m => m.league))],
+        countries: [...new Set(upcomingTennisMatches.map(m => m.country))]
+      },
+      cricket: {
+        matches: upcomingCricketMatches,
+        leagues: [...new Set(upcomingCricketMatches.map(m => m.league))],
+        countries: [...new Set(upcomingCricketMatches.map(m => m.country))]
+      },
+      baseball: {
+        matches: upcomingBaseballMatches,
+        leagues: [...new Set(upcomingBaseballMatches.map(m => m.league))],
+        countries: [...new Set(upcomingBaseballMatches.map(m => m.country))]
       }
     };
     
     // If we have real match data, use it to enhance the accumulators from ML service
     // otherwise fall back to the ML service accumulators
     let accumulators;
-    if (upcomingFootballMatches.length > 0 || upcomingBasketballMatches.length > 0) {
+    if (upcomingFootballMatches.length > 0 || 
+        upcomingBasketballMatches.length > 0 || 
+        upcomingTennisMatches.length > 0 || 
+        upcomingCricketMatches.length > 0 ||
+        upcomingBaseballMatches.length > 0) {
       // Use enhanced ML client to generate accumulators from real match data
       accumulators = await enhancedMLClient.generateAccumulatorsFromRealMatches(enhancedData);
       logger.info("MLRoutes", "Generated accumulators using real match data", {
         footballMatchCount: upcomingFootballMatches.length,
-        basketballMatchCount: upcomingBasketballMatches.length
+        basketballMatchCount: upcomingBasketballMatches.length,
+        tennisMatchCount: upcomingTennisMatches.length,
+        cricketMatchCount: upcomingCricketMatches.length,
+        baseballMatchCount: upcomingBaseballMatches.length
       });
     } else {
       // Fall back to ML service accumulators if no real matches are available

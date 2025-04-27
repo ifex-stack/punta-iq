@@ -160,7 +160,7 @@ class SportsApiService {
       endpoints: {
         fixtures: '/games',
         leagues: '/leagues',
-        players: '/players'
+        teams: '/players'
       }
     },
     cricket: {
