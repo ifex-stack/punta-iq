@@ -45,6 +45,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Simple direct SQL news fetch - Debugging endpoint
+  app.get("/api/news/direct", async (req, res) => {
+    try {
+      console.log("Direct database query for news articles");
+      
+      // Very simple query with minimal options
+      const { rows } = await pool.query("SELECT id, title FROM news_articles");
+      
+      console.log(`Direct news query found ${rows.length} articles`);
+      res.json(rows);
+    } catch (error: any) {
+      console.error("Database error in /api/news/direct:", error);
+      res.status(500).json({ 
+        message: "Database error", 
+        details: error.message,
+        stack: error.stack
+      });
+    }
+  });
+  
   // Leagues routes
   app.get("/api/leagues/:sportId", async (req, res) => {
     try {
@@ -810,23 +830,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get trending news articles
   app.get("/api/news/trending", async (req, res) => {
     try {
-      // Fixed simple implementation using direct SQL
-      const query = `
-        SELECT * FROM news_articles
-        ORDER BY id DESC
-        LIMIT 10
-      `;
+      console.log("Getting basic news articles - no params, no transformations");
       
-      console.log("Executing simple fixed trending articles query");
+      // Simple raw SQL query to get news articles
+      const result = await pool.query("SELECT * FROM news_articles LIMIT 10");
       
-      // Execute the simple query directly using the pool
-      const { rows } = await pool.query(query);
-      
-      console.log(`Found ${rows.length} trending articles using fixed query`);
-      res.json(rows);
+      // No transformations, just return the raw rows
+      console.log(`Found ${result.rows.length} articles from basic query`);
+      res.json(result.rows);
     } catch (error: any) {
-      console.error("Error getting trending articles:", error);
-      res.status(500).json({ message: error.message || "Could not retrieve trending articles" });
+      console.error("Error in basic news article query:", error);
+      res.status(500).json({ message: error.message || "Could not retrieve articles" });
     }
   });
 
