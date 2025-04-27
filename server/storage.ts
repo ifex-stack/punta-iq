@@ -2875,7 +2875,10 @@ export class DatabaseStorage implements IStorage {
         isTwoFactorEnabled: users.isTwoFactorEnabled,
         phoneNumber: users.phoneNumber,
         referralCode: users.referralCode,
-        referredBy: users.referredBy
+        referredBy: users.referredBy,
+        // Referral gamification fields
+        referralStreak: users.referralStreak,
+        lastReferralDate: users.lastReferralDate
       }).from(users).where(eq(users.referralCode, referralCode));
       return user;
     } catch (error) {
@@ -2998,6 +3001,46 @@ export class DatabaseStorage implements IStorage {
       return updatedUser;
     } catch (error) {
       console.error("Error updating user fantasy points:", error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Update the referral streak for a user
+   * Increments the streak if the referral was completed within 30 days of the last one
+   * Resets the streak to 1 if it's been longer than 30 days
+   * @param userId The user ID to update
+   * @param incrementStreak Whether to increment the streak (true) or reset it to 1 (false)
+   * @returns The updated user object
+   */
+  async updateUserReferralStreak(userId: number, incrementStreak: boolean = true): Promise<User> {
+    try {
+      // Get current user data
+      const user = await this.getUser(userId);
+      if (!user) throw new Error("User not found");
+      
+      const currentStreak = user.referralStreak || 0;
+      const today = new Date();
+      let newStreak = 1; // Default is to reset to 1
+      
+      if (incrementStreak) {
+        // Increment streak if this is a continued streak
+        newStreak = currentStreak + 1;
+      }
+      
+      // Update user with new streak total and last referral date
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          referralStreak: newStreak,
+          lastReferralDate: today
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      
+      return updatedUser;
+    } catch (error) {
+      console.error("Error updating user referral streak:", error);
       throw error;
     }
   }
