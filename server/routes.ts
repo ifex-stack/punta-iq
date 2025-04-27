@@ -12,6 +12,7 @@ import { storage } from "./storage";
 import { getFantasyStore } from "./fantasy-data-init";
 import { PushNotificationService } from "./push-notification-service";
 import { newsRecommendationEngine } from "./recommendation-engine";
+import { db, pool } from "./db";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
@@ -50,17 +51,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Direct database query for news articles");
       
-      // Very simple query with minimal options
-      const { rows } = await pool.query("SELECT id, title FROM news_articles");
+      // Use parameterized query with explicit schema reference
+      const { rows } = await pool.query(
+        `SELECT 
+          id::int, 
+          title, 
+          summary, 
+          image_url, 
+          published_at, 
+          author, 
+          source 
+        FROM news_articles 
+        ORDER BY published_at DESC 
+        LIMIT 10`
+      );
       
       console.log(`Direct news query found ${rows.length} articles`);
-      res.json(rows);
+      
+      // Transform to camelCase property names for frontend consumption
+      const articles = rows.map(row => ({
+        id: row.id,
+        title: row.title,
+        summary: row.summary,
+        imageUrl: row.image_url,
+        publishedAt: row.published_at,
+        author: row.author,
+        source: row.source
+      }));
+      
+      res.json(articles);
     } catch (error: any) {
       console.error("Database error in /api/news/direct:", error);
       res.status(500).json({ 
         message: "Database error", 
-        details: error.message,
-        stack: error.stack
+        details: error.message
       });
     }
   });
@@ -830,16 +854,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get trending news articles
   app.get("/api/news/trending", async (req, res) => {
     try {
-      console.log("Getting basic news articles - no params, no transformations");
+      console.log("Fetching trending news articles");
       
-      // Simple raw SQL query to get news articles
-      const result = await pool.query("SELECT * FROM news_articles LIMIT 10");
+      const count = req.query.count ? parseInt(req.query.count as string) : 5;
       
-      // No transformations, just return the raw rows
-      console.log(`Found ${result.rows.length} articles from basic query`);
-      res.json(result.rows);
+      // Use direct SQL query with explicit column casting and ordering
+      const { rows } = await pool.query(`
+        SELECT 
+          id::integer, 
+          title, 
+          summary, 
+          image_url, 
+          published_at, 
+          author, 
+          source,
+          sport_id,
+          COALESCE(views, 0) as views,
+          COALESCE(likes, 0) as likes
+        FROM news_articles 
+        ORDER BY (COALESCE(views, 0) + COALESCE(likes, 0) * 2) DESC, published_at DESC 
+        LIMIT $1
+      `, [count]);
+      
+      console.log(`Found ${rows.length} trending articles via direct SQL`);
+      
+      // Transform to camelCase property names for frontend consumption
+      const articles = rows.map(row => ({
+        id: row.id,
+        title: row.title,
+        summary: row.summary,
+        imageUrl: row.image_url,
+        publishedAt: row.published_at,
+        author: row.author,
+        source: row.source,
+        sportId: row.sport_id,
+        views: row.views,
+        likes: row.likes
+      }));
+      
+      res.json(articles);
     } catch (error: any) {
-      console.error("Error in basic news article query:", error);
+      console.error("Error in trending news article query:", error);
       res.status(500).json({ message: error.message || "Could not retrieve articles" });
     }
   });
