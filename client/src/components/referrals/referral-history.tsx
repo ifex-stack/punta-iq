@@ -4,6 +4,28 @@ import { Badge } from "@/components/ui/badge";
 import { Users, Clock, CheckCircle, XCircle, HelpCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+// Helper to get status badge
+const StatusBadge = ({ status }: { status: string }) => {
+  const variants: Record<string, string> = {
+    pending: 'warning',
+    completed: 'success',
+    cancelled: 'destructive',
+    default: 'outline'
+  };
+  
+  const variant = variants[status] || variants.default;
+  
+  return (
+    <Badge variant={variant as any} className="gap-1 py-1 capitalize">
+      {status === 'pending' && <Clock className="h-4 w-4 text-yellow-500" />}
+      {status === 'completed' && <CheckCircle className="h-4 w-4 text-green-500" />}
+      {status === 'cancelled' && <XCircle className="h-4 w-4 text-red-500" />}
+      {!['pending', 'completed', 'cancelled'].includes(status) && <HelpCircle className="h-4 w-4 text-muted-foreground" />}
+      {status}
+    </Badge>
+  );
+};
+
 interface ReferralHistoryProps {
   referrals: Array<{
     id: number;

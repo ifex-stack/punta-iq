@@ -1,31 +1,40 @@
-import { ReactNode } from 'react';
+import { FC, ReactNode } from "react";
 
 interface PageHeaderProps {
   title: string;
   description?: string;
   icon?: ReactNode;
-  action?: ReactNode;
+  actions?: ReactNode;
+  children?: ReactNode;
 }
 
-export function PageHeader({ title, description, icon, action }: PageHeaderProps) {
+export const PageHeader: FC<PageHeaderProps> = ({
+  title,
+  description,
+  icon,
+  actions,
+  children
+}) => {
   return (
-    <div className="flex items-center justify-between">
-      <div className="space-y-1.5">
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          {icon}
-          {title}
-        </h1>
-        {description && (
-          <p className="text-sm text-muted-foreground">
-            {description}
-          </p>
+    <div className="flex flex-col gap-1 mb-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {icon && <div className="flex items-center justify-center">{icon}</div>}
+          <h1 className="text-2xl font-bold">{title}</h1>
+        </div>
+        
+        {actions && (
+          <div className="flex items-center gap-2">
+            {actions}
+          </div>
         )}
       </div>
-      {action && (
-        <div>
-          {action}
-        </div>
+      
+      {description && (
+        <p className="text-muted-foreground">{description}</p>
       )}
+      
+      {children}
     </div>
   );
-}
+};

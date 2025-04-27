@@ -1,16 +1,45 @@
+import { useState, useEffect } from "react";
 import { ReferralCard } from "@/components/referrals/referral-card";
+import { ReferralTiers } from "@/components/referrals/referral-tiers";
+import { ReferralHistory } from "@/components/referrals/referral-history";
 import { PageHeader } from "@/components/layout/page-header";
-import { Gift, ScrollText, Share } from "lucide-react";
+import { Gift, ScrollText, Share, ChartBar, Trophy, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import { useFeatureFlag } from "@/lib/feature-flags";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ReferralsPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const isReferralEnabled = useFeatureFlag('referralProgram');
+  
+  // Get referral data
+  const { data: referralStats, isLoading: isLoadingStats } = useQuery({
+    queryKey: ['/api/referrals/stats'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/referrals/stats');
+      return res.json();
+    },
+    enabled: !!user && isReferralEnabled
+  });
+  
+  // Get user's referrals
+  const { data: referrals, isLoading: isLoadingReferrals } = useQuery({
+    queryKey: ['/api/referrals'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/referrals');
+      return res.json();
+    },
+    enabled: !!user && isReferralEnabled
+  });
   
   if (!user) {
     return <Redirect to="/auth" />;
@@ -28,15 +57,43 @@ export default function ReferralsPage() {
         icon={<Gift className="text-primary h-6 w-6" />}
       />
       
+      {/* Stats Overview */}
+      <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard 
+          title="Total Invites" 
+          value={isLoadingStats ? null : referralStats?.totalReferrals || 0}
+          icon={<Users className="h-5 w-5 text-blue-400" />} 
+        />
+        <StatCard 
+          title="Successful" 
+          value={isLoadingStats ? null : referralStats?.completedReferrals || 0}
+          icon={<Trophy className="h-5 w-5 text-green-500" />} 
+        />
+        <StatCard 
+          title="Pending" 
+          value={isLoadingStats ? null : referralStats?.pendingReferrals || 0}
+          icon={<Gift className="h-5 w-5 text-yellow-500" />} 
+        />
+        <StatCard 
+          title="Points Earned" 
+          value={isLoadingStats ? null : referralStats?.totalRewards || 0}
+          icon={<ChartBar className="h-5 w-5 text-purple-500" />} 
+        />
+      </div>
+      
       <Tabs defaultValue="program" className="mt-6">
-        <TabsList className="grid w-full grid-cols-3 mb-4">
+        <TabsList className="grid w-full grid-cols-4 mb-4">
           <TabsTrigger value="program">
             <Gift className="h-4 w-4 mr-2" />
             Program
           </TabsTrigger>
-          <TabsTrigger value="how-it-works">
-            <ScrollText className="h-4 w-4 mr-2" />
-            How it Works
+          <TabsTrigger value="tiers">
+            <Trophy className="h-4 w-4 mr-2" />
+            Achievements
+          </TabsTrigger>
+          <TabsTrigger value="history">
+            <Users className="h-4 w-4 mr-2" />
+            History
           </TabsTrigger>
           <TabsTrigger value="share">
             <Share className="h-4 w-4 mr-2" />
@@ -64,8 +121,9 @@ export default function ReferralsPage() {
                   <ul className="list-disc pl-5 space-y-1 text-sm">
                     <li>500 points for each friend who joins</li>
                     <li>Points can be used for premium predictions</li>
-                    <li>Exclusive badge after 5 successful referrals</li>
-                    <li>Special position on the leaderboard</li>
+                    <li>Exclusive badges for reaching referral milestones</li>
+                    <li>Special position on the referral leaderboard</li>
+                    <li>Free premium access when reaching tier thresholds</li>
                   </ul>
                 </div>
                 
@@ -75,6 +133,57 @@ export default function ReferralsPage() {
                     <li>200 welcome points when they sign up</li>
                     <li>Access to one week of premium predictions</li>
                     <li>Entry into the newcomers fantasy contest</li>
+                    <li>Personalized onboarding experience</li>
+                  </ul>
+                </div>
+                
+                <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                  <h3 className="text-sm font-semibold flex items-center gap-1.5 mb-2">
+                    <Trophy className="h-4 w-4 text-yellow-500" />
+                    Special Campaign: April Boost
+                  </h3>
+                  <p className="text-sm">
+                    For a limited time, earn <span className="font-semibold text-primary">DOUBLE POINTS</span> for every successful referral! Campaign ends May 1st.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle>How the Referral Program Works</CardTitle>
+                <CardDescription>
+                  Follow these simple steps to refer friends and earn rewards
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="border rounded-lg p-4 space-y-2">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">1</div>
+                    <h3 className="font-medium">Share Your Code</h3>
+                    <p className="text-sm text-muted-foreground">Copy your unique referral code and share it with friends or use the share button</p>
+                  </div>
+                  
+                  <div className="border rounded-lg p-4 space-y-2">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">2</div>
+                    <h3 className="font-medium">Friend Registers</h3>
+                    <p className="text-sm text-muted-foreground">Your friend creates an account using your referral code during registration</p>
+                  </div>
+                  
+                  <div className="border rounded-lg p-4 space-y-2">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">3</div>
+                    <h3 className="font-medium">Earn Rewards</h3>
+                    <p className="text-sm text-muted-foreground">Once they complete their profile, both of you receive points and rewards</p>
+                  </div>
+                </div>
+                
+                <div className="mt-6 space-y-3">
+                  <h3 className="font-medium">Important Notes:</h3>
+                  <ul className="list-disc pl-5 space-y-2 text-sm">
+                    <li>Your friend must use your referral code during registration</li>
+                    <li>Points are awarded only after the referred user completes their profile</li>
+                    <li>Each user can only be referred once</li>
+                    <li>We monitor for fraudulent activity - multiple accounts created from the same device are not eligible for rewards</li>
                   </ul>
                 </div>
               </CardContent>
@@ -82,46 +191,19 @@ export default function ReferralsPage() {
           </div>
         </TabsContent>
         
-        <TabsContent value="how-it-works" className="mt-0">
-          <Card>
-            <CardHeader>
-              <CardTitle>How the Referral Program Works</CardTitle>
-              <CardDescription>
-                Follow these simple steps to refer friends and earn rewards
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="border rounded-lg p-4 space-y-2">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">1</div>
-                  <h3 className="font-medium">Share Your Code</h3>
-                  <p className="text-sm text-muted-foreground">Copy your unique referral code and share it with friends or use the share button</p>
-                </div>
-                
-                <div className="border rounded-lg p-4 space-y-2">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">2</div>
-                  <h3 className="font-medium">Friend Registers</h3>
-                  <p className="text-sm text-muted-foreground">Your friend creates an account using your referral code during registration</p>
-                </div>
-                
-                <div className="border rounded-lg p-4 space-y-2">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">3</div>
-                  <h3 className="font-medium">Earn Rewards</h3>
-                  <p className="text-sm text-muted-foreground">Once they complete their profile, both of you receive points and rewards</p>
-                </div>
-              </div>
-              
-              <div className="mt-6 space-y-3">
-                <h3 className="font-medium">Important Notes:</h3>
-                <ul className="list-disc pl-5 space-y-2 text-sm">
-                  <li>Your friend must use your referral code during registration</li>
-                  <li>Points are awarded only after the referred user completes their profile</li>
-                  <li>Each user can only be referred once</li>
-                  <li>We monitor for fraudulent activity - multiple accounts created from the same device are not eligible for rewards</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="tiers" className="mt-0">
+          <ReferralTiers totalReferrals={referralStats?.completedReferrals || 0} />
+        </TabsContent>
+        
+        <TabsContent value="history" className="mt-0">
+          {isLoadingReferrals ? (
+            <div className="space-y-4">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-64 w-full" />
+            </div>
+          ) : (
+            <ReferralHistory referrals={referrals || []} />
+          )}
         </TabsContent>
         
         <TabsContent value="share" className="mt-0">
@@ -141,6 +223,11 @@ export default function ReferralsPage() {
                     url: window.location.origin
                   }).catch(() => {
                     // Fallback if Web Share API is not supported
+                    toast({
+                      title: "Sharing not supported",
+                      description: "Your browser doesn't support sharing. Try another method.",
+                      variant: "destructive"
+                    });
                   });
                 }}>
                   <Share className="h-6 w-6 mb-2" />
@@ -179,6 +266,71 @@ export default function ReferralsPage() {
                   <span className="text-xs text-muted-foreground">Send Email</span>
                 </Button>
               </div>
+              
+              {/* QR Code Section */}
+              <div className="mt-8 p-6 border rounded-xl bg-card/50">
+                <h3 className="text-lg font-medium mb-4 text-center">Share via QR Code</h3>
+                <div className="flex justify-center">
+                  <div className="w-48 h-48 bg-white p-4 rounded-lg flex items-center justify-center">
+                    <svg className="w-full h-full text-primary" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="10" y="10" width="30" height="30" rx="2" stroke="currentColor" strokeWidth="4" />
+                      <rect x="60" y="10" width="30" height="30" rx="2" stroke="currentColor" strokeWidth="4" />
+                      <rect x="10" y="60" width="30" height="30" rx="2" stroke="currentColor" strokeWidth="4" />
+                      <rect x="60" y="60" width="30" height="30" rx="2" stroke="currentColor" strokeWidth="4" />
+                      <rect x="20" y="20" width="10" height="10" fill="currentColor" />
+                      <rect x="70" y="20" width="10" height="10" fill="currentColor" />
+                      <rect x="20" y="70" width="10" height="10" fill="currentColor" />
+                      <rect x="45" y="45" width="10" height="10" fill="currentColor" />
+                      <rect x="45" y="15" width="10" height="10" fill="currentColor" />
+                      <rect x="45" y="75" width="10" height="10" fill="currentColor" />
+                      <rect x="75" y="45" width="10" height="10" fill="currentColor" />
+                      <rect x="15" y="45" width="10" height="10" fill="currentColor" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-muted-foreground">Scan this QR code to join PuntaIQ</p>
+                  <Button className="mt-2" size="sm">
+                    Download QR Code
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Pre-formatted Messages */}
+              <div className="mt-4">
+                <h3 className="text-sm font-medium mb-2">Pre-formatted Messages:</h3>
+                <div className="space-y-3">
+                  <div className="p-3 bg-muted rounded-md">
+                    <p className="text-sm italic">
+                      "Join me on PuntaIQ, the AI-powered sports prediction platform that gives you winning insights! Use my referral code to get 200 welcome points and premium access. Sign up now: {window.location.origin}"
+                    </p>
+                    <Button variant="outline" size="sm" className="mt-2" onClick={() => {
+                      navigator.clipboard.writeText(`Join me on PuntaIQ, the AI-powered sports prediction platform that gives you winning insights! Use my referral code to get 200 welcome points and premium access. Sign up now: ${window.location.origin}`);
+                      toast({
+                        title: "Copied!",
+                        description: "Message copied to clipboard",
+                      });
+                    }}>
+                      Copy Text
+                    </Button>
+                  </div>
+                  
+                  <div className="p-3 bg-muted rounded-md">
+                    <p className="text-sm italic">
+                      "Looking for better sports predictions? PuntaIQ uses AI to analyze matches and give you the best picks. I've been using it and it's fantastic! Sign up with my referral code: {window.location.origin}"
+                    </p>
+                    <Button variant="outline" size="sm" className="mt-2" onClick={() => {
+                      navigator.clipboard.writeText(`Looking for better sports predictions? PuntaIQ uses AI to analyze matches and give you the best picks. I've been using it and it's fantastic! Sign up with my referral code: ${window.location.origin}`);
+                      toast({
+                        title: "Copied!",
+                        description: "Message copied to clipboard",
+                      });
+                    }}>
+                      Copy Text
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -186,3 +338,24 @@ export default function ReferralsPage() {
     </div>
   );
 }
+
+// Stat card component
+const StatCard = ({ title, value, icon }: { title: string, value: number | null, icon: React.ReactNode }) => {
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
+            {value === null ? (
+              <Skeleton className="h-6 w-16" />
+            ) : (
+              <h3 className="text-2xl font-bold">{value}</h3>
+            )}
+          </div>
+          <div className="p-2 bg-background rounded-md">{icon}</div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};

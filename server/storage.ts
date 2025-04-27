@@ -624,22 +624,105 @@ export class MemStorage implements IStorage {
     totalReferrals: number,
     pendingReferrals: number,
     completedReferrals: number,
-    totalRewards: number
+    totalRewards: number,
+    currentTier: string,
+    nextTier: string | null,
+    nextTierThreshold: number | null,
+    progress: number,
+    streakCount: number,
+    lastReferralDate: Date | null
   }> {
     const userReferrals = Array.from(this.referralsMap.values()).filter(
       referral => referral.referrerId === userId
     );
     
+    // Basic stats
     const totalReferrals = userReferrals.length;
     const pendingReferrals = userReferrals.filter(r => r.status === 'pending').length;
     const completedReferrals = userReferrals.filter(r => r.status === 'completed').length;
     const totalRewards = userReferrals.reduce((sum, r) => sum + (r.rewardAmount || 0), 0);
     
+    // Get the last referral date
+    const sortedCompletedReferrals = userReferrals
+      .filter(r => r.status === 'completed')
+      .sort((a, b) => {
+        const dateA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+        const dateB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+        return dateB - dateA;
+      });
+    
+    const lastReferralDate = sortedCompletedReferrals.length > 0 ? 
+      sortedCompletedReferrals[0].completedAt : null;
+    
+    // Calculate referral streak
+    let streakCount = 0;
+    if (sortedCompletedReferrals.length > 0) {
+      // Simple streak logic - check how many consecutive weeks with at least one referral
+      const weekBuckets = new Set();
+      sortedCompletedReferrals.forEach(ref => {
+        if (ref.completedAt) {
+          const date = new Date(ref.completedAt);
+          const weekKey = `${date.getFullYear()}-${Math.floor(date.getDate() / 7)}`;
+          weekBuckets.add(weekKey);
+        }
+      });
+      streakCount = weekBuckets.size;
+    }
+    
+    // Tier calculation logic
+    const tiers = [
+      { name: 'bronze', threshold: 1 },
+      { name: 'silver', threshold: 5 },
+      { name: 'gold', threshold: 10 },
+      { name: 'platinum', threshold: 25 }
+    ];
+    
+    // Determine current tier
+    let currentTier = 'none';
+    let nextTier = null;
+    let nextTierThreshold = null;
+    let progress = 0;
+    
+    for (let i = tiers.length - 1; i >= 0; i--) {
+      if (completedReferrals >= tiers[i].threshold) {
+        currentTier = tiers[i].name;
+        
+        // If we're not at max tier, calculate next tier
+        if (i < tiers.length - 1) {
+          nextTier = tiers[i + 1].name;
+          nextTierThreshold = tiers[i + 1].threshold;
+          progress = (completedReferrals / nextTierThreshold) * 100;
+        } else {
+          progress = 100; // Max tier reached
+        }
+        
+        break;
+      }
+    }
+    
+    // If we're still at no tier but have some referrals, set progress toward bronze
+    if (currentTier === 'none' && completedReferrals > 0) {
+      nextTier = tiers[0].name;
+      nextTierThreshold = tiers[0].threshold;
+      progress = (completedReferrals / nextTierThreshold) * 100;
+    } else if (currentTier === 'none') {
+      // No referrals at all
+      nextTier = tiers[0].name;
+      nextTierThreshold = tiers[0].threshold;
+      progress = 0;
+    }
+    
     return {
       totalReferrals,
       pendingReferrals,
       completedReferrals,
-      totalRewards
+      totalRewards,
+      currentTier,
+      nextTier,
+      nextTierThreshold,
+      progress,
+      streakCount,
+      lastReferralDate
     };
   }
   
