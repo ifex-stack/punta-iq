@@ -11,6 +11,7 @@ import { setupTestAiStatusRoute } from "./test-ai-status";
 import { storage } from "./storage";
 import { getFantasyStore } from "./fantasy-data-init";
 import { PushNotificationService } from "./push-notification-service";
+import { newsRecommendationEngine } from "./recommendation-engine";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
@@ -768,6 +769,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(articles);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // REAL-TIME NEWS RECOMMENDATIONS API ROUTES
+  
+  // Get personalized article recommendations for the current user
+  app.get("/api/news/recommendations", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const userId = req.user?.id;
+      if (!userId || isNaN(Number(userId))) {
+        return res.status(400).json({ message: "Invalid user identification" });
+      }
+      
+      const count = req.query.count ? parseInt(req.query.count as string) : 5;
+      
+      // Get list of articles to exclude (already read or saved)
+      const excludeIds = req.query.exclude ? (req.query.exclude as string)
+        .split(',')
+        .map(id => parseInt(id))
+        .filter(id => !isNaN(id)) : [];
+      
+      const recommendations = await newsRecommendationEngine.getRecommendations(
+        Number(userId), 
+        count,
+        excludeIds
+      );
+      
+      res.json(recommendations);
+    } catch (error: any) {
+      console.error("Error getting article recommendations:", error);
+      res.status(500).json({ message: "Could not retrieve article recommendations" });
+    }
+  });
+  
+  // Get trending news articles
+  app.get("/api/news/trending", async (req, res) => {
+    try {
+      const count = req.query.count ? parseInt(req.query.count as string) : 5;
+      const trendingArticles = await newsRecommendationEngine.getTrendingArticles(count);
+      
+      res.json(trendingArticles);
+    } catch (error: any) {
+      console.error("Error getting trending articles:", error);
+      res.status(500).json({ message: "Could not retrieve trending articles" });
     }
   });
 

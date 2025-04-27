@@ -167,6 +167,18 @@ export function NewsFeed({ initialTab = "personalized" }: { initialTab?: string 
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState(initialTab);
   
+  // Load recommended articles from our new API endpoint
+  const { data: recommendedArticles, isLoading: loadingRecommended } = useQuery({
+    queryKey: ["/api/news/recommendations"],
+    enabled: !!user && activeTab === "recommended",
+  });
+  
+  // Get trending articles for everybody
+  const { data: trendingArticles, isLoading: loadingTrending } = useQuery({
+    queryKey: ["/api/news/trending"],
+    enabled: activeTab === "recommended",
+  });
+  
   const { data: personalizedNews, isLoading: loadingPersonalized } = useQuery({
     queryKey: ["/api/news/feed/personalized"],
     enabled: !!user && activeTab === "personalized",
@@ -189,9 +201,12 @@ export function NewsFeed({ initialTab = "personalized" }: { initialTab?: string 
       </h1>
       
       <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6">
+        <TabsList className="grid w-full grid-cols-4 mb-6">
           <TabsTrigger value="personalized" disabled={!user}>
             For You
+          </TabsTrigger>
+          <TabsTrigger value="recommended">
+            Recommended
           </TabsTrigger>
           <TabsTrigger value="all">
             All News
@@ -226,6 +241,78 @@ export function NewsFeed({ initialTab = "personalized" }: { initialTab?: string 
                   Update your preferences to get news tailored to your interests
                 </p>
                 <Button variant="outline">Update Preferences</Button>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+        
+        {/* New Recommended tab with enhanced AI-powered recommendations */}
+        <TabsContent value="recommended">
+          <div>
+            {/* For users with recommendations from AI engine */}
+            {user && recommendedArticles && recommendedArticles.length > 0 && (
+              <div className="mb-10">
+                <h3 className="text-xl font-bold mb-4 flex items-center">
+                  <span>Tailored For You</span>
+                  <Badge className="ml-2 bg-primary/20">AI-powered</Badge>
+                </h3>
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  {recommendedArticles.map((article: any) => (
+                    <div key={`rec-${article.id}`}>
+                      <div className="flex items-center mb-2">
+                        <Badge variant="outline" className="text-xs">
+                          {article.recommendReason}
+                        </Badge>
+                        {article.score > 0.7 && (
+                          <Badge variant="secondary" className="ml-2 text-xs">
+                            High Match
+                          </Badge>
+                        )}
+                      </div>
+                      <NewsArticleCard article={article} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Trending section for everyone */}
+            {trendingArticles && trendingArticles.length > 0 && (
+              <div>
+                <h3 className="text-xl font-bold mb-4 flex items-center">
+                  <span>Trending In Sports</span>
+                  <Badge variant="default" className="ml-2">Popular</Badge>
+                </h3>
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  {trendingArticles.map((article: NewsArticle) => (
+                    <NewsArticleCard key={`trend-${article.id}`} article={article} />
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Loading state */}
+            {(loadingRecommended || loadingTrending) && (
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <ArticleSkeleton />
+                <ArticleSkeleton />
+                <ArticleSkeleton />
+                <ArticleSkeleton />
+              </div>
+            )}
+            
+            {/* Empty state when no articles */}
+            {!loadingRecommended && !loadingTrending && 
+              (!recommendedArticles || recommendedArticles.length === 0) && 
+              (!trendingArticles || trendingArticles.length === 0) && (
+              <div className="text-center py-10">
+                <h3 className="text-xl font-medium mb-2">No recommendations available</h3>
+                <p className="text-muted-foreground mb-4">
+                  Start reading articles or update your preferences to get personalized recommendations
+                </p>
+                <Button variant="outline" onClick={() => setActiveTab("all")}>
+                  Browse All News
+                </Button>
               </div>
             )}
           </div>
