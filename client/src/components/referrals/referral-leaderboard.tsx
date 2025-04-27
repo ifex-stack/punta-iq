@@ -56,7 +56,7 @@ export const ReferralLeaderboard: FC<ReferralLeaderboardProps> = ({ limit = 10, 
   });
   
   // Get tier icon based on tier
-  const getTierIcon = (tier: string) => {
+  const getTierIcon = (tier: TierType) => {
     switch (tier) {
       case 'platinum':
         return <Award className="h-4 w-4" />;
@@ -116,7 +116,7 @@ export const ReferralLeaderboard: FC<ReferralLeaderboardProps> = ({ limit = 10, 
                   </div>
                   <div>
                     <div className="font-medium flex items-center">
-                      {user.username}
+                      {user?.username}
                       <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">You</span>
                     </div>
                     <ReferralBadge minimal />
