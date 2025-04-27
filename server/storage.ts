@@ -22,6 +22,9 @@ import {
   leaderboards,
   leaderboardEntries,
   referrals,
+  newsArticles,
+  userNewsPreferences,
+  userSavedNews,
   type User,
   type InsertUser,
   type Sport,
@@ -68,6 +71,12 @@ import {
   type InsertLeaderboardEntry,
   type Referral,
   type InsertReferral,
+  type NewsArticle,
+  type InsertNewsArticle,
+  type UserNewsPreferences,
+  type InsertUserNewsPreferences,
+  type UserSavedNews,
+  type InsertUserSavedNews,
   subscriptionTiers
 } from "@shared/schema";
 import session from "express-session";
@@ -249,6 +258,31 @@ export interface IStorage {
   deleteLeaderboard(id: number): Promise<boolean>;
   updateAllLeaderboards(): Promise<void>;
   
+  // News Article methods
+  getAllNewsArticles(limit?: number, offset?: number): Promise<NewsArticle[]>;
+  getNewsArticleById(id: number): Promise<NewsArticle | undefined>;
+  getNewsArticlesByType(type: string, limit?: number): Promise<NewsArticle[]>;
+  getNewsArticlesBySport(sportId: number, limit?: number): Promise<NewsArticle[]>;
+  getNewsArticlesByLeague(leagueId: number, limit?: number): Promise<NewsArticle[]>;
+  searchNewsArticles(query: string, limit?: number): Promise<NewsArticle[]>;
+  createNewsArticle(article: InsertNewsArticle): Promise<NewsArticle>;
+  updateNewsArticle(id: number, data: Partial<InsertNewsArticle>): Promise<NewsArticle>;
+  deleteNewsArticle(id: number): Promise<boolean>;
+  
+  // User News Preferences methods
+  getUserNewsPreferences(userId: number): Promise<UserNewsPreferences | undefined>;
+  createUserNewsPreferences(prefs: InsertUserNewsPreferences): Promise<UserNewsPreferences>;
+  updateUserNewsPreferences(userId: number, prefs: Partial<InsertUserNewsPreferences>): Promise<UserNewsPreferences>;
+  
+  // User Saved News methods
+  getUserSavedNews(userId: number): Promise<UserSavedNews[]>;
+  saveNewsArticle(data: InsertUserSavedNews): Promise<UserSavedNews>;
+  markNewsArticleAsRead(userId: number, articleId: number): Promise<UserSavedNews>;
+  unsaveNewsArticle(userId: number, articleId: number): Promise<boolean>;
+  
+  // Personalized News Feed
+  getPersonalizedNewsFeed(userId: number, limit?: number, offset?: number): Promise<NewsArticle[]>;
+  
   // Session store
   sessionStore: session.SessionStore;
 }
@@ -285,6 +319,11 @@ export class MemStorage implements IStorage {
   
   // Referral system
   private referralsMap: Map<number, Referral>;
+  
+  // News system
+  private newsArticlesMap: Map<number, NewsArticle>;
+  private userNewsPreferencesMap: Map<number, UserNewsPreferences>;
+  private userSavedNewsMap: Map<number, UserSavedNews>;
   
   // Connected websocket clients
   private wsClients: Map<number, WebSocket[]> = new Map();
@@ -323,6 +362,11 @@ export class MemStorage implements IStorage {
   
   // Referral system ID counters
   private referralIdCounter: number = 1;
+  
+  // News system ID counters
+  private newsArticleIdCounter: number = 1;
+  private userNewsPreferencesIdCounter: number = 1;
+  private userSavedNewsIdCounter: number = 1;
   
   constructor() {
     this.usersMap = new Map();
