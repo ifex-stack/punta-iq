@@ -4314,6 +4314,134 @@ export class DatabaseStorage implements IStorage {
       return [];
     }
   }
+
+  // Fantasy Football methods
+  async getAllFantasyContests(limit: number = 20, status?: string, tier?: string): Promise<FantasyContest[]> {
+    try {
+      let query = db.select().from(fantasyContests);
+      
+      // Apply filters if provided
+      if (status) {
+        query = query.where(eq(fantasyContests.status, status as any));
+      }
+      
+      if (tier) {
+        query = query.where(eq(fantasyContests.tier, tier as any));
+      }
+      
+      // Sort by start date (newest first)
+      query = query.orderBy(desc(fantasyContests.startDate)).limit(limit);
+      
+      return await query;
+    } catch (error) {
+      console.error("Error getting fantasy contests:", error);
+      return [];
+    }
+  }
+  
+  async getFreeFantasyContests(limit: number = 20, status?: string): Promise<FantasyContest[]> {
+    return this.getAllFantasyContests(limit, status, 'free');
+  }
+  
+  async getPremiumFantasyContests(limit: number = 20, status?: string): Promise<FantasyContest[]> {
+    return this.getAllFantasyContests(limit, status, 'premium');
+  }
+  
+  async getFantasyContestById(id: number): Promise<FantasyContest | undefined> {
+    try {
+      const [contest] = await db
+        .select()
+        .from(fantasyContests)
+        .where(eq(fantasyContests.id, id));
+      
+      return contest;
+    } catch (error) {
+      console.error(`Error getting fantasy contest with id ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async createFantasyContest(contest: InsertFantasyContest): Promise<FantasyContest> {
+    try {
+      const [newContest] = await db
+        .insert(fantasyContests)
+        .values(contest)
+        .returning();
+      
+      return newContest;
+    } catch (error) {
+      console.error("Error creating fantasy contest:", error);
+      throw error;
+    }
+  }
+  
+  async getFantasyTeamById(id: number): Promise<FantasyTeam | undefined> {
+    try {
+      const [team] = await db
+        .select()
+        .from(fantasyTeams)
+        .where(eq(fantasyTeams.id, id));
+      
+      return team;
+    } catch (error) {
+      console.error(`Error getting fantasy team with id ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async getUserContestEntries(userId: number): Promise<FantasyContestEntry[]> {
+    try {
+      return await db
+        .select()
+        .from(fantasyContestEntries)
+        .where(eq(fantasyContestEntries.userId, userId));
+    } catch (error) {
+      console.error(`Error getting contest entries for user ${userId}:`, error);
+      return [];
+    }
+  }
+  
+  async createContestEntry(entry: InsertFantasyContestEntry): Promise<FantasyContestEntry> {
+    try {
+      const [newEntry] = await db
+        .insert(fantasyContestEntries)
+        .values(entry)
+        .returning();
+      
+      return newEntry;
+    } catch (error) {
+      console.error("Error creating contest entry:", error);
+      throw error;
+    }
+  }
+  
+  async getContestLeaderboard(contestId: number): Promise<FantasyContestEntry[]> {
+    try {
+      return await db
+        .select()
+        .from(fantasyContestEntries)
+        .where(eq(fantasyContestEntries.contestId, contestId))
+        .orderBy(desc(fantasyContestEntries.totalPoints));
+    } catch (error) {
+      console.error(`Error getting leaderboard for contest ${contestId}:`, error);
+      return [];
+    }
+  }
+  
+  async updateFantasyContestStatus(id: number, status: string): Promise<FantasyContest | null> {
+    try {
+      const [updatedContest] = await db
+        .update(fantasyContests)
+        .set({ status: status as any })
+        .where(eq(fantasyContests.id, id))
+        .returning();
+      
+      return updatedContest || null;
+    } catch (error) {
+      console.error(`Error updating status for contest ${id}:`, error);
+      return null;
+    }
+  }
 }
 
 // Use the database storage implementation
