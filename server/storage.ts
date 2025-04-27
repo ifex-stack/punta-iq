@@ -82,7 +82,7 @@ import {
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import connectPg from "connect-pg-simple";
-import { eq, desc, and, gte, sql } from "drizzle-orm";
+import { eq, desc, and, gte, sql, or, not, inArray, like } from "drizzle-orm";
 import { db, pool } from "./db";
 import WebSocket from "ws";
 
@@ -3848,6 +3848,321 @@ export class DatabaseStorage implements IStorage {
     
     // In a real implementation, this would calculate new scores
     // for leaderboard entries based on user activity
+  }
+
+  // News Article methods
+  async getAllNewsArticles(limit = 20, offset = 0): Promise<NewsArticle[]> {
+    return db
+      .select()
+      .from(newsArticles)
+      .orderBy(desc(newsArticles.publishedAt))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async getNewsArticleById(id: number): Promise<NewsArticle | undefined> {
+    const [article] = await db
+      .select()
+      .from(newsArticles)
+      .where(eq(newsArticles.id, id));
+    return article;
+  }
+
+  async getNewsArticlesByType(type: string, limit = 20): Promise<NewsArticle[]> {
+    return db
+      .select()
+      .from(newsArticles)
+      .where(eq(newsArticles.type, type))
+      .orderBy(desc(newsArticles.publishedAt))
+      .limit(limit);
+  }
+
+  async getNewsArticlesBySport(sportId: number, limit = 20): Promise<NewsArticle[]> {
+    return db
+      .select()
+      .from(newsArticles)
+      .where(eq(newsArticles.sportId, sportId))
+      .orderBy(desc(newsArticles.publishedAt))
+      .limit(limit);
+  }
+
+  async getNewsArticlesByLeague(leagueId: number, limit = 20): Promise<NewsArticle[]> {
+    return db
+      .select()
+      .from(newsArticles)
+      .where(eq(newsArticles.leagueId, leagueId))
+      .orderBy(desc(newsArticles.publishedAt))
+      .limit(limit);
+  }
+
+  async searchNewsArticles(query: string, limit = 20): Promise<NewsArticle[]> {
+    const lowerQuery = `%${query.toLowerCase()}%`;
+    
+    return db
+      .select()
+      .from(newsArticles)
+      .where(
+        or(
+          like(sql`LOWER(${newsArticles.title})`, lowerQuery),
+          like(sql`LOWER(${newsArticles.content})`, lowerQuery),
+          like(sql`LOWER(${newsArticles.summary})`, lowerQuery)
+        )
+      )
+      .orderBy(desc(newsArticles.publishedAt))
+      .limit(limit);
+  }
+
+  async createNewsArticle(article: InsertNewsArticle): Promise<NewsArticle> {
+    const [newArticle] = await db
+      .insert(newsArticles)
+      .values({
+        ...article,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    
+    return newArticle;
+  }
+
+  async updateNewsArticle(id: number, data: Partial<InsertNewsArticle>): Promise<NewsArticle> {
+    const [updatedArticle] = await db
+      .update(newsArticles)
+      .set({
+        ...data,
+        updatedAt: new Date()
+      })
+      .where(eq(newsArticles.id, id))
+      .returning();
+    
+    if (!updatedArticle) {
+      throw new Error("News article not found");
+    }
+    
+    return updatedArticle;
+  }
+
+  async deleteNewsArticle(id: number): Promise<boolean> {
+    const result = await db
+      .delete(newsArticles)
+      .where(eq(newsArticles.id, id));
+    
+    return result.rowCount > 0;
+  }
+
+  // User News Preferences methods
+  async getUserNewsPreferences(userId: number): Promise<UserNewsPreferences | undefined> {
+    const [prefs] = await db
+      .select()
+      .from(userNewsPreferences)
+      .where(eq(userNewsPreferences.userId, userId));
+    
+    return prefs;
+  }
+
+  async createUserNewsPreferences(prefs: InsertUserNewsPreferences): Promise<UserNewsPreferences> {
+    const [newPrefs] = await db
+      .insert(userNewsPreferences)
+      .values({
+        ...prefs,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    
+    return newPrefs;
+  }
+
+  async updateUserNewsPreferences(userId: number, prefs: Partial<InsertUserNewsPreferences>): Promise<UserNewsPreferences> {
+    // Check if preferences exist for this user
+    const existingPrefs = await this.getUserNewsPreferences(userId);
+    
+    if (!existingPrefs) {
+      // If no preferences exist yet, create them
+      return this.createUserNewsPreferences({
+        userId,
+        ...prefs,
+        favoriteTeams: prefs.favoriteTeams || [],
+        favoriteLeagues: prefs.favoriteLeagues || [],
+        favoriteSports: prefs.favoriteSports || [],
+        preferredTopics: prefs.preferredTopics || [],
+        excludedTopics: prefs.excludedTopics || []
+      });
+    }
+    
+    // Update existing preferences
+    const [updatedPrefs] = await db
+      .update(userNewsPreferences)
+      .set({
+        ...prefs,
+        updatedAt: new Date()
+      })
+      .where(eq(userNewsPreferences.id, existingPrefs.id))
+      .returning();
+    
+    return updatedPrefs;
+  }
+
+  // User Saved News methods
+  async getUserSavedNews(userId: number): Promise<UserSavedNews[]> {
+    return db
+      .select()
+      .from(userSavedNews)
+      .where(eq(userSavedNews.userId, userId))
+      .orderBy(desc(userSavedNews.savedAt));
+  }
+
+  async getSavedNewsWithArticles(userId: number): Promise<(UserSavedNews & { article: NewsArticle })[]> {
+    return db
+      .select({
+        ...userSavedNews,
+        article: newsArticles
+      })
+      .from(userSavedNews)
+      .innerJoin(newsArticles, eq(userSavedNews.articleId, newsArticles.id))
+      .where(eq(userSavedNews.userId, userId))
+      .orderBy(desc(userSavedNews.savedAt));
+  }
+
+  async saveNewsArticle(data: InsertUserSavedNews): Promise<UserSavedNews> {
+    // Check if already saved
+    const [existing] = await db
+      .select()
+      .from(userSavedNews)
+      .where(
+        and(
+          eq(userSavedNews.userId, data.userId),
+          eq(userSavedNews.articleId, data.articleId)
+        )
+      );
+    
+    if (existing) {
+      return existing;
+    }
+    
+    // Save the article
+    const [newSaved] = await db
+      .insert(userSavedNews)
+      .values({
+        ...data,
+        savedAt: new Date(),
+        isRead: false
+      })
+      .returning();
+    
+    return newSaved;
+  }
+
+  async markNewsArticleAsRead(userId: number, articleId: number): Promise<UserSavedNews> {
+    // Check if saved
+    const [saved] = await db
+      .select()
+      .from(userSavedNews)
+      .where(
+        and(
+          eq(userSavedNews.userId, userId),
+          eq(userSavedNews.articleId, articleId)
+        )
+      );
+    
+    if (!saved) {
+      // If not saved, save it and mark as read
+      return this.saveNewsArticle({
+        userId,
+        articleId,
+        isRead: true
+      });
+    }
+    
+    // Update read status
+    const [updated] = await db
+      .update(userSavedNews)
+      .set({ isRead: true })
+      .where(eq(userSavedNews.id, saved.id))
+      .returning();
+    
+    return updated;
+  }
+
+  async unsaveNewsArticle(userId: number, articleId: number): Promise<boolean> {
+    const result = await db
+      .delete(userSavedNews)
+      .where(
+        and(
+          eq(userSavedNews.userId, userId),
+          eq(userSavedNews.articleId, articleId)
+        )
+      );
+    
+    return result.rowCount > 0;
+  }
+
+  // Personalized News Feed
+  async getPersonalizedNewsFeed(userId: number, limit = 20, offset = 0): Promise<NewsArticle[]> {
+    const userPrefs = await this.getUserNewsPreferences(userId);
+    
+    if (!userPrefs) {
+      // If no preferences, return general news
+      return this.getAllNewsArticles(limit, offset);
+    }
+    
+    // Start building a query with user preferences
+    let query = db
+      .select()
+      .from(newsArticles);
+    
+    // We'll gather conditions to apply using OR/AND logic
+    const sportConditions = [];
+    const leagueConditions = [];
+    const topicConditions = [];
+    const excludeConditions = [];
+    
+    // Apply sport preferences if any
+    if (userPrefs.favoriteSports && userPrefs.favoriteSports.length > 0) {
+      sportConditions.push(inArray(newsArticles.sportId, userPrefs.favoriteSports));
+    }
+    
+    // Apply league preferences if any
+    if (userPrefs.favoriteLeagues && userPrefs.favoriteLeagues.length > 0) {
+      leagueConditions.push(inArray(newsArticles.leagueId, userPrefs.favoriteLeagues));
+    }
+    
+    // Apply topic preferences if any
+    if (userPrefs.preferredTopics && userPrefs.preferredTopics.length > 0) {
+      topicConditions.push(inArray(newsArticles.type, userPrefs.preferredTopics));
+    }
+    
+    // Apply exclusions if any
+    if (userPrefs.excludedTopics && userPrefs.excludedTopics.length > 0) {
+      excludeConditions.push(not(inArray(newsArticles.type, userPrefs.excludedTopics)));
+    }
+    
+    // Combine conditions
+    const conditions = [];
+    
+    // Add sport OR league conditions (user might be interested in either)
+    if (sportConditions.length > 0 || leagueConditions.length > 0) {
+      conditions.push(or(...sportConditions, ...leagueConditions));
+    }
+    
+    // Add topic conditions
+    if (topicConditions.length > 0) {
+      conditions.push(or(...topicConditions));
+    }
+    
+    // Add exclusion conditions (these are always AND)
+    conditions.push(...excludeConditions);
+    
+    // Apply all conditions if we have any
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+    
+    // Apply ordering, limit and offset
+    return query
+      .orderBy(desc(newsArticles.publishedAt))
+      .limit(limit)
+      .offset(offset);
   }
 }
 
