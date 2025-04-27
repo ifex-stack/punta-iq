@@ -35,12 +35,14 @@ export async function initializeDatabase() {
           image_url TEXT,
           sport_id INTEGER REFERENCES sports(id),
           league_id INTEGER REFERENCES leagues(id),
-          team TEXT,
+          teams JSONB DEFAULT '[]',
           type news_type DEFAULT 'article',
-          tags JSONB,
-          views INTEGER DEFAULT 0,
-          likes INTEGER DEFAULT 0,
-          created_at TIMESTAMP DEFAULT NOW() NOT NULL
+          ai_generated BOOLEAN DEFAULT FALSE NOT NULL,
+          ai_enhanced BOOLEAN DEFAULT FALSE NOT NULL,
+          is_premium BOOLEAN DEFAULT FALSE NOT NULL,
+          tags JSONB DEFAULT '[]',
+          created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+          updated_at TIMESTAMP DEFAULT NOW() NOT NULL
         );
       `);
     }
@@ -75,13 +77,26 @@ export async function initializeDatabase() {
           article_id INTEGER NOT NULL REFERENCES news_articles(id) ON DELETE CASCADE,
           saved_at TIMESTAMP DEFAULT NOW() NOT NULL,
           is_read BOOLEAN DEFAULT FALSE,
+          read_at TIMESTAMP,
           UNIQUE(user_id, article_id)
         );
       `);
     }
     
-    // Create indexes if they don't exist
+    // Check and update existing tables if needed
     if (newsTableExists) {
+      logger.info('Database', 'Checking news_articles table for missing columns');
+      
+      // Check for teams column
+      await addColumnIfNotExists('news_articles', 'teams', 'JSONB DEFAULT \'[]\'');
+      
+      // Check for AI-related columns
+      await addColumnIfNotExists('news_articles', 'ai_generated', 'BOOLEAN DEFAULT FALSE NOT NULL');
+      await addColumnIfNotExists('news_articles', 'ai_enhanced', 'BOOLEAN DEFAULT FALSE NOT NULL');
+      await addColumnIfNotExists('news_articles', 'is_premium', 'BOOLEAN DEFAULT FALSE NOT NULL');
+      await addColumnIfNotExists('news_articles', 'updated_at', 'TIMESTAMP DEFAULT NOW() NOT NULL');
+      
+      // Create indexes
       logger.info('Database', 'Creating news indexes');
       await createIndexIfNotExists('news_articles_sport_id_idx', 'news_articles', 'sport_id');
       await createIndexIfNotExists('news_articles_league_id_idx', 'news_articles', 'league_id');
@@ -93,6 +108,12 @@ export async function initializeDatabase() {
     }
     
     if (savedNewsTableExists) {
+      logger.info('Database', 'Checking user_saved_news table for missing columns');
+      
+      // Check for read_at column
+      await addColumnIfNotExists('user_saved_news', 'read_at', 'TIMESTAMP');
+      
+      // Create indexes
       await createIndexIfNotExists('user_saved_news_user_id_idx', 'user_saved_news', 'user_id');
       await createIndexIfNotExists('user_saved_news_article_id_idx', 'user_saved_news', 'article_id');
     }
@@ -153,5 +174,31 @@ async function createIndexIfNotExists(indexName: string, tableName: string, colu
     }
   } catch (error) {
     logger.error('Database', `Error creating index ${indexName}`, error);
+  }
+}
+
+/**
+ * Add a column to a table if it doesn't exist
+ */
+async function addColumnIfNotExists(tableName: string, columnName: string, columnDefinition: string): Promise<void> {
+  try {
+    // Check if column exists
+    const result = await pool.query(`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = $1 
+        AND column_name = $2
+      );
+    `, [tableName, columnName]);
+    
+    if (!result.rows[0].exists) {
+      logger.info('Database', `Adding column ${columnName} to ${tableName}`);
+      await pool.query(`
+        ALTER TABLE ${tableName} 
+        ADD COLUMN ${columnName} ${columnDefinition};
+      `);
+    }
+  } catch (error) {
+    logger.error('Database', `Error adding column ${columnName} to ${tableName}`, error);
   }
 }
