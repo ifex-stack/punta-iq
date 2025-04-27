@@ -421,11 +421,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limitNumber = limit ? parseInt(limit as string) : 20;
       
       if (tier === 'free') {
-        contests = fantasyStore.getFreeFantasyContests(limitNumber, status as string);
+        contests = await fantasyStore.getFreeFantasyContests(limitNumber, status as string);
       } else if (tier === 'premium') {
-        contests = fantasyStore.getPremiumFantasyContests(limitNumber, status as string);
+        contests = await fantasyStore.getPremiumFantasyContests(limitNumber, status as string);
       } else {
-        contests = fantasyStore.getAllFantasyContests(limitNumber, status as string, tier as string);
+        contests = await fantasyStore.getAllFantasyContests(limitNumber, status as string, tier as string);
       }
       
       res.json(contests);
