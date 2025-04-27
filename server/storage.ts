@@ -2590,6 +2590,9 @@ export class DatabaseStorage implements IStorage {
           })
           .where(eq(referrals.id, id));
         
+        // Update the referrer's streak
+        await this.updateReferrerStreak(referral.referrerId);
+        
         // Award points to the referrer
         await this.updateUserFantasyPoints(referral.referrerId, rewardAmount);
         
@@ -2616,6 +2619,41 @@ export class DatabaseStorage implements IStorage {
       return referral;
     } catch (error) {
       console.error("Error updating referral status:", error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Check and update a user's referral streak when a new referral is completed
+   * @param referrerId The ID of the user who referred someone
+   * @returns The updated User object
+   */
+  async updateReferrerStreak(referrerId: number): Promise<User> {
+    try {
+      // Get the user's current data
+      const user = await this.getUser(referrerId);
+      if (!user) throw new Error("User not found");
+      
+      const lastReferralDate = user.lastReferralDate;
+      const today = new Date();
+      let shouldIncrementStreak = true;
+      
+      if (lastReferralDate) {
+        // Check if the last referral was within 30 days
+        const daysSinceLastReferral = Math.floor(
+          (today.getTime() - lastReferralDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        
+        // If it's been more than 30 days, reset the streak instead of incrementing
+        if (daysSinceLastReferral > 30) {
+          shouldIncrementStreak = false;
+        }
+      }
+      
+      // Update the user's streak
+      return this.updateUserReferralStreak(referrerId, shouldIncrementStreak);
+    } catch (error) {
+      console.error("Error updating referrer streak:", error);
       throw error;
     }
   }
@@ -2656,14 +2694,17 @@ export class DatabaseStorage implements IStorage {
     username: string;
     totalReferrals: number;
     completedReferrals: number;
+    currentStreak: number;
     tier: string;
     rank: number;
   }>> {
     try {
-      // Get all users
+      // Get all users with their streak information
       const allUsers = await db.select({
         id: users.id,
         username: users.username,
+        referralStreak: users.referralStreak,
+        lastReferralDate: users.lastReferralDate
       }).from(users);
 
       // Get all referrals
@@ -2674,6 +2715,7 @@ export class DatabaseStorage implements IStorage {
         const userReferrals = allReferrals.filter(r => r.referrerId === user.id);
         const totalReferrals = userReferrals.length;
         const completedReferrals = userReferrals.filter(r => r.status === 'completed').length;
+        const currentStreak = user.referralStreak || 0;
         
         // Determine tier based on completed referrals
         let tier = 'none';
@@ -2687,11 +2729,12 @@ export class DatabaseStorage implements IStorage {
           username: user.username,
           totalReferrals,
           completedReferrals,
+          currentStreak,
           tier
         };
       }));
       
-      // Sort by completed referrals in descending order
+      // Sort by completed referrals in descending order, with streak as secondary sort factor
       const sortedLeaderboard = referralCounts
         .filter(entry => entry.totalReferrals > 0) // Only include users with at least one referral
         .sort((a, b) => {
@@ -2699,7 +2742,11 @@ export class DatabaseStorage implements IStorage {
           if (b.completedReferrals !== a.completedReferrals) {
             return b.completedReferrals - a.completedReferrals;
           }
-          // If tie, sort by total referrals
+          // If tie, sort by streak
+          if (b.currentStreak !== a.currentStreak) {
+            return b.currentStreak - a.currentStreak;
+          }
+          // If still tie, sort by total referrals
           return b.totalReferrals - a.totalReferrals;
         });
       

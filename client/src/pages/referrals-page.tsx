@@ -4,6 +4,7 @@ import { ReferralTiers } from "@/components/referrals/referral-tiers";
 import { ReferralHistory } from "@/components/referrals/referral-history";
 import { ReferralBadge } from "@/components/referrals/referral-badge";
 import { ReferralLeaderboard } from "@/components/referrals/referral-leaderboard";
+import { ReferralStreak } from "@/components/referrals/referral-streak";
 import { PageHeader } from "@/components/layout/page-header";
 import { Gift, ScrollText, Share, ChartBar, Trophy, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
