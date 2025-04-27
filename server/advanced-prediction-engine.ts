@@ -647,8 +647,100 @@ export class AdvancedPredictionEngine {
         };
       }
       
+      // Group predictions by sport for better diversity
+      const sportGroups: {[key: string]: any[]} = {};
+      predictions.forEach(pred => {
+        const sport = pred.sport || 'other';
+        if (!sportGroups[sport]) {
+          sportGroups[sport] = [];
+        }
+        sportGroups[sport].push(pred);
+      });
+      
+      // Enhance predictions with market information if available
+      const enhancedPredictions = predictions.map(prediction => {
+        // If prediction already has markets data, return as is
+        if (prediction.markets) {
+          return prediction;
+        }
+        
+        // For football predictions, create markets data from predictions object
+        if (prediction.sport === 'football' && prediction.predictions) {
+          const markets: any = {};
+          
+          // Add 1X2 market
+          if (prediction.predictions['1X2']) {
+            markets['1X2'] = {
+              outcome: prediction.predictedOutcome,
+              confidence: prediction.confidence,
+              odds: prediction.predictions['1X2'][prediction.predictedOutcome === 'H' ? 'homeWin' : 
+                    (prediction.predictedOutcome === 'D' ? 'draw' : 'awayWin')]?.odds || 2.0
+            };
+          }
+          
+          // Add BTTS market
+          if (prediction.predictions['BTTS']) {
+            markets['BTTS'] = {
+              outcome: prediction.predictions['BTTS'].outcome,
+              confidence: prediction.predictions['BTTS'].probability,
+              odds: prediction.predictions['BTTS'].odds || 
+                    ((100 / prediction.predictions['BTTS'].probability) * 0.85).toFixed(2)
+            };
+          }
+          
+          // Add Over/Under market
+          if (prediction.predictions['Over_Under'] || prediction.predictions['Over_Under_2.5']) {
+            const ouData = prediction.predictions['Over_Under_2.5'] || prediction.predictions['Over_Under'];
+            markets['Over_Under_2.5'] = {
+              outcome: ouData.outcome,
+              confidence: ouData.probability,
+              line: ouData.line || 2.5,
+              odds: ouData.odds || ((100 / ouData.probability) * 0.85).toFixed(2)
+            };
+          }
+          
+          // Add corners market if available
+          if (prediction.predictions['Corners_Over_Under']) {
+            markets['Corners_Over_Under'] = {
+              ...prediction.predictions['Corners_Over_Under'],
+              confidence: prediction.predictions['Corners_Over_Under'].probability
+            };
+          }
+          
+          // Add cards market if available
+          if (prediction.predictions['Cards_Over_Under']) {
+            markets['Cards_Over_Under'] = {
+              ...prediction.predictions['Cards_Over_Under'],
+              confidence: prediction.predictions['Cards_Over_Under'].probability
+            };
+          }
+          
+          return {
+            ...prediction,
+            markets
+          };
+        }
+        
+        return prediction;
+      });
+      
       // Sort predictions by confidence (highest first)
-      const sortedPredictions = [...predictions].sort((a, b) => b.confidence - a.confidence);
+      const sortedPredictions = [...enhancedPredictions].sort((a, b) => {
+        // For predictions with markets, use the highest market confidence
+        if (a.markets && b.markets) {
+          const aMaxConf = Math.max(...Object.values(a.markets).map((m: any) => m.confidence || 0));
+          const bMaxConf = Math.max(...Object.values(b.markets).map((m: any) => m.confidence || 0));
+          return bMaxConf - aMaxConf;
+        } else if (a.markets) {
+          const aMaxConf = Math.max(...Object.values(a.markets).map((m: any) => m.confidence || 0));
+          return b.confidence - aMaxConf;
+        } else if (b.markets) {
+          const bMaxConf = Math.max(...Object.values(b.markets).map((m: any) => m.confidence || 0));
+          return bMaxConf - a.confidence;
+        } else {
+          return b.confidence - a.confidence;
+        }
+      });
       
       // Generate different sized accumulators
       const accumulators: any = {
@@ -660,38 +752,108 @@ export class AdvancedPredictionEngine {
       
       // Create small accumulator (2 selections)
       if (sortedPredictions.length >= 2) {
+        // Standard small accumulator
         accumulators.small.push(this.createAccumulator(
           sortedPredictions.slice(0, 2),
           'small',
           options.minConfidence || 75
         ));
+        
+        // Create a BTTS/Goal market-specific accumulator if possible
+        const goalMarketPredictions = sortedPredictions.filter(p => 
+          p.markets && (p.markets['BTTS'] || p.markets['Over_Under_2.5'])
+        );
+        
+        if (goalMarketPredictions.length >= 2) {
+          accumulators.small.push(this.createAccumulator(
+            goalMarketPredictions.slice(0, 2),
+            'small',
+            options.minConfidence || 75,
+            true // Force varied markets
+          ));
+        }
       }
       
       // Create medium accumulator (3 selections)
       if (sortedPredictions.length >= 3) {
+        // Standard medium accumulator
         accumulators.medium.push(this.createAccumulator(
           sortedPredictions.slice(0, 3),
           'medium',
           options.minConfidence || 70
         ));
+        
+        // Create a mixed-market medium accumulator if possible
+        const footballPredictions = sortedPredictions.filter(p => p.sport === 'football' && p.markets);
+        if (footballPredictions.length >= 3) {
+          // Try to get one prediction for each market type
+          const btts = footballPredictions.find(p => p.markets['BTTS']);
+          const overUnder = footballPredictions.find(p => p.markets['Over_Under_2.5'] && p !== btts);
+          const corners = footballPredictions.find(p => p.markets['Corners_Over_Under'] && p !== btts && p !== overUnder);
+          const winners = footballPredictions.filter(p => p.markets['1X2'] && p !== btts && p !== overUnder && p !== corners);
+          
+          const specialSelections = [
+            btts, 
+            overUnder,
+            ...(corners ? [corners] : []),
+            ...winners
+          ].filter(Boolean).slice(0, 3);
+          
+          if (specialSelections.length === 3) {
+            accumulators.medium.push(this.createAccumulator(
+              specialSelections,
+              'medium',
+              options.minConfidence || 70,
+              true // Force varied markets
+            ));
+          }
+        }
       }
       
       // Create large accumulator (4 selections)
       if (sortedPredictions.length >= 4) {
-        accumulators.large.push(this.createAccumulator(
-          sortedPredictions.slice(0, 4),
-          'large',
-          options.minConfidence || 65
-        ));
+        // Create with mixed sports for variety
+        const footballPicks = sportGroups['football']?.slice(0, 2) || [];
+        const basketballPicks = sportGroups['basketball']?.slice(0, 1) || [];
+        const otherPicks = sortedPredictions.filter(p => 
+          !footballPicks.includes(p) && !basketballPicks.includes(p)
+        ).slice(0, 4 - footballPicks.length - basketballPicks.length);
+        
+        const diverseSelections = [...footballPicks, ...basketballPicks, ...otherPicks];
+        
+        if (diverseSelections.length >= 4) {
+          accumulators.large.push(this.createAccumulator(
+            diverseSelections.slice(0, 4),
+            'large',
+            options.minConfidence || 65
+          ));
+        } else {
+          // Fallback to standard large accumulator
+          accumulators.large.push(this.createAccumulator(
+            sortedPredictions.slice(0, 4),
+            'large',
+            options.minConfidence || 65
+          ));
+        }
       }
       
-      // Create mega accumulator (5 selections)
+      // Create mega accumulator (5+ selections)
       if (sortedPredictions.length >= 5) {
+        // Standard mega accumulator
         accumulators.mega.push(this.createAccumulator(
           sortedPredictions.slice(0, 5),
           'mega',
           options.minConfidence || 60
         ));
+        
+        // Create a larger 6+ selection accumulator if possible
+        if (sortedPredictions.length >= 6) {
+          accumulators.mega.push(this.createAccumulator(
+            sortedPredictions.slice(0, 6),
+            'mega',
+            options.minConfidence || 60
+          ));
+        }
       }
       
       // Enhance with AI explanations if available
@@ -709,37 +871,107 @@ export class AdvancedPredictionEngine {
   /**
    * Create an accumulator from selected predictions
    */
-  private createAccumulator(selections: any[], type: string, minConfidence: number): any {
+  private createAccumulator(selections: any[], type: string, minConfidence: number, forceDiverseMarkets: boolean = false): any {
     const id = `acca-${Date.now()}-${type}`;
+    
+    // Market mapping - which markets should we use for each sport
+    const marketOptions = {
+      football: ['1X2', 'BTTS', 'Over_Under_2.5', 'Corners_Over_Under'],
+      basketball: ['Winner', 'TotalPoints'],
+      tennis: ['Winner'],
+      cricket: ['Winner'],
+      baseball: ['Winner'],
+    };
+    
+    // If we want diverse markets, track which ones have been used
+    const usedMarkets: Set<string> = new Set();
     
     // Map selections to accumulator format
     const accaSelections = selections.map(prediction => {
-      // Get main market for the sport
-      const market = prediction.sport === 'football' ? '1X2' : 'Winner';
-      const marketData = prediction.predictions[market];
-      
-      // Get odds for the predicted outcome
-      let odds = 2.0; // Default
-      if (prediction.predictedOutcome === 'H') {
-        odds = marketData.homeWin?.odds || 2.0;
-      } else if (prediction.predictedOutcome === 'D') {
-        odds = marketData.draw?.odds || 3.0;
-      } else if (prediction.predictedOutcome === 'A') {
-        odds = marketData.awayWin?.odds || 2.5;
+      // Check if the prediction has markets - use enhanced structure if available
+      if (prediction.markets) {
+        // Select a market based on confidence
+        const availableMarkets = Object.keys(prediction.markets).filter(key => 
+          prediction.markets[key].confidence >= minConfidence
+        );
+        
+        // Pick a market - prefer using different markets for variety
+        let market;
+        
+        if (prediction.sport === 'football') {
+          // For football, use various markets based on their confidence
+          let validOptions = marketOptions.football.filter(m => 
+            availableMarkets.includes(m) && prediction.markets[m].confidence >= minConfidence + 5
+          );
+          
+          if (forceDiverseMarkets && usedMarkets.size > 0) {
+            // Filter out markets that have already been used
+            const unusedOptions = validOptions.filter(m => !usedMarkets.has(m));
+            
+            // If there are unused options, prioritize them
+            if (unusedOptions.length > 0) {
+              validOptions = unusedOptions;
+            }
+          }
+          
+          // Choose randomly from valid options with high confidence, or fallback to 1X2
+          market = validOptions.length > 0 
+            ? validOptions[Math.floor(Math.random() * validOptions.length)]
+            : '1X2';
+          
+          // Record that we've used this market type
+          if (forceDiverseMarkets) {
+            usedMarkets.add(market);
+          }
+        } else {
+          // For other sports, use the main winner market
+          market = prediction.sport === 'football' ? '1X2' : 'Winner';
+        }
+        
+        const marketData = prediction.markets[market];
+        
+        return {
+          matchId: prediction.matchId,
+          homeTeam: prediction.homeTeam,
+          awayTeam: prediction.awayTeam,
+          league: prediction.league,
+          startTime: prediction.startTime,
+          sport: prediction.sport,
+          market: market,
+          outcome: marketData.outcome,
+          odds: marketData.odds,
+          confidence: marketData.confidence,
+          line: marketData.line, // For over/under markets
+          explanation: this.getMarketExplanation(market, marketData)
+        };
+      } else {
+        // Legacy/fallback format - use main market for the sport
+        const market = prediction.sport === 'football' ? '1X2' : 'Winner';
+        const marketData = prediction.predictions?.[market];
+        
+        // Get odds for the predicted outcome
+        let odds = 2.0; // Default
+        if (prediction.predictedOutcome === 'H' || prediction.predictedOutcome === '1') {
+          odds = marketData?.homeWin?.odds || prediction.homeOdds || 2.0;
+        } else if (prediction.predictedOutcome === 'D' || prediction.predictedOutcome === 'X') {
+          odds = marketData?.draw?.odds || prediction.drawOdds || 3.0;
+        } else if (prediction.predictedOutcome === 'A' || prediction.predictedOutcome === '2') {
+          odds = marketData?.awayWin?.odds || prediction.awayOdds || 2.5;
+        }
+        
+        return {
+          matchId: prediction.matchId,
+          homeTeam: prediction.homeTeam,
+          awayTeam: prediction.awayTeam,
+          league: prediction.league,
+          startTime: prediction.startTime,
+          sport: prediction.sport,
+          market,
+          outcome: prediction.predictedOutcome,
+          odds,
+          confidence: prediction.confidence,
+        };
       }
-      
-      return {
-        matchId: prediction.matchId,
-        homeTeam: prediction.homeTeam,
-        awayTeam: prediction.awayTeam,
-        league: prediction.league,
-        startTime: prediction.startTime,
-        sport: prediction.sport,
-        market,
-        outcome: prediction.predictedOutcome,
-        odds,
-        confidence: prediction.confidence,
-      };
     });
     
     // Calculate accumulator details
@@ -775,6 +1007,51 @@ export class AdvancedPredictionEngine {
     
     // Cap at 1-5
     return Math.min(5, Math.max(1, risk));
+  }
+  
+  /**
+   * Get a human-readable explanation for a market prediction
+   */
+  private getMarketExplanation(market: string, marketData: any): string {
+    switch (market) {
+      case '1X2':
+        const outcomeMap: {[key: string]: string} = {
+          '1': 'Home Win',
+          'H': 'Home Win',
+          'X': 'Draw',
+          'D': 'Draw',
+          '2': 'Away Win',
+          'A': 'Away Win'
+        };
+        return `${outcomeMap[marketData.outcome] || marketData.outcome} (${Math.round(marketData.confidence)}% confidence)`;
+        
+      case 'BTTS':
+        return `Both Teams To Score: ${marketData.outcome} (${Math.round(marketData.confidence)}% confidence)`;
+        
+      case 'Over_Under_2.5':
+        return `Goals ${marketData.outcome} 2.5 (${Math.round(marketData.confidence)}% confidence)`;
+        
+      case 'Corners_Over_Under':
+        return `Corner Kicks ${marketData.outcome} ${marketData.line} (${Math.round(marketData.confidence)}% confidence)`;
+        
+      case 'Cards_Over_Under':
+        return `Cards ${marketData.outcome} ${marketData.line} (${Math.round(marketData.confidence)}% confidence)`;
+        
+      case 'RedCard':
+        return `Red Card: ${marketData.outcome} (${Math.round(marketData.confidence)}% confidence)`;
+        
+      case 'FirstHalfGoal':
+        return `First Half Goal: ${marketData.outcome} (${Math.round(marketData.confidence)}% confidence)`;
+        
+      case 'TotalPoints':
+        return `Total Points ${marketData.outcome} ${marketData.line} (${Math.round(marketData.confidence)}% confidence)`;
+        
+      case 'Winner':
+        return `Winner: ${marketData.outcome} (${Math.round(marketData.confidence)}% confidence)`;
+        
+      default:
+        return `${market}: ${marketData.outcome} (${Math.round(marketData.confidence)}% confidence)`;
+    }
   }
   
   /**
