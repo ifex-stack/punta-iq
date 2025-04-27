@@ -1,130 +1,76 @@
-import { FantasyContest } from '@shared/schema';
+import { FantasyContest, InsertFantasyContest } from '@shared/schema';
+import { storage } from './storage';
 
-// Create a memory-only fantasy data store for development
-// This approach allows us to avoid modifying the storage interface for now
-class FantasyMemoryStore {
-  private fantasyContests: FantasyContest[] = [];
-  private fantasyTeams: any[] = [];
-  private fantasyContestEntries: any[] = [];
-  private contestIdCounter = 1;
-  private teamIdCounter = 1;
-  private entryIdCounter = 1;
-  
-  getAllFantasyContests(limit = 20, status?: string, tier?: string): FantasyContest[] {
-    let contests = [...this.fantasyContests];
+// Export the storage interface for fantasy football data
+// This ensures API routes use the database storage (not in-memory storage)
+export const getFantasyStore = () => {
+  return {
+    getAllFantasyContests: async (limit = 20, status?: string, tier?: string) => {
+      return await storage.getAllFantasyContests(limit, status, tier);
+    },
     
-    if (status) {
-      contests = contests.filter(contest => contest.status === status);
+    getFreeFantasyContests: async (limit = 20, status?: string) => {
+      return await storage.getFreeFantasyContests(limit, status);
+    },
+    
+    getPremiumFantasyContests: async (limit = 20, status?: string) => {
+      return await storage.getPremiumFantasyContests(limit, status);
+    },
+    
+    getFantasyContestById: async (id: number) => {
+      return await storage.getFantasyContestById(id);
+    },
+    
+    createFantasyContest: async (contest: any) => {
+      const now = new Date();
+      const insertContest: InsertFantasyContest = {
+        name: contest.name,
+        description: contest.description || null,
+        status: 'upcoming',
+        type: contest.type || null,
+        tier: contest.tier,
+        startDate: contest.startDate,
+        endDate: contest.endDate,
+        entryFee: contest.entryFee || 0,
+        maxTeams: contest.maxTeams || 100,
+        prizePool: contest.prizePool,
+        gameweekIds: contest.gameweekIds,
+        rules: contest.rules,
+        createdAt: now,
+        updatedAt: now
+      };
+      
+      return await storage.createFantasyContest(insertContest);
+    },
+    
+    getFantasyTeamById: async (id: number) => {
+      return await storage.getFantasyTeamById(id);
+    },
+    
+    getUserContestEntries: async (userId: number) => {
+      return await storage.getUserContestEntries(userId);
+    },
+    
+    createContestEntry: async (entry: any) => {
+      return await storage.createContestEntry(entry);
+    },
+    
+    getContestLeaderboard: async (contestId: number) => {
+      return await storage.getContestLeaderboard(contestId);
+    },
+    
+    updateFantasyContestStatus: async (id: number, status: string) => {
+      return await storage.updateFantasyContestStatus(id, status);
     }
-    
-    if (tier) {
-      contests = contests.filter(contest => contest.tier === tier);
-    }
-    
-    // Sort by startDate descending (newest first)
-    contests.sort((a, b) => {
-      const dateA = a.startDate instanceof Date ? a.startDate : new Date(a.startDate);
-      const dateB = b.startDate instanceof Date ? b.startDate : new Date(b.startDate);
-      return dateB.getTime() - dateA.getTime();
-    });
-    
-    return contests.slice(0, limit);
-  }
-  
-  getFreeFantasyContests(limit = 20, status?: string): FantasyContest[] {
-    return this.getAllFantasyContests(limit, status, 'free');
-  }
-  
-  getPremiumFantasyContests(limit = 20, status?: string): FantasyContest[] {
-    return this.getAllFantasyContests(limit, status, 'premium');
-  }
-  
-  getFantasyContestById(id: number): FantasyContest | undefined {
-    return this.fantasyContests.find(contest => contest.id === id);
-  }
-  
-  createFantasyContest(contest: any): FantasyContest {
-    const id = this.contestIdCounter++;
-    const now = new Date();
-    const newContest: FantasyContest = {
-      ...contest,
-      id,
-      status: 'upcoming',
-      playerCount: 0,
-      createdAt: now,
-      updatedAt: now
-    } as FantasyContest;
-    
-    this.fantasyContests.push(newContest);
-    return newContest;
-  }
-  
-  getFantasyTeamById(id: number): any | undefined {
-    return this.fantasyTeams.find(team => team.id === id);
-  }
-  
-  getUserContestEntries(userId: number): any[] {
-    return this.fantasyContestEntries.filter(entry => entry.userId === userId);
-  }
-  
-  createContestEntry(entry: any): any {
-    const id = this.entryIdCounter++;
-    const now = new Date();
-    const newEntry = {
-      ...entry,
-      id,
-      createdAt: now,
-      updatedAt: now,
-      rank: null,
-      prizeWon: null,
-      totalPoints: entry.totalPoints || 0
-    };
-    
-    this.fantasyContestEntries.push(newEntry);
-    
-    // Update contest player count
-    const contest = this.getFantasyContestById(entry.contestId);
-    if (contest) {
-      contest.playerCount = (contest.playerCount || 0) + 1;
-    }
-    
-    return newEntry;
-  }
-  
-  getContestLeaderboard(contestId: number): any[] {
-    return this.fantasyContestEntries
-      .filter(entry => entry.contestId === contestId)
-      .sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
-  }
-  
-  updateFantasyContestStatus(id: number, status: string): FantasyContest | null {
-    const contestIndex = this.fantasyContests.findIndex(c => c.id === id);
-    if (contestIndex === -1) return null;
-    
-    const contest = this.fantasyContests[contestIndex];
-    const updatedContest = {
-      ...contest,
-      status,
-      updatedAt: new Date()
-    } as FantasyContest;
-    
-    this.fantasyContests[contestIndex] = updatedContest;
-    return updatedContest;
-  }
-}
-
-// Create a singleton instance
-const fantasyStore = new FantasyMemoryStore();
-
-// Export it to be used in API routes
-export const getFantasyStore = () => fantasyStore;
+  };
+};
 
 export async function initializeFantasyData() {
   console.log('Initializing fantasy football data...');
   
   try {
     // Check if we already have contests
-    const existingContests = fantasyStore.getAllFantasyContests();
+    const existingContests = await storage.getAllFantasyContests();
     if (existingContests && existingContests.length > 0) {
       console.log(`Found ${existingContests.length} existing fantasy contests, skipping initialization`);
       return;
@@ -302,10 +248,13 @@ export async function initializeFantasyData() {
     }
   ];
   
+  // Get the fantasy store adapter that uses the database
+  const fantasyStore = getFantasyStore();
+  
   // Insert free contests
   for (const contestData of freeContests) {
     try {
-      fantasyStore.createFantasyContest(contestData);
+      await fantasyStore.createFantasyContest(contestData);
       console.log(`Created free contest: ${contestData.name}`);
     } catch (error) {
       console.error(`Error creating free contest ${contestData.name}:`, error);
@@ -315,7 +264,7 @@ export async function initializeFantasyData() {
   // Insert premium contests
   for (const contestData of premiumContests) {
     try {
-      fantasyStore.createFantasyContest(contestData);
+      await fantasyStore.createFantasyContest(contestData);
       console.log(`Created premium contest: ${contestData.name}`);
     } catch (error) {
       console.error(`Error creating premium contest ${contestData.name}:`, error);

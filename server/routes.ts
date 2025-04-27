@@ -315,7 +315,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { status, limit } = req.query;
       const limitNumber = limit ? parseInt(limit as string) : 20;
-      const contests = fantasyStore.getFreeFantasyContests(limitNumber, status as string);
+      const contests = await fantasyStore.getFreeFantasyContests(limitNumber, status as string);
       res.json(contests);
     } catch (error: any) {
       console.error("Error fetching free contests:", error);
@@ -327,7 +327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { status, limit } = req.query;
       const limitNumber = limit ? parseInt(limit as string) : 20;
-      const contests = fantasyStore.getPremiumFantasyContests(limitNumber, status as string);
+      const contests = await fantasyStore.getPremiumFantasyContests(limitNumber, status as string);
       
       // Check if user is authorized to access premium contests
       if (req.isAuthenticated() && req.user.subscriptionTier === 'premium') {
@@ -356,7 +356,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/fantasy/contests/:id", async (req, res) => {
     try {
       const contestId = parseInt(req.params.id);
-      const contest = fantasyStore.getFantasyContestById(contestId);
+      const contest = await fantasyStore.getFantasyContestById(contestId);
       
       if (!contest) {
         return res.status(404).json({ message: "Contest not found" });
@@ -371,7 +371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/fantasy/contests/:id/leaderboard", async (req, res) => {
     try {
       const contestId = parseInt(req.params.id);
-      const entries = fantasyStore.getContestLeaderboard(contestId);
+      const entries = await fantasyStore.getContestLeaderboard(contestId);
       
       res.json(entries);
     } catch (error: any) {
@@ -389,13 +389,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const teamId = parseInt(req.body.teamId);
       
       // Validate the contest exists
-      const contest = fantasyStore.getFantasyContestById(contestId);
+      const contest = await fantasyStore.getFantasyContestById(contestId);
       if (!contest) {
         return res.status(404).json({ message: "Contest not found" });
       }
       
       // Validate the team exists and belongs to the user
-      const team = fantasyStore.getFantasyTeamById(teamId);
+      const team = await fantasyStore.getFantasyTeamById(teamId);
       if (!team) {
         return res.status(404).json({ message: "Team not found" });
       }
@@ -405,7 +405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if user already has an entry for this contest
-      const userEntries = fantasyStore.getUserContestEntries(req.user.id);
+      const userEntries = await fantasyStore.getUserContestEntries(req.user.id);
       const existingEntry = userEntries.find(entry => entry.contestId === contestId);
       
       if (existingEntry) {
@@ -413,7 +413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Create the entry
-      const entry = fantasyStore.createContestEntry({
+      const entry = await fantasyStore.createContestEntry({
         userId: req.user.id,
         contestId,
         teamId,
