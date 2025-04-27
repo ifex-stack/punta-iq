@@ -510,20 +510,9 @@ router.get("/api/predictions/real-time-matches", async (req, res) => {
   
   try {
     if (sport) {
-      // Get matches for specific sport
-      if (sport === 'football') {
-        const matches = await realTimeMatchesService.getTodayFootballMatches();
-        
-        // Filter matches for the requested date
-        const matchesForDate = realTimeMatchesService.getMatchesForDate(matches, dateOffset);
-        return res.json(matchesForDate);
-      } else if (sport === 'basketball') {
-        const matches = await realTimeMatchesService.getTodayBasketballMatches();
-        
-        // Filter matches for the requested date
-        const matchesForDate = realTimeMatchesService.getMatchesForDate(matches, dateOffset);
-        return res.json(matchesForDate);
-      }
+      // Use the new method that directly fetches matches for a specific date and sport
+      const matches = await realTimeMatchesService.getMatchesForDate(sport as string, dateOffset);
+      return res.json(matches);
     }
     
     // Get all sports matches if no specific sport requested
@@ -532,6 +521,20 @@ router.get("/api/predictions/real-time-matches", async (req, res) => {
   } catch (error) {
     logger.error("MLRoutes", "Error fetching real-time matches", error);
     res.status(500).json({ error: "Error fetching real-time matches" });
+  }
+});
+
+// Add new endpoint for upcoming matches for a specific sport
+router.get("/api/predictions/upcoming-matches/:sport", async (req, res) => {
+  try {
+    const sport = req.params.sport;
+    const days = req.query.days ? parseInt(req.query.days as string) : 7;
+    
+    const matches = await realTimeMatchesService.getUpcomingMatches(sport, days);
+    res.json(matches);
+  } catch (error) {
+    logger.error("MLRoutes", "Error fetching upcoming matches", error);
+    res.status(500).json({ error: "Error fetching upcoming matches" });
   }
 });
 

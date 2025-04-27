@@ -15,6 +15,8 @@ import { newsRecommendationEngine } from "./recommendation-engine";
 import { db, pool } from "./db";
 import { setupNewsRoutes } from "./news-routes";
 
+import { realTimeMatchesService } from "./real-time-matches-service";
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
@@ -93,6 +95,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Real-time match data routes for all supported sports
+  app.get("/api/matches/football", async (req, res) => {
+    try {
+      const dateOffset = req.query.date ? parseInt(req.query.date as string) : 0;
+      const matches = await realTimeMatchesService.getMatchesForDate('football', dateOffset);
+      res.json(matches);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get("/api/matches/basketball", async (req, res) => {
+    try {
+      const dateOffset = req.query.date ? parseInt(req.query.date as string) : 0;
+      const matches = await realTimeMatchesService.getMatchesForDate('basketball', dateOffset);
+      res.json(matches);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get("/api/matches/american_football", async (req, res) => {
+    try {
+      const dateOffset = req.query.date ? parseInt(req.query.date as string) : 0;
+      const matches = await realTimeMatchesService.getMatchesForDate('american_football', dateOffset);
+      res.json(matches);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get("/api/matches/baseball", async (req, res) => {
+    try {
+      const dateOffset = req.query.date ? parseInt(req.query.date as string) : 0;
+      const matches = await realTimeMatchesService.getMatchesForDate('baseball', dateOffset);
+      res.json(matches);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get("/api/matches/hockey", async (req, res) => {
+    try {
+      const dateOffset = req.query.date ? parseInt(req.query.date as string) : 0;
+      const matches = await realTimeMatchesService.getMatchesForDate('hockey', dateOffset);
+      res.json(matches);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get("/api/matches/rugby", async (req, res) => {
+    try {
+      const dateOffset = req.query.date ? parseInt(req.query.date as string) : 0;
+      const matches = await realTimeMatchesService.getMatchesForDate('rugby', dateOffset);
+      res.json(matches);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Generic endpoint to get matches for any supported sport
+  app.get("/api/matches/:sport", async (req, res) => {
+    try {
+      const sport = req.params.sport;
+      const dateOffset = req.query.date ? parseInt(req.query.date as string) : 0;
+      const matches = await realTimeMatchesService.getMatchesForDate(sport, dateOffset);
+      res.json(matches);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Get matches for all sports
+  app.get("/api/matches", async (req, res) => {
+    try {
+      const dateOffset = req.query.date ? parseInt(req.query.date as string) : 0;
+      const matches = await realTimeMatchesService.getAllSportsMatches(dateOffset);
+      res.json(matches);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Get upcoming matches for a specific sport
+  app.get("/api/matches/upcoming/:sport", async (req, res) => {
+    try {
+      const sport = req.params.sport;
+      const days = req.query.days ? parseInt(req.query.days as string) : 7;
+      const matches = await realTimeMatchesService.getUpcomingMatches(sport, days);
+      res.json(matches);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Leagues routes
   app.get("/api/leagues/:sportId", async (req, res) => {
     try {
