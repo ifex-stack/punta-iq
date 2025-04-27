@@ -211,6 +211,30 @@ export default function ProfilePage() {
                 </div>
               </CardContent>
             </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Gift className="h-5 w-5 text-primary" />
+                  Referral Program
+                </CardTitle>
+                <CardDescription>Invite friends and earn rewards</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="text-sm">
+                    Share your referral code with friends and earn 500 points when they join!
+                  </p>
+                  
+                  <Button asChild className="w-full">
+                    <a href="/referrals">
+                      <Gift className="h-4 w-4 mr-2" />
+                      Manage Referrals
+                    </a>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
       </Tabs>
