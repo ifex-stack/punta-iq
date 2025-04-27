@@ -810,13 +810,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get trending news articles
   app.get("/api/news/trending", async (req, res) => {
     try {
-      const count = req.query.count ? parseInt(req.query.count as string) : 5;
-      const trendingArticles = await newsRecommendationEngine.getTrendingArticles(count);
+      // Fixed simple implementation using direct SQL
+      const query = `
+        SELECT * FROM news_articles
+        ORDER BY id DESC
+        LIMIT 10
+      `;
       
-      res.json(trendingArticles);
+      console.log("Executing simple fixed trending articles query");
+      
+      // Execute the simple query directly using the pool
+      const { rows } = await pool.query(query);
+      
+      console.log(`Found ${rows.length} trending articles using fixed query`);
+      res.json(rows);
     } catch (error: any) {
       console.error("Error getting trending articles:", error);
-      res.status(500).json({ message: "Could not retrieve trending articles" });
+      res.status(500).json({ message: error.message || "Could not retrieve trending articles" });
     }
   });
 
