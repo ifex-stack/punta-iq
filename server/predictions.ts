@@ -501,4 +501,192 @@ export function setupPredictionRoutes(app: Express) {
       res.status(500).json({ message: error.message });
     }
   });
+  
+  // Get football predictions
+  app.get("/api/predictions/football", async (req, res) => {
+    try {
+      // Get sport ID for football
+      const [football] = await db
+        .select()
+        .from(sports)
+        .where(eq(sports.name, "Football"));
+      
+      if (!football) {
+        return res.status(404).json({ message: "Sport not found" });
+      }
+      
+      // Get leagues for football
+      const leagues = await storage.getLeaguesBySport(football.id);
+      const leagueIds = leagues.map(league => league.id);
+      
+      // Get matches for these leagues
+      const allMatches = await storage.getUpcomingMatches(20);
+      const sportMatches = allMatches.filter(match => leagueIds.includes(match.leagueId));
+      
+      // Get predictions for these matches
+      const result = [];
+      const isPremiumUser = req.isAuthenticated() && 
+        ["basic", "pro", "elite"].includes(req.user.subscriptionTier);
+      
+      for (const match of sportMatches) {
+        const predictions = await storage.getPredictionsByMatch(match.id);
+        const [league] = await db
+          .select()
+          .from(leagues)
+          .where(eq(leagues.id, match.leagueId));
+        
+        for (const prediction of predictions) {
+          // Skip premium predictions for non-premium users
+          if (prediction.isPremium && !isPremiumUser) {
+            // Include prediction but mark as locked
+            result.push({
+              id: prediction.id,
+              matchId: match.id,
+              sport: "football",
+              createdAt: prediction.createdAt,
+              homeTeam: match.homeTeam,
+              awayTeam: match.awayTeam,
+              startTime: match.startTime,
+              league: league?.name || "Unknown",
+              predictedOutcome: prediction.outcome,
+              confidence: prediction.confidence,
+              isPremium: true,
+              isLocked: true,
+              predictions: prediction.markets || {}
+            });
+          } else {
+            result.push({
+              id: prediction.id,
+              matchId: match.id,
+              sport: "football",
+              createdAt: prediction.createdAt,
+              homeTeam: match.homeTeam,
+              awayTeam: match.awayTeam,
+              startTime: match.startTime,
+              league: league?.name || "Unknown",
+              predictedOutcome: prediction.outcome,
+              confidence: prediction.confidence,
+              isPremium: prediction.isPremium,
+              predictions: prediction.markets || {}
+            });
+          }
+        }
+      }
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Get basketball predictions
+  app.get("/api/predictions/basketball", async (req, res) => {
+    try {
+      // Get sport ID for basketball
+      const [basketball] = await db
+        .select()
+        .from(sports)
+        .where(eq(sports.name, "Basketball"));
+      
+      if (!basketball) {
+        return res.status(404).json({ message: "Sport not found" });
+      }
+      
+      // Get leagues for basketball
+      const leagues = await storage.getLeaguesBySport(basketball.id);
+      const leagueIds = leagues.map(league => league.id);
+      
+      // Get matches for these leagues
+      const allMatches = await storage.getUpcomingMatches(20);
+      const sportMatches = allMatches.filter(match => leagueIds.includes(match.leagueId));
+      
+      // Get predictions for these matches
+      const result = [];
+      const isPremiumUser = req.isAuthenticated() && 
+        ["basic", "pro", "elite"].includes(req.user.subscriptionTier);
+      
+      for (const match of sportMatches) {
+        const predictions = await storage.getPredictionsByMatch(match.id);
+        const [league] = await db
+          .select()
+          .from(leagues)
+          .where(eq(leagues.id, match.leagueId));
+        
+        for (const prediction of predictions) {
+          // Skip premium predictions for non-premium users
+          if (prediction.isPremium && !isPremiumUser) {
+            // Include prediction but mark as locked
+            result.push({
+              id: prediction.id,
+              matchId: match.id,
+              sport: "basketball",
+              createdAt: prediction.createdAt,
+              homeTeam: match.homeTeam,
+              awayTeam: match.awayTeam,
+              startTime: match.startTime,
+              league: league?.name || "Unknown",
+              predictedOutcome: prediction.outcome,
+              confidence: prediction.confidence,
+              isPremium: true,
+              isLocked: true,
+              predictions: prediction.markets || {}
+            });
+          } else {
+            result.push({
+              id: prediction.id,
+              matchId: match.id,
+              sport: "basketball",
+              createdAt: prediction.createdAt,
+              homeTeam: match.homeTeam,
+              awayTeam: match.awayTeam,
+              startTime: match.startTime,
+              league: league?.name || "Unknown",
+              predictedOutcome: prediction.outcome,
+              confidence: prediction.confidence,
+              isPremium: prediction.isPremium,
+              predictions: prediction.markets || {}
+            });
+          }
+        }
+      }
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Get saved predictions
+  app.get("/api/predictions/saved", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json([]);
+    }
+    
+    try {
+      // Get saved prediction IDs for the user
+      const savedPredictions = await storage.getUserSavedPredictions(req.user.id);
+      const predictionIds = savedPredictions.map(sp => sp.predictionId);
+      
+      res.json(predictionIds);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Get accumulator selections
+  app.get("/api/predictions/accumulator-selections", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json([]);
+    }
+    
+    try {
+      // Get user's accumulator selections
+      const selections = await storage.getUserAccumulatorSelections(req.user.id);
+      const predictionIds = selections.map(s => s.predictionId);
+      
+      res.json(predictionIds);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
 }
