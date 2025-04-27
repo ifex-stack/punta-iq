@@ -126,9 +126,28 @@ export function NewsArticleCard({ article }: { article: NewsArticle }) {
         {article.imageUrl && (
           <div className="w-full h-48 mb-4 overflow-hidden rounded-md">
             <img 
-              src={article.imageUrl} 
+              src={article.imageUrl}
               alt={article.title} 
               className="w-full h-full object-cover transition-transform hover:scale-105"
+              onError={(e) => {
+                // Handle image loading error with fallback
+                const target = e.target as HTMLImageElement;
+                // Use a sports placeholder based on sport ID
+                const sportPlaceholders = {
+                  1: 'https://img.freepik.com/free-vector/gradient-soccer-football-background_52683-64915.jpg',
+                  2: 'https://img.freepik.com/free-vector/gradient-basketball-background_52683-65596.jpg',
+                  3: 'https://img.freepik.com/free-photo/tennis-ball-baseline-tennis-court_1150-7405.jpg',
+                  4: 'https://img.freepik.com/free-vector/realistic-racing-background_23-2148974621.jpg',
+                  default: 'https://img.freepik.com/free-photo/sports-tools_53876-138077.jpg'
+                };
+                
+                // Use sport-specific placeholder or default
+                const sportId = article.sportId || 0;
+                target.src = sportPlaceholders[sportId as keyof typeof sportPlaceholders] || sportPlaceholders.default;
+                
+                // Remove hover effect since it's a fallback
+                target.className = 'w-full h-full object-cover';
+              }}
             />
           </div>
         )}
@@ -175,7 +194,7 @@ export function NewsFeed({ initialTab = "personalized" }: { initialTab?: string 
   
   // Get trending articles for everybody
   const { data: trendingArticles, isLoading: loadingTrending } = useQuery({
-    queryKey: ["/api/news/trending"],
+    queryKey: ["/api/news/trending-fixed"],
     enabled: activeTab === "recommended",
   });
   
@@ -185,7 +204,7 @@ export function NewsFeed({ initialTab = "personalized" }: { initialTab?: string 
   });
   
   const { data: allNews, isLoading: loadingAllNews } = useQuery({
-    queryKey: ["/api/news"],
+    queryKey: ["/api/news/all"],
     enabled: activeTab === "all",
   });
   
