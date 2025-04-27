@@ -701,6 +701,289 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // News Feed API Routes
+  
+  // Get all news articles with pagination
+  app.get("/api/news", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+      
+      const articles = await storage.getAllNewsArticles(limit, offset);
+      res.json(articles);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Get a specific news article by ID
+  app.get("/api/news/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const article = await storage.getNewsArticleById(id);
+      
+      if (!article) {
+        return res.status(404).json({ message: "News article not found" });
+      }
+      
+      res.json(article);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get news articles by type (e.g., transfer, injury, match-preview)
+  app.get("/api/news/type/:type", async (req, res) => {
+    try {
+      const type = req.params.type;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      
+      const articles = await storage.getNewsArticlesByType(type, limit);
+      res.json(articles);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get news articles by sport
+  app.get("/api/news/sport/:sportId", async (req, res) => {
+    try {
+      const sportId = parseInt(req.params.sportId);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      
+      const articles = await storage.getNewsArticlesBySport(sportId, limit);
+      res.json(articles);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get news articles by league
+  app.get("/api/news/league/:leagueId", async (req, res) => {
+    try {
+      const leagueId = parseInt(req.params.leagueId);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      
+      const articles = await storage.getNewsArticlesByLeague(leagueId, limit);
+      res.json(articles);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Search news articles
+  app.get("/api/news/search", async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      
+      if (!query) {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+      
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const articles = await storage.searchNewsArticles(query, limit);
+      
+      res.json(articles);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Create a new news article (admin only)
+  app.post("/api/news", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    // Check if user is an admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Forbidden - Admin access required" });
+    }
+    
+    try {
+      const article = await storage.createNewsArticle(req.body);
+      res.status(201).json(article);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update a news article (admin only)
+  app.put("/api/news/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    // Check if user is an admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Forbidden - Admin access required" });
+    }
+    
+    try {
+      const id = parseInt(req.params.id);
+      const article = await storage.updateNewsArticle(id, req.body);
+      res.json(article);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete a news article (admin only)
+  app.delete("/api/news/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    // Check if user is an admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Forbidden - Admin access required" });
+    }
+    
+    try {
+      const id = parseInt(req.params.id);
+      const result = await storage.deleteNewsArticle(id);
+      
+      if (!result) {
+        return res.status(404).json({ message: "News article not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // User News Preferences API Routes
+  
+  // Get current user's news preferences
+  app.get("/api/news/preferences", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const preferences = await storage.getUserNewsPreferences(req.user.id);
+      res.json(preferences || {});
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Update user's news preferences
+  app.post("/api/news/preferences", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const preferences = await storage.updateUserNewsPreferences(req.user.id, req.body);
+      res.json(preferences);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // User Saved News API Routes
+  
+  // Get user's saved news articles
+  app.get("/api/news/saved", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const savedNews = await storage.getSavedNewsWithArticles(req.user.id);
+      res.json(savedNews);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Save a news article for the user
+  app.post("/api/news/:id/save", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const articleId = parseInt(req.params.id);
+      
+      // Check if article exists
+      const article = await storage.getNewsArticleById(articleId);
+      if (!article) {
+        return res.status(404).json({ message: "News article not found" });
+      }
+      
+      const savedArticle = await storage.saveNewsArticle({
+        userId: req.user.id,
+        articleId
+      });
+      
+      res.status(201).json(savedArticle);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Mark a news article as read
+  app.post("/api/news/:id/read", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const articleId = parseInt(req.params.id);
+      
+      // Check if article exists
+      const article = await storage.getNewsArticleById(articleId);
+      if (!article) {
+        return res.status(404).json({ message: "News article not found" });
+      }
+      
+      const readArticle = await storage.markNewsArticleAsRead(req.user.id, articleId);
+      res.json(readArticle);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Unsave a news article
+  app.delete("/api/news/:id/save", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const articleId = parseInt(req.params.id);
+      const result = await storage.unsaveNewsArticle(req.user.id, articleId);
+      
+      if (!result) {
+        return res.status(404).json({ message: "Saved article not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Personalized News Feed
+  app.get("/api/news/feed/personalized", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+      
+      const feed = await storage.getPersonalizedNewsFeed(req.user.id, limit, offset);
+      res.json(feed);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Create WebSocket server for real-time notifications
