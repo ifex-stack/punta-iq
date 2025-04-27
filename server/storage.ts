@@ -3900,6 +3900,51 @@ export class DatabaseStorage implements IStorage {
     // for leaderboard entries based on user activity
   }
 
+  // Fantasy Team methods implementation
+  async getUserFantasyTeams(userId: number): Promise<FantasyTeam[]> {
+    return db.select().from(fantasyTeams).where(eq(fantasyTeams.userId, userId));
+  }
+  
+  async getFantasyTeamById(id: number): Promise<FantasyTeam | undefined> {
+    const [team] = await db.select().from(fantasyTeams).where(eq(fantasyTeams.id, id));
+    return team;
+  }
+  
+  async createFantasyTeam(team: InsertFantasyTeam): Promise<FantasyTeam> {
+    const [createdTeam] = await db
+      .insert(fantasyTeams)
+      .values({
+        ...team,
+        totalPoints: team.totalPoints ?? 0,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    
+    return createdTeam;
+  }
+  
+  async updateFantasyTeam(id: number, data: Partial<InsertFantasyTeam>): Promise<FantasyTeam> {
+    const [updatedTeam] = await db
+      .update(fantasyTeams)
+      .set({
+        ...data,
+        updatedAt: new Date()
+      })
+      .where(eq(fantasyTeams.id, id))
+      .returning();
+    
+    return updatedTeam;
+  }
+  
+  async deleteFantasyTeam(id: number): Promise<boolean> {
+    const result = await db
+      .delete(fantasyTeams)
+      .where(eq(fantasyTeams.id, id));
+    
+    return result.rowCount > 0;
+  }
+  
   // News Article methods
   async getAllNewsArticles(limit = 20, offset = 0): Promise<NewsArticle[]> {
     return db
