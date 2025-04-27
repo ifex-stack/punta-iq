@@ -280,18 +280,26 @@ router.get("/api/predictions/ai-status", (req, res) => {
       apiProvider: "OpenAI",
       model: "gpt-4o",
       apiStatus: openaiClient.hasApiKey() ? "connected" : "unavailable",
-      requiresApiKey: !openaiClient.hasApiKey()
+      requiresApiKey: !openaiClient.hasApiKey(),
+      status: openaiClient.hasApiKey() ? "connected" : "unavailable"
     };
     
     logger.info('MLRoutes', 'Checking AI status', { 
       enabled: aiStatus.enabled, 
-      apiStatus: aiStatus.apiStatus 
+      apiStatus: aiStatus.apiStatus,
+      hasApiKey: openaiClient.hasApiKey()
     });
     
-    res.json(aiStatus);
+    res.status(200).send(aiStatus);
   } catch (error) {
     logger.error('MLRoutes', 'Error getting AI status', error);
-    res.status(500).json({ error: "Error checking AI status" });
+    res.status(500).json({ 
+      error: "Error checking AI status",
+      enabled: false,
+      apiStatus: "error",
+      status: "error",
+      requiresApiKey: true
+    });
   }
 });
 
