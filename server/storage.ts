@@ -4052,6 +4052,7 @@ export class DatabaseStorage implements IStorage {
       
       // Transform the results to match the expected structure
       const results = rows.map(row => {
+        // Get article properties from the newsArticles columns
         return {
           id: row.id,
           userId: row.user_id, 
@@ -4060,7 +4061,7 @@ export class DatabaseStorage implements IStorage {
           isRead: row.is_read,
           readAt: row.read_at,
           article: {
-            id: row.id,
+            id: row.article_id, // Use the article_id from user_saved_news for the article id
             title: row.title,
             content: row.content,
             summary: row.summary,
