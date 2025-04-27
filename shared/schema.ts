@@ -35,6 +35,10 @@ export const users = pgTable("users", {
   fantasyPoints: integer("fantasy_points").default(0).notNull(),
   totalContestsWon: integer("total_contests_won").default(0).notNull(),
   totalContestsEntered: integer("total_contests_entered").default(0).notNull(),
+  
+  // Referral gamification properties
+  referralStreak: integer("referral_streak").default(0).notNull(),
+  lastReferralDate: timestamp("last_referral_date"),
 });
 
 // Referrals table

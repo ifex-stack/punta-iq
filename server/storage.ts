@@ -2737,7 +2737,10 @@ export class DatabaseStorage implements IStorage {
         isTwoFactorEnabled: users.isTwoFactorEnabled,
         phoneNumber: users.phoneNumber,
         referralCode: users.referralCode,
-        referredBy: users.referredBy
+        referredBy: users.referredBy,
+        // Referral gamification fields
+        referralStreak: users.referralStreak,
+        lastReferralDate: users.lastReferralDate
       }).from(users).where(eq(users.id, id));
       return user;
     } catch (error) {
@@ -2780,7 +2783,10 @@ export class DatabaseStorage implements IStorage {
         isTwoFactorEnabled: users.isTwoFactorEnabled,
         phoneNumber: users.phoneNumber,
         referralCode: users.referralCode,
-        referredBy: users.referredBy
+        referredBy: users.referredBy,
+        // Referral gamification fields
+        referralStreak: users.referralStreak,
+        lastReferralDate: users.lastReferralDate
       }).from(users).where(eq(users.username, username));
       return user;
     } catch (error) {
@@ -2823,7 +2829,10 @@ export class DatabaseStorage implements IStorage {
         isTwoFactorEnabled: users.isTwoFactorEnabled,
         phoneNumber: users.phoneNumber,
         referralCode: users.referralCode,
-        referredBy: users.referredBy
+        referredBy: users.referredBy,
+        // Referral gamification fields
+        referralStreak: users.referralStreak,
+        lastReferralDate: users.lastReferralDate
       }).from(users).where(eq(users.email, email));
       return user;
     } catch (error) {
