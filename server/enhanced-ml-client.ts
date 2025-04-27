@@ -108,7 +108,6 @@ export class EnhancedMLClient extends MLServiceClient {
         const awayOdds = match.awayOdds || (3.8 + (Math.random() * 0.8 - 0.4)); // 3.4-4.2 range
         
         // Determine prediction based on odds - lower odds = higher chance
-        const oddsSum = homeOdds + drawOdds + awayOdds;
         const homeProb = 1 / homeOdds / (1/homeOdds + 1/drawOdds + 1/awayOdds);
         const drawProb = 1 / drawOdds / (1/homeOdds + 1/drawOdds + 1/awayOdds);
         const awayProb = 1 / awayOdds / (1/homeOdds + 1/drawOdds + 1/awayOdds);
@@ -128,6 +127,74 @@ export class EnhancedMLClient extends MLServiceClient {
         const oddsRatio = Math.min(homeOdds, drawOdds, awayOdds) / Math.max(homeOdds, drawOdds, awayOdds);
         const confidence = Math.floor(55 + (1 - oddsRatio) * 35); // 55-90 range
         
+        // Calculate additional market predictions
+        
+        // BTTS (Both Teams To Score)
+        const homeStrength = 0.7 + (Math.random() * 0.3); // 0.7-1.0 for home offensive capability
+        const awayStrength = 0.6 + (Math.random() * 0.3); // 0.6-0.9 for away offensive capability
+        const homeDefense = 0.6 + (Math.random() * 0.3); // Defense rating
+        const awayDefense = 0.5 + (Math.random() * 0.3); // Away defense is generally weaker
+        
+        const bttsYesProbability = Math.min(90, Math.max(40, 
+          Math.floor(50 + (awayStrength * 20) + (homeStrength * 10) - (homeDefense * 5) - (awayDefense * 5))
+        ));
+        const bttsOutcome = bttsYesProbability > 55 ? 'Yes' : 'No';
+        const bttsConfidence = bttsYesProbability > 55 ? bttsYesProbability : 100 - bttsYesProbability;
+        const bttsOdds = bttsYesProbability > 55 ? 
+          parseFloat((100 / bttsYesProbability * 0.85).toFixed(2)) : 
+          parseFloat((100 / (100 - bttsYesProbability) * 0.85).toFixed(2));
+        
+        // Over/Under 2.5 goals
+        const overProbability = Math.min(90, Math.max(40,
+          Math.floor(50 + (homeStrength * 15) + (awayStrength * 15) - (homeDefense * 10) - (awayDefense * 10))
+        ));
+        const overUnderOutcome = overProbability > 55 ? 'Over' : 'Under';
+        const overUnderConfidence = overProbability > 55 ? overProbability : 100 - overProbability;
+        const overUnderOdds = overProbability > 55 ? 
+          parseFloat((100 / overProbability * 0.85).toFixed(2)) : 
+          parseFloat((100 / (100 - overProbability) * 0.85).toFixed(2));
+        
+        // Corner kicks
+        const homePossessionStyle = 0.5 + (Math.random() * 0.5); // 0.5-1.0 for possession/attacking style
+        const awayPossessionStyle = 0.4 + (Math.random() * 0.5);
+        const cornerLine = 9.5;
+        const homeCornersBase = 5 + Math.floor(homePossessionStyle * 4);
+        const awayCornersBase = 3 + Math.floor(awayPossessionStyle * 4);
+        const totalCorners = homeCornersBase + awayCornersBase;
+        const cornersOverProbability = totalCorners > cornerLine ? 
+          Math.min(90, Math.max(40, Math.floor(50 + (totalCorners - cornerLine) * 10))) : 
+          Math.min(60, Math.max(10, Math.floor(50 - (cornerLine - totalCorners) * 10)));
+        const cornersOutcome = cornersOverProbability > 55 ? 'Over' : 'Under';
+        const cornersConfidence = cornersOverProbability > 55 ? cornersOverProbability : 100 - cornersOverProbability;
+        const cornersOdds = cornersOverProbability > 55 ? 
+          parseFloat((100 / cornersOverProbability * 0.85).toFixed(2)) : 
+          parseFloat((100 / (100 - cornersOverProbability) * 0.85).toFixed(2));
+        
+        // Create prediction markets object
+        const markets = {
+          '1X2': {
+            outcome: predictedOutcome,
+            confidence: confidence,
+            odds: predictedOutcome === '1' ? homeOdds : (predictedOutcome === 'X' ? drawOdds : awayOdds)
+          },
+          'BTTS': {
+            outcome: bttsOutcome,
+            confidence: bttsConfidence,
+            odds: bttsOdds
+          },
+          'Over_Under_2.5': {
+            outcome: overUnderOutcome,
+            confidence: overUnderConfidence,
+            odds: overUnderOdds
+          },
+          'Corners_Over_Under': {
+            outcome: cornersOutcome,
+            confidence: cornersConfidence,
+            odds: cornersOdds,
+            line: cornerLine
+          }
+        };
+        
         return {
           id: match.id,
           matchId: match.id,
@@ -145,7 +212,8 @@ export class EnhancedMLClient extends MLServiceClient {
           awayOdds,
           // Include key match data
           status: match.status,
-          dataSource: 'API-SPORTS'
+          dataSource: 'API-SPORTS',
+          markets: markets
         };
       }) || [];
       

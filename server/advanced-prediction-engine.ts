@@ -116,7 +116,7 @@ export class AdvancedPredictionEngine {
       Math.floor(50 + (awayStrength * 20) + (homeStrength * homeAdvantage * 10))
     ));
     
-    // Over/Under probability
+    // Over/Under probability for goals
     const overProbability = Math.min(90, Math.max(40,
       Math.floor(50 + (homeStrength * 15) + (awayStrength * 15))
     ));
@@ -124,6 +124,38 @@ export class AdvancedPredictionEngine {
     // Score prediction
     const homeGoals = Math.max(0, Math.round(2.2 * homeStrength * homeAdvantage));
     const awayGoals = Math.max(0, Math.round(1.5 * awayStrength));
+    
+    // Corner kicks predictions
+    const homeCornersBase = 5 + Math.floor(homeStrength * 4);
+    const awayCornersBase = 3 + Math.floor(awayStrength * 4);
+    const totalCorners = homeCornersBase + awayCornersBase;
+    const cornerLine = 9.5;
+    const cornersOverProbability = totalCorners > cornerLine ? 
+      Math.min(90, Math.max(40, Math.floor(50 + (totalCorners - cornerLine) * 10))) : 
+      Math.min(60, Math.max(10, Math.floor(50 - (cornerLine - totalCorners) * 10)));
+      
+    // Cards predictions
+    const homeAggressionFactor = 0.7 + (Math.random() * 0.6); // 0.7-1.3 random factor for team aggression
+    const awayAggressionFactor = 0.8 + (Math.random() * 0.7); // 0.8-1.5 random factor for away team aggression (away teams often more aggressive)
+    const matchIntensityFactor = Math.min(1.5, Math.max(0.8, 2.0 - Math.abs(homeStrength - awayStrength))); // closer teams = more intense match
+    
+    const homeYellowCards = Math.max(0, Math.round(1.2 * homeAggressionFactor * matchIntensityFactor));
+    const awayYellowCards = Math.max(0, Math.round(1.8 * awayAggressionFactor * matchIntensityFactor));
+    const totalCards = homeYellowCards + awayYellowCards;
+    const cardsLine = 3.5;
+    const cardsOverProbability = totalCards > cardsLine ? 
+      Math.min(90, Math.max(40, Math.floor(50 + (totalCards - cardsLine) * 15))) : 
+      Math.min(60, Math.max(10, Math.floor(50 - (cardsLine - totalCards) * 15)));
+    
+    // Red card probability
+    const redCardProbability = Math.min(30, Math.max(5, 
+      Math.floor(5 + (homeAggressionFactor * 5) + (awayAggressionFactor * 8) + (matchIntensityFactor * 10))
+    ));
+    
+    // First half goals prediction
+    const firstHalfGoalsProbability = Math.min(85, Math.max(40,
+      Math.floor(50 + (homeStrength * 10) + (awayStrength * 5))
+    ));
     
     // Market odds (simulated)
     const homeOdds = (100 / homeProbability) * 0.85;
@@ -152,11 +184,13 @@ export class AdvancedPredictionEngine {
         'BTTS': {
           outcome: bttsYesProbability > 55 ? 'Yes' : 'No',
           probability: bttsYesProbability > 55 ? bttsYesProbability : 100 - bttsYesProbability,
+          odds: bttsYesProbability > 55 ? parseFloat((100 / bttsYesProbability * 0.85).toFixed(2)) : parseFloat((100 / (100 - bttsYesProbability) * 0.85).toFixed(2)),
         },
-        'Over_Under': {
+        'Over_Under_2.5': {
           line: 2.5,
           outcome: overProbability > 55 ? 'Over' : 'Under',
           probability: overProbability > 55 ? overProbability : 100 - overProbability,
+          odds: overProbability > 55 ? parseFloat((100 / overProbability * 0.85).toFixed(2)) : parseFloat((100 / (100 - overProbability) * 0.85).toFixed(2)),
         },
         'CorrectScore': {
           outcome: `${homeGoals}-${awayGoals}`,
@@ -165,6 +199,38 @@ export class AdvancedPredictionEngine {
         'PredictedScore': {
           home: homeGoals,
           away: awayGoals,
+        },
+        'Corners_Over_Under': {
+          line: cornerLine,
+          outcome: cornersOverProbability > 55 ? 'Over' : 'Under',
+          probability: cornersOverProbability > 55 ? cornersOverProbability : 100 - cornersOverProbability,
+          odds: cornersOverProbability > 55 ? parseFloat((100 / cornersOverProbability * 0.85).toFixed(2)) : parseFloat((100 / (100 - cornersOverProbability) * 0.85).toFixed(2)),
+          predictedCorners: {
+            home: homeCornersBase,
+            away: awayCornersBase,
+            total: totalCorners
+          }
+        },
+        'Cards_Over_Under': {
+          line: cardsLine,
+          outcome: cardsOverProbability > 55 ? 'Over' : 'Under',
+          probability: cardsOverProbability > 55 ? cardsOverProbability : 100 - cardsOverProbability,
+          odds: cardsOverProbability > 55 ? parseFloat((100 / cardsOverProbability * 0.85).toFixed(2)) : parseFloat((100 / (100 - cardsOverProbability) * 0.85).toFixed(2)),
+          predictedCards: {
+            home: homeYellowCards,
+            away: awayYellowCards,
+            total: totalCards
+          }
+        },
+        'RedCard': {
+          outcome: redCardProbability > 20 ? 'Yes' : 'No',
+          probability: redCardProbability > 20 ? redCardProbability : 100 - redCardProbability,
+          odds: redCardProbability > 20 ? parseFloat((100 / redCardProbability * 0.85).toFixed(2)) : parseFloat((100 / (100 - redCardProbability) * 0.85).toFixed(2)),
+        },
+        'FirstHalfGoal': {
+          outcome: firstHalfGoalsProbability > 55 ? 'Yes' : 'No',
+          probability: firstHalfGoalsProbability > 55 ? firstHalfGoalsProbability : 100 - firstHalfGoalsProbability,
+          odds: firstHalfGoalsProbability > 55 ? parseFloat((100 / firstHalfGoalsProbability * 0.85).toFixed(2)) : parseFloat((100 / (100 - firstHalfGoalsProbability) * 0.85).toFixed(2)),
         },
       },
       analysisFactors: [
