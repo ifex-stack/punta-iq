@@ -401,6 +401,11 @@ export class MemStorage implements IStorage {
     // Initialize referral system map
     this.referralsMap = new Map();
     
+    // Initialize news system maps
+    this.newsArticlesMap = new Map();
+    this.userNewsPreferencesMap = new Map();
+    this.userSavedNewsMap = new Map();
+    
     // Include a sample referral for demonstration
     const sampleReferral: Referral = {
       id: 1,
