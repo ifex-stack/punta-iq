@@ -92,7 +92,9 @@ router.get("/api/predictions/:sport", async (req, res) => {
     let usingRealData = false;
     
     // Check if the requested sport is supported by our real-time service
-    const supportedSports = ['football', 'basketball', 'baseball', 'hockey', 'rugby'];
+    // All sports are supported now through API-SPORTS integration
+    const supportedSports = ['football', 'basketball', 'baseball', 'hockey', 'rugby', 'american_football'];
+    // Always attempt to use real-time data first for better prediction quality
     if (supportedSports.includes(sport)) {
       logger.info("MLRoutes", "Getting real-time matches for sport", { sport, date });
       

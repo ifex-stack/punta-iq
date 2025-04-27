@@ -153,6 +153,33 @@ class SportsApiService {
         teams: '/teams',
         odds: '/odds'
       }
+    },
+    tennis: {
+      baseUrl: 'https://v1.tennis.api-sports.io',
+      version: 'v1',
+      endpoints: {
+        fixtures: '/games',
+        leagues: '/leagues',
+        players: '/players'
+      }
+    },
+    cricket: {
+      baseUrl: 'https://v1.cricket.api-sports.io',
+      version: 'v1',
+      endpoints: {
+        fixtures: '/fixtures',
+        leagues: '/leagues',
+        teams: '/teams'
+      }
+    },
+    formula1: {
+      baseUrl: 'https://v1.formula-1.api-sports.io',
+      version: 'v1',
+      endpoints: {
+        fixtures: '/races',
+        leagues: '/seasons',
+        teams: '/teams'
+      }
     }
   };
   
@@ -255,10 +282,12 @@ class SportsApiService {
       
       // Each sport API might have a different response structure
       // So we need to handle the response differently for each sport
-      if (sport === 'football') {
+      if (sport === 'football' || sport === 'cricket') {
         return this.processFootballFixtures(response.data.response, sport);
-      } else if (['basketball', 'baseball', 'nba', 'american_football', 'rugby', 'hockey'].includes(sport)) {
+      } else if (['basketball', 'baseball', 'nba', 'american_football', 'rugby', 'hockey', 'tennis'].includes(sport)) {
         return this.processTeamSportFixtures(response.data.response, sport);
+      } else if (sport === 'formula1') {
+        return this.processFormula1Races(response.data.response, sport);
       }
       
       // Default case if no special handling is defined for the sport
@@ -405,6 +434,37 @@ class SportsApiService {
     }
     
     return fixtures;
+  }
+  
+  /**
+   * Process Formula 1 races from the API response
+   * @param races Formula 1 races from the API
+   * @param sport The sport type (should be 'formula1')
+   * @returns Array of standardized match objects
+   */
+  private processFormula1Races(races: any[], sport: string): StandardizedMatch[] {
+    if (!races || !Array.isArray(races)) {
+      logger.warn(`[SportsApiService] No races found or invalid response for ${sport}`);
+      return [];
+    }
+    
+    return races.map(race => {
+      return {
+        id: `${sport}-${race.id}`,
+        sport: sport,
+        league: race.competition?.name || 'Formula 1',
+        country: race.circuit?.location?.country || race.competition?.location?.country || 'Unknown',
+        homeTeam: race.circuit?.name || 'Race',
+        awayTeam: 'Formula 1 Teams',
+        startTime: new Date(race.date || race.datetime || Date.now()),
+        venue: race.circuit?.name || null,
+        status: race.status || 'NS',
+        homeOdds: undefined,
+        drawOdds: undefined,
+        awayOdds: undefined,
+        score: null
+      };
+    });
   }
   
   /**
