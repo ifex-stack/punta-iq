@@ -4020,19 +4020,68 @@ export class DatabaseStorage implements IStorage {
         throw new Error("Invalid user ID");
       }
       
-      // Ensure userId is a number type
-      const userIdNumber = Number(userId);
+      // Ensure userId is a number type and it's a valid integer
+      const userIdNumber = Math.floor(Number(userId));
       
-      // Execute query with explicit type conversion
-      const results = await db
-        .select({
-          ...userSavedNews,
-          article: newsArticles
-        })
-        .from(userSavedNews)
-        .innerJoin(newsArticles, eq(userSavedNews.articleId, newsArticles.id))
-        .where(eq(userSavedNews.userId, userIdNumber))
-        .orderBy(desc(userSavedNews.savedAt));
+      if (userIdNumber <= 0) {
+        console.error("Invalid user ID value in getSavedNewsWithArticles:", userId);
+        throw new Error("Invalid user ID value");
+      }
+      
+      // Use a SQL query to ensure proper data handling
+      const rawQuery = `
+        SELECT 
+          usn.id,
+          usn.user_id,
+          usn.article_id,
+          usn.saved_at,
+          usn.is_read,
+          usn.read_at,
+          na.*
+        FROM 
+          user_saved_news AS usn
+        INNER JOIN 
+          news_articles AS na ON usn.article_id = na.id
+        WHERE 
+          usn.user_id = $1
+        ORDER BY 
+          usn.saved_at DESC
+      `;
+      
+      const { rows } = await pool.query(rawQuery, [userIdNumber]);
+      
+      // Transform the results to match the expected structure
+      const results = rows.map(row => {
+        return {
+          id: row.id,
+          userId: row.user_id, 
+          articleId: row.article_id,
+          savedAt: row.saved_at,
+          isRead: row.is_read,
+          readAt: row.read_at,
+          article: {
+            id: row.id,
+            title: row.title,
+            content: row.content,
+            summary: row.summary,
+            author: row.author,
+            source: row.source,
+            sourceUrl: row.source_url,
+            publishedAt: row.published_at,
+            imageUrl: row.image_url,
+            sportId: row.sport_id,
+            leagueId: row.league_id,
+            teams: row.teams,
+            type: row.type,
+            aiGenerated: row.ai_generated,
+            aiEnhanced: row.ai_enhanced,
+            isPremium: row.is_premium,
+            tags: row.tags,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+          }
+        };
+      });
       
       return results || [];
     } catch (error) {
