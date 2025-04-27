@@ -208,10 +208,10 @@ router.get("/api/predictions/:sport", async (req, res) => {
 });
 
 /**
- * Get accumulator predictions using real-time match data
+ * Get AI accumulator predictions using real-time match data
  * This endpoint is public and does not require authentication
  */
-router.get("/api/accumulators", async (req, res) => {
+router.get("/api/ai-accumulators", async (req, res) => {
   try {
     // Get today's real matches from different sports
     const footballMatches = await realTimeMatchesService.getMatchesForDate('football', 0);
