@@ -158,6 +158,8 @@ export interface IStorage {
   getUserPredictions(userId: number): Promise<UserPrediction[]>;
   saveUserPrediction(userPrediction: InsertUserPrediction): Promise<UserPrediction>;
   toggleSavedPrediction(userId: number, predictionId: number): Promise<UserPrediction>;
+  getUserSavedPredictions(userId: number): Promise<UserPrediction[]>;
+  getUserAccumulatorSelections(userId: number): Promise<UserPrediction[]>;
   
   // Accumulator methods
   getUserAccumulators(userId: number): Promise<Accumulator[]>;
