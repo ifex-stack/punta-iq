@@ -283,6 +283,18 @@ export interface IStorage {
   // Personalized News Feed
   getPersonalizedNewsFeed(userId: number, limit?: number, offset?: number): Promise<NewsArticle[]>;
   
+  // Fantasy Football methods
+  getAllFantasyContests(limit?: number, status?: string, tier?: string): Promise<FantasyContest[]>;
+  getFreeFantasyContests(limit?: number, status?: string): Promise<FantasyContest[]>;
+  getPremiumFantasyContests(limit?: number, status?: string): Promise<FantasyContest[]>;
+  getFantasyContestById(id: number): Promise<FantasyContest | undefined>;
+  createFantasyContest(contest: InsertFantasyContest): Promise<FantasyContest>;
+  getFantasyTeamById(id: number): Promise<FantasyTeam | undefined>;
+  getUserContestEntries(userId: number): Promise<FantasyContestEntry[]>;
+  createContestEntry(entry: InsertFantasyContestEntry): Promise<FantasyContestEntry>;
+  getContestLeaderboard(contestId: number): Promise<FantasyContestEntry[]>;
+  updateFantasyContestStatus(id: number, status: string): Promise<FantasyContest | null>;
+  
   // Session store
   sessionStore: session.SessionStore;
 }
