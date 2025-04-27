@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { logger, createContextLogger } from "./logger";
 import { initializeFantasyData } from "./fantasy-data-init";
+import { initializeDatabase } from "./db-init";
 
 const app = express();
 app.use(express.json());
@@ -172,6 +173,13 @@ app.use((req, res, next) => {
     
     // Keep old log format for compatibility
     log(`serving on port ${port}`);
+    
+    // Initialize database tables
+    try {
+      await initializeDatabase();
+    } catch (error) {
+      appLogger.error('Failed to initialize database tables', { error });
+    }
     
     // Initialize fantasy football data
     try {
