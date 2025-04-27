@@ -2,7 +2,7 @@ import { FC } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Trophy, Medal, Award, Users, ArrowUpRight } from "lucide-react";
+import { Trophy, Medal, Award, Users, ArrowUpRight, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cva } from "class-variance-authority";
@@ -20,9 +20,12 @@ interface LeaderboardEntry {
   username: string;
   totalReferrals: number;
   completedReferrals: number;
-  tier: string;
+  currentStreak: number;
+  tier: TierType;
   rank: number;
 }
+
+type TierType = 'none' | 'bronze' | 'silver' | 'gold' | 'platinum';
 
 // Define tier badge styles
 const tierBadgeVariants = cva("h-6 w-6 flex items-center justify-center rounded-full", {
@@ -120,7 +123,15 @@ export const ReferralLeaderboard: FC<ReferralLeaderboardProps> = ({ limit = 10, 
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-semibold">{userPosition.completedReferrals}</div>
+                  <div className="font-semibold flex items-center gap-1">
+                    {userPosition.completedReferrals}
+                    {userPosition.currentStreak > 0 && (
+                      <span className="ml-1 text-xs bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded-full flex items-center">
+                        <Flame className="h-3 w-3 mr-0.5" />
+                        {userPosition.currentStreak}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-xs text-muted-foreground">Referrals</div>
                 </div>
               </div>
@@ -167,7 +178,15 @@ export const ReferralLeaderboard: FC<ReferralLeaderboardProps> = ({ limit = 10, 
                   
                   {/* Referral count */}
                   <div className="text-right">
-                    <div className="font-semibold">{entry.completedReferrals}</div>
+                    <div className="font-semibold flex items-center gap-1">
+                      {entry.completedReferrals}
+                      {entry.currentStreak > 0 && (
+                        <span className="ml-1 text-xs bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded-full flex items-center">
+                          <Flame className="h-3 w-3 mr-0.5" />
+                          {entry.currentStreak}
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs text-muted-foreground">Referrals</div>
                   </div>
                 </div>

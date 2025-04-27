@@ -14,7 +14,7 @@ interface ReferralStreakProps {
 }
 
 // Streak rewards by streak count
-const streakRewards = {
+const streakRewards: Record<number, { points: number; description: string }> = {
   3: { points: 750, description: "Three-peat bonus" },
   5: { points: 1500, description: "Five-streak bonus" },
   7: { points: 2500, description: "Weekly champion" },
@@ -31,15 +31,17 @@ export const ReferralStreak: FC<ReferralStreakProps> = ({ className }) => {
   const { data: userData, isLoading } = useQuery({
     queryKey: ['/api/user/profile'],
     queryFn: async () => {
-      const res = await apiRequest('GET', '/api/user/profile');
-      return res.json();
-    },
-    onError: () => {
-      toast({
-        title: "Error fetching profile data",
-        description: "Could not load your streak information",
-        variant: "destructive",
-      });
+      try {
+        const res = await apiRequest('GET', '/api/user/profile');
+        return res.json();
+      } catch (error) {
+        toast({
+          title: "Error fetching profile data",
+          description: "Could not load your streak information",
+          variant: "destructive",
+        });
+        throw error;
+      }
     }
   });
   
