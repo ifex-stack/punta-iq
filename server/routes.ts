@@ -13,6 +13,7 @@ import { getFantasyStore } from "./fantasy-data-init";
 import { PushNotificationService } from "./push-notification-service";
 import { newsRecommendationEngine } from "./recommendation-engine";
 import { db, pool } from "./db";
+import { setupNewsRoutes } from "./news-routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
@@ -35,6 +36,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up ML-based prediction routes 
   setupMLRoutes(app);
+  
+  // Set up fixed news routes
+  setupNewsRoutes(app);
   
   // Sports routes
   app.get("/api/sports", async (req, res) => {
