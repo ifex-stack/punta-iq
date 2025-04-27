@@ -6,11 +6,12 @@ import {
   UserIcon,
   TrophyIcon,
   WrenchIcon,
+  NewspaperIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 interface BottomNavigationProps {
-  activePage: "predictions" | "stats" | "fantasy" | "subscription" | "profile" | "admin";
+  activePage: "predictions" | "stats" | "fantasy" | "subscription" | "profile" | "admin" | "news";
 }
 
 const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
@@ -43,6 +44,15 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
           }`}>
             <BarChart2Icon className="h-5 w-5" />
             <span className="text-xs mt-1">Stats</span>
+          </a>
+        </Link>
+        
+        <Link href="/news">
+          <a className={`flex flex-col items-center justify-center ${isAdmin ? 'w-1/6' : 'w-1/5'} ${
+            isActive("news") ? "text-primary" : "text-muted-foreground"
+          }`}>
+            <NewspaperIcon className="h-5 w-5" />
+            <span className="text-xs mt-1">News</span>
           </a>
         </Link>
         

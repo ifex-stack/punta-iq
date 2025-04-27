@@ -14,6 +14,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const getActivePage = () => {
     if (location === '/') return 'predictions';
     if (location === '/stats') return 'stats';
+    if (location === '/news') return 'news';
     if (location.startsWith('/fantasy')) return 'fantasy';
     if (location === '/subscription') return 'subscription';
     if (location === '/profile') return 'profile';
