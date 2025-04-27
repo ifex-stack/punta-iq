@@ -37,7 +37,7 @@ export function NewsArticleCard({ article }: { article: NewsArticle }) {
   const [isSaved, setIsSaved] = useState(false);
   
   const { data: savedArticles } = useQuery({
-    queryKey: ["/api/news/saved"],
+    queryKey: ["/api/news/saved-fixed"],
     enabled: !!user,
   });
   
@@ -69,7 +69,7 @@ export function NewsArticleCard({ article }: { article: NewsArticle }) {
       }
       
       // Invalidate the saved articles query to update the UI
-      queryClient.invalidateQueries({ queryKey: ["/api/news/saved"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/news/saved-fixed"] });
     } catch (error) {
       toast({
         title: "Error",
@@ -209,7 +209,7 @@ export function NewsFeed({ initialTab = "personalized" }: { initialTab?: string 
   });
   
   const { data: savedNews, isLoading: loadingSaved } = useQuery({
-    queryKey: ["/api/news/saved"],
+    queryKey: ["/api/news/saved-fixed"],
     enabled: !!user && activeTab === "saved",
   });
   

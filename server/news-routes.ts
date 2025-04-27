@@ -6,6 +6,92 @@ import { storage } from "./storage";
 
 export function setupNewsRoutes(app: Express) {
   console.log("Setting up news routes...");
+  
+  // Get user's saved articles - fixed version
+  app.get("/api/news/saved-fixed", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const userId = req.user?.id;
+      if (!userId || isNaN(Number(userId))) {
+        return res.status(400).json({ message: "Invalid user identification" });
+      }
+      
+      console.log("Fetching saved articles for user:", userId);
+      
+      // Use direct SQL with proper join to avoid any Drizzle ORM issues
+      const { rows } = await pool.query(`
+        SELECT 
+          usn.id,
+          usn.user_id AS "userId",
+          usn.article_id AS "articleId",
+          usn.saved_at AS "savedAt",
+          na.id AS "article.id",
+          na.title AS "article.title",
+          na.summary AS "article.summary",
+          na.content AS "article.content",
+          na.author AS "article.author",
+          na.source AS "article.source",
+          na.source_url AS "article.sourceUrl",
+          na.published_at AS "article.publishedAt",
+          na.image_url AS "article.imageUrl",
+          na.sport_id AS "article.sportId",
+          na.league_id AS "article.leagueId",
+          na.teams AS "article.teams",
+          na.type AS "article.type",
+          na.ai_generated AS "article.aiGenerated",
+          na.ai_enhanced AS "article.aiEnhanced",
+          na.is_premium AS "article.isPremium",
+          COALESCE(na.tags, '[]') AS "article.tags",
+          COALESCE(na.views, 0) AS "article.views",
+          COALESCE(na.likes, 0) AS "article.likes",
+          na.created_at AS "article.createdAt",
+          na.updated_at AS "article.updatedAt"
+        FROM 
+          user_saved_news AS usn
+        INNER JOIN 
+          news_articles AS na ON usn.article_id = na.id
+        WHERE 
+          usn.user_id = $1
+        ORDER BY 
+          usn.saved_at DESC
+      `, [userId]);
+      
+      // Process the results to create the expected nested structure
+      const results = rows.map(row => {
+        // Create a nested structure by processing all fields that start with "article."
+        const article: any = {};
+        const savedArticle: any = {};
+        
+        // Extract base fields
+        Object.keys(row).forEach(key => {
+          if (key.startsWith("article.")) {
+            // This is an article property
+            const articleProp = key.replace("article.", "");
+            article[articleProp] = row[key];
+          } else {
+            // This is a saved article property
+            savedArticle[key] = row[key];
+          }
+        });
+        
+        // Add the article object to the result
+        savedArticle.article = article;
+        
+        return savedArticle;
+      });
+      
+      console.log(`Found ${results.length} saved articles for user ${userId}`);
+      res.json(results);
+    } catch (error: any) {
+      console.error("Error fetching saved articles:", error);
+      res.status(500).json({ 
+        message: error.message || "Failed to fetch saved articles"
+      });
+    }
+  });
 
   // News Feed - All articles with pagination 
   app.get("/api/news/all", async (req, res) => {
