@@ -265,43 +265,9 @@ router.get("/api/predictions/team-trends/:teamId", async (req, res) => {
 });
 
 /**
- * Check availability of advanced AI-powered predictions
+ * Check availability of advanced AI-powered predictions 
+ * Note: This endpoint has been moved to ai-status-route.ts
  */
-router.get("/api/predictions/ai-status", (req, res) => {
-  try {
-    const aiStatus = {
-      enabled: mlClient === enhancedMLClient,
-      capabilities: [
-        { name: "match_insights", available: mlClient === enhancedMLClient },
-        { name: "trend_analysis", available: mlClient === enhancedMLClient },
-        { name: "ai_explanations", available: mlClient === enhancedMLClient },
-        { name: "enhanced_accumulators", available: mlClient === enhancedMLClient },
-      ],
-      apiProvider: "OpenAI",
-      model: "gpt-4o",
-      apiStatus: openaiClient.hasApiKey() ? "connected" : "unavailable",
-      requiresApiKey: !openaiClient.hasApiKey(),
-      status: openaiClient.hasApiKey() ? "connected" : "unavailable"
-    };
-    
-    logger.info('MLRoutes', 'Checking AI status', { 
-      enabled: aiStatus.enabled, 
-      apiStatus: aiStatus.apiStatus,
-      hasApiKey: openaiClient.hasApiKey()
-    });
-    
-    res.status(200).send(aiStatus);
-  } catch (error) {
-    logger.error('MLRoutes', 'Error getting AI status', error);
-    res.status(500).json({ 
-      error: "Error checking AI status",
-      enabled: false,
-      apiStatus: "error",
-      status: "error",
-      requiresApiKey: true
-    });
-  }
-});
 
 export function setupMLRoutes(app: Express) {
   app.use(router);
