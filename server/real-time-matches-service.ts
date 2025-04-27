@@ -128,27 +128,29 @@ export class RealTimeMatchesService {
     const premierLeagueFixtures = [
       {
         id: 'pl-1',
-        homeTeam: 'Manchester City',
-        awayTeam: 'Arsenal',
+        homeTeam: 'Tottenham',
+        awayTeam: 'Liverpool',
         league: 'Premier League',
-        startTime: new Date(`${today}T17:30:00Z`),
+        startTime: new Date(`${today}T15:30:00Z`),
         sport: 'football',
-        homeOdds: 2.05,
-        drawOdds: 3.40,
-        awayOdds: 3.60,
-        venue: 'Etihad Stadium',
+        homeOdds: 3.25,
+        drawOdds: 3.60,
+        awayOdds: 2.10,
+        venue: 'Tottenham Hotspur Stadium',
+        status: 'Live',
       },
       {
         id: 'pl-2',
-        homeTeam: 'Liverpool',
-        awayTeam: 'Tottenham',
+        homeTeam: 'Arsenal',
+        awayTeam: 'Aston Villa',
         league: 'Premier League',
-        startTime: new Date(`${today}T15:00:00Z`), 
+        startTime: new Date(`${today}T14:00:00Z`), 
         sport: 'football',
         homeOdds: 1.70,
         drawOdds: 3.80,
         awayOdds: 4.50,
-        venue: 'Anfield',
+        venue: 'Emirates Stadium',
+        status: 'Scheduled',
       },
       {
         id: 'pl-3',
@@ -307,20 +309,46 @@ export class RealTimeMatchesService {
   }
   
   /**
-   * Get all sports matches for today
+   * Get matches for a specific date (with offset from today)
+   * @param dateOffset 0 for today, -1 for yesterday, 1 for tomorrow, etc.
    */
-  async getAllTodaySportsMatches(): Promise<RealTimeMatch[]> {
+  getMatchesForDate(matches: RealTimeMatch[], dateOffset: number = 0): RealTimeMatch[] {
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + dateOffset);
+    const targetDateStr = targetDate.toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    return matches.filter(match => {
+      const matchDate = new Date(match.startTime).toISOString().split('T')[0];
+      return matchDate === targetDateStr;
+    });
+  }
+  
+  /**
+   * Get all sports matches for a specific date
+   * @param dateOffset 0 for today, -1 for yesterday, 1 for tomorrow, etc.
+   */
+  async getAllSportsMatches(dateOffset: number = 0): Promise<RealTimeMatch[]> {
     try {
       const [footballMatches, basketballMatches] = await Promise.all([
         this.getTodayFootballMatches(),
         this.getTodayBasketballMatches()
       ]);
       
-      return [...footballMatches, ...basketballMatches];
+      const allMatches = [...footballMatches, ...basketballMatches];
+      
+      // Get matches for the specific date
+      return this.getMatchesForDate(allMatches, dateOffset);
     } catch (error) {
-      logger.error('RealTimeMatches', 'Error fetching all sports matches', error);
+      logger.error('RealTimeMatches', `Error fetching sports matches for offset ${dateOffset}`, error);
       return [];
     }
+  }
+  
+  /**
+   * Get all sports matches for today (backward compatibility)
+   */
+  async getAllTodaySportsMatches(): Promise<RealTimeMatch[]> {
+    return this.getAllSportsMatches(0);
   }
 }
 

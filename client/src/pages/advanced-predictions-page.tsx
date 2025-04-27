@@ -8,9 +8,10 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, Info, Check, AlertTriangle, TrendingUp, History, Scale, Award, RefreshCw } from "lucide-react";
+import { Loader2, Info, Check, AlertTriangle, TrendingUp, History, Scale, Award, RefreshCw, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import footballMatchImage from "@/assets/football-match.svg";
+import { format, addDays, isToday, isTomorrow, isYesterday } from "date-fns";
 
 // Match type definition
 interface RealTimeMatch {
@@ -34,7 +35,25 @@ const AdvancedPredictionsPage = () => {
   const [generatingPrediction, setGeneratingPrediction] = useState(false);
   const [prediction, setPrediction] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>("football");
+  const [selectedDateOffset, setSelectedDateOffset] = useState<number>(0); // 0 = today, -1 = yesterday, 1 = tomorrow
   const { toast } = useToast();
+
+  // Format the selected date for display
+  const getFormattedDate = (offset: number) => {
+    const date = addDays(new Date(), offset);
+    if (isToday(date)) return "Today";
+    if (isTomorrow(date)) return "Tomorrow";
+    if (isYesterday(date)) return "Yesterday";
+    return format(date, 'EEEE, MMM d'); // e.g. "Monday, Apr 28"
+  };
+
+  // Get query parameter for date based on offset
+  const getDateParam = (offset: number) => {
+    if (offset === 0) return "";
+    if (offset === -1) return "yesterday";
+    if (offset === 1) return "tomorrow";
+    return offset.toString();
+  };
 
   // Fetch available ML capabilities
   const { data: capabilities, isLoading: capabilitiesLoading } = useQuery({
@@ -48,9 +67,9 @@ const AdvancedPredictionsPage = () => {
     isLoading: isLoadingFootball,
     refetch: refetchFootball
   } = useQuery<RealTimeMatch[]>({
-    queryKey: ["/api/predictions/real-time-matches", { sport: "football" }],
+    queryKey: ["/api/predictions/real-time-matches", { sport: "football", date: getDateParam(selectedDateOffset) }],
     queryFn: () => 
-      fetch(`/api/predictions/real-time-matches?sport=football`)
+      fetch(`/api/predictions/real-time-matches?sport=football&date=${getDateParam(selectedDateOffset)}`)
         .then(res => res.json()),
   });
   
@@ -60,9 +79,9 @@ const AdvancedPredictionsPage = () => {
     isLoading: isLoadingBasketball,
     refetch: refetchBasketball
   } = useQuery<RealTimeMatch[]>({
-    queryKey: ["/api/predictions/real-time-matches", { sport: "basketball" }],
+    queryKey: ["/api/predictions/real-time-matches", { sport: "basketball", date: getDateParam(selectedDateOffset) }],
     queryFn: () => 
-      fetch(`/api/predictions/real-time-matches?sport=basketball`)
+      fetch(`/api/predictions/real-time-matches?sport=basketball&date=${getDateParam(selectedDateOffset)}`)
         .then(res => res.json()),
   });
   
@@ -157,7 +176,7 @@ const AdvancedPredictionsPage = () => {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <div>
-                  <CardTitle>Today's Matches</CardTitle>
+                  <CardTitle>{getFormattedDate(selectedDateOffset)} Matches</CardTitle>
                   <CardDescription>
                     Select a match to generate an advanced prediction
                   </CardDescription>
@@ -172,6 +191,40 @@ const AdvancedPredictionsPage = () => {
                 </Button>
               </CardHeader>
               <CardContent>
+                {/* Date Navigation */}
+                <div className="flex items-center justify-between mb-4 pb-2 border-b">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedDateOffset(selectedDateOffset - 1)}
+                    disabled={selectedDateOffset <= -3}
+                    title="Previous day"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" /> 
+                    {getFormattedDate(selectedDateOffset - 1)}
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="px-2 mx-1"
+                    onClick={() => setSelectedDateOffset(0)}
+                    title="Today"
+                  >
+                    <Calendar className="h-4 w-4 mr-1" /> Today
+                  </Button>
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedDateOffset(selectedDateOffset + 1)}
+                    disabled={selectedDateOffset >= 3}
+                    title="Next day"
+                  >
+                    {getFormattedDate(selectedDateOffset + 1)} <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+                
                 <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="mb-6">
                   <TabsList className="grid grid-cols-2 w-full">
                     <TabsTrigger value="football">Football</TabsTrigger>

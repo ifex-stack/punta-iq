@@ -494,22 +494,40 @@ router.get("/api/predictions/advanced-capabilities", async (req, res) => {
  * Get real-time matches for today
  */
 router.get("/api/predictions/real-time-matches", async (req, res) => {
-  const { sport } = req.query;
+  const { sport, date } = req.query;
+  let dateOffset = 0; // Default to today
+  
+  // Parse date offset
+  if (date) {
+    if (date === 'yesterday') {
+      dateOffset = -1;
+    } else if (date === 'tomorrow') {
+      dateOffset = 1;
+    } else if (!isNaN(Number(date))) {
+      dateOffset = Number(date);
+    }
+  }
   
   try {
     if (sport) {
       // Get matches for specific sport
       if (sport === 'football') {
         const matches = await realTimeMatchesService.getTodayFootballMatches();
-        return res.json(matches);
+        
+        // Filter matches for the requested date
+        const matchesForDate = realTimeMatchesService.getMatchesForDate(matches, dateOffset);
+        return res.json(matchesForDate);
       } else if (sport === 'basketball') {
         const matches = await realTimeMatchesService.getTodayBasketballMatches();
-        return res.json(matches);
+        
+        // Filter matches for the requested date
+        const matchesForDate = realTimeMatchesService.getMatchesForDate(matches, dateOffset);
+        return res.json(matchesForDate);
       }
     }
     
     // Get all sports matches if no specific sport requested
-    const allMatches = await realTimeMatchesService.getAllTodaySportsMatches();
+    const allMatches = await realTimeMatchesService.getAllSportsMatches(dateOffset);
     res.json(allMatches);
   } catch (error) {
     logger.error("MLRoutes", "Error fetching real-time matches", error);
