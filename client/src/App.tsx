@@ -10,6 +10,7 @@ import AuthPage from "@/pages/auth-page";
 import HomePage from "@/pages/home-page";
 import StatsPage from "@/pages/stats-page";
 import SubscriptionPage from "@/pages/subscription-page";
+import SubscriptionSuccessPage from "@/pages/subscription-success";
 import ProfilePage from "@/pages/profile-page";
 import FAQPage from "@/pages/faq-page";
 import HistoricalDashboard from "@/pages/historical-dashboard";
@@ -81,6 +82,7 @@ const Router: React.FC = () => {
             <ProtectedRoute path="/fantasy/contests" component={FantasyContestsPage} />
             <Route path="/fantasy" component={FantasyContestsPage} />
             <ProtectedRoute path="/subscription" component={SubscriptionPage} />
+            <ProtectedRoute path="/subscription-success" component={SubscriptionSuccessPage} />
             <ProtectedRoute path="/profile" component={ProfilePage} />
             <ProtectedRoute path="/referrals" component={ReferralsPage} />
             <ProtectedRoute path="/admin" component={AdminPage} />
