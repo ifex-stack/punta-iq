@@ -12,35 +12,55 @@ export function setupNewsRoutes(app: Express) {
     try {
       console.log("Fetching all news articles with pagination");
       
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+      // Ensure numeric values with defaults
+      let limit = 10;
+      let offset = 0;
       
-      // Use Drizzle ORM for query with explicit handling of nullable fields
-      const articles = await db.select({
-        id: newsArticles.id,
-        title: newsArticles.title,
-        summary: newsArticles.summary,
-        imageUrl: newsArticles.imageUrl,
-        publishedAt: newsArticles.publishedAt,
-        author: newsArticles.author,
-        source: newsArticles.source,
-        sportId: newsArticles.sportId,
-        views: newsArticles.views,
-        likes: newsArticles.likes
-      })
-      .from(newsArticles)
-      .orderBy(desc(newsArticles.publishedAt))
-      .limit(limit)
-      .offset(offset);
+      try {
+        if (req.query.limit) {
+          const parsedLimit = parseInt(req.query.limit as string);
+          if (!isNaN(parsedLimit) && parsedLimit > 0) {
+            limit = parsedLimit;
+          }
+        }
+        
+        if (req.query.offset) {
+          const parsedOffset = parseInt(req.query.offset as string);
+          if (!isNaN(parsedOffset) && parsedOffset >= 0) {
+            offset = parsedOffset;
+          }
+        }
+      } catch (parseError) {
+        console.warn("Invalid pagination parameters, using defaults", parseError);
+      }
       
-      console.log(`Found ${articles.length} news articles`);
+      console.log(`Using limit: ${limit}, offset: ${offset}`);
       
-      res.json(articles);
+      // Using direct SQL to avoid Drizzle ORM type conflicts
+      const { rows } = await pool.query(`
+        SELECT 
+          id, 
+          title, 
+          summary, 
+          image_url AS "imageUrl", 
+          published_at AS "publishedAt", 
+          author, 
+          source,
+          sport_id AS "sportId",
+          COALESCE(views, 0) AS views,
+          COALESCE(likes, 0) AS likes
+        FROM news_articles 
+        ORDER BY published_at DESC 
+        LIMIT $1 OFFSET $2
+      `, [limit, offset]);
+      
+      console.log(`Found ${rows.length} news articles`);
+      
+      res.json(rows);
     } catch (error: any) {
       console.error("Error fetching news articles:", error);
       res.status(500).json({ 
-        message: "Failed to fetch news articles",
-        error: error.message
+        message: error.message || "Failed to fetch news articles"
       });
     }
   });
