@@ -429,29 +429,9 @@ router.post("/api/ml/train", async (req, res) => {
   }
 });
 
-/**
- * Get saved predictions for current user
- */
-router.get("/api/predictions/saved", (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: "Authentication required" });
-  }
-  
-  // Mock data for now - in a real app, we would fetch from the database
-  res.json(["pred-123", "pred-456"]);
-});
-
-/**
- * Get accumulator selections for current user
- */
-router.get("/api/predictions/accumulator-selections", (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: "Authentication required" });
-  }
-  
-  // Mock data for now - in a real app, we would fetch from the database
-  res.json(["pred-789"]);
-});
+// Note: The saved predictions and accumulator selections endpoints are now handled
+// in server/predictions.ts, using real data from the database instead of mock data.
+// These endpoints were removed to avoid route conflicts.
 
 /**
  * Get detailed AI-powered insights for a specific match
