@@ -1,11 +1,17 @@
 import { Router, Express } from "express";
 import { z } from "zod";
 import { MLServiceClient } from "./ml-service-client";
+import { enhancedMLClient } from "./enhanced-ml-client";
+import { perplexityClient } from "./perplexity-client";
 import { logger } from "./logger";
 
-// Create a ML Service client
-const mlClient = new MLServiceClient();
-logger.info("MLRoutes", "ML service client initialized", { client: mlClient });
+// Use enhanced ML client if Perplexity API key is available, otherwise fall back to basic client
+const mlClient = perplexityClient.hasApiKey() ? enhancedMLClient : new MLServiceClient();
+logger.info("MLRoutes", "ML service client initialized", { 
+  client: mlClient,
+  enhanced: perplexityClient.hasApiKey(),
+  aiCapabilities: perplexityClient.hasApiKey() ? "available" : "unavailable"
+});
 
 // Create a new router
 const router = Router();
@@ -161,6 +167,121 @@ router.get("/api/predictions/accumulator-selections", (req, res) => {
   
   // Mock data for now - in a real app, we would fetch from the database
   res.json(["pred-789"]);
+});
+
+/**
+ * Get detailed AI-powered insights for a specific match
+ */
+router.get("/api/predictions/match-insights/:matchId", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  
+  const { matchId } = req.params;
+  const sport = req.query.sport as string || "football";
+  
+  if (!matchId) {
+    return res.status(400).json({ error: "Match ID is required" });
+  }
+  
+  try {
+    // Check if we're using the enhanced client with AI capabilities
+    if (mlClient === enhancedMLClient) {
+      const insights = await enhancedMLClient.getMatchInsights(matchId, sport);
+      return res.json(insights);
+    }
+    
+    // Fall back to regular predictions if AI not available
+    const sportPredictions = await mlClient.getSportPredictions(sport);
+    const match = sportPredictions.find((p: any) => p.matchId === matchId || p.id === matchId);
+    
+    if (!match) {
+      return res.status(404).json({ error: "Match not found" });
+    }
+    
+    res.json({
+      match,
+      insights: null,
+      status: 'unavailable',
+      reason: 'ai_not_enabled'
+    });
+  } catch (error) {
+    logger.error("MLRoutes", "Error retrieving match insights", error);
+    res.status(500).json({ error: "Error retrieving match insights" });
+  }
+});
+
+/**
+ * Get team performance trend analysis
+ */
+router.get("/api/predictions/team-trends/:teamId", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  
+  const { teamId } = req.params;
+  
+  if (!teamId) {
+    return res.status(400).json({ error: "Team ID is required" });
+  }
+  
+  try {
+    // Mock team data for demonstration
+    const teamData = {
+      id: teamId,
+      name: `Team ${teamId}`,
+      league: "Premier League",
+      ranking: 5,
+      form: "WDWLW",
+      // Add more team stats as needed
+    };
+    
+    // Mock recent matches
+    const recentMatches = [
+      { opponent: "Team A", result: "W", score: "2-0", date: new Date(Date.now() - 7 * 86400000).toISOString() },
+      { opponent: "Team B", result: "D", score: "1-1", date: new Date(Date.now() - 14 * 86400000).toISOString() },
+      { opponent: "Team C", result: "W", score: "3-1", date: new Date(Date.now() - 21 * 86400000).toISOString() },
+      { opponent: "Team D", result: "L", score: "0-2", date: new Date(Date.now() - 28 * 86400000).toISOString() },
+      { opponent: "Team E", result: "W", score: "1-0", date: new Date(Date.now() - 35 * 86400000).toISOString() },
+    ];
+    
+    // Check if we're using the enhanced client with AI capabilities
+    if (mlClient === enhancedMLClient) {
+      const trends = await enhancedMLClient.analyzeTeamTrends(teamData, recentMatches);
+      return res.json(trends);
+    }
+    
+    // Fall back to basic data if AI not available
+    res.json({
+      team: teamData,
+      recentMatches,
+      status: 'unavailable',
+      reason: 'ai_not_enabled'
+    });
+  } catch (error) {
+    logger.error("MLRoutes", "Error retrieving team trends", error);
+    res.status(500).json({ error: "Error retrieving team trends" });
+  }
+});
+
+/**
+ * Check availability of advanced AI-powered predictions
+ */
+router.get("/api/predictions/ai-status", (req, res) => {
+  const aiStatus = {
+    enabled: mlClient === enhancedMLClient,
+    capabilities: [
+      { name: "match_insights", available: mlClient === enhancedMLClient },
+      { name: "trend_analysis", available: mlClient === enhancedMLClient },
+      { name: "ai_explanations", available: mlClient === enhancedMLClient },
+      { name: "enhanced_accumulators", available: mlClient === enhancedMLClient },
+    ],
+    apiProvider: "Perplexity AI",
+    apiStatus: perplexityClient.hasApiKey() ? "connected" : "unavailable",
+    requiresApiKey: !perplexityClient.hasApiKey()
+  };
+  
+  res.json(aiStatus);
 });
 
 export function setupMLRoutes(app: Express) {
