@@ -82,6 +82,10 @@ const Router: React.FC = () => {
             <ProtectedRoute path="/referrals" component={ReferralsPage} />
             <ProtectedRoute path="/admin" component={AdminPage} />
             <Route path="/faq" component={FAQPage} />
+            <Route path="/feedback" component={FeedbackPage} />
+            <Route path="/legal/privacy-policy" component={PrivacyPolicyPage} />
+            <Route path="/legal/terms-conditions" component={TermsConditionsPage} />
+            <Route path="/legal/responsible-gambling" component={ResponsibleGamblingPage} />
             <Route path="/ui-showcase" component={UIShowcase} />
             <Route component={NotFound} />
           </Switch>

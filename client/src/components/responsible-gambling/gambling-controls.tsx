@@ -1,411 +1,345 @@
-import React from "react";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger
-} from "@/components/ui/accordion";
+import React, { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
-  DialogTitle, 
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
-  DialogFooter
 } from "@/components/ui/dialog";
-import { Clock3, Info, ShieldOff, ShieldX, UserX } from "lucide-react";
-import { 
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage
-} from "@/components/ui/form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertTriangle,
+  Calendar,
+  Clock,
+  PauseCircle,
+  Shield,
+  CalendarX,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
-const timeoutSchema = z.object({
-  duration: z.string().min(1, "Please select a duration"),
-  reason: z.string().optional(),
-});
+// Time-out Periods in days
+const TIMEOUT_PERIODS = [
+  { value: "1", label: "24 hours" },
+  { value: "7", label: "7 days" },
+  { value: "14", label: "14 days" },
+  { value: "30", label: "30 days" },
+];
 
-const selfExcludeSchema = z.object({
-  period: z.enum(["6months", "1year", "2years", "5years", "permanent"]),
-  reason: z.string().optional(),
-  confirmExclusion: z.boolean().refine(val => val === true, {
-    message: "You must confirm your decision"
-  })
-});
+// Self-exclusion Periods in months
+const EXCLUSION_PERIODS = [
+  { value: "6", label: "6 months" },
+  { value: "12", label: "1 year" },
+  { value: "24", label: "2 years" },
+  { value: "60", label: "5 years" },
+  { value: "permanent", label: "Permanently" },
+];
 
-export function GamblingControls() {
+export const GamblingControls: React.FC = () => {
+  const [activeTab, setActiveTab] = useState("timeout");
+  const [selectedPeriod, setSelectedPeriod] = useState("");
+  const [reason, setReason] = useState("");
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-  
-  const timeoutForm = useForm<z.infer<typeof timeoutSchema>>({
-    resolver: zodResolver(timeoutSchema),
-    defaultValues: {
-      duration: "",
-      reason: "",
-    },
-  });
 
-  const selfExcludeForm = useForm<z.infer<typeof selfExcludeSchema>>({
-    resolver: zodResolver(selfExcludeSchema),
-    defaultValues: {
-      period: "6months",
-      reason: "",
-      confirmExclusion: false,
-    },
-  });
-
-  const onTimeoutSubmit = async (data: z.infer<typeof timeoutSchema>) => {
-    try {
-      await apiRequest('POST', '/api/user/timeout', {
-        userId: user?.id,
-        duration: data.duration,
-        reason: data.reason || "Not specified",
-      });
-      
+  // Handle form submission for timeout or self-exclusion
+  const handleSubmit = async () => {
+    if (!selectedPeriod) {
       toast({
-        title: "Time-out set",
-        description: `Your account will be temporarily restricted for ${data.duration}.`,
-      });
-      
-      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-    } catch (error) {
-      toast({
-        title: "Failed to set time-out",
-        description: "Please try again later",
+        title: "Selection required",
+        description: "Please select a period before proceeding",
         variant: "destructive",
       });
+      return;
     }
-  };
 
-  const onSelfExcludeSubmit = async (data: z.infer<typeof selfExcludeSchema>) => {
+    setIsSubmitting(true);
+
     try {
-      await apiRequest('POST', '/api/user/self-exclude', {
+      const endpoint = activeTab === "timeout" 
+        ? "/api/responsible-gambling/timeout" 
+        : "/api/responsible-gambling/self-exclude";
+
+      const response = await apiRequest("POST", endpoint, {
         userId: user?.id,
-        period: data.period,
-        reason: data.reason || "Not specified",
+        period: selectedPeriod,
+        reason: reason || "Not specified",
       });
-      
-      toast({
-        title: "Self-exclusion set",
-        description: "Your self-exclusion has been processed",
-        variant: "default",
-      });
-      
-      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+
+      if (response.ok) {
+        // Success
+        setShowConfirmDialog(false);
+        
+        queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+        
+        toast({
+          title: activeTab === "timeout" ? "Time-out activated" : "Self-exclusion activated",
+          description: activeTab === "timeout"
+            ? "Your account has been temporarily deactivated"
+            : "Your account has been excluded for the selected period",
+        });
+        
+        // Reset form state
+        setSelectedPeriod("");
+        setReason("");
+      } else {
+        const data = await response.json();
+        throw new Error(data.message || "Request failed");
+      }
     } catch (error) {
+      console.error("Gambling control error:", error);
       toast({
-        title: "Failed to set self-exclusion",
-        description: "Please try again later",
+        title: "Request failed",
+        description: (error as Error).message || "Please try again later",
         variant: "destructive",
       });
-    }
-  };
-
-  const handleAccountClose = async () => {
-    try {
-      await apiRequest('POST', '/api/user/close-account', {
-        userId: user?.id,
-      });
-      
-      toast({
-        title: "Account closure requested",
-        description: "Your account will be closed within 24 hours",
-      });
-      
-      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-    } catch (error) {
-      toast({
-        title: "Failed to process account closure",
-        description: "Please try again later",
-        variant: "destructive",
-      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="container py-6 max-w-3xl mx-auto">
-      <Card className="mb-8">
-        <CardHeader className="bg-muted/50">
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <ShieldOff className="h-5 w-5 text-primary" />
-            Responsible Gambling Controls
-          </CardTitle>
-          <CardDescription>
-            Tools to help you manage your gambling activity
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <div className="space-y-4">
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 p-4 rounded-md flex items-start gap-3">
-              <Info className="h-5 w-5 mt-0.5 flex-shrink-0" />
-              <div className="text-sm">
-                <p className="font-medium">Responsible gambling reminder</p>
-                <p className="mt-1">Our prediction service is intended for entertainment purposes. Please gamble responsibly and only bet what you can afford to lose. If you're concerned about your gambling habits, please use the controls below.</p>
-              </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Shield className="h-5 w-5 text-primary" />
+          Responsible Gambling Controls
+        </CardTitle>
+        <CardDescription>
+          Tools to help you manage your gambling activity
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="timeout" onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="timeout" className="flex items-center gap-1">
+              <PauseCircle className="h-4 w-4" />
+              <span>Time-out</span>
+            </TabsTrigger>
+            <TabsTrigger value="self-exclusion" className="flex items-center gap-1">
+              <CalendarX className="h-4 w-4" />
+              <span>Self-exclusion</span>
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="timeout" className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <h3 className="text-lg font-medium">Take a Break</h3>
+              <p className="text-muted-foreground text-sm">
+                A time-out lets you take a short break from betting activities.
+                During this period, you won't be able to access your account.
+              </p>
             </div>
-
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="timeout">
-                <AccordionTrigger className="text-base font-medium">
-                  <div className="flex items-center gap-2">
-                    <Clock3 className="h-4 w-4" />
-                    <span>Time-out (Cool-off period)</span>
+            
+            <div className="space-y-3 pt-2">
+              <div className="space-y-1.5">
+                <Label>Select time-out period</Label>
+                <RadioGroup value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {TIMEOUT_PERIODS.map((period) => (
+                      <div key={period.value} className="flex items-center space-x-2">
+                        <RadioGroupItem value={period.value} id={`timeout-${period.value}`} />
+                        <Label htmlFor={`timeout-${period.value}`} className="cursor-pointer">
+                          {period.label}
+                        </Label>
+                      </div>
+                    ))}
                   </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="py-4">
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Take a short break from your account. During this period, you will not be able to place bets or access certain features.
-                    </p>
-                    
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline">Set a Time-out</Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Set a Time-out Period</DialogTitle>
-                          <DialogDescription>
-                            Choose how long you would like to take a break from our services.
-                          </DialogDescription>
-                        </DialogHeader>
-                        
-                        <Form {...timeoutForm}>
-                          <form onSubmit={timeoutForm.handleSubmit(onTimeoutSubmit)} className="space-y-4">
-                            <FormField
-                              control={timeoutForm.control}
-                              name="duration"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Duration</FormLabel>
-                                  <FormControl>
-                                    <select
-                                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                      {...field}
-                                    >
-                                      <option value="">Select a duration</option>
-                                      <option value="24hours">24 hours</option>
-                                      <option value="48hours">48 hours</option>
-                                      <option value="7days">7 days</option>
-                                      <option value="14days">14 days</option>
-                                      <option value="30days">30 days</option>
-                                    </select>
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={timeoutForm.control}
-                              name="reason"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Reason (Optional)</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="Why are you taking a break?" {...field} />
-                                  </FormControl>
-                                  <FormDescription>
-                                    This helps us improve our services
-                                  </FormDescription>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <DialogFooter>
-                              <Button type="submit">Confirm Time-out</Button>
-                            </DialogFooter>
-                          </form>
-                        </Form>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
+                </RadioGroup>
+              </div>
               
-              <AccordionItem value="self-exclusion">
-                <AccordionTrigger className="text-base font-medium">
-                  <div className="flex items-center gap-2">
-                    <ShieldX className="h-4 w-4" />
-                    <span>Self-exclusion</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="py-4">
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Self-exclusion is for longer periods when you want to stop gambling completely. You cannot reverse this decision until the exclusion period ends.
-                    </p>
-                    
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline">Self-exclude</Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Self-exclusion</DialogTitle>
-                          <DialogDescription>
-                            This will restrict access to your account for the selected period. This action cannot be reversed until the period ends.
-                          </DialogDescription>
-                        </DialogHeader>
-                        
-                        <Form {...selfExcludeForm}>
-                          <form onSubmit={selfExcludeForm.handleSubmit(onSelfExcludeSubmit)} className="space-y-4">
-                            <FormField
-                              control={selfExcludeForm.control}
-                              name="period"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Exclusion Period</FormLabel>
-                                  <FormControl>
-                                    <select
-                                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                      {...field}
-                                    >
-                                      <option value="6months">6 months</option>
-                                      <option value="1year">1 year</option>
-                                      <option value="2years">2 years</option>
-                                      <option value="5years">5 years</option>
-                                      <option value="permanent">Permanent</option>
-                                    </select>
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={selfExcludeForm.control}
-                              name="reason"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Reason (Optional)</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="Why are you self-excluding?" {...field} />
-                                  </FormControl>
-                                  <FormDescription>
-                                    This helps us improve our services
-                                  </FormDescription>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={selfExcludeForm.control}
-                              name="confirmExclusion"
-                              render={({ field }) => (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                  <FormControl>
-                                    <input
-                                      type="checkbox"
-                                      className="h-4 w-4 mt-1"
-                                      checked={field.value}
-                                      onChange={field.onChange}
-                                    />
-                                  </FormControl>
-                                  <div className="space-y-1 leading-none">
-                                    <FormLabel>
-                                      I understand that my account will be restricted and this action cannot be undone until the exclusion period ends
-                                    </FormLabel>
-                                    <FormMessage />
-                                  </div>
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <DialogFooter>
-                              <Button type="submit" variant="destructive">Confirm Self-exclusion</Button>
-                            </DialogFooter>
-                          </form>
-                        </Form>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
+              <div className="space-y-1.5 pt-2">
+                <Label htmlFor="timeout-reason">Reason (optional)</Label>
+                <Textarea
+                  id="timeout-reason"
+                  placeholder="Tell us why you're taking a break..."
+                  className="min-h-[100px]"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                />
+              </div>
               
-              <AccordionItem value="account-closure">
-                <AccordionTrigger className="text-base font-medium">
-                  <div className="flex items-center gap-2">
-                    <UserX className="h-4 w-4" />
-                    <span>Account Closure</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="py-4">
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Permanently close your account. This will remove your data in accordance with our privacy policy and regulatory requirements.
+              <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+                <DialogTrigger asChild>
+                  <Button 
+                    className="w-full mt-4" 
+                    disabled={!selectedPeriod}
+                    onClick={() => setShowConfirmDialog(true)}
+                  >
+                    <Clock className="mr-2 h-4 w-4" />
+                    Take a Break
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-destructive" />
+                      Confirm Time-out
+                    </DialogTitle>
+                    <DialogDescription>
+                      You're about to take a break for{" "}
+                      {TIMEOUT_PERIODS.find(p => p.value === selectedPeriod)?.label || selectedPeriod}.
+                      You won't be able to access your account during this period.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="bg-muted p-3 rounded-md text-sm">
+                    <p>
+                      This action will temporarily prevent you from:
                     </p>
-                    
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline">Close Account</Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Close Your Account</DialogTitle>
-                          <DialogDescription>
-                            Are you sure you want to close your account? This action cannot be undone.
-                          </DialogDescription>
-                        </DialogHeader>
-                        
-                        <div className="bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 p-4 rounded-md text-sm mb-4">
-                          <p className="font-medium">Warning</p>
-                          <p className="mt-1">
-                            Your account will be permanently closed and all personal data will be removed in accordance with our privacy policy and regulatory requirements.
-                          </p>
-                        </div>
-                        
-                        <DialogFooter>
-                          <Button variant="outline" onClick={() => {
-                            const dialog = document.querySelector('[role="dialog"]');
-                            if (dialog instanceof HTMLElement) {
-                              dialog.close();
-                            }
-                          }}>Cancel</Button>
-                          <Button variant="destructive" onClick={handleAccountClose}>Confirm Closure</Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                      <li>Accessing your account</li>
+                      <li>Making predictions</li>
+                      <li>Participating in fantasy contests</li>
+                    </ul>
+                    <p className="mt-2">
+                      Your account will be automatically reactivated after the selected period.
+                    </p>
                   </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </div>
-        </CardContent>
-        <CardFooter className="bg-muted/30 flex flex-col items-start">
-          <p className="text-sm text-muted-foreground">
-            If you are concerned about your gambling habits, please contact one of the following support organizations:
-          </p>
-          <ul className="mt-2 space-y-1 text-sm">
-            <li><a href="https://www.begambleaware.org/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">BeGambleAware</a> - 0808 8020 133</li>
-            <li><a href="https://www.gamcare.org.uk/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">GamCare</a> - 0808 8020 133</li>
-            <li><a href="https://www.gamblingtherapy.org/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Gambling Therapy</a> - Global support</li>
-          </ul>
-        </CardFooter>
-      </Card>
-    </div>
+                  
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowConfirmDialog(false)}
+                      disabled={isSubmitting}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleSubmit}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "Processing..." : "Confirm Time-out"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="self-exclusion" className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <h3 className="text-lg font-medium">Self-exclusion</h3>
+              <p className="text-muted-foreground text-sm">
+                Self-exclusion is a more significant step for those who want to stop gambling
+                for a longer period. Your account will be suspended for the duration you select.
+              </p>
+            </div>
+            
+            <div className="space-y-3 pt-2">
+              <div className="space-y-1.5">
+                <Label>Select exclusion period</Label>
+                <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a period" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EXCLUSION_PERIODS.map((period) => (
+                      <SelectItem key={period.value} value={period.value}>
+                        {period.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-1.5 pt-2">
+                <Label htmlFor="exclusion-reason">Reason (optional)</Label>
+                <Textarea
+                  id="exclusion-reason"
+                  placeholder="Tell us why you're self-excluding..."
+                  className="min-h-[100px]"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                />
+              </div>
+              
+              <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+                <DialogTrigger asChild>
+                  <Button 
+                    className="w-full mt-4" 
+                    disabled={!selectedPeriod}
+                    variant="destructive"
+                    onClick={() => setShowConfirmDialog(true)}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Self-exclude
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-destructive" />
+                      Confirm Self-exclusion
+                    </DialogTitle>
+                    <DialogDescription>
+                      You're about to self-exclude for{" "}
+                      {EXCLUSION_PERIODS.find(p => p.value === selectedPeriod)?.label || selectedPeriod}.
+                      This is a significant action that will prevent you from using our services.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm">
+                    <p className="font-semibold">
+                      Important: This action cannot be reversed until the exclusion period ends.
+                    </p>
+                    <p className="mt-2">
+                      During self-exclusion:
+                    </p>
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                      <li>Your account will be inaccessible</li>
+                      <li>You won't be able to create a new account</li>
+                      <li>Any active subscriptions will be suspended</li>
+                      <li>You will not receive marketing communications</li>
+                    </ul>
+                    {selectedPeriod === "permanent" && (
+                      <p className="mt-2 font-semibold">
+                        You have selected to permanently exclude yourself. Your account will be permanently deactivated
+                        and cannot be reopened.
+                      </p>
+                    )}
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowConfirmDialog(false)}
+                      disabled={isSubmitting}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      variant="destructive"
+                      onClick={handleSubmit}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "Processing..." : "Confirm Self-exclusion"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
-}
+};
