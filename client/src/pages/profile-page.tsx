@@ -20,7 +20,8 @@ import {
   Shield, 
   TrendingUp, 
   Trophy,
-  Star
+  Star,
+  Gift
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { BadgeCollection } from "@/components/gamification/badge-collection";

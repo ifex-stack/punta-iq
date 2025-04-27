@@ -15,6 +15,7 @@ import FAQPage from "@/pages/faq-page";
 import HistoricalDashboard from "@/pages/historical-dashboard";
 import FantasyContestsPage from "@/pages/fantasy-contests-page";
 import PredictionsPage from "@/pages/predictions-page";
+import ReferralsPage from "@/pages/referrals-page";
 import AdminPage from "@/pages/admin-page";
 import { UIShowcase } from "@/components/ui-showcase";
 import { ProtectedRoute } from "./lib/protected-route";
@@ -74,6 +75,7 @@ const Router: React.FC = () => {
             <Route path="/fantasy" component={FantasyContestsPage} />
             <ProtectedRoute path="/subscription" component={SubscriptionPage} />
             <ProtectedRoute path="/profile" component={ProfilePage} />
+            <ProtectedRoute path="/referrals" component={ReferralsPage} />
             <ProtectedRoute path="/admin" component={AdminPage} />
             <Route path="/faq" component={FAQPage} />
             <Route path="/ui-showcase" component={UIShowcase} />
