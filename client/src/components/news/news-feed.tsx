@@ -37,8 +37,12 @@ export function NewsArticleCard({ article }: { article: NewsArticle }) {
   const [isSaved, setIsSaved] = useState(false);
   
   const { data: savedArticles } = useQuery({
-    queryKey: ["/api/news/saved-fixed"],
+    queryKey: ["/api/news/saved-ultra"],
     enabled: !!user,
+    // Gracefully handle errors
+    onError: () => {
+      return []; // Return empty array on error
+    }
   });
   
   useEffect(() => {
@@ -53,23 +57,46 @@ export function NewsArticleCard({ article }: { article: NewsArticle }) {
     
     try {
       if (isSaved) {
-        await apiRequest("DELETE", `/api/news/${article.id}/save-fixed`);
-        setIsSaved(false);
-        toast({
-          title: "Removed from saved articles",
-          description: "The article has been removed from your saved list",
-        });
+        const response = await apiRequest("DELETE", `/api/news/${article.id}/save-ultra`);
+        const result = await response.json();
+        
+        if (result.success) {
+          setIsSaved(false);
+          toast({
+            title: "Removed from saved articles",
+            description: "The article has been removed from your saved list",
+          });
+        } else {
+          console.error("Error unsaving article:", result.message);
+          toast({
+            title: "Error",
+            description: result.message || "Failed to remove article from saved list",
+            variant: "destructive",
+          });
+        }
       } else {
-        await apiRequest("POST", `/api/news/${article.id}/save-fixed`);
-        setIsSaved(true);
-        toast({
-          title: "Article saved",
-          description: "The article has been saved to your profile",
-        });
+        const response = await apiRequest("POST", `/api/news/${article.id}/save-ultra`);
+        const result = await response.json();
+        
+        if (result.success) {
+          setIsSaved(true);
+          toast({
+            title: "Article saved",
+            description: "The article has been saved to your profile",
+          });
+        } else {
+          console.error("Error saving article:", result.message);
+          toast({
+            title: "Error",
+            description: result.message || "Failed to save article",
+            variant: "destructive",
+          });
+        }
       }
       
-      // Invalidate the saved articles query to update the UI
+      // Invalidate both the old and new saved articles queries
       queryClient.invalidateQueries({ queryKey: ["/api/news/saved-fixed"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/news/saved-ultra"] });
     } catch (error) {
       toast({
         title: "Error",
@@ -208,9 +235,18 @@ export function NewsFeed({ initialTab = "personalized" }: { initialTab?: string 
     enabled: activeTab === "all",
   });
   
+  // Use ultra-robust endpoint for saved articles with error handling
   const { data: savedNews, isLoading: loadingSaved } = useQuery({
-    queryKey: ["/api/news/saved-fixed"],
+    queryKey: ["/api/news/saved-ultra"],
     enabled: !!user && activeTab === "saved",
+    // Prevent UI from breaking if there's an error
+    refetchOnWindowFocus: false,
+    retry: 1,
+    // Provide empty array instead of error
+    onError: (error) => {
+      console.error("Error loading saved articles (suppressed):", error);
+      return [];
+    }
   });
   
   return (
