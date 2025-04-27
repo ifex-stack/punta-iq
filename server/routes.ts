@@ -7,6 +7,7 @@ import { setupNotificationRoutes } from "./notifications";
 import { setupGamificationRoutes } from "./gamification";
 import { setupMLRoutes } from "./ml-routes";
 import { setupAiStatusRoutes } from "./ai-status-route";
+import { setupTestAiStatusRoute } from "./test-ai-status";
 import { storage } from "./storage";
 import { getFantasyStore } from "./fantasy-data-init";
 import { PushNotificationService } from "./push-notification-service";
@@ -29,6 +30,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up AI status route
   setupAiStatusRoutes(app);
+  
+  // Set up test AI status route
+  setupTestAiStatusRoute(app);
   
   // Sports routes
   app.get("/api/sports", async (req, res) => {
