@@ -692,6 +692,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Search/list fantasy football players
+  app.get("/api/fantasy/players", async (req, res) => {
+    try {
+      const search = req.query.search as string || "";
+      const position = req.query.position as string || undefined;
+      const team = req.query.team as string || undefined;
+      const limit = parseInt(req.query.limit as string || "50");
+      
+      const players = await storage.searchFootballPlayers(search, position, team, limit);
+      res.json(players);
+    } catch (error: any) {
+      console.error("Error searching players:", error);
+      res.status(500).json({ message: error.message || "Failed to search players" });
+    }
+  });
+  
   // Fantasy Contests endpoints
   const fantasyStore = getFantasyStore();
   

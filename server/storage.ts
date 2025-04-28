@@ -98,6 +98,13 @@ export interface IStorage {
   updateUserSubscription(userId: number, tier: string): Promise<User>;
   updateUserStripeInfo(userId: number, info: { stripeCustomerId?: string, stripeSubscriptionId?: string }): Promise<User>;
   updateUserNotificationSettings(userId: number, settings: any): Promise<User>;
+  
+  // Football Player methods
+  getAllFootballPlayers(limit?: number, offset?: number, filters?: any): Promise<FootballPlayer[]>;
+  getFootballPlayerById(id: number): Promise<FootballPlayer | undefined>;
+  searchFootballPlayers(query: string, position?: string, team?: string, limit?: number): Promise<FootballPlayer[]>;
+  getPlayerSeasonStats(playerId: number): Promise<PlayerSeasonStats | null>;
+  getPlayerRecentMatches(playerId: number, limit?: number): Promise<PlayerMatchStats[]>;
   updateUserFantasyPoints(userId: number, points: number): Promise<User>;
   
   // 2FA methods
@@ -2694,6 +2701,265 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error verifying two-factor code:", error);
       return false;
+    }
+  }
+  
+  // Football Player methods
+  async getAllFootballPlayers(limit = 100, offset = 0, filters: any = {}): Promise<FootballPlayer[]> {
+    try {
+      let query = db.select().from(footballPlayers);
+      
+      if (filters) {
+        // Filter by position
+        if (filters.position) {
+          query = query.where(eq(footballPlayers.position, filters.position));
+        }
+        
+        // Filter by team
+        if (filters.team) {
+          query = query.where(eq(footballPlayers.team, filters.team));
+        }
+        
+        // Filter by league
+        if (filters.league) {
+          query = query.where(eq(footballPlayers.league, filters.league));
+        }
+        
+        // Filter by active status
+        if (filters.active !== undefined) {
+          query = query.where(eq(footballPlayers.active, filters.active));
+        }
+      }
+      
+      const players = await query.limit(limit).offset(offset);
+      return players;
+    } catch (error) {
+      console.error("Error getting all football players:", error);
+      return [];
+    }
+  }
+  
+  async searchFootballPlayers(query: string, position?: string, team?: string, limit = 20): Promise<FootballPlayer[]> {
+    try {
+      let playersQuery = db.select().from(footballPlayers)
+        .where(eq(footballPlayers.active, true))
+        .orderBy(desc(footballPlayers.fantasyPointsTotal))
+        .limit(limit);
+      
+      // Apply filters
+      if (query) {
+        playersQuery = playersQuery.where(
+          or(
+            sql`${footballPlayers.name} ILIKE ${'%' + query + '%'}`,
+            sql`${footballPlayers.team} ILIKE ${'%' + query + '%'}`
+          )
+        );
+      }
+      
+      if (position) {
+        playersQuery = playersQuery.where(eq(footballPlayers.position, position));
+      }
+      
+      if (team) {
+        playersQuery = playersQuery.where(eq(footballPlayers.team, team));
+      }
+      
+      const players = await playersQuery;
+      return players;
+    } catch (error) {
+      console.error("Error searching football players:", error);
+      return [];
+    }
+  }
+  
+  async getFootballPlayerById(id: number): Promise<FootballPlayer | undefined> {
+    try {
+      const [player] = await db
+        .select()
+        .from(footballPlayers)
+        .where(eq(footballPlayers.id, id));
+      
+      return player;
+    } catch (error) {
+      console.error("Error getting football player by ID:", error);
+      return undefined;
+    }
+  }
+  
+  async getPlayerSeasonStats(playerId: number): Promise<PlayerSeasonStats | null> {
+    try {
+      // Get the player
+      const player = await this.getFootballPlayerById(playerId);
+      
+      if (!player) {
+        return null;
+      }
+      
+      // Get current season data
+      const currentSeason = new Date().getFullYear().toString();
+      
+      // Create season stats object based on player data
+      const seasonStats: PlayerSeasonStats = {
+        playerId: player.id,
+        season: currentSeason,
+        matches: player.appearances || 0,
+        goals: player.goals || 0,
+        assists: player.assists || 0,
+        yellowCards: player.yellowCards || 0,
+        redCards: player.redCards || 0,
+        cleanSheets: player.cleanSheets || 0,
+        minutesPlayed: player.minutesPlayed || 0,
+        passAccuracy: Math.floor(Math.random() * 30) + 65, // Placeholder stats until API integration
+        successfulTackles: player.position === 'defender' ? Math.floor(Math.random() * 60) + 20 : Math.floor(Math.random() * 30) + 10,
+        successfulDribbles: player.position === 'midfielder' || player.position === 'forward' ? Math.floor(Math.random() * 40) + 20 : Math.floor(Math.random() * 20) + 5,
+        chancesCreated: Math.floor(Math.random() * 40) + 5,
+        shotsOnTarget: player.position === 'forward' ? Math.floor(Math.random() * 30) + 10 : Math.floor(Math.random() * 15) + 2,
+        shotsTotal: player.position === 'forward' ? Math.floor(Math.random() * 50) + 20 : Math.floor(Math.random() * 25) + 5,
+        xG: parseFloat((Math.random() * (player.goals || 1) * 1.2).toFixed(2)),
+        xA: parseFloat((Math.random() * (player.assists || 1) * 1.1).toFixed(2)),
+        form: this.getPlayerFormDescription(player),
+        fantasyPoints: player.fantasyPointsTotal || 0,
+        injury: null // No injuries by default
+      };
+      
+      return seasonStats;
+    } catch (error) {
+      console.error("Error getting player season stats:", error);
+      return null;
+    }
+  }
+  
+  private getPlayerFormDescription(player: FootballPlayer): string {
+    // Logic to determine player form based on points average and player metrics
+    const formOptions = [
+      "Excellent form, consistently delivering strong performances",
+      "Good recent performances with high influence in matches",
+      "Average form with occasional standout games",
+      "Inconsistent form, showing glimpses of quality",
+      "Below average form, struggling to make an impact"
+    ];
+    
+    // Simple selection based on fantasy points average
+    const pointsAvg = player.fantasyPointsAvg || 0;
+    
+    if (pointsAvg > 8) return formOptions[0];
+    if (pointsAvg > 6) return formOptions[1];
+    if (pointsAvg > 4) return formOptions[2];
+    if (pointsAvg > 2) return formOptions[3];
+    return formOptions[4];
+  }
+  
+  async getPlayerRecentMatches(playerId: number, limit = 5): Promise<PlayerMatchStats[]> {
+    try {
+      // Check if player exists
+      const player = await this.getFootballPlayerById(playerId);
+      
+      if (!player) {
+        return [];
+      }
+      
+      // Generate sample data for player's recent matches
+      // In a production environment, this would fetch from player_match_stats table
+      const recentMatches: PlayerMatchStats[] = [];
+      const today = new Date();
+      
+      for (let i = 0; i < limit; i++) {
+        const matchDate = new Date(today);
+        matchDate.setDate(today.getDate() - (i * 7)); // One match per week
+        
+        // Randomize some stats based on player position
+        const goals = player.position === 'forward' ? 
+          Math.floor(Math.random() * 2) : 
+          (player.position === 'midfielder' ? 
+            (Math.random() > 0.7 ? 1 : 0) : 
+            (Math.random() > 0.9 ? 1 : 0));
+            
+        const assists = player.position === 'midfielder' ? 
+          (Math.random() > 0.6 ? 1 : 0) : 
+          (player.position === 'forward' ? 
+            (Math.random() > 0.7 ? 1 : 0) : 
+            (Math.random() > 0.9 ? 1 : 0));
+            
+        const yellowCard = Math.random() > 0.85;
+        const redCard = Math.random() > 0.95;
+        const minutesPlayed = Math.random() > 0.8 ? 
+          Math.floor(Math.random() * 30) + 60 : 90;
+            
+        // Fantasy points calculation
+        let fantasyPoints = minutesPlayed > 60 ? 2 : (minutesPlayed > 0 ? 1 : 0);
+        fantasyPoints += goals * (player.position === 'forward' ? 4 : (player.position === 'midfielder' ? 5 : 6));
+        fantasyPoints += assists * 3;
+        fantasyPoints -= yellowCard ? 1 : 0;
+        fantasyPoints -= redCard ? 3 : 0;
+        
+        if (player.position === 'goalkeeper' || player.position === 'defender') {
+          const cleanSheet = Math.random() > 0.6;
+          if (cleanSheet && minutesPlayed >= 60) fantasyPoints += 4;
+        }
+        
+        // List of Premier League teams excluding player's own team
+        const teams = [
+          'Arsenal', 'Chelsea', 'Liverpool', 'Manchester City', 
+          'Manchester United', 'Tottenham', 'Leicester City', 
+          'Everton', 'West Ham', 'Aston Villa', 'Newcastle',
+          'Crystal Palace', 'Brighton', 'Wolves', 'Southampton',
+          'Burnley', 'Leeds United', 'Watford', 'Norwich', 'Brentford'
+        ].filter(t => t !== player.team);
+        
+        // Random opponent
+        const opponent = teams[Math.floor(Math.random() * teams.length)];
+        const homeOrAway = Math.random() > 0.5 ? 'home' : 'away';
+        
+        // Position-specific stats
+        const keyStats: Record<string, any> = {};
+        
+        if (player.position === 'goalkeeper') {
+          keyStats.saves = Math.floor(Math.random() * 6) + 1;
+          keyStats.penaltySaves = Math.random() > 0.9 ? 1 : 0;
+        } else if (player.position === 'defender') {
+          keyStats.tackles = Math.floor(Math.random() * 8) + 1;
+          keyStats.interceptions = Math.floor(Math.random() * 7) + 1;
+          keyStats.blocks = Math.floor(Math.random() * 4);
+          keyStats.clearances = Math.floor(Math.random() * 9) + 1;
+        } else if (player.position === 'midfielder') {
+          keyStats.passCompletion = Math.floor(Math.random() * 15) + 75; // percentage
+          keyStats.chancesCreated = Math.floor(Math.random() * 5);
+          keyStats.tackles = Math.floor(Math.random() * 5);
+          keyStats.distanceCovered = (Math.random() * 3 + 8).toFixed(1); // km
+        } else if (player.position === 'forward') {
+          keyStats.shots = Math.floor(Math.random() * 6) + goals;
+          keyStats.shotsOnTarget = Math.min(keyStats.shots, Math.floor(Math.random() * 4) + goals);
+          keyStats.dribbles = Math.floor(Math.random() * 8);
+          keyStats.foulsWon = Math.floor(Math.random() * 4);
+        }
+        
+        // Player rating (out of 10)
+        const rating = Math.min(10, Math.max(4, (fantasyPoints / 3) + 5 + (Math.random() * 2 - 1)).toFixed(1));
+        
+        recentMatches.push({
+          playerId: player.id,
+          matchId: 10000 + i,
+          matchDate,
+          opponent,
+          homeOrAway,
+          minutesPlayed,
+          goals,
+          assists,
+          yellowCards: yellowCard ? 1 : 0,
+          redCards: redCard ? 1 : 0,
+          cleanSheet: player.position === 'goalkeeper' || player.position === 'defender' 
+            ? Math.random() > 0.6 
+            : false,
+          rating: parseFloat(rating),
+          fantasyPoints,
+          keyStats
+        });
+      }
+      
+      return recentMatches;
+    } catch (error) {
+      console.error("Error getting player recent matches:", error);
+      return [];
     }
   }
   
