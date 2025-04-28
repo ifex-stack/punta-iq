@@ -19,6 +19,7 @@ import FantasyContestCreatePage from "@/pages/fantasy-contest-create-page";
 import FantasyTeamBuildPage from "@/pages/fantasy-team-build-page";
 import PredictionsPage from "@/pages/predictions-page";
 import AdvancedPredictionsPage from "@/pages/advanced-predictions-page";
+import PlayerComparisonPage from "@/pages/player-comparison-page";
 import ReferralsPage from "@/pages/referrals-page";
 import AdminPage from "@/pages/admin-page";
 import FeedbackPage from "@/pages/feedback";
@@ -84,6 +85,7 @@ const Router: React.FC = () => {
             <ProtectedRoute path="/fantasy/contests" component={FantasyContestsPage} />
             <ProtectedRoute path="/fantasy/contests/create" component={FantasyContestCreatePage} />
             <ProtectedRoute path="/fantasy/teams/:teamId/build" component={FantasyTeamBuildPage} />
+            <ProtectedRoute path="/fantasy/player-comparison" component={PlayerComparisonPage} />
             <Route path="/fantasy" component={FantasyContestsPage} />
             <ProtectedRoute path="/subscription" component={SubscriptionPage} />
             <ProtectedRoute path="/subscription-success" component={SubscriptionSuccessPage} />
