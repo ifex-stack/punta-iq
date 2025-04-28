@@ -175,6 +175,15 @@ export interface IStorage {
   updateFantasyTeam(id: number, data: Partial<InsertFantasyTeam>): Promise<FantasyTeam>;
   deleteFantasyTeam(id: number): Promise<boolean>;
   
+  // Fantasy Team Players methods
+  getFantasyTeamPlayers(teamId: number): Promise<TeamPlayer[]>;
+  addPlayerToFantasyTeam(data: InsertTeamPlayer): Promise<TeamPlayer>;
+  removePlayerFromFantasyTeam(teamPlayerId: number): Promise<boolean>;
+  updateFantasyTeamPlayer(teamPlayerId: number, data: Partial<InsertTeamPlayer>): Promise<TeamPlayer>;
+  resetFantasyTeamCaptains(teamId: number): Promise<boolean>;
+  getFantasyPlayersByPosition(position: string): Promise<Player[]>;
+  getAllFantasyPlayers(limit?: number): Promise<Player[]>;
+  
   // Football Player methods
   getAllFootballPlayers(limit?: number, offset?: number, filters?: any): Promise<FootballPlayer[]>;
   getFootballPlayerById(id: number): Promise<FootballPlayer | undefined>;
@@ -3943,6 +3952,117 @@ export class DatabaseStorage implements IStorage {
       .where(eq(fantasyTeams.id, id));
     
     return result.rowCount > 0;
+  }
+  
+  // Fantasy Team Players Management
+  async getFantasyTeamPlayers(teamId: number): Promise<FantasyTeamPlayer[]> {
+    // Get all players in the team
+    const teamPlayers = await db
+      .select()
+      .from(teamPlayers)
+      .where(eq(teamPlayers.teamId, teamId));
+    
+    // Get the player details for each team player
+    const result = await Promise.all(
+      teamPlayers.map(async (tp) => {
+        const [player] = await db
+          .select()
+          .from(players)
+          .where(eq(players.id, tp.playerId));
+        
+        return {
+          ...tp,
+          player
+        };
+      })
+    );
+    
+    return result;
+  }
+  
+  async addPlayerToFantasyTeam(data: InsertFantasyTeamPlayer): Promise<FantasyTeamPlayer> {
+    const [teamPlayer] = await db
+      .insert(teamPlayers)
+      .values(data)
+      .returning();
+    
+    // Get player details
+    const [player] = await db
+      .select()
+      .from(players)
+      .where(eq(players.id, teamPlayer.playerId));
+    
+    return {
+      ...teamPlayer,
+      player
+    };
+  }
+  
+  async removePlayerFromFantasyTeam(teamId: number, playerId: number): Promise<boolean> {
+    const result = await db
+      .delete(teamPlayers)
+      .where(
+        and(
+          eq(teamPlayers.teamId, teamId),
+          eq(teamPlayers.playerId, playerId)
+        )
+      );
+    
+    return result.rowCount > 0;
+  }
+  
+  async updateFantasyTeamPlayer(id: number, data: Partial<InsertFantasyTeamPlayer>): Promise<FantasyTeamPlayer> {
+    const [updatedTeamPlayer] = await db
+      .update(teamPlayers)
+      .set(data)
+      .where(eq(teamPlayers.id, id))
+      .returning();
+    
+    // Get player details
+    const [player] = await db
+      .select()
+      .from(players)
+      .where(eq(players.id, updatedTeamPlayer.playerId));
+    
+    return {
+      ...updatedTeamPlayer,
+      player
+    };
+  }
+  
+  async resetFantasyTeamCaptains(teamId: number): Promise<boolean> {
+    try {
+      // Reset all captain statuses for the team
+      await db
+        .update(teamPlayers)
+        .set({
+          isCaptain: false,
+          isViceCaptain: false
+        })
+        .where(eq(teamPlayers.teamId, teamId));
+      
+      return true;
+    } catch (error) {
+      console.error('Error resetting team captains:', error);
+      return false;
+    }
+  }
+  
+  async getFantasyPlayersByPosition(position: string): Promise<Player[]> {
+    return db
+      .select()
+      .from(players)
+      .where(eq(players.position, position))
+      .orderBy(desc(players.fantasyPointsTotal))
+      .limit(100);
+  }
+  
+  async getAllFantasyPlayers(limit: number = 100): Promise<Player[]> {
+    return db
+      .select()
+      .from(players)
+      .orderBy(desc(players.fantasyPointsTotal))
+      .limit(limit);
   }
   
   // News Article methods

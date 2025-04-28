@@ -482,7 +482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const teamId = parseInt(req.params.teamId);
-      const teamPlayerId = parseInt(req.params.playerId);
+      const playerId = parseInt(req.params.playerId);
       
       const team = await storage.getFantasyTeamById(teamId);
       
@@ -495,7 +495,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Unauthorized" });
       }
       
-      const success = await storage.removePlayerFromFantasyTeam(teamPlayerId);
+      const success = await storage.removePlayerFromFantasyTeam(teamId, playerId);
       
       if (!success) {
         return res.status(404).json({ message: "Player not found in team" });
