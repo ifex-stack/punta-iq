@@ -387,6 +387,215 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Fantasy team management routes
+  app.get("/api/fantasy/teams/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const teamId = parseInt(req.params.id);
+      const team = await storage.getFantasyTeamById(teamId);
+      
+      if (!team) {
+        return res.status(404).json({ message: "Fantasy team not found" });
+      }
+      
+      // Ensure user can only access their own teams
+      if (team.userId !== req.user.id) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      res.json(team);
+    } catch (error: any) {
+      console.error('Error fetching fantasy team:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch fantasy team' });
+    }
+  });
+
+  app.get("/api/fantasy/teams/:id/players", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const teamId = parseInt(req.params.id);
+      const team = await storage.getFantasyTeamById(teamId);
+      
+      if (!team) {
+        return res.status(404).json({ message: "Fantasy team not found" });
+      }
+      
+      // Ensure user can only access their own teams
+      if (team.userId !== req.user.id) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      const players = await storage.getFantasyTeamPlayers(teamId);
+      res.json(players);
+    } catch (error: any) {
+      console.error('Error fetching fantasy team players:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch fantasy team players' });
+    }
+  });
+
+  app.post("/api/fantasy/teams/:id/players", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const teamId = parseInt(req.params.id);
+      const team = await storage.getFantasyTeamById(teamId);
+      
+      if (!team) {
+        return res.status(404).json({ message: "Fantasy team not found" });
+      }
+      
+      // Ensure user can only modify their own teams
+      if (team.userId !== req.user.id) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      const { playerId, position, isCaptain, isViceCaptain } = req.body;
+      
+      const teamPlayer = await storage.addPlayerToFantasyTeam({
+        teamId,
+        playerId,
+        position,
+        isCaptain: isCaptain || false,
+        isViceCaptain: isViceCaptain || false,
+        addedAt: new Date()
+      });
+      
+      res.status(201).json(teamPlayer);
+    } catch (error: any) {
+      console.error('Error adding player to fantasy team:', error);
+      res.status(500).json({ message: error.message || 'Failed to add player to fantasy team' });
+    }
+  });
+
+  app.delete("/api/fantasy/teams/:teamId/players/:playerId", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const teamPlayerId = parseInt(req.params.playerId);
+      
+      const team = await storage.getFantasyTeamById(teamId);
+      
+      if (!team) {
+        return res.status(404).json({ message: "Fantasy team not found" });
+      }
+      
+      // Ensure user can only modify their own teams
+      if (team.userId !== req.user.id) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      const success = await storage.removePlayerFromFantasyTeam(teamPlayerId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Player not found in team" });
+      }
+      
+      res.status(204).send();
+    } catch (error: any) {
+      console.error('Error removing player from fantasy team:', error);
+      res.status(500).json({ message: error.message || 'Failed to remove player from fantasy team' });
+    }
+  });
+
+  app.put("/api/fantasy/teams/:teamId/players/:playerId", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const teamPlayerId = parseInt(req.params.playerId);
+      
+      const team = await storage.getFantasyTeamById(teamId);
+      
+      if (!team) {
+        return res.status(404).json({ message: "Fantasy team not found" });
+      }
+      
+      // Ensure user can only modify their own teams
+      if (team.userId !== req.user.id) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      const updatedPlayer = await storage.updateFantasyTeamPlayer(teamPlayerId, req.body);
+      
+      res.json(updatedPlayer);
+    } catch (error: any) {
+      console.error('Error updating fantasy team player:', error);
+      res.status(500).json({ message: error.message || 'Failed to update fantasy team player' });
+    }
+  });
+
+  app.put("/api/fantasy/teams/:id/reset-captains", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const teamId = parseInt(req.params.id);
+      const team = await storage.getFantasyTeamById(teamId);
+      
+      if (!team) {
+        return res.status(404).json({ message: "Fantasy team not found" });
+      }
+      
+      // Ensure user can only modify their own teams
+      if (team.userId !== req.user.id) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      const success = await storage.resetFantasyTeamCaptains(teamId);
+      
+      if (!success) {
+        return res.status(500).json({ message: "Failed to reset team captains" });
+      }
+      
+      res.status(200).json({ success: true });
+    } catch (error: any) {
+      console.error('Error resetting fantasy team captains:', error);
+      res.status(500).json({ message: error.message || 'Failed to reset fantasy team captains' });
+    }
+  });
+
+  app.put("/api/fantasy/teams/:id/complete", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const teamId = parseInt(req.params.id);
+      const team = await storage.getFantasyTeamById(teamId);
+      
+      if (!team) {
+        return res.status(404).json({ message: "Fantasy team not found" });
+      }
+      
+      // Ensure user can only modify their own teams
+      if (team.userId !== req.user.id) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      // Mark the team as complete (could involve validating the team roster, etc.)
+      const updatedTeam = await storage.updateFantasyTeam(teamId, { isComplete: true });
+      
+      res.json(updatedTeam);
+    } catch (error: any) {
+      console.error('Error completing fantasy team setup:', error);
+      res.status(500).json({ message: error.message || 'Failed to complete fantasy team setup' });
+    }
+  });
+  
   app.get("/api/fantasy/players", async (req, res) => {
     try {
       const { search, position, team, limit } = req.query;
