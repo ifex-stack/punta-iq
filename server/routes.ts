@@ -620,6 +620,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Player comparison endpoints
+  app.get("/api/players/compare", async (req, res) => {
+    try {
+      const { playerIds } = req.query;
+      
+      if (!playerIds) {
+        return res.status(400).json({ message: "Player IDs are required" });
+      }
+      
+      // Parse player IDs from comma-separated string
+      const ids = (playerIds as string).split(',').map(id => parseInt(id.trim()));
+      
+      if (ids.length < 2 || ids.some(id => isNaN(id))) {
+        return res.status(400).json({ message: "At least two valid player IDs are required" });
+      }
+      
+      // Get player details with full stats
+      const players = await Promise.all(
+        ids.map(async (id) => {
+          const player = await storage.getFootballPlayerById(id);
+          if (!player) {
+            throw new Error(`Player with ID ${id} not found`);
+          }
+          return player;
+        })
+      );
+      
+      // Get season stats for each player
+      const playerStats = await Promise.all(
+        players.map(async (player) => {
+          const seasonStats = await storage.getPlayerSeasonStats(player.id);
+          return {
+            ...player,
+            seasonStats
+          };
+        })
+      );
+      
+      res.json(playerStats);
+    } catch (error: any) {
+      console.error("Error comparing players:", error);
+      res.status(500).json({ message: error.message || "Failed to compare players" });
+    }
+  });
+  
+  // Get detailed stats for a single player
+  app.get("/api/players/:id/stats", async (req, res) => {
+    try {
+      const playerId = parseInt(req.params.id);
+      
+      const player = await storage.getFootballPlayerById(playerId);
+      
+      if (!player) {
+        return res.status(404).json({ message: "Player not found" });
+      }
+      
+      // Get full player stats
+      const seasonStats = await storage.getPlayerSeasonStats(playerId);
+      const recentMatches = await storage.getPlayerRecentMatches(playerId, 5);
+      
+      res.json({
+        player,
+        seasonStats,
+        recentMatches
+      });
+      
+    } catch (error: any) {
+      console.error("Error fetching player stats:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch player stats" });
+    }
+  });
+  
   // Fantasy Contests endpoints
   const fantasyStore = getFantasyStore();
   

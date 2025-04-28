@@ -190,6 +190,8 @@ export interface IStorage {
   searchFootballPlayers(query: string, position?: string, team?: string, limit?: number): Promise<FootballPlayer[]>;
   createFootballPlayer(player: InsertFootballPlayer): Promise<FootballPlayer>;
   updateFootballPlayerStats(id: number, stats: Partial<FootballPlayer>): Promise<FootballPlayer>;
+  getPlayerSeasonStats(playerId: number): Promise<PlayerSeasonStats | null>;
+  getPlayerRecentMatches(playerId: number, limit?: number): Promise<PlayerMatchStats[]>;
   
   // Fantasy Team Players methods
   getFantasyTeamPlayers(teamId: number): Promise<FantasyTeamPlayer[]>;
