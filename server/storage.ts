@@ -176,13 +176,16 @@ export interface IStorage {
   deleteFantasyTeam(id: number): Promise<boolean>;
   
   // Fantasy Team Players methods
-  getFantasyTeamPlayers(teamId: number): Promise<TeamPlayer[]>;
-  addPlayerToFantasyTeam(data: InsertTeamPlayer): Promise<TeamPlayer>;
-  removePlayerFromFantasyTeam(teamPlayerId: number): Promise<boolean>;
-  updateFantasyTeamPlayer(teamPlayerId: number, data: Partial<InsertTeamPlayer>): Promise<TeamPlayer>;
+  getFantasyTeamPlayers(teamId: number): Promise<FantasyTeamPlayer[]>;
+  addPlayerToFantasyTeam(teamPlayer: InsertFantasyTeamPlayer): Promise<FantasyTeamPlayer>;
+  removePlayerFromFantasyTeam: {
+    (teamPlayerId: number): Promise<boolean>;
+    (teamId: number, playerId: number): Promise<boolean>;
+  };
+  updateFantasyTeamPlayer(id: number, data: Partial<InsertFantasyTeamPlayer>): Promise<FantasyTeamPlayer>;
   resetFantasyTeamCaptains(teamId: number): Promise<boolean>;
-  getFantasyPlayersByPosition(position: string): Promise<Player[]>;
-  getAllFantasyPlayers(limit?: number): Promise<Player[]>;
+  getFantasyPlayersByPosition(position: string): Promise<FootballPlayer[]>;
+  getAllFantasyPlayers(limit?: number): Promise<FootballPlayer[]>;
   
   // Football Player methods
   getAllFootballPlayers(limit?: number, offset?: number, filters?: any): Promise<FootballPlayer[]>;
@@ -192,12 +195,6 @@ export interface IStorage {
   updateFootballPlayerStats(id: number, stats: Partial<FootballPlayer>): Promise<FootballPlayer>;
   getPlayerSeasonStats(playerId: number): Promise<PlayerSeasonStats | null>;
   getPlayerRecentMatches(playerId: number, limit?: number): Promise<PlayerMatchStats[]>;
-  
-  // Fantasy Team Players methods
-  getFantasyTeamPlayers(teamId: number): Promise<FantasyTeamPlayer[]>;
-  addPlayerToFantasyTeam(teamPlayer: InsertFantasyTeamPlayer): Promise<FantasyTeamPlayer>;
-  updateFantasyTeamPlayer(id: number, data: Partial<InsertFantasyTeamPlayer>): Promise<FantasyTeamPlayer>;
-  removePlayerFromFantasyTeam(teamId: number, playerId: number): Promise<boolean>;
   
   // Fantasy Contest methods
   getAllFantasyContests(limit?: number, status?: string, tier?: string): Promise<FantasyContest[]>;
@@ -1221,6 +1218,193 @@ export class MemStorage implements IStorage {
     
     this.footballPlayersMap.set(id, updatedPlayer);
     return updatedPlayer;
+  }
+  
+  // Player stats comparison methods
+  async getPlayerSeasonStats(playerId: number): Promise<PlayerSeasonStats | null> {
+    try {
+      // Check if the player exists
+      const player = await this.getFootballPlayerById(playerId);
+      
+      if (!player) {
+        return null;
+      }
+      
+      // Get current season data
+      const currentSeason = new Date().getFullYear().toString();
+      
+      // Create season stats object based on player data
+      const seasonStats: PlayerSeasonStats = {
+        playerId: player.id,
+        season: currentSeason,
+        matches: player.appearances || 0,
+        goals: player.goals || 0,
+        assists: player.assists || 0,
+        yellowCards: player.yellowCards || 0,
+        redCards: player.redCards || 0,
+        cleanSheets: player.cleanSheets || 0,
+        minutesPlayed: player.minutesPlayed || 0,
+        passAccuracy: Math.floor(Math.random() * 30) + 65, // Placeholder stats until API integration
+        successfulTackles: player.position === 'defender' ? Math.floor(Math.random() * 60) + 20 : Math.floor(Math.random() * 30) + 10,
+        successfulDribbles: player.position === 'midfielder' || player.position === 'forward' ? Math.floor(Math.random() * 40) + 20 : Math.floor(Math.random() * 20) + 5,
+        chancesCreated: Math.floor(Math.random() * 40) + 5,
+        shotsOnTarget: player.position === 'forward' ? Math.floor(Math.random() * 30) + 10 : Math.floor(Math.random() * 15) + 2,
+        shotsTotal: player.position === 'forward' ? Math.floor(Math.random() * 50) + 20 : Math.floor(Math.random() * 25) + 5,
+        xG: parseFloat((Math.random() * (player.goals || 1) * 1.2).toFixed(2)),
+        xA: parseFloat((Math.random() * (player.assists || 1) * 1.1).toFixed(2)),
+        form: this.getPlayerFormDescription(player),
+        fantasyPoints: player.fantasyPointsTotal || 0,
+        injury: null // No injuries by default
+      };
+      
+      return seasonStats;
+    } catch (error) {
+      console.error("Error getting player season stats:", error);
+      return null;
+    }
+  }
+  
+  private getPlayerFormDescription(player: FootballPlayer): string {
+    // Logic to determine player form based on points average and player metrics
+    const formOptions = [
+      "Excellent form, consistently delivering strong performances",
+      "Good recent performances with high influence in matches",
+      "Average form with occasional standout games",
+      "Inconsistent form, showing glimpses of quality",
+      "Below average form, struggling to make an impact"
+    ];
+    
+    // Simple selection based on fantasy points average
+    const pointsAvg = player.fantasyPointsAvg || 0;
+    
+    if (pointsAvg > 8) return formOptions[0];
+    if (pointsAvg > 6) return formOptions[1];
+    if (pointsAvg > 4) return formOptions[2];
+    if (pointsAvg > 2) return formOptions[3];
+    return formOptions[4];
+  }
+  
+  async getPlayerRecentMatches(playerId: number, limit = 5): Promise<PlayerMatchStats[]> {
+    try {
+      // Check if player exists
+      const player = await this.getFootballPlayerById(playerId);
+      
+      if (!player) {
+        return [];
+      }
+      
+      // Generate sample data for player's recent matches
+      // In a production environment, this would come from a database table
+      const recentMatches: PlayerMatchStats[] = [];
+      
+      // Generate X recent matches with semi-random data
+      const now = new Date();
+      
+      for (let i = 0; i < limit; i++) {
+        const matchDate = new Date(now);
+        matchDate.setDate(matchDate.getDate() - (i * 7)); // One match per week
+        
+        const homeOrAway = Math.random() > 0.5 ? 'home' : 'away';
+        const opponents = ['Arsenal', 'Chelsea', 'Liverpool', 'Manchester City', 'Tottenham', 
+                         'Manchester United', 'Everton', 'Newcastle', 'Leicester', 'Wolves'];
+        const opponent = opponents[Math.floor(Math.random() * opponents.length)];
+        
+        // Goals more likely for forwards, assists for midfielders, clean sheets for goalkeepers/defenders
+        let goals = 0;
+        let assists = 0;
+        let cleanSheet = false;
+        let yellowCards = 0;
+        let redCards = 0;
+        
+        // Position-based stat generation
+        if (player.position === 'forward') {
+          goals = Math.random() > 0.6 ? Math.floor(Math.random() * 2) + 1 : 0;
+          assists = Math.random() > 0.8 ? 1 : 0;
+        } else if (player.position === 'midfielder') {
+          goals = Math.random() > 0.75 ? 1 : 0;
+          assists = Math.random() > 0.65 ? Math.floor(Math.random() * 2) + 1 : 0;
+        } else if (player.position === 'defender') {
+          goals = Math.random() > 0.9 ? 1 : 0;
+          assists = Math.random() > 0.8 ? 1 : 0;
+          cleanSheet = Math.random() > 0.6;
+        } else if (player.position === 'goalkeeper') {
+          cleanSheet = Math.random() > 0.6;
+        }
+        
+        // Card probability
+        yellowCards = Math.random() > 0.85 ? 1 : 0;
+        redCards = Math.random() > 0.95 ? 1 : 0;
+        
+        // Random minutes played (more likely to be 90, but could be less due to substitution or injury)
+        const minutesPlayed = Math.random() > 0.8 ? Math.floor(Math.random() * 30) + 60 : 90;
+        
+        // Calculate fantasy points
+        let fantasyPoints = minutesPlayed >= 60 ? 2 : 1; // minutes played points
+        fantasyPoints += goals * (player.position === 'forward' ? 4 : player.position === 'midfielder' ? 5 : 6); // goals
+        fantasyPoints += assists * 3; // assists
+        fantasyPoints += cleanSheet && (player.position === 'goalkeeper' || player.position === 'defender') ? 4 : 0; // clean sheet
+        fantasyPoints -= yellowCards * 1; // yellow card
+        fantasyPoints -= redCards * 3; // red card
+        
+        // Player rating (1-10 scale)
+        let rating = 6; // base rating
+        rating += goals * 0.8;
+        rating += assists * 0.5;
+        rating += cleanSheet ? 0.5 : 0;
+        rating -= yellowCards * 0.3;
+        rating -= redCards * 1.5;
+        
+        // Ensure rating is within bounds
+        rating = Math.max(3, Math.min(10, rating));
+        rating = parseFloat(rating.toFixed(1));
+        
+        // Generate position-specific key stats
+        const keyStats: Record<string, any> = {};
+        
+        if (player.position === 'goalkeeper') {
+          keyStats.saves = Math.floor(Math.random() * 6) + 1;
+          keyStats.penaltySaved = Math.random() > 0.9 ? 1 : 0;
+          keyStats.passAccuracy = Math.floor(Math.random() * 20) + 70;
+        } else if (player.position === 'defender') {
+          keyStats.tackles = Math.floor(Math.random() * 8) + 2;
+          keyStats.interceptions = Math.floor(Math.random() * 6) + 1;
+          keyStats.clearances = Math.floor(Math.random() * 10) + 2;
+          keyStats.aerialDuelsWon = Math.floor(Math.random() * 8) + 1;
+        } else if (player.position === 'midfielder') {
+          keyStats.passAccuracy = Math.floor(Math.random() * 15) + 75;
+          keyStats.chancesCreated = Math.floor(Math.random() * 4) + 1;
+          keyStats.distanceCovered = (Math.random() * 3 + 9).toFixed(1) + 'km';
+          keyStats.dribbles = Math.floor(Math.random() * 5) + 1;
+        } else if (player.position === 'forward') {
+          keyStats.shotsOnTarget = Math.floor(Math.random() * 4) + (goals > 0 ? goals : 0);
+          keyStats.shotsTotal = keyStats.shotsOnTarget + Math.floor(Math.random() * 4);
+          keyStats.dribbles = Math.floor(Math.random() * 5) + 1;
+          keyStats.aerialDuelsWon = Math.floor(Math.random() * 5) + 1;
+        }
+        
+        recentMatches.push({
+          playerId,
+          matchId: i + 1,
+          matchDate,
+          opponent,
+          homeOrAway,
+          minutesPlayed,
+          goals,
+          assists,
+          yellowCards,
+          redCards,
+          cleanSheet,
+          rating,
+          fantasyPoints,
+          keyStats
+        });
+      }
+      
+      return recentMatches;
+    } catch (error) {
+      console.error("Error getting player recent matches:", error);
+      return [];
+    }
   }
   
   // Fantasy Team Players methods

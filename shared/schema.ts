@@ -891,3 +891,44 @@ export type UserNewsPreferences = typeof userNewsPreferences.$inferSelect;
 export type InsertUserNewsPreferences = z.infer<typeof insertUserNewsPreferencesSchema>;
 export type UserSavedNews = typeof userSavedNews.$inferSelect;
 export type InsertUserSavedNews = z.infer<typeof insertUserSavedNewsSchema>;
+
+// Player stats comparison interfaces
+export interface PlayerSeasonStats {
+  playerId: number;
+  season: string;
+  matches: number;
+  goals: number;
+  assists: number;
+  yellowCards: number;
+  redCards: number;
+  cleanSheets: number;
+  minutesPlayed: number;
+  passAccuracy: number | null;
+  successfulTackles: number | null;
+  successfulDribbles: number | null;
+  chancesCreated: number | null;
+  shotsOnTarget: number | null;
+  shotsTotal: number | null;
+  xG: number | null;  // Expected goals
+  xA: number | null;  // Expected assists
+  form: string | null; // Text description of recent form
+  fantasyPoints: number;
+  injury: string | null; // Injury status if any
+}
+
+export interface PlayerMatchStats {
+  playerId: number;
+  matchId: number;
+  matchDate: Date;
+  opponent: string;
+  homeOrAway: 'home' | 'away';
+  minutesPlayed: number;
+  goals: number;
+  assists: number;
+  yellowCards: number;
+  redCards: number;
+  cleanSheet: boolean;
+  rating: number;
+  fantasyPoints: number;
+  keyStats: Record<string, any> | null; // Additional stats specific to position
+}
