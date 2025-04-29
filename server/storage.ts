@@ -4687,16 +4687,16 @@ export class DatabaseStorage implements IStorage {
     // Get all players in the team
     const teamPlayersList = await db
       .select()
-      .from(teamPlayers)
-      .where(eq(teamPlayers.teamId, teamId));
+      .from(fantasyTeamPlayers)
+      .where(eq(fantasyTeamPlayers.teamId, teamId));
     
     // Get the player details for each team player
     const result = await Promise.all(
       teamPlayersList.map(async (tp) => {
         const [player] = await db
           .select()
-          .from(players)
-          .where(eq(players.id, tp.playerId));
+          .from(footballPlayers)
+          .where(eq(footballPlayers.id, tp.playerId));
         
         return {
           ...tp,
@@ -4710,15 +4710,15 @@ export class DatabaseStorage implements IStorage {
   
   async addPlayerToFantasyTeam(data: InsertFantasyTeamPlayer): Promise<FantasyTeamPlayer> {
     const [teamPlayer] = await db
-      .insert(teamPlayers)
+      .insert(fantasyTeamPlayers)
       .values(data)
       .returning();
     
     // Get player details
     const [player] = await db
       .select()
-      .from(players)
-      .where(eq(players.id, teamPlayer.playerId));
+      .from(footballPlayers)
+      .where(eq(footballPlayers.id, teamPlayer.playerId));
     
     return {
       ...teamPlayer,
@@ -4728,11 +4728,11 @@ export class DatabaseStorage implements IStorage {
   
   async removePlayerFromFantasyTeam(teamId: number, playerId: number): Promise<boolean> {
     const result = await db
-      .delete(teamPlayers)
+      .delete(fantasyTeamPlayers)
       .where(
         and(
-          eq(teamPlayers.teamId, teamId),
-          eq(teamPlayers.playerId, playerId)
+          eq(fantasyTeamPlayers.teamId, teamId),
+          eq(fantasyTeamPlayers.playerId, playerId)
         )
       );
     
@@ -4741,16 +4741,16 @@ export class DatabaseStorage implements IStorage {
   
   async updateFantasyTeamPlayer(id: number, data: Partial<InsertFantasyTeamPlayer>): Promise<FantasyTeamPlayer> {
     const [updatedTeamPlayer] = await db
-      .update(teamPlayers)
+      .update(fantasyTeamPlayers)
       .set(data)
-      .where(eq(teamPlayers.id, id))
+      .where(eq(fantasyTeamPlayers.id, id))
       .returning();
     
     // Get player details
     const [player] = await db
       .select()
-      .from(players)
-      .where(eq(players.id, updatedTeamPlayer.playerId));
+      .from(footballPlayers)
+      .where(eq(footballPlayers.id, updatedTeamPlayer.playerId));
     
     return {
       ...updatedTeamPlayer,
@@ -4762,12 +4762,12 @@ export class DatabaseStorage implements IStorage {
     try {
       // Reset all captain statuses for the team
       await db
-        .update(teamPlayers)
+        .update(fantasyTeamPlayers)
         .set({
           isCaptain: false,
           isViceCaptain: false
         })
-        .where(eq(teamPlayers.teamId, teamId));
+        .where(eq(fantasyTeamPlayers.teamId, teamId));
       
       return true;
     } catch (error) {
