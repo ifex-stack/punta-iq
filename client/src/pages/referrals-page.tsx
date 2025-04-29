@@ -196,9 +196,9 @@ export default function ReferralsPage() {
         
         <TabsContent value="tiers" className="mt-0">
           <div className="grid md:grid-cols-2 gap-6">
-            <ReferralBadge />
             <ReferralStreak />
-            <ReferralTiers userId={user.id} />
+            <ReferralBadge />
+            <ReferralTiers userId={user.id} className="md:col-span-2" />
             <ReferralLeaderboard limit={5} className="md:col-span-2" />
           </div>
         </TabsContent>

@@ -1,6 +1,6 @@
-import { FC } from "react";
+import { FC, useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Flame, Gift, Calendar, Trophy, ArrowRight } from "lucide-react";
+import { Flame, Gift, Calendar, Trophy, ArrowRight, Clock, BadgeCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Progress } from "@/components/ui/progress";
 import { CustomProgress } from "@/components/ui/custom-progress";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ReferralStreakProps {
   className?: string;
@@ -69,6 +70,38 @@ export const ReferralStreak: FC<ReferralStreakProps> = ({ className }) => {
       year: 'numeric'
     }).format(date);
   };
+  
+  // Calculate remaining days until streak expires
+  const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
+  const [streakStatus, setStreakStatus] = useState<'healthy' | 'warning' | 'danger' | 'expired'>('healthy');
+  
+  useEffect(() => {
+    if (!userData?.lastReferralDate) {
+      setDaysRemaining(null);
+      return;
+    }
+    
+    const lastReferralDate = new Date(userData.lastReferralDate);
+    const expiryDate = new Date(lastReferralDate);
+    expiryDate.setDate(expiryDate.getDate() + 30); // Streak expires after 30 days
+    
+    const now = new Date();
+    const diffTime = expiryDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    setDaysRemaining(diffDays > 0 ? diffDays : 0);
+    
+    // Set status based on remaining days
+    if (diffDays <= 0) {
+      setStreakStatus('expired');
+    } else if (diffDays <= 3) {
+      setStreakStatus('danger');
+    } else if (diffDays <= 7) {
+      setStreakStatus('warning');
+    } else {
+      setStreakStatus('healthy');
+    }
+  }, [userData?.lastReferralDate]);
   
   return (
     <Card className={className}>
@@ -146,6 +179,99 @@ export const ReferralStreak: FC<ReferralStreakProps> = ({ className }) => {
                 <span className="font-medium">{userData?.maxReferralStreak || currentStreak}</span>
               </div>
             </div>
+            
+            {/* Streak Countdown */}
+            {daysRemaining !== null && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className={`mt-3 border rounded-md p-3 flex items-center justify-between ${
+                      streakStatus === 'expired' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' :
+                      streakStatus === 'danger' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 
+                      streakStatus === 'warning' ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' : 
+                      'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                    }`}>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          streakStatus === 'expired' ? 'bg-red-100 dark:bg-red-800' :
+                          streakStatus === 'danger' ? 'bg-red-100 dark:bg-red-800' : 
+                          streakStatus === 'warning' ? 'bg-amber-100 dark:bg-amber-800' : 
+                          'bg-green-100 dark:bg-green-800'
+                        }`}>
+                          <Clock className={`h-5 w-5 ${
+                            streakStatus === 'expired' ? 'text-red-600 dark:text-red-400' :
+                            streakStatus === 'danger' ? 'text-red-600 dark:text-red-400' : 
+                            streakStatus === 'warning' ? 'text-amber-600 dark:text-amber-400' : 
+                            'text-green-600 dark:text-green-400'
+                          }`} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Streak Status</p>
+                          <p className={`text-xs ${
+                            streakStatus === 'expired' ? 'text-red-600 dark:text-red-400' :
+                            streakStatus === 'danger' ? 'text-red-600 dark:text-red-400' : 
+                            streakStatus === 'warning' ? 'text-amber-600 dark:text-amber-400' : 
+                            'text-green-600 dark:text-green-400'
+                          }`}>
+                            {streakStatus === 'expired' ? 'Expired' :
+                             streakStatus === 'danger' ? 'Critical' :
+                             streakStatus === 'warning' ? 'Warning' :
+                             'Healthy'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center">
+                        {streakStatus !== 'expired' ? (
+                          <div className="text-center">
+                            <span className={`text-lg font-bold ${
+                              streakStatus === 'danger' ? 'text-red-600 dark:text-red-400' : 
+                              streakStatus === 'warning' ? 'text-amber-600 dark:text-amber-400' : 
+                              'text-green-600 dark:text-green-400'
+                            }`}>
+                              {daysRemaining}
+                            </span>
+                            <span className="text-xs text-muted-foreground block">days left</span>
+                          </div>
+                        ) : (
+                          <Badge variant="destructive" className="whitespace-nowrap">
+                            Restart needed
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Refer a friend within 30 days to keep your streak active</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            
+            {/* Streak Visualization */}
+            {currentStreak > 1 && (
+              <div className="mt-4 space-y-2">
+                <h4 className="text-sm font-medium flex items-center gap-1.5">
+                  <BadgeCheck className="h-4 w-4 text-primary" />
+                  Streak History
+                </h4>
+                <div className="flex items-center gap-1 mt-1 flex-wrap">
+                  {[...Array(currentStreak)].map((_, index) => (
+                    <div
+                      key={index}
+                      className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                        index === currentStreak - 1 
+                          ? 'bg-gradient-to-br from-amber-400 to-orange-600 dark:from-amber-500 dark:to-orange-700' 
+                          : 'bg-orange-100 dark:bg-orange-800/30'
+                      }`}
+                    >
+                      {index === currentStreak - 1 && (
+                        <Flame className="h-2 w-2 text-white" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             
             <div className="bg-muted/50 rounded-md p-3 text-sm mt-3">
               <h4 className="font-medium flex items-center gap-1.5">
