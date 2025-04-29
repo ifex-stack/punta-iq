@@ -32,6 +32,7 @@ import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { FootballPlayer } from '@shared/schema';
 import { PlayerSeasonStats, PlayerMatchStats } from '@shared/player-interfaces';
+import { PlayerPerformanceHints } from './player-performance-hints';
 
 type PlayerPosition = 'goalkeeper' | 'defender' | 'midfielder' | 'forward';
 
@@ -453,6 +454,17 @@ export function PlayerComparison({
                       <Badge className={`text-white ${getFormColor(player.seasonStats?.form)}`}>
                         {player.seasonStats?.form || 'No form data'}
                       </Badge>
+                    </div>
+                    
+                    <Separator />
+                    
+                    {/* AI Performance Hints */}
+                    <div className="space-y-2 mb-4">
+                      <div className="text-sm font-medium">AI Performance Analysis</div>
+                      <PlayerPerformanceHints 
+                        playerId={player.id}
+                        simplified={true}
+                      />
                     </div>
                     
                     <Separator />
