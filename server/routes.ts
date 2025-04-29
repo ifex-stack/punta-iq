@@ -693,6 +693,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get contextual performance hints for a player
+  app.get("/api/players/:id/performance-hints", async (req, res) => {
+    try {
+      const playerId = parseInt(req.params.id);
+      const includeMatchContext = req.query.includeMatchContext === 'true';
+      
+      // Get player data
+      const player = await storage.getFootballPlayerById(playerId);
+      
+      if (!player) {
+        return res.status(404).json({ message: "Player not found" });
+      }
+      
+      // Get player season stats
+      const seasonStats = await storage.getPlayerSeasonStats(playerId);
+      
+      // Get recent matches
+      const recentMatches = await storage.getPlayerRecentMatches(playerId, 5);
+      
+      // Get next match data if requested and available
+      let upcomingMatch = null;
+      if (includeMatchContext) {
+        // In a real implementation, you would fetch the player's next match
+        // For now, we'll use mock data or leave it as null
+        // This could include opponent strength, home/away, etc.
+        // upcomingMatch = await storage.getPlayerUpcomingMatch(playerId);
+      }
+      
+      // Combine player data for the OpenAI client
+      const playerData = {
+        ...player,
+        seasonStats
+      };
+      
+      // Generate AI-powered performance hints
+      const performanceHints = await openaiClient.generatePlayerPerformanceHints(
+        playerData,
+        recentMatches,
+        upcomingMatch
+      );
+      
+      res.json({
+        player: {
+          id: player.id,
+          name: player.name,
+          position: player.position,
+          team: player.team
+        },
+        performanceHints,
+        hasRecentMatches: recentMatches.length > 0,
+        hasUpcomingMatch: !!upcomingMatch
+      });
+      
+    } catch (error: any) {
+      console.error("Error generating player performance hints:", error);
+      res.status(500).json({ message: error.message || "Failed to generate performance hints" });
+    }
+  });
+  
   // Search/list fantasy football players
   app.get("/api/fantasy/players", async (req, res) => {
     try {

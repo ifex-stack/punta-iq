@@ -197,6 +197,110 @@ export class OpenAIClient {
       return null;
     }
   }
+  
+  /**
+   * Generate contextual performance hints for a player based on statistics
+   * and upcoming match context
+   * 
+   * @param playerData Player's profile and season statistics
+   * @param recentMatches Recent match data for the player
+   * @param upcomingMatch Optional data about upcoming match/opponent
+   * @returns AI-generated contextual performance hints
+   */
+  async generatePlayerPerformanceHints(
+    playerData: any, 
+    recentMatches: any[] = [], 
+    upcomingMatch: any = null
+  ): Promise<any> {
+    try {
+      if (!this.hasApiKey()) {
+        logger.warn('OpenAIClient', 'No API key available for player hints generation');
+        return null;
+      }
+
+      const playerPosition = playerData.position || 'Unknown';
+      
+      logger.info('OpenAIClient', 'Generating player performance hints', {
+        playerId: playerData.id,
+        playerName: playerData.name,
+        position: playerPosition
+      });
+
+      const systemMessage = `You are a professional football analyst and statistics expert specializing in player performance analysis. 
+        You provide concise, data-driven insights about player performance based on their statistics, recent form, and contextual factors.
+        Focus on actionable insights that would help someone decide whether to select this player for fantasy football or make a prediction about their performance.
+        
+        Respond with JSON in this format:
+        {
+          "formSummary": "Brief 1-2 sentence assessment of current form",
+          "strengths": ["2-3 key statistical strengths"],
+          "weaknesses": ["1-2 areas of concern"],
+          "fantasyOutlook": "1-2 sentence fantasy football recommendation",
+          "keyStats": ["2-3 most impressive stats with context"],
+          "matchupInsight": "If upcoming match data provided, specific insight about this matchup",
+          "confidenceRating": "A number from 1-10 representing confidence in good performance"
+        }`;
+
+      // Tailor the prompt based on player position
+      let positionSpecificGuidance = "";
+      switch (playerPosition.toLowerCase()) {
+        case "goalkeeper":
+          positionSpecificGuidance = "For goalkeepers, focus on clean sheets, saves, goals conceded, and distribution stats.";
+          break;
+        case "defender":
+          positionSpecificGuidance = "For defenders, focus on clean sheets, tackles, interceptions, blocks, aerial duels, and attacking contributions.";
+          break;
+        case "midfielder":
+          positionSpecificGuidance = "For midfielders, focus on passing stats, key passes, assists, chances created, defensive contributions, and goal threat.";
+          break;
+        case "forward":
+        case "attacker":
+          positionSpecificGuidance = "For forwards, focus on goals, shots, conversion rate, expected goals (xG), assists, and overall attacking threat.";
+          break;
+      }
+
+      const upcomingMatchContext = upcomingMatch ? 
+        `The player has an upcoming match: ${JSON.stringify(upcomingMatch, null, 2)}` : 
+        "No upcoming match data provided.";
+
+      const prompt = `Analyze this football player's performance data:
+        Player Profile: ${JSON.stringify(playerData, null, 2)}
+        Season Statistics: ${JSON.stringify(playerData.seasonStats || {}, null, 2)}
+        Recent Matches: ${JSON.stringify(recentMatches, null, 2)}
+        ${upcomingMatchContext}
+        
+        ${positionSpecificGuidance}
+        
+        Provide concise, relevant performance insights that would help fantasy managers and bettors.`;
+
+      const result = await this.generateCompletion(prompt, {
+        systemMessage,
+        temperature: 0.3,
+        responseFormat: "json_object"
+      });
+
+      const content = result.choices[0]?.message?.content || '{}';
+      return {
+        hints: JSON.parse(content),
+        modelUsed: "gpt-4o"
+      };
+    } catch (error) {
+      logger.error('OpenAIClient', 'Error generating player hints', error);
+      if (error instanceof SyntaxError) {
+        // JSON parsing error
+        return { 
+          hints: {
+            formSummary: "Could not analyze player data",
+            strengths: [],
+            weaknesses: [],
+            confidenceRating: 0
+          },
+          error: "JSON parsing error"
+        };
+      }
+      return { hints: null, error: (error as Error).message };
+    }
+  }
 }
 
 export const openaiClient = new OpenAIClient();
