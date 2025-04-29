@@ -58,7 +58,7 @@ const AdvancedPredictionsPage = () => {
   // Fetch available ML capabilities
   const { data: capabilities, isLoading: capabilitiesLoading } = useQuery({
     queryKey: ["/api/predictions/advanced-capabilities"],
-    queryFn: getQueryFn(),
+    queryFn: () => fetch("/api/predictions/advanced-capabilities").then(res => res.json()),
   });
   
   // Fetch real-time football matches
