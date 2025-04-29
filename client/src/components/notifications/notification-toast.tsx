@@ -8,7 +8,17 @@ import { Bell } from 'lucide-react';
  * This should be mounted once in the app layout
  */
 export function NotificationToastListener() {
-  const { socket, socketConnected } = useNotifications();
+  // Safe usage of useNotifications with error handling
+  let notificationContext;
+  try {
+    notificationContext = useNotifications();
+  } catch (error) {
+    console.error("Failed to load notification context for toast listener:", error);
+    // Return null if notifications can't be loaded - this component doesn't render anything visible anyway
+    return null;
+  }
+  
+  const { socket, socketConnected } = notificationContext;
   const { toast } = useToast();
 
   useEffect(() => {
