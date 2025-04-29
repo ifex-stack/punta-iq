@@ -90,96 +90,8 @@ import {
 import EnhancedPredictionCard from "@/components/predictions/enhanced-prediction-card";
 import AccumulatorCard from "@/components/predictions/accumulator-card";
 
-// Types for the API responses
-interface Prediction {
-  id: string;
-  matchId: string;
-  sport: string;
-  createdAt: string;
-  homeTeam: string;
-  awayTeam: string;
-  startTime: string;
-  league: string;
-  predictedOutcome: string;
-  confidence: number;
-  isPremium: boolean;
-  valueBet?: {
-    outcome: string;
-    odds: number;
-    value: number;
-    isRecommended: boolean;
-  } | null;
-  predictions: {
-    "1X2"?: {
-      outcome: string;
-      homeWin: { probability: number; odds: number };
-      draw: { probability: number; odds: number };
-      awayWin: { probability: number; odds: number };
-    };
-    "BTTS"?: {
-      outcome: string;
-      probability: number;
-    };
-    "Over_Under"?: {
-      line: number;
-      outcome: string;
-      probability: number;
-    };
-    "CorrectScore"?: {
-      outcome: string;
-      probability: number;
-    };
-    "Winner"?: {
-      outcome: string;
-      homeWin: { probability: number; odds: number };
-      awayWin: { probability: number; odds: number };
-    };
-    "TotalPoints"?: {
-      line: number;
-      outcome: string;
-      probability: number;
-      predictedTotal: number;
-    };
-    "Spread"?: {
-      line: number;
-      favored: string;
-      probability: number;
-    };
-    "PredictedScore"?: {
-      home: number;
-      away: number;
-    };
-  };
-}
-
-interface Accumulator {
-  id: string;
-  createdAt: string;
-  size: number;
-  totalOdds: number;
-  confidence: number;
-  isPremium: boolean;
-  selections: Array<{
-    matchId: string;
-    homeTeam: string;
-    awayTeam: string;
-    league: string;
-    startTime: string;
-    sport: string;
-    market: string;
-    outcome: string;
-    odds: number;
-    confidence: number;
-  }>;
-  type?: string;
-}
-
-interface AccumulatorsResponse {
-  small: Accumulator[];
-  medium: Accumulator[];
-  large: Accumulator[];
-  mega: Accumulator[];
-}
+// Import types from types file
+import { Prediction, Accumulator, AccumulatorsResponse, PredictionStats, SportStats } from "@/lib/types";
 
 export default function PredictionsAndStatsPage() {
   const [_, navigate] = useLocation();
@@ -261,15 +173,15 @@ export default function PredictionsAndStatsPage() {
   });
   
   // Get statistics data
-  const { data: statsData, isLoading: isLoadingStats } = useQuery({
+  const { data: statsData, isLoading: isLoadingStats } = useQuery<PredictionStats>({
     queryKey: ['/api/predictions/stats', period],
   });
   
-  const { data: predictionHistory } = useQuery({
+  const { data: predictionHistory } = useQuery<{date: string; success: number; fail: number}[]>({
     queryKey: ['/api/predictions/history', period],
   });
   
-  const { data: sportBreakdown } = useQuery({
+  const { data: sportBreakdown } = useQuery<Record<string, SportStats>>({
     queryKey: ['/api/predictions/sports', period],
   });
   
@@ -410,7 +322,6 @@ export default function PredictionsAndStatsPage() {
     toast({
       title: "Bet Placed Successfully",
       description: `Your £${stake} bet has been placed`,
-      variant: "success",
     });
   };
   
