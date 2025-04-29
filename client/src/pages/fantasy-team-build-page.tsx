@@ -390,7 +390,11 @@ export default function FantasyTeamBuildPage() {
                     onSetViceCaptain={() => handleSetViceCaptain(player.playerId)}
                   />
                 ) : (
-                  <EmptyPlayerSlot position="GK" onClick={() => setSelectedPosition('goalkeeper')} />
+                  <EmptyPlayerSlot 
+                    position="GK" 
+                    onClick={() => setSelectedPosition('goalkeeper')} 
+                    onAiAutoFill={() => aiAutoFillMutation.mutate('goalkeeper')}
+                  />
                 )}
               </div>
             );
@@ -413,7 +417,11 @@ export default function FantasyTeamBuildPage() {
                     onSetViceCaptain={() => handleSetViceCaptain(player.playerId)}
                   />
                 ) : (
-                  <EmptyPlayerSlot position="DEF" onClick={() => setSelectedPosition('defender')} />
+                  <EmptyPlayerSlot 
+                    position="DEF" 
+                    onClick={() => setSelectedPosition('defender')}
+                    onAiAutoFill={() => aiAutoFillMutation.mutate('defender')}
+                  />
                 )}
               </div>
             );
@@ -436,7 +444,11 @@ export default function FantasyTeamBuildPage() {
                     onSetViceCaptain={() => handleSetViceCaptain(player.playerId)}
                   />
                 ) : (
-                  <EmptyPlayerSlot position="MID" onClick={() => setSelectedPosition('midfielder')} />
+                  <EmptyPlayerSlot 
+                    position="MID" 
+                    onClick={() => setSelectedPosition('midfielder')} 
+                    onAiAutoFill={() => aiAutoFillMutation.mutate('midfielder')}
+                  />
                 )}
               </div>
             );
@@ -459,7 +471,11 @@ export default function FantasyTeamBuildPage() {
                     onSetViceCaptain={() => handleSetViceCaptain(player.playerId)}
                   />
                 ) : (
-                  <EmptyPlayerSlot position="FWD" onClick={() => setSelectedPosition('forward')} />
+                  <EmptyPlayerSlot 
+                    position="FWD" 
+                    onClick={() => setSelectedPosition('forward')} 
+                    onAiAutoFill={() => aiAutoFillMutation.mutate('forward')}
+                  />
                 )}
               </div>
             );
