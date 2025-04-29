@@ -106,6 +106,35 @@ export default function FantasyTeamBuildPage() {
     }
   }, [teamPlayers]);
 
+  // AI auto-fill mutation
+  const aiAutoFillMutation = useMutation({
+    mutationFn: async (position?: string) => {
+      // If no position is specified, the API will pick the best available one
+      const res = await apiRequest('POST', `/api/fantasy/teams/${teamId}/ai-autofill`, { 
+        position 
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to auto-fill player');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/fantasy/teams', teamId, 'players'] });
+      toast({
+        title: 'Player added',
+        description: data.message,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Auto-fill failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+
   // Add player mutation
   const addPlayerMutation = useMutation({
     mutationFn: async (playerId: number) => {
@@ -299,6 +328,11 @@ export default function FantasyTeamBuildPage() {
     addPlayerMutation.mutate(player.id);
   };
 
+  const handleAutoFillTeam = () => {
+    // Use the currently selected position if there's one, otherwise let the AI decide
+    aiAutoFillMutation.mutate(selectedPosition !== 'all' ? selectedPosition : undefined);
+  };
+
   const handleRemovePlayer = (teamPlayerId: number) => {
     removePlayerMutation.mutate(teamPlayerId);
   };
@@ -489,11 +523,23 @@ export default function FantasyTeamBuildPage() {
         {/* Left side - Team formation */}
         <Card>
           <CardHeader>
-            <CardTitle>Your Team</CardTitle>
-            <CardDescription>
-              Select players for each position. You need 1 goalkeeper, {getFormationPositions().defender} defenders, 
-              {getFormationPositions().midfielder} midfielders, and {getFormationPositions().forward} forwards.
-            </CardDescription>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle>Your Team</CardTitle>
+                <CardDescription>
+                  Select players for each position. You need 1 goalkeeper, {getFormationPositions().defender} defenders, 
+                  {getFormationPositions().midfielder} midfielders, and {getFormationPositions().forward} forwards.
+                </CardDescription>
+              </div>
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-1" 
+                size="sm"
+                onClick={() => handleAutoFillTeam()}
+              >
+                <Zap className="h-4 w-4" /> AI Fill Team
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {renderFormationPlaceholders()}
@@ -605,17 +651,28 @@ export default function FantasyTeamBuildPage() {
 type EmptyPlayerSlotProps = {
   position: string;
   onClick: () => void;
+  onAiAutoFill: () => void;
 };
 
-const EmptyPlayerSlot = ({ position, onClick }: EmptyPlayerSlotProps) => (
+const EmptyPlayerSlot = ({ position, onClick, onAiAutoFill }: EmptyPlayerSlotProps) => (
   <div 
     className="h-24 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700 flex flex-col items-center justify-center p-2 cursor-pointer hover:bg-accent/25 transition-colors"
-    onClick={onClick}
   >
-    <div className="text-2xl text-muted-foreground">
-      <PlusCircle className="h-6 w-6 mx-auto" />
+    <div className="text-xs text-center font-medium mb-2">{position}</div>
+    <div className="flex flex-col space-y-1">
+      <button
+        onClick={onClick}
+        className="px-2 py-1 text-xs rounded-sm bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center"
+      >
+        <PlusCircle className="h-3 w-3 mr-1" /> Add
+      </button>
+      <button
+        onClick={onAiAutoFill}
+        className="px-2 py-1 text-xs rounded-sm bg-accent text-accent-foreground hover:bg-accent/90 flex items-center justify-center"
+      >
+        <Zap className="h-3 w-3 mr-1" /> AI Pick
+      </button>
     </div>
-    <div className="text-xs text-center font-medium mt-1">{position}</div>
   </div>
 );
 

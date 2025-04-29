@@ -623,8 +623,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const existingPlayers = await storage.getFantasyTeamPlayers(teamId);
       
       // Get players for the requested position
-      // Assuming getFantasyPlayersByPosition is implemented in storage.ts
-      const availablePlayers = await storage.getFantasyPlayers(position || null);
+      // For now, use the search function with position filter
+      const availablePlayers = await storage.searchFootballPlayers('', position || '', '', 50);
       
       // Filter out players already in the team
       const existingPlayerIds = existingPlayers.map(p => p.playerId);
