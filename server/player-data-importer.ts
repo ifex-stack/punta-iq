@@ -82,15 +82,35 @@ export function importPlayerData(filePath: string): PlayerSeasonStats[] {
     // Read the CSV file
     const fileContent = fs.readFileSync(csvPath, 'utf-8');
     
-    // Parse the CSV data
+    // Parse the CSV data with semicolon delimiter
     const records = parse(fileContent, {
       columns: true,
       skip_empty_lines: true,
-      trim: true
+      trim: true,
+      delimiter: ';' // Specify semicolon as the delimiter
     }) as RawPlayerData[];
 
+    console.log(`Parsed ${records.length} records from CSV`);
+    
+    // Filter out duplicate player entries (keep one entry per player)
+    const uniquePlayers = new Map<string, RawPlayerData>();
+    for (const record of records) {
+      const playerId = record.Id;
+      // If we haven't seen this player yet, or if this record has more complete data, keep it
+      if (!uniquePlayers.has(playerId) || 
+          (parseInt(record['Games minutes'] || '0') > parseInt(uniquePlayers.get(playerId)!['Games minutes'] || '0'))) {
+        uniquePlayers.set(playerId, record);
+      }
+    }
+    
+    console.log(`Found ${uniquePlayers.size} unique players after filtering duplicates`);
+    
     // Transform raw data into PlayerSeasonStats objects
-    return records.map((record, index) => transformToPlayerStats(record, index + 1));
+    // Use the actual player ID from the CSV when available
+    return Array.from(uniquePlayers.values()).map(record => {
+      const playerId = parseInt(record.Id) || 0;
+      return transformToPlayerStats(record, playerId);
+    });
   } catch (error) {
     console.error(`Error importing player data: ${error}`);
     return [];
@@ -106,17 +126,22 @@ export function importPlayerData(filePath: string): PlayerSeasonStats[] {
 function transformToPlayerStats(record: RawPlayerData, playerId: number): PlayerSeasonStats {
   // Parse numeric values, defaulting to 0 or null if not valid
   const parseNumeric = (val: string, defaultVal: number | null = 0): number | null => {
-    const num = parseFloat(val);
+    if (!val || val === '') return defaultVal;
+    // Remove any percentage or other symbols that might be included
+    const cleanVal = val.replace('%', '').trim();
+    const num = parseFloat(cleanVal);
     return isNaN(num) ? defaultVal : num;
   };
 
   // Determine player position from 'Games position'
   const determinePosition = (position: string): string => {
+    if (!position) return 'unknown';
+    
     position = position.toLowerCase();
     if (position.includes('goalkeeper') || position.includes('gk')) return 'goalkeeper';
     if (position.includes('defender') || position.includes('cb') || position.includes('lb') || position.includes('rb')) return 'defender';
     if (position.includes('midfielder') || position.includes('cm') || position.includes('cdm') || position.includes('cam')) return 'midfielder';
-    if (position.includes('forward') || position.includes('st') || position.includes('lw') || position.includes('rw')) return 'forward';
+    if (position.includes('forward') || position.includes('attacker') || position.includes('st') || position.includes('lw') || position.includes('rw')) return 'forward';
     return 'unknown';
   };
 
@@ -132,8 +157,22 @@ function transformToPlayerStats(record: RawPlayerData, playerId: number): Player
     rating = rating / 10;
   }
 
+  // Determine player's position
+  const position = determinePosition(record['Games position']);
+
   // Calculate fantasy points based on player stats
-  const fantasyPoints = calculateFantasyPoints(record, determinePosition(record['Games position']));
+  const fantasyPoints = calculateFantasyPoints(record, position);
+
+  // For clean sheets, estimate for goalkeepers and defenders based on appearances
+  let cleanSheets = 0;
+  const appearances = parseNumeric(record['Games appearences']) || 0;
+  if ((position === 'goalkeeper' || position === 'defender') && appearances > 0) {
+    // Estimate clean sheets as approximately 30% of appearances
+    cleanSheets = Math.round(appearances * 0.3);
+  }
+  
+  // Create a full name from firstname and lastname
+  const fullName = `${record.Firstname || ''} ${record.Lastname || ''}`.trim() || record.Name;
 
   return {
     playerId,
@@ -142,6 +181,13 @@ function transformToPlayerStats(record: RawPlayerData, playerId: number): Player
     competitionId: parseNumeric(record['League id']),
     team: record['Team name'],
     teamId: parseNumeric(record['Team id']),
+    playerName: fullName, // Add player's name for easier reference
+    position: position as any, // Cast to match expected type
+    nationality: record.Nationality,
+    photo: record.Photo,
+    
+    // Basic player info
+    age: parseNumeric(record.Age),
     
     // Appearance stats
     appearances: parseNumeric(record['Games appearences']),
@@ -152,13 +198,14 @@ function transformToPlayerStats(record: RawPlayerData, playerId: number): Player
     // Goal involvement
     goals: parseNumeric(record['Goals total']) || 0,
     assists: parseNumeric(record['Goals assists']) || 0,
+    penalties: parseNumeric(record['Penalty scored']),
     
     // Disciplinary
     yellowCards: parseNumeric(record['Cards yellow']) || 0,
     redCards: parseNumeric(record['Cards red']) || 0,
     
     // Goalkeeper stats
-    cleanSheets: 0, // Not directly provided in the CSV
+    cleanSheets: cleanSheets,
     goalsConceded: parseNumeric(record['Goals conceded']),
     saves: parseNumeric(record['Goals saves']),
     
@@ -179,11 +226,17 @@ function transformToPlayerStats(record: RawPlayerData, playerId: number): Player
     shotsOnTarget: parseNumeric(record['Shots on']),
     dribblesAttempts: parseNumeric(record['Dribbles attempts']),
     dribblesSuccess: parseNumeric(record['Dribbles success']),
+    dribblesSuccessful: parseNumeric(record['Dribbles success']),
+    
+    // Additional advanced stats
+    xG: null, // Not provided in the CSV
+    xA: null, // Not provided in the CSV
     
     // Additional info
     injury: record['Injured'] === '1' ? 'Injured' : null,
     fantasyPoints,
-    rating
+    rating,
+    form: null // Not provided in the CSV
   };
 }
 
@@ -265,8 +318,37 @@ function calculateFantasyPoints(
  */
 export function importAndSavePlayerData() {
   try {
-    const playerStats = importPlayerData('./attached_assets/players_players-statistics_get-players-statistics-for-current-seasons.csv');
-    console.log(`Successfully imported ${playerStats.length} player records from CSV`);
+    // Set the path to the CSV file
+    const csvPath = './attached_assets/players_players-statistics_get-players-statistics-for-current-seasons.csv';
+    
+    // Check if the file exists first
+    if (!fs.existsSync(path.resolve(csvPath))) {
+      console.warn(`Player statistics CSV file not found at ${csvPath}`);
+      return [];
+    }
+    
+    // Import the player data
+    const playerStats = importPlayerData(csvPath);
+    
+    // Log the results
+    if (playerStats.length > 0) {
+      console.log(`Successfully imported ${playerStats.length} player records from ${csvPath}`);
+      
+      // Log some sample player data for verification
+      const samplePlayer = playerStats[0];
+      console.log(`Sample player data: ${samplePlayer.playerName}, ${samplePlayer.position}, ${samplePlayer.team}, ${samplePlayer.goals} goals, ${samplePlayer.assists} assists, rating: ${samplePlayer.rating}`);
+      
+      // Get some position counts for verification
+      const goalkeepers = playerStats.filter(p => p.position === 'goalkeeper').length;
+      const defenders = playerStats.filter(p => p.position === 'defender').length;
+      const midfielders = playerStats.filter(p => p.position === 'midfielder').length;
+      const forwards = playerStats.filter(p => p.position === 'forward').length;
+      const unknown = playerStats.filter(p => p.position === 'unknown').length;
+      
+      console.log(`Position distribution: GK: ${goalkeepers}, DEF: ${defenders}, MID: ${midfielders}, FWD: ${forwards}, Unknown: ${unknown}`);
+    } else {
+      console.warn('No player data was imported from the CSV file');
+    }
     
     // Return the imported player stats for storage service to use
     return playerStats;
