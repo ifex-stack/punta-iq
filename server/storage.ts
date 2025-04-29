@@ -105,6 +105,8 @@ export interface IStorage {
   searchFootballPlayers(query: string, position?: string, team?: string, limit?: number): Promise<FootballPlayer[]>;
   getPlayerSeasonStats(playerId: number): Promise<PlayerSeasonStats | null>;
   getPlayerRecentMatches(playerId: number, limit?: number): Promise<PlayerMatchStats[]>;
+  createFootballPlayer(player: InsertFootballPlayer): Promise<FootballPlayer>;
+  updateFootballPlayerStats(id: number, stats: Partial<FootballPlayer>): Promise<FootballPlayer>;
   updateUserFantasyPoints(userId: number, points: number): Promise<User>;
   
   // 2FA methods
@@ -194,14 +196,7 @@ export interface IStorage {
   getFantasyPlayersByPosition(position: string): Promise<FootballPlayer[]>;
   getAllFantasyPlayers(limit?: number): Promise<FootballPlayer[]>;
   
-  // Football Player methods
-  getAllFootballPlayers(limit?: number, offset?: number, filters?: any): Promise<FootballPlayer[]>;
-  getFootballPlayerById(id: number): Promise<FootballPlayer | undefined>;
-  searchFootballPlayers(query: string, position?: string, team?: string, limit?: number): Promise<FootballPlayer[]>;
-  createFootballPlayer(player: InsertFootballPlayer): Promise<FootballPlayer>;
-  updateFootballPlayerStats(id: number, stats: Partial<FootballPlayer>): Promise<FootballPlayer>;
-  getPlayerSeasonStats(playerId: number): Promise<PlayerSeasonStats | null>;
-  getPlayerRecentMatches(playerId: number, limit?: number): Promise<PlayerMatchStats[]>;
+
   
   // Fantasy Contest methods
   getAllFantasyContests(limit?: number, status?: string, tier?: string): Promise<FantasyContest[]>;
