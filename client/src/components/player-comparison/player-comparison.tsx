@@ -30,7 +30,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
-import { FootballPlayer, PlayerSeasonStats, PlayerMatchStats } from '@shared/schema';
+import { FootballPlayer } from '@shared/schema';
+import { PlayerSeasonStats, PlayerMatchStats } from '@shared/player-interfaces';
 
 type PlayerPosition = 'goalkeeper' | 'defender' | 'midfielder' | 'forward';
 
