@@ -86,6 +86,7 @@ class SportsApiService {
   private apiKey: string;
   private clients: Map<string, AxiosInstance> = new Map();
   private sportConfigs: {[key: string]: SportApiConfig} = {
+    // Updated with correct API endpoints for testing
     football: {
       baseUrl: 'https://v3.football.api-sports.io',
       version: 'v3',
@@ -158,7 +159,7 @@ class SportsApiService {
       baseUrl: 'https://v1.tennis.api-sports.io',
       version: 'v1',
       endpoints: {
-        fixtures: '/games',
+        fixtures: '/fixtures',
         leagues: '/leagues',
         teams: '/players'
       }
@@ -178,6 +179,43 @@ class SportsApiService {
       endpoints: {
         fixtures: '/races',
         leagues: '/seasons',
+        teams: '/teams'
+      }
+    },
+    // Additional sports endpoints
+    afl: {
+      baseUrl: 'https://v1.afl.api-sports.io',
+      version: 'v1',
+      endpoints: {
+        fixtures: '/games',
+        leagues: '/leagues',
+        teams: '/teams'
+      }
+    },
+    handball: {
+      baseUrl: 'https://v1.handball.api-sports.io',
+      version: 'v1',
+      endpoints: {
+        fixtures: '/games',
+        leagues: '/leagues',
+        teams: '/teams'
+      }
+    },
+    mma: {
+      baseUrl: 'https://v1.mma.api-sports.io',
+      version: 'v1',
+      endpoints: {
+        fixtures: '/fights',
+        leagues: '/leagues',
+        teams: '/fighters'
+      }
+    },
+    volleyball: {
+      baseUrl: 'https://v1.volleyball.api-sports.io',
+      version: 'v1',
+      endpoints: {
+        fixtures: '/games',
+        leagues: '/leagues',
         teams: '/teams'
       }
     }
@@ -261,7 +299,7 @@ class SportsApiService {
       
       // Each sport API might have slightly different parameter names and response structures
       // So we need special handling for some sports
-      if (sport === 'basketball' || sport === 'baseball' || sport === 'american_football' || sport === 'rugby' || sport === 'hockey') {
+      if (['basketball', 'baseball', 'american_football', 'rugby', 'hockey', 'afl', 'handball', 'volleyball'].includes(sport)) {
         if (options.date) {
           queryParams.date = options.date;
         } else {
@@ -271,43 +309,54 @@ class SportsApiService {
         }
       }
       
+      // Tennis API uses 'date' parameter in a specific format
+      if (sport === 'tennis' && options.date) {
+        queryParams.date = options.date;
+      }
+      
       logger.info(`[SportsApiService] Fetching ${sport} fixtures with params:`, queryParams);
       logger.info(`[SportsApiService] Using API key: ${this.apiKey ? this.apiKey.substring(0, 5) + '...' : 'Not set'}`);
       
+      let responseData;
+      
       try {
         const response = await client.get(endpoint, { params: queryParams });
+        responseData = response.data;
         
         // Log more details about the response
-        logger.info(`[SportsApiService] ${sport} API response status:`, response.status);
-        logger.info(`[SportsApiService] ${sport} API response size:`, 
-          response.data && response.data.response ? response.data.response.length : 'No data');
+        logger.info(`[SportsApiService] ${sport} API response status: ${response.status}`);
+        logger.info(`[SportsApiService] ${sport} API response size: ${
+          responseData && responseData.response ? responseData.response.length : 'No data'}`);
         
-        if (response.data.errors && Object.keys(response.data.errors).length > 0) {
-          logger.error(`[SportsApiService] API returned errors:`, response.data.errors);
+        if (responseData.errors && Object.keys(responseData.errors).length > 0) {
+          logger.error(`[SportsApiService] API returned errors:`, responseData.errors);
           return [];
         }
-      } catch (error) {
-        logger.error(`[SportsApiService] Error in API request:`, {
-          message: error.message,
-          status: error.response?.status,
-          data: error.response?.data
-        });
+      } catch (error: any) {
+        logger.error(`[SportsApiService] Error in API request: ${error.message}`);
+        if (error.response) {
+          logger.error(`[SportsApiService] Status: ${error.response.status}`);
+          logger.error(`[SportsApiService] Data: ${JSON.stringify(error.response.data)}`);
+        }
         throw error; // Re-throw to be caught by the outer try/catch
       }
       
       // Each sport API might have a different response structure
       // So we need to handle the response differently for each sport
-      if (sport === 'football' || sport === 'cricket') {
-        return this.processFootballFixtures(response.data.response, sport);
-      } else if (['basketball', 'baseball', 'nba', 'american_football', 'rugby', 'hockey', 'tennis'].includes(sport)) {
-        return this.processTeamSportFixtures(response.data.response, sport);
+      if (sport === 'football' || sport === 'cricket' || sport === 'tennis') {
+        return this.processFootballFixtures(responseData.response, sport);
+      } else if (['basketball', 'baseball', 'nba', 'american_football', 'rugby', 'hockey', 'afl', 'handball', 'volleyball'].includes(sport)) {
+        return this.processTeamSportFixtures(responseData.response, sport);
       } else if (sport === 'formula1') {
-        return this.processFormula1Races(response.data.response, sport);
+        return this.processFormula1Races(responseData.response, sport);
+      } else if (sport === 'mma') {
+        // Special handler for MMA since it has a different structure
+        return this.processMmaFights(responseData.response, sport);
       }
       
       // Default case if no special handling is defined for the sport
       logger.warn(`[SportsApiService] No specific processor for sport: ${sport}, using default`);
-      return this.processFootballFixtures(response.data.response, sport);
+      return this.processFootballFixtures(responseData.response, sport);
       
     } catch (error: any) {
       logger.error(`[SportsApiService] Error fetching ${sport} fixtures:`, error.message);
@@ -477,7 +526,43 @@ class SportsApiService {
         homeOdds: undefined,
         drawOdds: undefined,
         awayOdds: undefined,
-        score: null
+        score: {
+          home: null,
+          away: null
+        }
+      };
+    });
+  }
+  
+  /**
+   * Process MMA fights from the API response
+   * @param fights MMA fights from the API
+   * @param sport The sport type (should be 'mma')
+   * @returns Array of standardized match objects
+   */
+  private processMmaFights(fights: any[], sport: string): StandardizedMatch[] {
+    if (!fights || !Array.isArray(fights)) {
+      logger.warn(`[SportsApiService] No fights found or invalid response for ${sport}`);
+      return [];
+    }
+    
+    return fights.map(fight => {
+      return {
+        id: `${sport}-${fight.id}`,
+        sport: sport,
+        league: fight.event?.name || fight.promotion?.name || 'MMA',
+        country: fight.location?.country || fight.venue?.country || 'Unknown',
+        homeTeam: fight.fighters?.fighter1?.name || 'Fighter 1',
+        awayTeam: fight.fighters?.fighter2?.name || 'Fighter 2',
+        startTime: new Date(fight.date || fight.datetime || Date.now()),
+        venue: fight.venue?.name || fight.location?.venue || null,
+        status: fight.status || 'NS',
+        homeOdds: fight.odds?.fighter1 ? parseFloat(fight.odds.fighter1) : undefined,
+        awayOdds: fight.odds?.fighter2 ? parseFloat(fight.odds.fighter2) : undefined,
+        score: {
+          home: null,
+          away: null
+        }
       };
     });
   }
