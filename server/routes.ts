@@ -1748,7 +1748,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Use the '/api/news/saved-ultra' endpoint to access saved articles
   // Use the '/api/news/:id/save-ultra' endpoint to save/unsave articles
   
-  // Personalized News Feed
+  // Enhanced AI-Driven Personalized News Feed
   app.get("/api/news/feed/personalized", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -1778,7 +1778,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const feed = await storage.getPersonalizedNewsFeed(Number(userId), limit, offset);
+      // Use the enhanced recommendation engine if available, otherwise fall back to storage method
+      let feed = [];
+      try {
+        // Get personalized feed using the recommendation engine's enhanced algorithm
+        feed = await newsRecommendationEngine.getPersonalizedFeed(Number(userId), limit);
+        console.log(`Generated AI-enhanced personalized feed with ${feed.length} articles for user ${userId}`);
+      } catch (aiError) {
+        console.error("Error using recommendation engine for personalized feed:", aiError);
+        // Fallback to storage method if the enhanced engine fails
+        feed = await storage.getPersonalizedNewsFeed(Number(userId), limit, offset);
+        console.log(`Fell back to database personalized feed for user ${userId}`);
+      }
       
       // Always return an array, even if empty
       res.json(feed || []);

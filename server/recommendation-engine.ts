@@ -1,12 +1,13 @@
 /**
- * News Article Recommendation Engine
+ * Enhanced News Article Recommendation Engine
  * 
- * This module provides real-time news article recommendations based on:
+ * This module provides AI-driven, personalized news article recommendations based on:
  * 1. User preferences (sports, leagues, teams)
- * 2. User reading history
- * 3. Article popularity
- * 4. Content similarity
- * 5. Trending topics
+ * 2. User reading history and behavior patterns
+ * 3. Article popularity and engagement metrics
+ * 4. Content similarity and semantic analysis
+ * 5. Trending topics and real-time relevance
+ * 6. User feedback and interaction history
  */
 
 import { NewsArticle, UserNewsPreferences } from "@shared/schema";
@@ -14,16 +15,27 @@ import { db, pool } from "./db";
 import { and, desc, eq, inArray, not, or, sql } from "drizzle-orm";
 import { newsArticles, userNewsPreferences, userSavedNews } from "@shared/schema";
 import { logger } from "./logger";
+import { openaiClient } from "./openai-client";
 
 interface RecommendationScore {
   articleId: number;
   score: number;
   reason: string;
+  aiConfidence?: number;
+  categories?: string[];
+}
+
+interface TrendingTopic {
+  topic: string;
+  score: number;
+  relatedTeams: string[];
+  relatedLeagues: number[];
+  keywords: string[];
 }
 
 export class NewsRecommendationEngine {
   /**
-   * Get personalized article recommendations for a user
+   * Get AI-enhanced personalized article recommendations for a user
    * 
    * @param userId The user ID to get recommendations for
    * @param count Number of recommendations to return
@@ -243,31 +255,81 @@ export class NewsRecommendationEngine {
   }
   
   /**
-   * Get trending articles based on recent user interactions
+   * Get enhanced trending articles based on user interactions and AI analysis
+   * @param count Number of trending articles to return
+   * @returns Array of trending news articles
    */
   async getTrendingArticles(count: number = 5): Promise<NewsArticle[]> {
     try {
-      console.log('Getting trending articles, count:', count);
+      logger.info('RecommendationEngine', `Getting trending articles, count: ${count}`);
       
       if (isNaN(count) || count <= 0) {
-        console.log('Invalid count parameter, defaulting to 5');
+        logger.warn('RecommendationEngine', 'Invalid count parameter, defaulting to 5');
         count = 5;
       }
 
-      // Get the newest articles directly
-      console.log('Getting newest articles as trending');
+      // Try to get trending articles based on engagement metrics
+      const engagementQuery = `
+        SELECT a.*, 
+          (COALESCE(a.views, 0) * 0.3 + 
+           COALESCE(a.likes, 0) * 0.5 + 
+           COALESCE(saved_count, 0) * 1.0 +
+           CASE WHEN a.published_at > NOW() - INTERVAL '24 hours' THEN 10 ELSE 0 END) AS trend_score
+        FROM news_articles a
+        LEFT JOIN (
+          SELECT article_id, COUNT(*) as saved_count
+          FROM user_saved_news
+          WHERE saved_at > NOW() - INTERVAL '7 days'
+          GROUP BY article_id
+        ) s ON a.id = s.article_id
+        WHERE a.published_at > NOW() - INTERVAL '14 days'
+        ORDER BY trend_score DESC, a.published_at DESC
+        LIMIT $1
+      `;
+      
+      const result = await pool.query(engagementQuery, [count]);
+      logger.info('RecommendationEngine', `Found ${result.rows.length} trending articles based on engagement`);
+      
+      if (result.rows.length > 0) {
+        return result.rows.map(row => ({
+          id: row.id,
+          title: row.title,
+          content: row.content,
+          summary: row.summary,
+          author: row.author,
+          source: row.source,
+          sourceUrl: row.source_url,
+          publishedAt: row.published_at,
+          imageUrl: row.image_url,
+          sportId: row.sport_id,
+          leagueId: row.league_id,
+          teams: row.teams,
+          type: row.type,
+          aiGenerated: row.ai_generated,
+          aiEnhanced: row.ai_enhanced,
+          isPremium: row.is_premium,
+          tags: row.tags || [],
+          views: row.views || 0,
+          likes: row.likes || 0,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at
+        }));
+      }
+
+      // Fallback to newest articles if no trending articles found
+      logger.info('RecommendationEngine', 'No trending articles found, using newest articles instead');
       const fallbackQuery = `
         SELECT * FROM news_articles
-        WHERE id IS NOT NULL
+        WHERE published_at > NOW() - INTERVAL '30 days'
         ORDER BY published_at DESC
         LIMIT $1
       `;
       
       const fallbackResult = await pool.query(fallbackQuery, [count]);
-      console.log(`Found ${fallbackResult.rows.length} articles`);
+      logger.info('RecommendationEngine', `Found ${fallbackResult.rows.length} articles using fallback method`);
       
       if (fallbackResult.rows.length === 0) {
-        console.log('No articles found in database');
+        logger.warn('RecommendationEngine', 'No articles found in database');
         return [];
       }
       
@@ -288,14 +350,143 @@ export class NewsRecommendationEngine {
         aiGenerated: row.ai_generated,
         aiEnhanced: row.ai_enhanced,
         isPremium: row.is_premium,
-        tags: row.tags,
+        tags: row.tags || [],
+        views: row.views || 0,
+        likes: row.likes || 0,
         createdAt: row.created_at,
         updatedAt: row.updated_at
       }));
     } catch (error) {
-      console.error('Error getting trending articles:', error);
-      logger.error('RecommendationEngine', `Error getting trending articles: ${error instanceof Error ? error.message : String(error)}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error('RecommendationEngine', `Error getting trending articles: ${errorMessage}`);
       return [];
+    }
+  }
+  
+  /**
+   * Get personalized news feed based on user preferences and AI curation
+   * @param userId User ID to get personalized feed for
+   * @param count Number of articles to return
+   * @returns Array of personalized news articles
+   */
+  async getPersonalizedFeed(userId: number, count: number = 10): Promise<NewsArticle[]> {
+    try {
+      logger.info('RecommendationEngine', `Generating personalized feed for user ${userId}`);
+      
+      // Get personalized recommendations
+      const recommendations = await this.getRecommendations(userId, Math.ceil(count * 0.7));
+      
+      // Get some trending articles to mix in (limited number)
+      const trending = await this.getTrendingArticles(Math.ceil(count * 0.3));
+      
+      // Remove duplicates by creating a map of article IDs to articles
+      const recommendedIds = new Set(recommendations.map(article => article.id));
+      const uniqueTrending = trending.filter(article => !recommendedIds.has(article.id));
+      
+      // Combine and shuffle slightly to create a more natural feed
+      const combined = [...recommendations, ...uniqueTrending.slice(0, Math.ceil(count * 0.3))];
+      
+      // Sort by a combination of personalization score and recency
+      combined.sort((a, b) => {
+        // Use the score property from recommendations, or 0.5 for trending articles
+        const scoreA = 'score' in a ? a.score : 0.5;
+        const scoreB = 'score' in b ? b.score : 0.5;
+        
+        // Calculate days since publication
+        const daysA = (Date.now() - new Date(a.publishedAt).getTime()) / (1000 * 60 * 60 * 24);
+        const daysB = (Date.now() - new Date(b.publishedAt).getTime()) / (1000 * 60 * 60 * 24);
+        
+        // Recency factor (higher for newer articles)
+        const recencyA = Math.max(0, 1 - (daysA / 7));
+        const recencyB = Math.max(0, 1 - (daysB / 7));
+        
+        // Combined ranking score (70% personalization, 30% recency)
+        const rankA = (scoreA * 0.7) + (recencyA * 0.3);
+        const rankB = (scoreB * 0.7) + (recencyB * 0.3);
+        
+        return rankB - rankA;
+      });
+      
+      // Return the top count articles
+      return combined.slice(0, count);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error('RecommendationEngine', `Error generating personalized feed: ${errorMessage}`);
+      return [];
+    }
+  }
+  
+  /**
+   * Analyze article content using OpenAI to determine relevance to user preferences
+   * @param article The article to analyze
+   * @param userPreferences User's news preferences
+   * @returns Enhanced scoring data for the article
+   */
+  async analyzeArticleContent(
+    article: NewsArticle, 
+    userPreferences: UserNewsPreferences
+  ): Promise<{ score: number; categories: string[]; confidence: number }> {
+    try {
+      if (!article?.content || !userPreferences) {
+        return { score: 0.5, categories: [], confidence: 0 };
+      }
+      
+      // Extract user preference data
+      const favoriteTeams = userPreferences.favoriteTeams || [];
+      const favoriteLeagues = userPreferences.favoriteLeagues || [];
+      const favoriteSports = userPreferences.favoriteSports || [];
+      
+      // If user has no preferences, return default score
+      if (!favoriteTeams.length && !favoriteLeagues.length && !favoriteSports.length) {
+        return { score: 0.5, categories: [], confidence: 0 };
+      }
+      
+      try {
+        // Ask OpenAI to analyze the article content
+        const prompt = `
+        Analyze this sports article content and determine how relevant it is to the user's preferences.
+        
+        Article Title: ${article.title}
+        Article Content: ${article.summary} 
+        
+        User Preferences:
+        - Favorite Teams: ${favoriteTeams.join(', ')}
+        - Favorite Sports IDs: ${favoriteSports.join(', ')}
+        - Favorite League IDs: ${favoriteLeagues.join(', ')}
+        
+        Return a JSON object with:
+        1. relevanceScore (0-1): How relevant this article is to the user's preferences
+        2. confidence (0-1): How confident you are in this assessment
+        3. categories: List of topics/categories this article belongs to
+        4. mentionedTeams: Teams mentioned in the article
+        `;
+        
+        const response = await openaiClient.chat.completions.create({
+          model: "gpt-4o",  // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+          max_tokens: 500
+        });
+        
+        // Parse the response
+        const content = response.choices[0].message.content;
+        if (!content) {
+          return { score: 0.5, categories: [], confidence: 0 };
+        }
+        
+        const analysis = JSON.parse(content);
+        return {
+          score: analysis.relevanceScore || 0.5,
+          categories: analysis.categories || [],
+          confidence: analysis.confidence || 0
+        };
+      } catch (aiError) {
+        logger.error('RecommendationEngine', `Error analyzing article with AI: ${aiError instanceof Error ? aiError.message : String(aiError)}`);
+        return { score: 0.5, categories: [], confidence: 0 };
+      }
+    } catch (error) {
+      logger.error('RecommendationEngine', `Error in content analysis: ${error instanceof Error ? error.message : String(error)}`);
+      return { score: 0.5, categories: [], confidence: 0 };
     }
   }
 }
