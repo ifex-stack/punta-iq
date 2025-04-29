@@ -131,6 +131,27 @@ const AdvancedPredictionsPage = () => {
     }
   };
 
+  // Handle API error state
+  const [apiError, setApiError] = useState<boolean>(false);
+  
+  // Check for API errors after loading
+  useEffect(() => {
+    if (!isLoadingFootball && !isLoadingBasketball) {
+      if (footballMatches.length === 0 && basketballMatches.length === 0) {
+        // Wait a bit to make sure it's not just loading
+        const timer = setTimeout(() => {
+          if (footballMatches.length === 0 && basketballMatches.length === 0) {
+            setApiError(true);
+          }
+        }, 2000);
+        
+        return () => clearTimeout(timer);
+      } else {
+        setApiError(false);
+      }
+    }
+  }, [isLoadingFootball, isLoadingBasketball, footballMatches, basketballMatches]);
+  
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
@@ -142,11 +163,48 @@ const AdvancedPredictionsPage = () => {
         </p>
       </div>
 
+      {/* API Error message */}
+      {apiError && (
+        <Card className="mb-6">
+          <CardContent className="p-8">
+            <div className="flex flex-col items-center justify-center text-center space-y-4">
+              <AlertTriangle className="w-12 h-12 text-yellow-500" />
+              <h2 className="text-xl font-bold">No Matches Available</h2>
+              <p className="text-muted-foreground max-w-md">
+                We're currently unable to retrieve live match data. This could be because:
+              </p>
+              <ul className="text-left text-muted-foreground space-y-2">
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>There are no matches scheduled for today</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Our sports data provider may be experiencing issues</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>The connection to the data service is temporarily unavailable</span>
+                </li>
+              </ul>
+              <Button 
+                variant="outline" 
+                className="mt-4" 
+                onClick={refreshMatches}
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Try Again
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {capabilitiesLoading ? (
         <div className="flex items-center justify-center p-8">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-      ) : (
+      ) : !apiError ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
             <Card className="mb-6">
@@ -842,6 +900,20 @@ const AdvancedPredictionsPage = () => {
               </Card>
             )}
           </div>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center mt-10">
+          <Card className="w-full max-w-2xl">
+            <CardContent className="p-8">
+              <div className="flex flex-col items-center text-center space-y-4">
+                <Info className="w-12 h-12 text-blue-500" />
+                <h2 className="text-xl font-bold">Welcome to Advanced Predictions</h2>
+                <p className="text-muted-foreground">
+                  Select a match from the match list to generate a detailed AI-powered prediction with advanced statistics and insights.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>
