@@ -237,7 +237,7 @@ class SportsApiService {
           'x-rapidapi-host': new URL(config.baseUrl).host
         }
       }));
-      logger.info(`[SportsApiService] Initialized client for ${sport}`);
+      logger.info('SportsApiService', `Initialized client for ${sport}`);
     });
   }
   
@@ -258,7 +258,7 @@ class SportsApiService {
     try {
       // Validate the sport is supported
       if (!this.sportConfigs[sport]) {
-        logger.error(`[SportsApiService] Unsupported sport: ${sport}`);
+        logger.error('SportsApiService', `Unsupported sport: ${sport}`);
         return [];
       }
       
@@ -266,7 +266,7 @@ class SportsApiService {
       const endpoint = this.sportConfigs[sport].endpoints.fixtures;
       
       if (!client || !endpoint) {
-        logger.error(`[SportsApiService] Client or endpoint not configured for sport: ${sport}`);
+        logger.error('SportsApiService', `Client or endpoint not configured for sport: ${sport}`);
         return [];
       }
       
@@ -314,8 +314,8 @@ class SportsApiService {
         queryParams.date = options.date;
       }
       
-      logger.info(`[SportsApiService] Fetching ${sport} fixtures with params:`, queryParams);
-      logger.info(`[SportsApiService] Using API key: ${this.apiKey ? this.apiKey.substring(0, 5) + '...' : 'Not set'}`);
+      logger.info('SportsApiService', `Fetching ${sport} fixtures with params:`, queryParams);
+      logger.info('SportsApiService', `Using API key: ${this.apiKey ? this.apiKey.substring(0, 5) + '...' : 'Not set'}`);
       
       let responseData;
       
@@ -324,19 +324,19 @@ class SportsApiService {
         responseData = response.data;
         
         // Log more details about the response
-        logger.info(`[SportsApiService] ${sport} API response status: ${response.status}`);
-        logger.info(`[SportsApiService] ${sport} API response size: ${
+        logger.info('SportsApiService', `${sport} API response status: ${response.status}`);
+        logger.info('SportsApiService', `${sport} API response size: ${
           responseData && responseData.response ? responseData.response.length : 'No data'}`);
         
         if (responseData.errors && Object.keys(responseData.errors).length > 0) {
-          logger.error(`[SportsApiService] API returned errors:`, responseData.errors);
+          logger.error('SportsApiService', 'API returned errors:', responseData.errors);
           return [];
         }
       } catch (error: any) {
-        logger.error(`[SportsApiService] Error in API request: ${error.message}`);
+        logger.error('SportsApiService', `Error in API request: ${error.message}`);
         if (error.response) {
-          logger.error(`[SportsApiService] Status: ${error.response.status}`);
-          logger.error(`[SportsApiService] Data: ${JSON.stringify(error.response.data)}`);
+          logger.error('SportsApiService', `Status: ${error.response.status}`);
+          logger.error('SportsApiService', `Data: ${JSON.stringify(error.response.data)}`);
         }
         throw error; // Re-throw to be caught by the outer try/catch
       }
@@ -355,13 +355,13 @@ class SportsApiService {
       }
       
       // Default case if no special handling is defined for the sport
-      logger.warn(`[SportsApiService] No specific processor for sport: ${sport}, using default`);
+      logger.warn('SportsApiService', `No specific processor for sport: ${sport}, using default`);
       return this.processFootballFixtures(responseData.response, sport);
       
     } catch (error: any) {
-      logger.error(`[SportsApiService] Error fetching ${sport} fixtures:`, error.message);
+      logger.error('SportsApiService', `Error fetching ${sport} fixtures: ${error.message}`);
       if (error.response) {
-        logger.error(`[SportsApiService] API response error:`, {
+        logger.error('SportsApiService', 'API response error:', {
           status: error.response.status,
           data: error.response.data
         });
@@ -378,7 +378,7 @@ class SportsApiService {
    */
   private processFootballFixtures(fixtures: any[], sport: string): StandardizedMatch[] {
     if (!fixtures || !Array.isArray(fixtures)) {
-      logger.warn(`[SportsApiService] No fixtures found or invalid response for ${sport}`);
+      logger.warn('SportsApiService', `No fixtures found or invalid response for ${sport}`);
       return [];
     }
     
@@ -429,7 +429,7 @@ class SportsApiService {
    */
   private processTeamSportFixtures(fixtures: any[], sport: string): StandardizedMatch[] {
     if (!fixtures || !Array.isArray(fixtures)) {
-      logger.warn(`[SportsApiService] No fixtures found or invalid response for ${sport}`);
+      logger.warn('SportsApiService', `No fixtures found or invalid response for ${sport}`);
       return [];
     }
     
@@ -508,7 +508,7 @@ class SportsApiService {
    */
   private processFormula1Races(races: any[], sport: string): StandardizedMatch[] {
     if (!races || !Array.isArray(races)) {
-      logger.warn(`[SportsApiService] No races found or invalid response for ${sport}`);
+      logger.warn('SportsApiService', `No races found or invalid response for ${sport}`);
       return [];
     }
     
