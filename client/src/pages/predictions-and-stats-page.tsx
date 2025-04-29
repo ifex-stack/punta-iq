@@ -287,14 +287,14 @@ export default function PredictionsAndStatsPage() {
   // Combine all predictions
   const allPredictions = [...footballPredictions, ...basketballPredictions];
   
-  // Combine all accumulators
+  // Combine all accumulators and sort by confidence
   const allAccumulators = accumulators
     ? [
         ...(accumulators.small || []),
         ...(accumulators.medium || []),
         ...(accumulators.large || []),
         ...(accumulators.mega || []),
-      ]
+      ].sort((a, b) => b.confidence - a.confidence) // Sort by confidence, highest first
     : [];
   
   // Apply filters
@@ -906,6 +906,20 @@ export default function PredictionsAndStatsPage() {
                     <CardContent className="px-6 pt-6 pb-6">
                       <Skeleton className="h-[200px] w-full rounded-lg" />
                     </CardContent>
+                  ) : accumulatorsError ? (
+                    <CardContent className="p-10 flex flex-col items-center justify-center text-center">
+                      <AlertCircle className="h-10 w-10 text-amber-500 mb-2" />
+                      <p className="text-muted-foreground">Unable to load accumulators</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-4"
+                        onClick={() => refetchAccumulators()}
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Try Again
+                      </Button>
+                    </CardContent>
                   ) : allAccumulators.length === 0 ? (
                     <CardContent className="p-10 flex flex-col items-center justify-center text-center">
                       <p className="text-muted-foreground">No accumulators available</p>
@@ -937,6 +951,11 @@ export default function PredictionsAndStatsPage() {
                       <div className="p-4 space-y-3">
                         <Skeleton className="h-20 w-full rounded-lg" />
                         <Skeleton className="h-20 w-full rounded-lg" />
+                      </div>
+                    ) : accumulatorsError ? (
+                      <div className="px-4 py-8 text-center">
+                        <AlertCircle className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+                        <p className="text-muted-foreground">Unable to load accumulators</p>
                       </div>
                     ) : allAccumulators.length <= 1 ? (
                       <div className="px-4 py-8 text-center">
