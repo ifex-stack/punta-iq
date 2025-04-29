@@ -32,12 +32,38 @@ interface Prediction {
   predictedOutcome: string;
   confidence: number;
   isPremium: boolean;
+  isAiEnhanced?: boolean;
+  modelUsed?: string;
+  predictionMethods?: string[];
   valueBet?: {
     outcome: string;
     odds: number;
     value: number;
     isRecommended: boolean;
   } | null;
+  historicalInsights?: {
+    headToHead: any;
+    recentForm: any;
+    confidenceAdjustment: number;
+  };
+  aiAnalysis?: {
+    prediction?: {
+      outcome: string;
+      confidence: number;
+    };
+    matchAnalysis?: {
+      homeTeamStrengths: string[];
+      homeTeamWeaknesses: string[];
+      awayTeamStrengths: string[];
+      awayTeamWeaknesses: string[];
+    };
+    explanation?: string;
+    bettingAdvice?: {
+      valueBets?: Array<{market: string; selection: string; odds: number}>;
+      riskRating?: number;
+      stakeAdvice?: string;
+    };
+  };
   predictions: {
     "1X2"?: {
       outcome: string;
@@ -48,15 +74,24 @@ interface Prediction {
     "BTTS"?: {
       outcome: string;
       probability: number;
+      odds?: number;
     };
     "Over_Under"?: {
       line: number;
       outcome: string;
       probability: number;
+      odds?: number;
+    };
+    "Over_Under_2.5"?: {
+      line: number;
+      outcome: string;
+      probability: number;
+      odds?: number;
     };
     "CorrectScore"?: {
       outcome: string;
       probability: number;
+      odds?: number;
     };
     "Winner"?: {
       outcome: string;
@@ -68,17 +103,52 @@ interface Prediction {
       outcome: string;
       probability: number;
       predictedTotal: number;
+      odds?: number;
     };
     "Spread"?: {
       line: number;
       favored: string;
       probability: number;
+      odds?: number;
     };
     "PredictedScore"?: {
       home: number;
       away: number;
     };
+    "Corners_Over_Under"?: {
+      line: number;
+      outcome: string;
+      probability: number;
+      odds?: number;
+      predictedCorners?: {
+        home: number;
+        away: number;
+        total: number;
+      };
+    };
+    "Cards_Over_Under"?: {
+      line: number;
+      outcome: string;
+      probability: number;
+      odds?: number;
+      predictedCards?: {
+        home: number;
+        away: number;
+        total: number;
+      };
+    };
+    "RedCard"?: {
+      outcome: string;
+      probability: number;
+      odds?: number;
+    };
+    "FirstHalfGoal"?: {
+      outcome: string;
+      probability: number;
+      odds?: number;
+    };
   };
+  analysisFactors?: Array<{factor: string; impact: string}>;
 }
 
 interface EnhancedPredictionCardProps {
@@ -144,10 +214,20 @@ const EnhancedPredictionCard: React.FC<EnhancedPredictionCardProps> = ({
   const getOutcomeDetails = () => {
     const outcome = prediction.predictedOutcome;
     const confidenceClass = getConfidenceColor(prediction.confidence);
+
+    // Convert outcome to display format
+    let displayOutcome = outcome;
+    if (outcome === 'H') {
+      displayOutcome = 'Home Win';
+    } else if (outcome === 'D') {
+      displayOutcome = 'Draw';
+    } else if (outcome === 'A') {
+      displayOutcome = 'Away Win';
+    }
     
     return (
       <Badge variant="outline" className={`${confidenceClass} px-2 py-1 text-sm font-medium`}>
-        {outcome} ({prediction.confidence}%)
+        {displayOutcome} ({prediction.confidence}%)
       </Badge>
     );
   };
@@ -269,6 +349,21 @@ const EnhancedPredictionCard: React.FC<EnhancedPredictionCardProps> = ({
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className="p-4 pt-2 border-t border-border bg-muted/10">
+              {/* AI Enhanced Badge */}
+              {prediction.isAiEnhanced && (
+                <div className="mb-3">
+                  <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20 px-2 py-1 text-xs">
+                    <Zap className="h-3 w-3 mr-1" />
+                    AI Enhanced
+                  </Badge>
+                  {prediction.modelUsed && (
+                    <span className="text-xs text-muted-foreground ml-2">
+                      Model: {prediction.modelUsed}
+                    </span>
+                  )}
+                </div>
+              )}
+              
               <h4 className="font-medium text-sm mb-3 flex items-center">
                 <BarChart3 className="h-4 w-4 mr-2" />
                 Detailed Predictions
@@ -276,49 +371,92 @@ const EnhancedPredictionCard: React.FC<EnhancedPredictionCardProps> = ({
               
               <div className="space-y-3">
                 {prediction.predictions["1X2"] && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">1X2</span>
-                    <div className="flex space-x-2">
-                      <Badge 
-                        variant={prediction.predictions["1X2"].outcome === "Home" ? "default" : "outline"} 
-                        className="text-xs"
-                      >
-                        H: {(prediction.predictions["1X2"].homeWin.probability).toFixed(0)}%
-                      </Badge>
-                      <Badge 
-                        variant={prediction.predictions["1X2"].outcome === "Draw" ? "default" : "outline"} 
-                        className="text-xs"
-                      >
-                        D: {(prediction.predictions["1X2"].draw.probability).toFixed(0)}%
-                      </Badge>
-                      <Badge 
-                        variant={prediction.predictions["1X2"].outcome === "Away" ? "default" : "outline"} 
-                        className="text-xs"
-                      >
-                        A: {(prediction.predictions["1X2"].awayWin.probability).toFixed(0)}%
-                      </Badge>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">1X2 Prediction</span>
+                      <div className="flex space-x-2">
+                        <Badge 
+                          variant={prediction.predictions["1X2"].outcome === "H" ? "default" : "outline"} 
+                          className="text-xs"
+                        >
+                          H: {(prediction.predictions["1X2"].homeWin.probability).toFixed(0)}%
+                        </Badge>
+                        <Badge 
+                          variant={prediction.predictions["1X2"].outcome === "D" ? "default" : "outline"} 
+                          className="text-xs"
+                        >
+                          D: {(prediction.predictions["1X2"].draw.probability).toFixed(0)}%
+                        </Badge>
+                        <Badge 
+                          variant={prediction.predictions["1X2"].outcome === "A" ? "default" : "outline"} 
+                          className="text-xs"
+                        >
+                          A: {(prediction.predictions["1X2"].awayWin.probability).toFixed(0)}%
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    {/* Market odds from bookmakers */}
+                    <div className="flex justify-between items-center bg-muted/20 p-2 rounded-md">
+                      <span className="text-xs text-muted-foreground">Bookmaker Odds</span>
+                      <div className="flex space-x-2">
+                        <Badge variant="outline" className="text-xs bg-muted/30 hover:bg-muted/40">
+                          H: {prediction.predictions["1X2"].homeWin.odds.toFixed(2)}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs bg-muted/30 hover:bg-muted/40">
+                          D: {prediction.predictions["1X2"].draw.odds.toFixed(2)}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs bg-muted/30 hover:bg-muted/40">
+                          A: {prediction.predictions["1X2"].awayWin.odds.toFixed(2)}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                 )}
                 
                 {prediction.predictions["BTTS"] && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Both Teams to Score</span>
-                    <Badge 
-                      variant={prediction.predictions["BTTS"].outcome === "Yes" ? "default" : "destructive"} 
-                      className="text-xs"
-                    >
-                      {prediction.predictions["BTTS"].outcome} ({prediction.predictions["BTTS"].probability.toFixed(0)}%)
-                    </Badge>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">Both Teams to Score</span>
+                      <Badge 
+                        variant={prediction.predictions["BTTS"].outcome === "Yes" ? "default" : "destructive"} 
+                        className="text-xs"
+                      >
+                        {prediction.predictions["BTTS"].outcome} ({prediction.predictions["BTTS"].probability.toFixed(0)}%)
+                      </Badge>
+                    </div>
+                    
+                    {prediction.predictions["BTTS"].odds && (
+                      <div className="flex justify-between items-center bg-muted/20 p-2 rounded-md">
+                        <span className="text-xs text-muted-foreground">Odds</span>
+                        <Badge variant="outline" className="text-xs bg-muted/30">
+                          {prediction.predictions["BTTS"].odds.toFixed(2)}
+                        </Badge>
+                      </div>
+                    )}
                   </div>
                 )}
                 
                 {prediction.predictions["Over_Under"] && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Over/Under {prediction.predictions["Over_Under"].line}</span>
-                    <Badge variant="outline" className="text-xs">
-                      {prediction.predictions["Over_Under"].outcome} ({prediction.predictions["Over_Under"].probability.toFixed(0)}%)
-                    </Badge>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">Over/Under {prediction.predictions["Over_Under"].line}</span>
+                      <Badge 
+                        variant="outline" 
+                        className="text-xs"
+                      >
+                        {prediction.predictions["Over_Under"].outcome} ({prediction.predictions["Over_Under"].probability.toFixed(0)}%)
+                      </Badge>
+                    </div>
+                    
+                    {prediction.predictions["Over_Under"].odds && (
+                      <div className="flex justify-between items-center bg-muted/20 p-2 rounded-md">
+                        <span className="text-xs text-muted-foreground">Odds</span>
+                        <Badge variant="outline" className="text-xs bg-muted/30">
+                          {prediction.predictions["Over_Under"].outcome}: {prediction.predictions["Over_Under"].odds.toFixed(2)}
+                        </Badge>
+                      </div>
+                    )}
                   </div>
                 )}
                 
@@ -344,7 +482,10 @@ const EnhancedPredictionCard: React.FC<EnhancedPredictionCardProps> = ({
                   <div className="flex justify-between items-center">
                     <span className="text-sm">Winner</span>
                     <Badge variant="outline" className="text-xs">
-                      {prediction.predictions["Winner"].outcome} ({prediction.predictions["Winner"][prediction.predictions["Winner"].outcome.toLowerCase() + "Win"].probability.toFixed(0)}%)
+                      {prediction.predictions["Winner"].outcome} (
+                      {prediction.predictions["Winner"].outcome === "Home" 
+                        ? prediction.predictions["Winner"].homeWin.probability.toFixed(0)
+                        : prediction.predictions["Winner"].awayWin.probability.toFixed(0)}%)
                     </Badge>
                   </div>
                 )}
@@ -364,6 +505,68 @@ const EnhancedPredictionCard: React.FC<EnhancedPredictionCardProps> = ({
                     <Badge variant="outline" className="text-xs">
                       {prediction.predictions["Spread"].favored} ({prediction.predictions["Spread"].probability.toFixed(0)}%)
                     </Badge>
+                  </div>
+                )}
+                
+                {/* AI Analysis Section if available */}
+                {prediction.aiAnalysis && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <h4 className="font-medium text-sm mb-3 flex items-center">
+                      <Zap className="h-4 w-4 mr-2 text-blue-500" />
+                      AI Match Analysis
+                    </h4>
+                    
+                    {/* Explanation */}
+                    {prediction.aiAnalysis.explanation && (
+                      <div className="bg-muted/20 p-3 rounded-md mb-3 text-sm">
+                        {prediction.aiAnalysis.explanation}
+                      </div>
+                    )}
+                    
+                    {/* Team Analysis */}
+                    {prediction.aiAnalysis.matchAnalysis && (
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div className="bg-green-500/5 p-2 rounded-md">
+                          <h5 className="text-xs font-medium mb-1 text-green-700">Home Strengths</h5>
+                          <ul className="text-xs space-y-1">
+                            {prediction.aiAnalysis.matchAnalysis.homeTeamStrengths.slice(0, 3).map((strength, i) => (
+                              <li key={i} className="flex items-start">
+                                <span className="text-green-500 mr-1">•</span> {strength}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="bg-red-500/5 p-2 rounded-md">
+                          <h5 className="text-xs font-medium mb-1 text-red-700">Away Weaknesses</h5>
+                          <ul className="text-xs space-y-1">
+                            {prediction.aiAnalysis.matchAnalysis.awayTeamWeaknesses.slice(0, 3).map((weakness, i) => (
+                              <li key={i} className="flex items-start">
+                                <span className="text-red-500 mr-1">•</span> {weakness}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Betting Advice */}
+                    {prediction.aiAnalysis.bettingAdvice && prediction.aiAnalysis.bettingAdvice.valueBets && (
+                      <div className="bg-blue-500/5 p-2 rounded-md">
+                        <h5 className="text-xs font-medium mb-1 text-blue-700">Value Bets</h5>
+                        <div className="grid grid-cols-2 gap-2">
+                          {prediction.aiAnalysis.bettingAdvice.valueBets.slice(0, 2).map((bet, i) => (
+                            <Badge key={i} variant="outline" className="text-xs justify-start bg-blue-500/10 text-blue-700">
+                              {bet.market}: {bet.selection} @ {bet.odds.toFixed(2)}
+                            </Badge>
+                          ))}
+                        </div>
+                        {prediction.aiAnalysis.bettingAdvice.stakeAdvice && (
+                          <div className="mt-2 text-xs text-muted-foreground">
+                            Stake advice: {prediction.aiAnalysis.bettingAdvice.stakeAdvice}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
