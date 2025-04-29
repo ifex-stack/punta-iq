@@ -169,6 +169,11 @@ export interface PredictionStats {
     successfulPredictions: number;
     successRate: number;
     pendingPredictions: number;
+    avgConfidence?: number;
+    avgOdds?: number;
+    potentialROI?: string;
+    bestSport?: string;
+    bestSportRate?: string;
   };
   userStats: {
     totalViewed: number;

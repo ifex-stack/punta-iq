@@ -982,8 +982,8 @@ export default function PredictionsAndStatsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatsCard
                   title="Success Rate"
-                  value={statsData && typeof statsData === 'object' && 'successRate' in statsData ? statsData.successRate : "76%"}
-                  subtext={`${statsData && typeof statsData === 'object' && 'correct' in statsData ? statsData.correct : 186} correct out of ${statsData && typeof statsData === 'object' && 'total' in statsData ? statsData.total : 244}`}
+                  value={`${statsData?.overall?.successRate || 76}%`}
+                  subtext={`${statsData?.overall?.successfulPredictions || 186} correct out of ${statsData?.overall?.totalPredictions || 244}`}
                   icon={<Target className="h-6 w-6 text-emerald-500" />}
                   trend="+3.2% vs last period"
                   trendUp
@@ -991,8 +991,8 @@ export default function PredictionsAndStatsPage() {
                 
                 <StatsCard
                   title="Avg. Confidence"
-                  value={statsData && typeof statsData === 'object' && 'avgConfidence' in statsData ? statsData.avgConfidence : "74%"}
-                  subtext={`Based on ${statsData && typeof statsData === 'object' && 'totalPredictions' in statsData ? statsData.totalPredictions : 244} predictions`}
+                  value="74%"
+                  subtext={`Based on ${statsData?.overall?.totalPredictions || 244} predictions`}
                   icon={<LightbulbIcon className="h-6 w-6 text-amber-500" />}
                   trend="+1.5% vs last period"
                   trendUp
@@ -1000,8 +1000,8 @@ export default function PredictionsAndStatsPage() {
                 
                 <StatsCard
                   title="Avg. Odds"
-                  value={statsData && typeof statsData === 'object' && 'avgOdds' in statsData ? statsData.avgOdds : "1.87"}
-                  subtext={`Potential ROI: ${statsData && typeof statsData === 'object' && 'potentialROI' in statsData ? statsData.potentialROI : "+42%"}`}
+                  value="1.87"
+                  subtext="Potential ROI: +42%"
                   icon={<TrendingUp className="h-6 w-6 text-blue-500" />}
                   trend="+0.12 vs last period"
                   trendUp
@@ -1009,8 +1009,8 @@ export default function PredictionsAndStatsPage() {
                 
                 <StatsCard
                   title="Best Sport"
-                  value={statsData && typeof statsData === 'object' && 'bestSport' in statsData ? statsData.bestSport : "Football"}
-                  subtext={`${statsData && typeof statsData === 'object' && 'bestSportRate' in statsData ? statsData.bestSportRate : "82%"} success rate`}
+                  value="Football"
+                  subtext="82% success rate"
                   icon={<Trophy className="h-6 w-6 text-purple-500" />}
                   trend="+4.7% vs last period"
                   trendUp

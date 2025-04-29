@@ -17,29 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-interface Selection {
-  matchId: string;
-  homeTeam: string;
-  awayTeam: string;
-  league: string;
-  startTime: string;
-  sport: string;
-  market: string;
-  outcome: string;
-  odds: number;
-  confidence: number;
-}
-
-interface Accumulator {
-  id: string;
-  createdAt: string;
-  size: number;
-  totalOdds: number;
-  confidence: number;
-  isPremium: boolean;
-  selections: Selection[];
-  type?: string;
-}
+// Import shared types
+import { Accumulator } from "@/lib/types";
 
 interface AccumulatorCardProps {
   accumulator: Accumulator;
