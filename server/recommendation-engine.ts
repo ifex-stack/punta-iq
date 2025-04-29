@@ -364,31 +364,100 @@ export class NewsRecommendationEngine {
   }
   
   /**
-   * Get personalized news feed based on user preferences and AI curation
+   * Get AI-enhanced personalized news feed based on user preferences, behavior patterns, and content analysis
    * @param userId User ID to get personalized feed for
    * @param count Number of articles to return
    * @returns Array of personalized news articles
    */
   async getPersonalizedFeed(userId: number, count: number = 10): Promise<NewsArticle[]> {
     try {
-      logger.info('RecommendationEngine', `Generating personalized feed for user ${userId}`);
+      logger.info('RecommendationEngine', `Generating AI-enhanced personalized feed for user ${userId}`);
       
-      // Get personalized recommendations
-      const recommendations = await this.getRecommendations(userId, Math.ceil(count * 0.7));
+      // Step 1: Get user's news preferences for content customization
+      const userPreferences = await this.getUserPreferences(userId);
       
-      // Get some trending articles to mix in (limited number)
+      // Step 2: Get personalized recommendations based on user's interests and history
+      const recommendations = await this.getRecommendations(userId, Math.ceil(count * 0.6));
+      logger.info('RecommendationEngine', `Generated ${recommendations.length} personalized recommendations`);
+      
+      // Step 3: Get some trending articles to mix in (limited number)
       const trending = await this.getTrendingArticles(Math.ceil(count * 0.3));
+      logger.info('RecommendationEngine', `Retrieved ${trending.length} trending articles for diversity`);
       
-      // Remove duplicates by creating a map of article IDs to articles
+      // Step 4: Get user's recently read topics to avoid content fatigue
+      const recentlyRead = await this.getRecentlyReadArticles(userId);
+      
+      // Step 5: Remove duplicates by creating a map of article IDs to articles
       const recommendedIds = new Set(recommendations.map(article => article.id));
       const uniqueTrending = trending.filter(article => !recommendedIds.has(article.id));
       
-      // Combine and shuffle slightly to create a more natural feed
-      const combined = [...recommendations, ...uniqueTrending.slice(0, Math.ceil(count * 0.3))];
+      // Step 6: Try to add a "discovery" article that might broaden user's interests
+      let discoveryArticle: NewsArticle | null = null;
+      try {
+        // Get an article from a category the user doesn't typically read
+        const discoveryQuery = `
+          WITH user_read_sports AS (
+            SELECT DISTINCT sport_id 
+            FROM news_articles na
+            JOIN user_saved_news usn ON na.id = usn.article_id
+            WHERE usn.user_id = $1 AND sport_id IS NOT NULL
+          )
+          SELECT * FROM news_articles
+          WHERE sport_id IS NOT NULL 
+            AND sport_id NOT IN (SELECT sport_id FROM user_read_sports)
+            AND published_at > NOW() - INTERVAL '14 days'
+          ORDER BY likes DESC, views DESC, published_at DESC
+          LIMIT 1
+        `;
+        const result = await pool.query(discoveryQuery, [userId]);
+        if (result.rows.length > 0) {
+          const row = result.rows[0];
+          discoveryArticle = {
+            id: row.id,
+            title: row.title,
+            content: row.content,
+            summary: row.summary,
+            author: row.author,
+            source: row.source,
+            sourceUrl: row.source_url,
+            publishedAt: row.published_at,
+            imageUrl: row.image_url,
+            sportId: row.sport_id,
+            leagueId: row.league_id,
+            teams: row.teams,
+            type: row.type,
+            aiGenerated: row.ai_generated,
+            aiEnhanced: row.ai_enhanced,
+            isPremium: row.is_premium,
+            tags: row.tags || [],
+            views: row.views || 0,
+            likes: row.likes || 0,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+            // Add discovery metadata as any to avoid TypeScript errors
+            score: 0.7,
+            recommendReason: "Broaden your horizons"
+          };
+          logger.info('RecommendationEngine', `Found discovery article: ${discoveryArticle.title}`);
+        }
+      } catch (discoveryError) {
+        logger.warn('RecommendationEngine', `Error finding discovery article: ${discoveryError instanceof Error ? discoveryError.message : String(discoveryError)}`);
+      }
       
-      // Sort by a combination of personalization score and recency
+      // Step 7: Combine and prepare the final feed
+      let combined = [...recommendations];
+      
+      // Add trending articles (avoiding duplicates)
+      combined = [...combined, ...uniqueTrending.slice(0, Math.ceil(count * 0.3))];
+      
+      // Add discovery article if found and not already in the feed
+      if (discoveryArticle && !recommendedIds.has(discoveryArticle.id)) {
+        combined.push(discoveryArticle);
+      }
+      
+      // Step 8: Advanced ranking algorithm with multiple factors
       combined.sort((a, b) => {
-        // Use the score property from recommendations, or 0.5 for trending articles
+        // Initialize base scores (personalization score or default)
         const scoreA = 'score' in a ? a.score : 0.5;
         const scoreB = 'score' in b ? b.score : 0.5;
         
@@ -397,18 +466,65 @@ export class NewsRecommendationEngine {
         const daysB = (Date.now() - new Date(b.publishedAt).getTime()) / (1000 * 60 * 60 * 24);
         
         // Recency factor (higher for newer articles)
-        const recencyA = Math.max(0, 1 - (daysA / 7));
-        const recencyB = Math.max(0, 1 - (daysB / 7));
+        const recencyA = Math.max(0, 1 - (daysA / 10));
+        const recencyB = Math.max(0, 1 - (daysB / 10));
         
-        // Combined ranking score (70% personalization, 30% recency)
-        const rankA = (scoreA * 0.7) + (recencyA * 0.3);
-        const rankB = (scoreB * 0.7) + (recencyB * 0.3);
+        // Popularity factor based on views and likes
+        const popularityA = Math.min(1, ((a.views || 0) + (a.likes || 0) * 3) / 1000);
+        const popularityB = Math.min(1, ((b.views || 0) + (b.likes || 0) * 3) / 1000);
+        
+        // Premium content boost
+        const premiumBoostA = a.isPremium ? 0.1 : 0;
+        const premiumBoostB = b.isPremium ? 0.1 : 0;
+        
+        // Content quality boost for AI-enhanced content
+        const qualityBoostA = a.aiEnhanced ? 0.1 : 0;
+        const qualityBoostB = b.aiEnhanced ? 0.1 : 0;
+        
+        // Discovery boost - use the recommendReason to identify discovery articles
+        const discoveryBoostA = a.recommendReason === "Broaden your horizons" ? 0.15 : 0;
+        const discoveryBoostB = b.recommendReason === "Broaden your horizons" ? 0.15 : 0;
+        
+        // Weighted ranking formula:
+        // 60% personalization, 20% recency, 10% popularity, 5% premium, 5% quality
+        const rankA = (scoreA * 0.6) + (recencyA * 0.2) + (popularityA * 0.1) + premiumBoostA + qualityBoostA + discoveryBoostA;
+        const rankB = (scoreB * 0.6) + (recencyB * 0.2) + (popularityB * 0.1) + premiumBoostB + qualityBoostB + discoveryBoostB;
         
         return rankB - rankA;
       });
       
-      // Return the top count articles
-      return combined.slice(0, count);
+      // Step 9: Final diversity check (ensure we're not showing too many similar articles)
+      const diverseFeed: NewsArticle[] = [];
+      const sportIdCounts: Record<number, number> = {};
+      
+      for (const article of combined) {
+        // Skip if we already have 3 articles from this sport
+        if (article.sportId) {
+          sportIdCounts[article.sportId] = (sportIdCounts[article.sportId] || 0) + 1;
+          if (sportIdCounts[article.sportId] > 3) {
+            continue;
+          }
+        }
+        
+        diverseFeed.push(article);
+        if (diverseFeed.length >= count) {
+          break;
+        }
+      }
+      
+      // If we don't have enough articles after diversity filtering, add more from combined
+      if (diverseFeed.length < count) {
+        const remainingCount = count - diverseFeed.length;
+        const diverseIds = new Set(diverseFeed.map(a => a.id));
+        const additionalArticles = combined
+          .filter(a => !diverseIds.has(a.id))
+          .slice(0, remainingCount);
+        
+        diverseFeed.push(...additionalArticles);
+      }
+      
+      logger.info('RecommendationEngine', `Generated personalized feed with ${diverseFeed.length} articles for user ${userId}`);
+      return diverseFeed.slice(0, count);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error('RecommendationEngine', `Error generating personalized feed: ${errorMessage}`);
