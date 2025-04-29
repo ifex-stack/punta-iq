@@ -272,12 +272,27 @@ class SportsApiService {
       }
       
       logger.info(`[SportsApiService] Fetching ${sport} fixtures with params:`, queryParams);
+      logger.info(`[SportsApiService] Using API key: ${this.apiKey ? this.apiKey.substring(0, 5) + '...' : 'Not set'}`);
       
-      const response = await client.get(endpoint, { params: queryParams });
-      
-      if (response.data.errors && Object.keys(response.data.errors).length > 0) {
-        logger.error(`[SportsApiService] API returned errors:`, response.data.errors);
-        return [];
+      try {
+        const response = await client.get(endpoint, { params: queryParams });
+        
+        // Log more details about the response
+        logger.info(`[SportsApiService] ${sport} API response status:`, response.status);
+        logger.info(`[SportsApiService] ${sport} API response size:`, 
+          response.data && response.data.response ? response.data.response.length : 'No data');
+        
+        if (response.data.errors && Object.keys(response.data.errors).length > 0) {
+          logger.error(`[SportsApiService] API returned errors:`, response.data.errors);
+          return [];
+        }
+      } catch (error) {
+        logger.error(`[SportsApiService] Error in API request:`, {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data
+        });
+        throw error; // Re-throw to be caught by the outer try/catch
       }
       
       // Each sport API might have a different response structure
