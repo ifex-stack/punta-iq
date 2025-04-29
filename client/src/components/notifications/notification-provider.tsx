@@ -29,7 +29,8 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [socket, setSocket] = useState<WebSocket | null>(null);
-  const [socketConnected, setSocketConnected] = useState(false);
+  // Always start with socketConnected=true to avoid blank pages even if connections fail
+  const [socketConnected, setSocketConnected] = useState(true);
 
   // Query to fetch notifications
   const { data: notifications = [], isLoading: loading } = useQuery({

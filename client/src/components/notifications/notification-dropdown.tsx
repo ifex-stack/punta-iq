@@ -23,6 +23,20 @@ import {
 import { Notification } from '@shared/schema';
 
 export function NotificationDropdown() {
+  // Safe usage of useNotifications with error handling
+  let notificationContext;
+  try {
+    notificationContext = useNotifications();
+  } catch (error) {
+    console.error("Failed to load notification context:", error);
+    // Return minimal/empty UI if notifications can't be loaded
+    return (
+      <Button variant="ghost" size="icon" className="relative">
+        <Bell className="h-6 w-6 text-muted-foreground" />
+      </Button>
+    );
+  }
+  
   const { 
     notifications, 
     unreadCount, 
@@ -31,7 +45,7 @@ export function NotificationDropdown() {
     deleteNotification,
     deleteAllNotifications,
     loading
-  } = useNotifications();
+  } = notificationContext;
 
   const handleMarkAllAsRead = async () => {
     await markAllAsRead();
