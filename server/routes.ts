@@ -2494,7 +2494,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add a route for all supported sports
   app.get("/api/odds/sports", async (req, res) => {
     try {
-      const sports = await oddsAPIService.getAllSports();
+      const sports = await oddsAPIService.fetchSports();
       res.json(sports);
     } catch (error) {
       console.error("OddsAPI: Error getting sports list", error);

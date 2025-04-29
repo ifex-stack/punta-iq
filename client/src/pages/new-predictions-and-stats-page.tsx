@@ -152,85 +152,16 @@ export default function NewPredictionsAndStatsPage() {
   const [timeFrame, setTimeFrame] = useState("today");
   const [savedPredictions, setSavedPredictions] = useState<string[]>([]);
   
-  // Fetch direct OddsAPI data
-  const { data: oddsApiData, isLoading: isLoadingOdds, refetch: refetchOdds } = useQuery<{ 
-    success: boolean, 
-    sample: { 
-      sports: any[],
-      events: any[],
-      matches: RealTimeMatch[]
-    } 
-  }>({
-    queryKey: ['/api/debug/odds-api'],
+  // Fetch direct OddsAPI data from our new endpoint
+  const { data: oddsApiData, isLoading: isLoadingOdds, refetch: refetchOdds } = useQuery<Prediction[]>({
+    queryKey: ['/api/odds/football'],
   });
 
   // Get match data from OddsAPI
-  const matches = oddsApiData?.sample?.matches || [];
+  const predictions = oddsApiData || [];
 
-  // Transform matches into predictions with AI-generated insights
-  const generatePredictions = (matches: RealTimeMatch[]): Prediction[] => {
-    return matches.map(match => {
-      // Generate confidence score based on odds (just a demo algorithm)
-      const homeConfidence = match.homeOdds ? Math.round(100 - (match.homeOdds * 15)) : 65;
-      const drawConfidence = match.drawOdds ? Math.round(100 - (match.drawOdds * 15)) : 30;
-      const awayConfidence = match.awayOdds ? Math.round(100 - (match.awayOdds * 15)) : 55;
-      
-      // Determine highest confidence outcome
-      let prediction: string;
-      let confidence: number;
-      let odds: number;
-      
-      if (homeConfidence >= drawConfidence && homeConfidence >= awayConfidence) {
-        prediction = "Home Win";
-        confidence = homeConfidence;
-        odds = match.homeOdds || 1.8;
-      } else if (drawConfidence >= homeConfidence && drawConfidence >= awayConfidence) {
-        prediction = "Draw";
-        confidence = drawConfidence;
-        odds = match.drawOdds || 3.2;
-      } else {
-        prediction = "Away Win";
-        confidence = awayConfidence;
-        odds = match.awayOdds || 2.2;
-      }
-      
-      // Normalize confidence to reasonable range
-      confidence = Math.min(Math.max(confidence, 30), 95);
-      
-      // Generate explanation
-      const explanation = `Based on recent form and odds analysis, ${match.homeTeam} ${prediction === "Home Win" ? "is likely to win" : prediction === "Draw" ? "is likely to draw" : "may struggle"} against ${match.awayTeam}.`;
-      
-      // Determine if there's value in the bet
-      const valueBet = (confidence/100) > (1/odds) ? {
-        market: "Match Result",
-        selection: prediction,
-        odds: odds,
-        value: Math.round((confidence/100 - 1/odds) * 100)
-      } : undefined;
-      
-      return {
-        id: match.id,
-        sport: match.sport,
-        league: match.league,
-        country: match.country || "International",
-        homeTeam: match.homeTeam,
-        awayTeam: match.awayTeam,
-        startTime: match.startTime,
-        prediction,
-        confidence,
-        odds,
-        explanation,
-        status: 'pending',
-        homeOdds: match.homeOdds,
-        drawOdds: match.drawOdds,
-        awayOdds: match.awayOdds,
-        valueBet
-      };
-    });
-  };
-
-  // Generate predictions from real matches
-  const predictions = generatePredictions(matches);
+  // We don't need the generatePredictions function anymore as we're getting 
+  // predictions directly from our new API endpoint
   
   // Filter predictions based on user input
   const filteredPredictions = predictions.filter(prediction => {
@@ -318,7 +249,6 @@ export default function NewPredictionsAndStatsPage() {
   };
 
   // Check if we have data to show
-  const hasMatches = matches && matches.length > 0;
   const hasPredictions = filteredPredictions && filteredPredictions.length > 0;
 
   // Handler for viewing prediction details
@@ -454,14 +384,14 @@ export default function NewPredictionsAndStatsPage() {
             </div>
           )}
           
-          {/* No matches state */}
-          {!isLoadingOdds && !hasMatches && (
+          {/* No predictions state */}
+          {!isLoadingOdds && !hasPredictions && (
             <Card className="border-dashed border-2 bg-muted/30">
               <CardContent className="p-8 flex flex-col items-center justify-center text-center">
                 <AlertCircle className="h-8 w-8 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No Matches Available</h3>
+                <h3 className="text-lg font-medium mb-2">No Predictions Available</h3>
                 <p className="text-muted-foreground mb-4">
-                  There are no upcoming matches available for the selected filters.
+                  There are no predictions available for the selected filters.
                 </p>
                 <Button onClick={refreshData} variant="outline">
                   <RefreshCw className="mr-2 h-4 w-4" />
