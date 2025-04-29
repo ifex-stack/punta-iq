@@ -7,6 +7,7 @@ import { logger } from "./logger";
 import { advancedPredictionEngine } from "./advanced-prediction-engine";
 import { historicalDataClient } from "./historical-data-client";
 import { realTimeMatchesService } from "./real-time-matches-service";
+import { sportsApiService } from "./sports-api-service";
 
 // Use enhanced ML client if OpenAI API key is available, otherwise fall back to basic client
 const mlClient = openaiClient.hasApiKey() ? enhancedMLClient : new MLServiceClient();
@@ -796,6 +797,48 @@ router.get("/api/predictions/upcoming-matches/:sport", async (req, res) => {
   } catch (error) {
     logger.error("MLRoutes", "Error fetching upcoming matches", { error });
     res.status(500).json({ error: "Error fetching upcoming matches" });
+  }
+});
+
+// Debug endpoint to check the sports API connection
+router.get("/api/debug/sports-api", async (req, res) => {
+  try {
+    const sport = req.query.sport as string || 'football';
+    
+    logger.info("MLRoutes", "Testing sports API connection", { sport });
+    
+    // Get API key for debugging
+    const apiKey = process.env.API_SPORTS_KEY || 'Not set';
+    logger.info("MLRoutes", `API Sports key: ${apiKey ? apiKey.substring(0, 5) + '...' : 'Not set'}`);
+    
+    // Test API directly
+    const today = new Date().toISOString().split('T')[0];
+    
+    try {
+      const result = await sportsApiService.getFixtures(sport, { date: today });
+      
+      res.json({
+        success: true,
+        matchCount: result.length,
+        apiKeyPresent: !!apiKey,
+        apiKeyLength: apiKey ? apiKey.length : 0,
+        sport,
+        date: today,
+        sample: result.slice(0, 2) // Send just a sample of matches
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        apiKeyPresent: !!apiKey,
+        apiKeyLength: apiKey ? apiKey.length : 0,
+        sport,
+        date: today
+      });
+    }
+  } catch (error: any) {
+    logger.error("MLRoutes", "Error in debug endpoint", { error });
+    res.status(500).json({ error: error.message });
   }
 });
 
