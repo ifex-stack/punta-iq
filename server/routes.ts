@@ -1541,6 +1541,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
   });
+  
+  // Player Comparison API Routes
+  app.get("/api/players/search", async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      const position = req.query.position as string;
+      const team = req.query.team as string;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      
+      if (!query || query.length < 2) {
+        return res.status(400).json({ message: "Search query must be at least 2 characters" });
+      }
+      
+      const players = await storage.searchFootballPlayers(query, position, team, limit);
+      res.json(players);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get("/api/players/:id/season-stats", async (req, res) => {
+    try {
+      const playerId = parseInt(req.params.id);
+      const stats = await storage.getPlayerSeasonStats(playerId);
+      
+      if (!stats) {
+        return res.status(404).json({ message: "Player stats not found" });
+      }
+      
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get("/api/players/:id/recent-matches", async (req, res) => {
+    try {
+      const playerId = parseInt(req.params.id);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+      
+      const matches = await storage.getPlayerRecentMatches(playerId, limit);
+      res.json(matches);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
 
   return httpServer;
 }
