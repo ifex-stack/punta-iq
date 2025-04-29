@@ -780,7 +780,7 @@ router.get("/api/predictions/real-time-matches", async (req, res) => {
     const allMatches = await realTimeMatchesService.getAllSportsMatches(dateOffset);
     res.json(allMatches);
   } catch (error) {
-    logger.error("MLRoutes", "Error fetching real-time matches", error);
+    logger.error("MLRoutes", "Error fetching real-time matches", { error });
     res.status(500).json({ error: "Error fetching real-time matches" });
   }
 });
@@ -794,7 +794,7 @@ router.get("/api/predictions/upcoming-matches/:sport", async (req, res) => {
     const matches = await realTimeMatchesService.getUpcomingMatches(sport, days);
     res.json(matches);
   } catch (error) {
-    logger.error("MLRoutes", "Error fetching upcoming matches", error);
+    logger.error("MLRoutes", "Error fetching upcoming matches", { error });
     res.status(500).json({ error: "Error fetching upcoming matches" });
   }
 });

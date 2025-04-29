@@ -542,7 +542,7 @@ class SportsApiService {
    */
   private processMmaFights(fights: any[], sport: string): StandardizedMatch[] {
     if (!fights || !Array.isArray(fights)) {
-      logger.warn(`[SportsApiService] No fights found or invalid response for ${sport}`);
+      logger.warn('SportsApiService', `No fights found or invalid response for ${sport}`);
       return [];
     }
     
@@ -583,7 +583,7 @@ class SportsApiService {
         // Add a small delay between requests to different sport APIs
         await new Promise(resolve => setTimeout(resolve, 300));
       } else {
-        logger.warn(`[SportsApiService] Unsupported sport: ${sport}`);
+        logger.warn('SportsApiService', `Unsupported sport: ${sport}`);
         result[sport] = [];
       }
     }
