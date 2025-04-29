@@ -4,6 +4,7 @@ import { db } from './db';
 import { matches } from '../shared/schema';
 import { sql } from 'drizzle-orm';
 import { sportsApiService, StandardizedMatch } from './sports-api-service';
+import { oddsAPIService } from './odds-api-service';
 
 export interface RealTimeMatch {
   id: string;
@@ -45,22 +46,22 @@ export class RealTimeMatchesService {
   ];
   
   /**
-   * Get today's football matches from the API-SPORTS service
-   * Now uses real data from the API-SPORTS service
+   * Get today's football matches from the OddsAPI
+   * Uses OddsAPI for real-time data
    */
   async getTodayFootballMatches(): Promise<RealTimeMatch[]> {
     try {
-      logger.info('RealTimeMatches', 'Fetching today football matches from API-SPORTS');
+      logger.info('RealTimeMatches', 'Fetching today football matches from OddsAPI');
       
-      // First, try to get matches from the API
-      const apiMatches = await sportsApiService.getTodayFixtures('football');
+      // First, try to get matches from the OddsAPI
+      const apiMatches = await oddsAPIService.getTodayEvents('soccer');
       
       if (apiMatches.length > 0) {
-        logger.info('RealTimeMatches', 'Successfully fetched football matches from API', { count: apiMatches.length });
+        logger.info('RealTimeMatches', 'Successfully fetched football matches from OddsAPI', { count: apiMatches.length });
         return this.convertToRealTimeMatches(apiMatches);
       }
       
-      // If no matches from API, try the database as fallback
+      // If no matches from OddsAPI, try the database as fallback
       const dbMatches = await this.getMatchesFromDatabase('football');
       
       if (dbMatches.length > 0) {
@@ -68,7 +69,7 @@ export class RealTimeMatchesService {
         return dbMatches;
       }
       
-      // If still no matches, return an empty array (no more static fixtures)
+      // If still no matches, return an empty array
       logger.warn('RealTimeMatches', 'No football matches found from API or database');
       return [];
     } catch (error) {

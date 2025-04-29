@@ -8,6 +8,7 @@ import { advancedPredictionEngine } from "./advanced-prediction-engine";
 import { historicalDataClient } from "./historical-data-client";
 import { realTimeMatchesService } from "./real-time-matches-service";
 import { sportsApiService } from "./sports-api-service";
+import { oddsAPIService } from "./odds-api-service";
 
 // Use enhanced ML client if OpenAI API key is available, otherwise fall back to basic client
 const mlClient = openaiClient.hasApiKey() ? enhancedMLClient : new MLServiceClient();
@@ -841,6 +842,55 @@ router.get("/api/debug/sports-api", async (req, res) => {
     }
   } catch (error: any) {
     logger.error("MLRoutes", "Error in debug endpoint", { error });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Debug endpoint for the Odds API
+router.get("/api/debug/odds-api", async (req, res) => {
+  try {
+    const sportKey = req.query.sport as string || 'soccer';
+    logger.info("MLRoutes", "Testing Odds API connection", { sportKey });
+    
+    // Get API key for debugging
+    const apiKey = process.env.ODDS_API_KEY || 'Not set';
+    logger.info("MLRoutes", `Odds API key: ${apiKey ? apiKey.substring(0, 5) + '...' : 'Not set'}`);
+    
+    try {
+      // First test getting sports
+      const sports = await oddsAPIService.fetchSports();
+      
+      // Then test getting events for the specified sport
+      const events = await oddsAPIService.fetchEvents(sportKey);
+      
+      // Convert to standardized format
+      const matches = await oddsAPIService.getTodayEvents(sportKey);
+      
+      res.json({
+        success: true,
+        sportsCount: sports.length,
+        eventsCount: events.length,
+        matchesCount: matches.length,
+        apiKeyPresent: !!apiKey,
+        apiKeyLength: apiKey ? apiKey.length : 0,
+        sportKey,
+        sample: {
+          sports: sports.slice(0, 3),
+          events: events.slice(0, 2),
+          matches: matches.slice(0, 2)
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        apiKeyPresent: !!apiKey,
+        apiKeyLength: apiKey ? apiKey.length : 0,
+        sportKey
+      });
+    }
+  } catch (error: any) {
+    logger.error("MLRoutes", "Error in Odds API debug endpoint", { error });
     res.status(500).json({ error: error.message });
   }
 });
