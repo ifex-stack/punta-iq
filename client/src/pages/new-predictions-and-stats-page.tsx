@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import {
   Tabs,
   TabsContent,
@@ -253,10 +254,19 @@ export default function NewPredictionsAndStatsPage() {
 
   // Handler for viewing prediction details
   const handleViewPredictionDetails = (prediction: Prediction) => {
-    toast({
-      title: `${prediction.homeTeam} vs ${prediction.awayTeam}`,
-      description: prediction.explanation,
-    });
+    try {
+      // Store the prediction in session storage for the advanced analysis page
+      sessionStorage.setItem('selectedPrediction', JSON.stringify(prediction));
+      // Navigate to the advanced analysis page
+      setLocation('/advanced-analysis');
+    } catch (error) {
+      console.error('Failed to store prediction data', error);
+      toast({
+        title: "Error",
+        description: "Failed to open detailed analysis",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

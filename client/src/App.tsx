@@ -24,6 +24,7 @@ import ReferralsPage from "@/pages/referrals-page";
 import GamificationPage from "@/pages/gamification-page";
 import AdminPage from "@/pages/admin-page";
 import FeedbackPage from "@/pages/feedback";
+import AdvancedAnalysisPage from "@/pages/advanced-analysis-page";
 import NewsPage from "@/pages/news-page";
 import PrivacyPolicyPage from "@/pages/legal/privacy-policy";
 import TermsConditionsPage from "@/pages/legal/terms-conditions";
@@ -83,6 +84,7 @@ const Router: React.FC = () => {
             <ProtectedRoute path="/stats" component={NewPredictionsAndStatsPage} />
             <ProtectedRoute path="/history" component={HistoricalDashboard} />
             <ProtectedRoute path="/predictions/advanced" component={AdvancedPredictionsPage} />
+            <ProtectedRoute path="/advanced-analysis" component={AdvancedAnalysisPage} />
             <ProtectedRoute path="/fantasy/contests" component={FantasyContestsPage} />
             <ProtectedRoute path="/fantasy/contests/create" component={FantasyContestCreatePage} />
             <ProtectedRoute path="/fantasy/teams/:teamId/build" component={FantasyTeamBuildPage} />
