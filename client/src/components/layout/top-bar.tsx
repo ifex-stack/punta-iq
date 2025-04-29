@@ -92,15 +92,13 @@ const TopBar = () => {
 
   return (
     <header className="flex justify-between items-center px-4 py-3 bg-card shadow-md">
-      <Link href="/">
-        <a className="flex items-center">
-          <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
-            <Bot className="h-6 w-6 text-white" />
-          </div>
-          <div className="ml-3">
-            <h1 className="text-lg font-bold font-sans text-foreground">PuntaIQ</h1>
-          </div>
-        </a>
+      <Link href="/" className="flex items-center">
+        <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
+          <Bot className="h-6 w-6 text-white" />
+        </div>
+        <div className="ml-3">
+          <h1 className="text-lg font-bold font-sans text-foreground">PuntaIQ</h1>
+        </div>
       </Link>
       
       <div className="flex items-center gap-2">
@@ -152,10 +150,8 @@ const TopBar = () => {
           </DropdownMenu>
         )}
         
-        <Link href="/profile">
-          <a className="ml-1 h-8 w-8 rounded-full bg-primary/80 hover:bg-primary flex items-center justify-center text-sm text-white font-medium">
-            {getUserInitials()}
-          </a>
+        <Link href="/profile" className="ml-1 h-8 w-8 rounded-full bg-primary/80 hover:bg-primary flex items-center justify-center text-sm text-white font-medium">
+          {getUserInitials()}
         </Link>
       </div>
     </header>
