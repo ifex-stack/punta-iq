@@ -1,14 +1,11 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowUpRight, ArrowDownRight, Minus, Search, Trophy, Medal } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ArrowUpRight, ArrowDownRight, Search, Medal, Minus, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Type definitions
 interface Leaderboard {
   id: number;
   name: string;
@@ -42,75 +39,9 @@ interface LeaderboardTableProps {
 export default function LeaderboardTable({ leaderboard, userId, limit = 100 }: LeaderboardTableProps) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const itemsPerPage = 10;
 
-  // Fetch leaderboard entries if we have a leaderboard ID
-  const {
-    data: leaderboardWithEntries,
-    isLoading,
-  } = useQuery({
-    queryKey: ["/api/leaderboards", leaderboard?.id],
-    queryFn: async () => {
-      if (!leaderboard) {
-        throw new Error("No leaderboard provided");
-      }
-      const response = await fetch(`/api/leaderboards/${leaderboard.id}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch leaderboard entries");
-      }
-      return response.json() as Promise<Leaderboard>;
-    },
-    enabled: !!leaderboard?.id,
-  });
-
-  // Handle the case where no leaderboard is provided
-  if (!leaderboard && !isLoading) {
-    return (
-      <div className="text-center py-10">
-        <Trophy className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium">No active leaderboard</h3>
-        <p className="text-muted-foreground">
-          Check back later for new leaderboard competitions.
-        </p>
-      </div>
-    );
-  }
-
-  // Show skeleton while loading
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-full" />
-        {Array(5).fill(0).map((_, i) => (
-          <Skeleton key={i} className="h-16 w-full" />
-        ))}
-      </div>
-    );
-  }
-
-  const entries = leaderboardWithEntries?.entries || [];
-  
-  // Filter entries by search term
-  const filteredEntries = entries.filter((entry: LeaderboardEntry) => 
-    search === "" || 
-    (entry.username && entry.username.toLowerCase().includes(search.toLowerCase()))
-  );
-
-  // Paginate entries
-  const startIndex = (page - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const paginatedEntries = filteredEntries.slice(startIndex, endIndex);
-  const totalPages = Math.ceil(filteredEntries.length / pageSize);
-
-  // Find current user's entry
-  const userEntry = entries.find((entry: LeaderboardEntry) => entry.userId === userId);
-  const userRank = userEntry ? entries.findIndex((entry: LeaderboardEntry) => entry.userId === userId) + 1 : null;
-
-  // Determine if user entry should be shown separately (if not on current page)
-  const showUserSeparately = userEntry && userRank !== null && 
-    (userRank < startIndex + 1 || userRank > endIndex);
-
-  // Ensure leaderboard exists at this point
+  // If no leaderboard is passed, return empty state
   if (!leaderboard) {
     return (
       <div className="text-center py-10">
@@ -122,6 +53,31 @@ export default function LeaderboardTable({ leaderboard, userId, limit = 100 }: L
       </div>
     );
   }
+
+  // Get entries from leaderboard or empty array
+  const entries = leaderboard?.entries || [];
+  
+  // Filter entries based on search
+  const filteredEntries = entries.filter((entry: LeaderboardEntry) => 
+    !search || 
+    (entry.username && entry.username.toLowerCase().includes(search.toLowerCase()))
+  );
+  
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredEntries.length / itemsPerPage);
+  const startIndex = (page - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage - 1, filteredEntries.length - 1);
+  
+  // Get current page entries
+  const paginatedEntries = filteredEntries.slice(startIndex, startIndex + itemsPerPage);
+  
+  // Find current user's entry
+  const userEntry = entries.find((entry: LeaderboardEntry) => entry.userId === userId);
+  const userRank = userEntry ? entries.findIndex((entry: LeaderboardEntry) => entry.userId === userId) + 1 : null;
+
+  // Determine if user entry should be shown separately (if not on current page)
+  const showUserSeparately = userEntry && userRank !== null && 
+    (userRank < startIndex + 1 || userRank > endIndex);
 
   return (
     <div className="space-y-6">
@@ -240,7 +196,7 @@ export default function LeaderboardTable({ leaderboard, userId, limit = 100 }: L
                         <Badge variant="outline" className="ml-2">You</Badge>
                       </td>
                       <td className="p-3 hidden md:table-cell">
-                        {userEntry.previousRank && userEntry.previousRank !== userRank ? (
+                        {userEntry.previousRank && userRank !== null && userEntry.previousRank !== userRank ? (
                           userEntry.previousRank > userRank ? (
                             <span className="flex items-center text-green-600">
                               <ArrowUpRight className="h-4 w-4 mr-1" />

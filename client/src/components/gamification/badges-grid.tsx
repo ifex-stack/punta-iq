@@ -1,67 +1,32 @@
 import { useState } from "react";
-import { useAuth } from "@/hooks/use-auth";
-import { Badge as LucideBadge } from "lucide-react";
-import { Award, AlertCircle, Lock, Trophy } from "lucide-react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogTrigger 
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Lock, Award } from "lucide-react";
+import { format } from "date-fns";
 
-// Badge tier types and colors
-type BadgeTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';
-
-const tierColors: Record<BadgeTier, string> = {
-  bronze: "bg-amber-800",
-  silver: "bg-slate-400",
-  gold: "bg-amber-400",
-  platinum: "bg-emerald-300",
-  diamond: "bg-blue-400"
-};
-
-// Badge category types and icons
-type BadgeCategory = 'prediction' | 'fantasy' | 'engagement' | 'achievement';
-
-const categoryIcons: Record<BadgeCategory, React.ReactNode> = {
-  prediction: <Award className="h-5 w-5" />,
-  fantasy: <LucideBadge className="h-5 w-5" />,
-  engagement: <AlertCircle className="h-5 w-5" />,
-  achievement: <Award className="h-5 w-5" />
-};
-
-// Types for badges
 interface Badge {
   id: number;
   name: string;
   description: string;
-  category: BadgeCategory;
-  tier: BadgeTier;
-  icon: string;
-  points: number;
-  requirements?: {
-    description: string;
-    unit?: string;
-  };
-  isActive: boolean;
+  category: string;
+  tier: 'bronze' | 'silver' | 'gold' | 'platinum';
+  iconUrl: string;
+  requirements: string;
+  createdAt: string;
 }
 
 interface UserBadge {
   id: number;
   userId: number;
   badgeId: number;
-  earnedAt: string;
-  isNew: boolean;
-  isViewed: boolean;
-  progress?: {
-    current: number;
-    target: number;
-  };
+  awardedAt: string;
+  badge?: Badge;
 }
 
 interface BadgesGridProps {
@@ -70,241 +35,175 @@ interface BadgesGridProps {
   allBadges: Badge[];
 }
 
-interface BadgeItemProps {
-  badge: Badge;
-  earnedData?: UserBadge;
-  isLocked?: boolean;
-}
+export default function BadgesGrid({ earnedBadges, lockedBadges, allBadges }: BadgesGridProps) {
+  const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
+  const [selectedUserBadge, setSelectedUserBadge] = useState<UserBadge | null>(null);
 
-const BadgeItem = ({ badge, earnedData, isLocked = false }: BadgeItemProps) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const { user } = useAuth();
-
-  // Handle marking badge as viewed when dialog is opened
-  const handleOpenChange = (open: boolean) => {
-    setIsOpen(open);
-    
-    // If opening dialog and badge is new, mark as viewed
-    if (open && earnedData?.isNew && user) {
-      fetch(`/api/users/${user.id}/badges/${badge.id}/viewed`, {
-        method: 'PATCH'
-      }).catch(error => {
-        console.error("Error marking badge as viewed:", error);
-      });
+  const handleOpenEarnedBadge = (userBadge: UserBadge) => {
+    const badge = allBadges.find(b => b.id === userBadge.badgeId);
+    if (badge) {
+      setSelectedBadge(badge);
+      setSelectedUserBadge(userBadge);
     }
   };
 
-  // Calculate progress percentage if badge has progress data
-  const progressPercentage = earnedData?.progress 
-    ? Math.min(100, Math.round((earnedData.progress.current / earnedData.progress.target) * 100))
-    : 0;
-
-  return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <div 
-          className={cn(
-            "flex flex-col items-center justify-center p-4 rounded-lg border cursor-pointer transition-all",
-            isLocked 
-              ? "bg-muted opacity-60 hover:opacity-80" 
-              : "bg-card hover:shadow-md",
-            earnedData?.isNew && "ring-2 ring-primary"
-          )}
-        >
-          <div 
-            className={cn(
-              "w-16 h-16 rounded-full flex items-center justify-center mb-3",
-              isLocked ? "bg-muted" : tierColors[badge.tier] || "bg-primary"
-            )}
-          >
-            {isLocked ? (
-              <Lock className="h-8 w-8 text-muted-foreground" />
-            ) : (
-              <div className="text-white text-2xl">
-                {categoryIcons[badge.category] || <Award className="h-8 w-8" />}
-              </div>
-            )}
-          </div>
-          
-          <h3 className="font-medium text-center">
-            {badge.name}
-            {earnedData?.isNew && (
-              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary text-primary-foreground">
-                New
-              </span>
-            )}
-          </h3>
-          
-          {earnedData?.progress && !isLocked && (
-            <div className="w-full mt-2 bg-muted rounded-full h-1.5">
-              <div 
-                className="bg-primary h-1.5 rounded-full" 
-                style={{ width: `${progressPercentage}%` }}
-              />
-            </div>
-          )}
-          
-          {isLocked && (
-            <p className="text-xs text-muted-foreground mt-1">Locked</p>
-          )}
-        </div>
-      </DialogTrigger>
-      
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <div 
-              className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center",
-                tierColors[badge.tier] || "bg-primary"
-              )}
-            >
-              {categoryIcons[badge.category] || <Award className="h-4 w-4 text-white" />}
-            </div>
-            {badge.name}
-            <span className="ml-2 capitalize text-sm bg-primary/10 text-primary rounded-full px-2 py-0.5">
-              {badge.tier}
-            </span>
-          </DialogTitle>
-          <DialogDescription>
-            {badge.description}
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="space-y-4">
-          <div>
-            <h4 className="text-sm font-medium mb-1">Requirements</h4>
-            <p className="text-sm text-muted-foreground">
-              {badge.requirements?.description || "Complete specific actions to earn this badge."}
-            </p>
-          </div>
-
-          {earnedData && (
-            <div>
-              <h4 className="text-sm font-medium mb-1">Earned on</h4>
-              <p className="text-sm text-muted-foreground">
-                {new Date(earnedData.earnedAt).toLocaleDateString()}
-              </p>
-            </div>
-          )}
-
-          {earnedData?.progress && (
-            <div>
-              <div className="flex justify-between mb-1 text-sm">
-                <span>Progress</span>
-                <span>{progressPercentage}%</span>
-              </div>
-              <div className="w-full bg-muted rounded-full h-2">
-                <div 
-                  className="bg-primary h-2 rounded-full" 
-                  style={{ width: `${progressPercentage}%` }}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {earnedData.progress.current} / {earnedData.progress.target} {badge.requirements?.unit || "completed"}
-              </p>
-            </div>
-          )}
-
-          {badge.points > 0 && (
-            <div>
-              <h4 className="text-sm font-medium mb-1">Reward</h4>
-              <p className="text-sm flex items-center gap-1">
-                <Trophy className="h-4 w-4 text-amber-500" />
-                {badge.points} points
-              </p>
-            </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-export default function BadgesGrid({ earnedBadges, lockedBadges, allBadges }: BadgesGridProps) {
-  const [showLocked, setShowLocked] = useState(true);
-  
-  // Find badge details from the badges array
-  const getBadgeDetails = (badgeId: number) => {
-    return allBadges.find(b => b.id === badgeId);
+  const handleOpenLockedBadge = (badge: Badge) => {
+    setSelectedBadge(badge);
+    setSelectedUserBadge(null);
   };
 
-  // Map of badge ID to earned badge data
-  const earnedBadgesMap = earnedBadges.reduce<Record<number, UserBadge>>((map, userBadge) => {
-    map[userBadge.badgeId] = userBadge;
-    return map;
-  }, {});
+  const handleCloseDialog = () => {
+    setSelectedBadge(null);
+    setSelectedUserBadge(null);
+  };
 
-  // Organize badges into categories
-  const categories = Array.from(new Set(allBadges.map(badge => badge.category)));
+  // Get badge color based on tier
+  const getBadgeColor = (tier: string) => {
+    switch (tier) {
+      case 'bronze':
+        return 'bg-amber-700';
+      case 'silver':
+        return 'bg-slate-400';
+      case 'gold':
+        return 'bg-amber-400';
+      case 'platinum':
+        return 'bg-cyan-500';
+      default:
+        return 'bg-gray-400';
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">
-          {earnedBadges.length} of {allBadges.length} badges earned
-        </h3>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowLocked(!showLocked)}
-        >
-          {showLocked ? "Hide Locked" : "Show Locked"}
-        </Button>
-      </div>
-
-      {categories.map(category => {
-        const categoryBadges = allBadges.filter(badge => badge.category === category);
-        const earnedCategoryBadges = categoryBadges.filter(badge => 
-          earnedBadgesMap[badge.id]
-        );
-        
-        // Skip empty categories if only showing earned badges
-        if (!showLocked && earnedCategoryBadges.length === 0) {
-          return null;
-        }
-        
-        return (
-          <div key={category} className="space-y-3">
-            <h3 className="text-lg font-medium capitalize">{category}</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {/* Earned badges */}
-              {categoryBadges
-                .filter(badge => earnedBadgesMap[badge.id])
-                .map(badge => (
-                  <BadgeItem 
-                    key={`earned-${badge.id}`}
-                    badge={badge}
-                    earnedData={earnedBadgesMap[badge.id]}
-                  />
-                ))
-              }
-              
-              {/* Locked badges (if showing) */}
-              {showLocked && categoryBadges
-                .filter(badge => !earnedBadgesMap[badge.id])
-                .map(badge => (
-                  <BadgeItem 
-                    key={`locked-${badge.id}`}
-                    badge={badge}
-                    isLocked={true}
-                  />
-                ))
-              }
-            </div>
+      {/* Earned badges */}
+      {earnedBadges.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-xl font-semibold">Earned Badges</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {earnedBadges.map((userBadge) => {
+              const badge = allBadges.find(b => b.id === userBadge.badgeId);
+              if (!badge) return null;
+              return (
+                <div 
+                  key={userBadge.id}
+                  className="relative group cursor-pointer rounded-lg border p-4 flex flex-col items-center space-y-3 transition-all hover:shadow-md"
+                  onClick={() => handleOpenEarnedBadge(userBadge)}
+                >
+                  <div className={`p-2 rounded-full ${getBadgeColor(badge.tier)}`}>
+                    {badge.iconUrl ? (
+                      <img 
+                        src={badge.iconUrl} 
+                        alt={badge.name} 
+                        className="h-12 w-12"
+                      />
+                    ) : (
+                      <Award className="h-12 w-12 text-white" />
+                    )}
+                  </div>
+                  <div className="text-center">
+                    <h4 className="font-medium text-sm">{badge.name}</h4>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Earned {format(new Date(userBadge.awardedAt), 'MMM d, yyyy')}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        );
-      })}
-
-      {earnedBadges.length === 0 && !showLocked && (
-        <div className="text-center py-10">
-          <Lock className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium">No badges earned yet</h3>
-          <p className="text-muted-foreground">
-            Make predictions and participate in contests to earn badges.
-          </p>
         </div>
       )}
+
+      {/* Locked badges */}
+      {lockedBadges.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-xl font-semibold">Available Badges</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {lockedBadges.map((badge) => (
+              <div 
+                key={badge.id}
+                className="relative group cursor-pointer rounded-lg border p-4 flex flex-col items-center space-y-3 transition-all hover:shadow-md opacity-70 hover:opacity-100"
+                onClick={() => handleOpenLockedBadge(badge)}
+              >
+                <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-lg">
+                  <Lock className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <div className={`p-2 rounded-full bg-gray-200`}>
+                  {badge.iconUrl ? (
+                    <img 
+                      src={badge.iconUrl} 
+                      alt={badge.name} 
+                      className="h-12 w-12 grayscale"
+                    />
+                  ) : (
+                    <Award className="h-12 w-12 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="text-center">
+                  <h4 className="font-medium text-sm">{badge.name}</h4>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {badge.category}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Badge detail dialog */}
+      <Dialog open={!!selectedBadge} onOpenChange={() => handleCloseDialog()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{selectedBadge?.name}</DialogTitle>
+            <DialogDescription>
+              {selectedUserBadge ? 'You earned this badge!' : 'Keep working to earn this badge'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex flex-col items-center space-y-4 py-4">
+            <div className={`p-3 rounded-full ${selectedBadge ? getBadgeColor(selectedBadge.tier) : 'bg-gray-200'}`}>
+              {selectedBadge?.iconUrl ? (
+                <img 
+                  src={selectedBadge.iconUrl} 
+                  alt={selectedBadge.name} 
+                  className={`h-16 w-16 ${!selectedUserBadge ? 'grayscale' : ''}`}
+                />
+              ) : (
+                <Award className={`h-16 w-16 ${selectedUserBadge ? 'text-white' : 'text-muted-foreground'}`} />
+              )}
+            </div>
+            
+            <div className="text-center space-y-2">
+              <h3 className="font-semibold text-lg">{selectedBadge?.name}</h3>
+              <p className="text-sm text-muted-foreground">{selectedBadge?.description}</p>
+              
+              {selectedUserBadge && (
+                <div className="mt-4 pt-4 border-t">
+                  <p className="text-sm">
+                    <span className="font-medium">Earned on:</span>{' '}
+                    {format(new Date(selectedUserBadge.awardedAt), 'MMMM d, yyyy')}
+                  </p>
+                </div>
+              )}
+              
+              {!selectedUserBadge && selectedBadge && (
+                <div className="mt-4 pt-4 border-t">
+                  <p className="text-sm font-medium">Requirements:</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedBadge.requirements}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="mt-4 flex justify-end">
+            <Button variant="outline" onClick={handleCloseDialog}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
