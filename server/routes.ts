@@ -598,6 +598,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // AI auto-fill for fantasy team
+  app.post("/api/fantasy/teams/:id/ai-autofill", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const teamId = parseInt(req.params.id);
+      const { position } = req.body;
+      
+      // Get team info to determine formation
+      const team = await storage.getFantasyTeamById(teamId);
+      if (!team) {
+        return res.status(404).json({ message: 'Team not found' });
+      }
+      
+      // Verify the user owns this team
+      if (team.userId !== req.user.id) {
+        return res.status(403).json({ message: 'You do not own this team' });
+      }
+      
+      // Get existing team players
+      const existingPlayers = await storage.getFantasyTeamPlayers(teamId);
+      
+      // Get players for the requested position
+      // Assuming getFantasyPlayersByPosition is implemented in storage.ts
+      const availablePlayers = await storage.getFantasyPlayers(position || null);
+      
+      // Filter out players already in the team
+      const existingPlayerIds = existingPlayers.map(p => p.playerId);
+      const filteredPlayers = availablePlayers.filter(p => !existingPlayerIds.includes(p.id));
+      
+      if (filteredPlayers.length === 0) {
+        return res.status(404).json({ message: 'No available players found for this position' });
+      }
+      
+      // Sort players by fantasy points (in a real implementation, this would use the AI service)
+      const sortedPlayers = filteredPlayers.sort((a, b) => 
+        (b.fantasyPointsTotal || 0) - (a.fantasyPointsTotal || 0)
+      );
+      
+      const bestPlayer = sortedPlayers[0];
+      
+      // Get the next available position number
+      // This is simplified - in a real implementation would need to handle formation correctly
+      const nextPosition = existingPlayers.length + 1;
+      
+      // Add the player to the team
+      const newTeamPlayer = await storage.addPlayerToFantasyTeam({
+        teamId,
+        playerId: bestPlayer.id,
+        position: nextPosition,
+        isCaptain: false,
+        isViceCaptain: false
+      });
+      
+      res.json({
+        success: true,
+        message: `${bestPlayer.name} has been added to your team`,
+        player: {
+          ...newTeamPlayer,
+          player: bestPlayer
+        }
+      });
+    } catch (error: any) {
+      console.error('[ERROR] AI Auto-fill error:', error);
+      res.status(500).json({ message: error.message || 'Failed to auto-fill team' });
+    }
+  });
+  
   app.get("/api/fantasy/players", async (req, res) => {
     try {
       const { search, position, team, limit } = req.query;
