@@ -461,10 +461,20 @@ export function PlayerComparison({
                     {/* AI Performance Hints */}
                     <div className="space-y-2 mb-4">
                       <div className="text-sm font-medium">AI Performance Analysis</div>
-                      <PlayerPerformanceHints 
-                        playerId={player.id}
-                        simplified={true}
-                      />
+                      <div className="space-y-3">
+                        <PlayerPerformanceHints 
+                          playerId={player.id}
+                          simplified={true}
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full mt-2 text-xs"
+                          onClick={() => window.location.href = `/fantasy/player-analysis?id=${player.id}`}
+                        >
+                          View Detailed Analysis
+                        </Button>
+                      </div>
                     </div>
                     
                     <Separator />

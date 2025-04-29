@@ -322,6 +322,19 @@ export function PlayerPerformanceHints({
           ))}
         </div>
       </CardFooter>
+      
+      {!simplified && (
+        <div className="px-6 pb-4">
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="w-full"
+            onClick={() => window.location.href = `/fantasy/player-analysis?id=${playerId}`}
+          >
+            View Full Player Analysis
+          </Button>
+        </div>
+      )}
     </Card>
   );
 }

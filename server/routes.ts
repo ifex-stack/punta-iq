@@ -17,6 +17,7 @@ import { setupNewsRoutes } from "./news-routes";
 import { PlayerSeasonStats, PlayerMatchStats } from "@shared/player-interfaces";
 
 import { realTimeMatchesService } from "./real-time-matches-service";
+import { openaiClient } from "./openai-client";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
