@@ -52,7 +52,34 @@ export function ReferralCard() {
   // Apply referral code mutation
   const applyReferralMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest('POST', '/api/referrals/validate', { referralCode: inputReferralCode });
+      // Get any UTM parameters from URL if present
+      const urlParams = new URLSearchParams(window.location.search);
+      const utmSource = urlParams.get('utm_source');
+      const utmMedium = urlParams.get('utm_medium');
+      const utmCampaign = urlParams.get('utm_campaign');
+      const utmTerm = urlParams.get('utm_term');
+      const utmContent = urlParams.get('utm_content');
+      
+      // Build UTM parameter object if any parameters exist
+      const utmParameters = (utmSource || utmMedium || utmCampaign || utmTerm || utmContent) 
+        ? {
+            utm_source: utmSource,
+            utm_medium: utmMedium,
+            utm_campaign: utmCampaign,
+            utm_term: utmTerm,
+            utm_content: utmContent
+          }
+        : null;
+      
+      // Detect the channel (could be derived from utmSource or detected some other way)
+      const channel = utmSource || 'direct';
+      
+      const res = await apiRequest('POST', '/api/referrals/validate', { 
+        referralCode: inputReferralCode,
+        channel,
+        utmParameters
+      });
+      
       return res.json();
     },
     onSuccess: () => {
@@ -201,24 +228,96 @@ export function ReferralCard() {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : statsData && (
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            <div className="border rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-primary">{statsData.totalReferrals}</div>
-              <div className="text-xs text-muted-foreground">Total Invites</div>
+          <>
+            <div className="grid grid-cols-2 gap-3 mt-4">
+              <div className="border rounded-lg p-3 text-center">
+                <div className="text-2xl font-bold text-primary">{statsData.totalReferrals}</div>
+                <div className="text-xs text-muted-foreground">Total Invites</div>
+              </div>
+              <div className="border rounded-lg p-3 text-center">
+                <div className="text-2xl font-bold text-green-500">{statsData.completedReferrals}</div>
+                <div className="text-xs text-muted-foreground">Successful</div>
+              </div>
+              <div className="border rounded-lg p-3 text-center">
+                <div className="text-2xl font-bold text-yellow-500">{statsData.pendingReferrals}</div>
+                <div className="text-xs text-muted-foreground">Pending</div>
+              </div>
+              <div className="border rounded-lg p-3 text-center">
+                <div className="text-2xl font-bold text-blue-500">{statsData.totalRewards}</div>
+                <div className="text-xs text-muted-foreground">Points Earned</div>
+              </div>
             </div>
-            <div className="border rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-green-500">{statsData.completedReferrals}</div>
-              <div className="text-xs text-muted-foreground">Successful</div>
-            </div>
-            <div className="border rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-yellow-500">{statsData.pendingReferrals}</div>
-              <div className="text-xs text-muted-foreground">Pending</div>
-            </div>
-            <div className="border rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-blue-500">{statsData.totalRewards}</div>
-              <div className="text-xs text-muted-foreground">Points Earned</div>
-            </div>
-          </div>
+            
+            {/* Channel Analytics */}
+            {statsData.channelMetrics && statsData.channelMetrics.length > 0 && (
+              <div className="mt-6 space-y-3">
+                <Label className="flex items-center gap-1">
+                  <ChartBar className="w-4 h-4" />
+                  Channel Performance
+                </Label>
+                <div className="space-y-3 border rounded-lg p-3">
+                  {statsData.channelMetrics.map((channel: any, index: number) => (
+                    <div key={index} className="space-y-1">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="capitalize font-medium">{channel.name}</span>
+                        <span className="text-xs">{channel.count} referrals</span>
+                      </div>
+                      <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full rounded-full bg-primary" 
+                          style={{ 
+                            width: `${(channel.count / statsData.totalReferrals) * 100}%`,
+                            backgroundColor: 
+                              channel.name === 'twitter' ? '#1DA1F2' : 
+                              channel.name === 'facebook' ? '#4267B2' : 
+                              channel.name === 'instagram' ? '#C13584' : 
+                              channel.name === 'whatsapp' ? '#25D366' : 
+                              channel.name === 'email' ? '#D44638' : 
+                              undefined
+                          }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Conversion rate: {channel.conversionRate}%</span>
+                        <span>{channel.completedCount} completed</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Conversion Analytics */}
+            {statsData.conversionRate && (
+              <div className="mt-4 border rounded-lg p-3">
+                <div className="flex justify-between items-center mb-2">
+                  <Label className="flex items-center gap-1">
+                    <ChartBar className="w-4 h-4" />
+                    Conversion Rate
+                  </Label>
+                  <Badge variant={statsData.conversionRate > 50 ? 'success' : 'outline'}>
+                    {statsData.conversionRate}%
+                  </Badge>
+                </div>
+                <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full rounded-full" 
+                    style={{ 
+                      width: `${statsData.conversionRate}%`,
+                      backgroundColor: 
+                        statsData.conversionRate > 75 ? '#10B981' : 
+                        statsData.conversionRate > 50 ? '#22C55E' : 
+                        statsData.conversionRate > 25 ? '#F59E0B' : 
+                        '#EF4444'
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {statsData.completedReferrals} of {statsData.totalReferrals} invites converted to active users
+                </p>
+              </div>
+            )}
+          </>
         )}
         
         {/* Referral List */}
@@ -244,6 +343,11 @@ export function ReferralCard() {
                       <div className="text-xs text-muted-foreground">
                         {new Date(referral.createdAt).toLocaleDateString()}
                       </div>
+                      {referral.channel && (
+                        <div className="text-xs text-primary/70 mt-0.5 capitalize">
+                          via {referral.channel}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <Badge variant={referral.status === 'completed' ? 'success' : 'outline'}>

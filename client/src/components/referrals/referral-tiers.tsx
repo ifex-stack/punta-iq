@@ -1,6 +1,6 @@
 import { FC } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Medal, BarChart } from "lucide-react";
+import { Medal, BarChart, CheckCircle, Clock } from "lucide-react";
 import { CustomProgress } from "@/components/ui/custom-progress";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -36,7 +36,7 @@ export const ReferralTiers: FC<ReferralTiersProps> = ({ userId }) => {
       name: 'Bronze',
       icon: <Medal className="h-5 w-5 text-amber-700" />,
       requirement: 1,
-      rewards: ['500 points bonus', 'Bronze badge'],
+      rewards: ['500 points bonus', 'Bronze badge', '3 premium predictions'],
       color: 'bg-amber-700',
       textColor: 'text-amber-700'
     },
@@ -44,7 +44,7 @@ export const ReferralTiers: FC<ReferralTiersProps> = ({ userId }) => {
       name: 'Silver',
       icon: <Medal className="h-5 w-5 text-gray-400" />,
       requirement: 5,
-      rewards: ['1,500 points bonus', 'Silver badge', 'Free prediction'],
+      rewards: ['1,500 points bonus', 'Silver badge', 'Early access to predictions'],
       color: 'bg-gray-400',
       textColor: 'text-gray-400'
     },
@@ -52,7 +52,7 @@ export const ReferralTiers: FC<ReferralTiersProps> = ({ userId }) => {
       name: 'Gold',
       icon: <Medal className="h-5 w-5 text-yellow-400" />,
       requirement: 10,
-      rewards: ['5,000 points bonus', 'Gold badge', '1 week premium'],
+      rewards: ['5,000 points bonus', 'Gold badge', 'Double referral points'],
       color: 'bg-yellow-400',
       textColor: 'text-yellow-400'
     },
@@ -63,6 +63,14 @@ export const ReferralTiers: FC<ReferralTiersProps> = ({ userId }) => {
       rewards: ['15,000 points bonus', 'Platinum badge', '1 month premium'],
       color: 'bg-blue-300',
       textColor: 'text-blue-300'
+    },
+    {
+      name: 'Diamond',
+      icon: <Medal className="h-5 w-5 text-cyan-400" />,
+      requirement: 50,
+      rewards: ['30,000 points bonus', 'Diamond badge', 'VIP Status Permanent'],
+      color: 'bg-cyan-400',
+      textColor: 'text-cyan-400'
     }
   ];
   
@@ -213,6 +221,63 @@ export const ReferralTiers: FC<ReferralTiersProps> = ({ userId }) => {
                 ))}
               </div>
             </div>
+            
+            {/* Unlocked Perks Section */}
+            {stats?.perks && stats.perks.length > 0 && (
+              <div className="mt-8 space-y-3">
+                <h4 className="font-medium flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  Your Unlocked Perks
+                </h4>
+                <div className="space-y-2 border rounded-lg p-3">
+                  {stats.perks
+                    .filter(perk => perk.isUnlocked)
+                    .map((perk, index) => (
+                      <div key={index} className="flex items-start gap-2">
+                        <div className={`w-5 h-5 mt-0.5 rounded-full flex items-center justify-center text-white ${
+                          perk.tier === 'bronze' ? 'bg-amber-700' : 
+                          perk.tier === 'silver' ? 'bg-gray-400' : 
+                          perk.tier === 'gold' ? 'bg-yellow-400' : 
+                          perk.tier === 'platinum' ? 'bg-blue-300' : 
+                          'bg-cyan-400'
+                        }`}>
+                          <CheckCircle className="h-3 w-3" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{perk.name}</p>
+                          <p className="text-xs text-muted-foreground">{perk.description}</p>
+                        </div>
+                      </div>
+                    ))
+                  }
+                </div>
+              </div>
+            )}
+            
+            {/* Tier History */}
+            {stats?.tierHistory && stats.tierHistory.length > 0 && (
+              <div className="mt-8 space-y-3">
+                <h4 className="font-medium flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-blue-500" />
+                  Tier Achievement History
+                </h4>
+                <div className="relative border-l-2 border-primary/30 ml-2 pl-4 py-2 space-y-4">
+                  {stats.tierHistory.map((history, index) => (
+                    <div key={index} className="relative">
+                      <div className="absolute left-0 top-0 w-3 h-3 rounded-full bg-primary -translate-x-[1.65rem]"></div>
+                      <p className="text-sm capitalize font-medium">{history.tier} Tier Achieved</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(history.achievedAt).toLocaleDateString('en-US', {
+                          year: 'numeric', 
+                          month: 'short', 
+                          day: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         ) : (
           <div className="text-center py-6">
