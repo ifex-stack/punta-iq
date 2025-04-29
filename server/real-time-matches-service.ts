@@ -250,7 +250,8 @@ export class RealTimeMatchesService {
       const dateStr = targetDate.toISOString().split('T')[0]; // YYYY-MM-DD
       
       // Fetch matches from API with specific date
-      const apiMatches = await sportsApiService.getFixtures(sport, { date: dateStr });
+      const options = sport === 'football' ? { date: dateStr, season: 2023 } : { date: dateStr };
+      const apiMatches = await sportsApiService.getFixtures(sport, options);
       
       if (apiMatches.length > 0) {
         logger.info('RealTimeMatches', `Successfully fetched ${sport} matches for date ${dateStr}`, { count: apiMatches.length });

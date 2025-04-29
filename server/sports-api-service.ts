@@ -301,8 +301,8 @@ class SportsApiService {
       
       // API-Football requires a season parameter
       if (sport === 'football' && !options.season) {
-        // Use 2025 - the free plan can access current season for recent dates
-        queryParams.season = 2025;
+        // Use 2023 - the free plan can only access seasons 2021-2023
+        queryParams.season = 2023;
       }
       
       if (['basketball', 'baseball', 'american_football', 'rugby', 'hockey', 'afl', 'handball', 'volleyball'].includes(sport)) {
@@ -480,7 +480,9 @@ class SportsApiService {
    */
   async getTodayFixtures(sport: string): Promise<StandardizedMatch[]> {
     const today = new Date().toISOString().split('T')[0];
-    return this.getFixtures(sport, { date: today });
+    // For football, we need to specify season 2023 for the free tier
+    const options = sport === 'football' ? { date: today, season: 2023 } : { date: today };
+    return this.getFixtures(sport, options);
   }
   
   /**
@@ -492,7 +494,7 @@ class SportsApiService {
   async getUpcomingFixtures(sport: string, days: number = 7): Promise<StandardizedMatch[]> {
     // For APIs that support "next" parameter
     if (['football'].includes(sport)) {
-      return this.getFixtures(sport, { next: 20 });
+      return this.getFixtures(sport, { next: 20, season: 2023 });
     }
     
     // For other APIs, we fetch by date range

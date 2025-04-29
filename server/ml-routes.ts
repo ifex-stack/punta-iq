@@ -812,9 +812,10 @@ router.get("/api/debug/sports-api", async (req, res) => {
     logger.info("MLRoutes", `API Sports key: ${apiKey ? apiKey.substring(0, 5) + '...' : 'Not set'}`);
     
     // Test API directly
-    // Use recent dates according to the free tier limits
-    const testDate = '2025-04-29'; // Current date
-    logger.info("MLRoutes", `Testing with date: ${testDate} for 2025 season`);
+    // The API free plan might only support current dates with older seasons
+    // Try 2023 season with a date within the current date range from the API error message
+    const testDate = '2025-04-29';
+    logger.info("MLRoutes", `Testing with date: ${testDate} for 2023 season`);
     
     try {
       const result = await sportsApiService.getFixtures(sport, { date: testDate });
