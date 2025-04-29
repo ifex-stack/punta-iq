@@ -301,8 +301,8 @@ class SportsApiService {
       
       // API-Football requires a season parameter
       if (sport === 'football' && !options.season) {
-        // Use 2023 (within free tier range according to API)
-        queryParams.season = 2023;
+        // Use 2025 - the free plan can access current season for recent dates
+        queryParams.season = 2025;
       }
       
       if (['basketball', 'baseball', 'american_football', 'rugby', 'hockey', 'afl', 'handball', 'volleyball'].includes(sport)) {

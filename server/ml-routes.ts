@@ -812,10 +812,12 @@ router.get("/api/debug/sports-api", async (req, res) => {
     logger.info("MLRoutes", `API Sports key: ${apiKey ? apiKey.substring(0, 5) + '...' : 'Not set'}`);
     
     // Test API directly
-    const today = new Date().toISOString().split('T')[0];
+    // Use recent dates according to the free tier limits
+    const testDate = '2025-04-29'; // Current date
+    logger.info("MLRoutes", `Testing with date: ${testDate} for 2025 season`);
     
     try {
-      const result = await sportsApiService.getFixtures(sport, { date: today });
+      const result = await sportsApiService.getFixtures(sport, { date: testDate });
       
       res.json({
         success: true,
@@ -823,7 +825,7 @@ router.get("/api/debug/sports-api", async (req, res) => {
         apiKeyPresent: !!apiKey,
         apiKeyLength: apiKey ? apiKey.length : 0,
         sport,
-        date: today,
+        date: testDate,
         sample: result.slice(0, 2) // Send just a sample of matches
       });
     } catch (error: any) {
@@ -833,7 +835,7 @@ router.get("/api/debug/sports-api", async (req, res) => {
         apiKeyPresent: !!apiKey,
         apiKeyLength: apiKey ? apiKey.length : 0,
         sport,
-        date: today
+        date: testDate
       });
     }
   } catch (error: any) {
