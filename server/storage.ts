@@ -307,6 +307,11 @@ export interface IStorage {
   getContestLeaderboard(contestId: number): Promise<FantasyContestEntry[]>;
   updateFantasyContestStatus(id: number, status: string): Promise<FantasyContest | null>;
   
+  // Player statistics methods
+  getPlayerSeasonStats(playerId: number): Promise<import("@shared/player-interfaces").PlayerSeasonStats | undefined>;
+  getPlayerMatchStats(playerId: number): Promise<import("@shared/player-interfaces").PlayerMatchStats[]>;
+  getAllPlayerSeasonStats(): Promise<import("@shared/player-interfaces").PlayerSeasonStats[]>;
+  
   // Session store
   sessionStore: session.SessionStore;
 }
@@ -458,6 +463,9 @@ export class MemStorage implements IStorage {
     
     // Initialize with sample data
     this.initializeSampleData();
+    
+    // Initialize with real player data from CSV
+    this.initializePlayerData();
   }
 
   // User methods
@@ -587,6 +595,111 @@ export class MemStorage implements IStorage {
     // This is a simplified implementation for testing purposes
     // In a real implementation, we would validate the TOTP code
     return code === '123456';
+  }
+  
+  // Player statistics methods
+  async getPlayerSeasonStats(playerId: number): Promise<import("@shared/player-interfaces").PlayerSeasonStats | undefined> {
+    // First, check if we have real player data from CSV
+    const realPlayerStats = this.playerSeasonStatsMap.get(playerId);
+    if (realPlayerStats) {
+      return realPlayerStats;
+    }
+    
+    // If no real data found, check if we have a player in the football players list
+    const player = this.getFootballPlayerById(playerId);
+    if (player) {
+      // Create a player season stats object based on the football player data
+      const stats: import("@shared/player-interfaces").PlayerSeasonStats = {
+        playerId,
+        season: new Date().getFullYear().toString(),
+        competition: null,
+        team: player.team,
+        
+        // Appearance stats
+        appearances: player.appearances || 0,
+        minutesPlayed: player.minutesPlayed || 0,
+        captain: false,
+        
+        // Goal involvement
+        goals: player.goals || 0,
+        assists: player.assists || 0,
+        
+        // Disciplinary
+        yellowCards: player.yellowCards || 0,
+        redCards: player.redCards || 0,
+        
+        // Goalkeeper stats
+        cleanSheets: player.cleanSheets || 0,
+        goalsConceded: 0,
+        
+        // Basic stats
+        passAccuracy: 75,
+        
+        // Additional info
+        rating: player.rating || 6.5,
+        fantasyPoints: player.fantasyPointsTotal || 0
+      };
+      
+      return stats;
+    }
+    
+    // If no data found, return undefined
+    return undefined;
+  }
+  
+  async getPlayerMatchStats(playerId: number): Promise<import("@shared/player-interfaces").PlayerMatchStats[]> {
+    // Check if we have player match stats
+    const matchStats = this.playerMatchStatsMap.get(playerId);
+    if (matchStats && matchStats.length > 0) {
+      return matchStats;
+    }
+    
+    // If no match stats found, generate some placeholder stats
+    const player = await this.getPlayerSeasonStats(playerId);
+    if (player) {
+      const generatedMatchStats: import("@shared/player-interfaces").PlayerMatchStats[] = [];
+      const now = new Date();
+      
+      // Generate 5 match stats based on the season stats
+      for (let i = 0; i < 5; i++) {
+        const matchDate = new Date(now);
+        matchDate.setDate(matchDate.getDate() - (i * 7)); // One match per week
+        
+        const minutesPlayed = player.appearances ? Math.round(player.minutesPlayed / player.appearances) : 90;
+        
+        // Scale down season stats for single match
+        const goals = Math.random() > 0.7 ? 1 : 0;
+        const assists = Math.random() > 0.8 ? 1 : 0;
+        const yellowCard = Math.random() > 0.9;
+        const redCard = Math.random() > 0.98;
+        
+        // Generate match stats
+        generatedMatchStats.push({
+          playerId,
+          matchId: i + 1,
+          matchDate,
+          opponent: `Opponent FC ${i+1}`,
+          homeOrAway: Math.random() > 0.5 ? 'home' : 'away',
+          minutesPlayed,
+          goals,
+          assists,
+          yellowCards: yellowCard ? 1 : 0,
+          redCards: redCard ? 1 : 0,
+          rating: 6 + (Math.random() * 3),
+          fantasyPoints: minutesPlayed >= 60 ? 2 : 1 + (goals * 5) + (assists * 3)
+        });
+      }
+      
+      return generatedMatchStats;
+    }
+    
+    // If no player data found, return empty array
+    return [];
+  }
+  
+  async getAllPlayerSeasonStats(): Promise<import("@shared/player-interfaces").PlayerSeasonStats[]> {
+    // Return all player season stats from CSV
+    return Array.from(this.playerSeasonStatsMap.values());
   }
   
   // Device tracking methods
@@ -2441,6 +2554,132 @@ export class MemStorage implements IStorage {
     }
   }
 
+  // Initialize player data from CSV
+  private initializePlayerData() {
+    try {
+      // Import the player data import function
+      const { importAndSavePlayerData } = require('./player-data-importer');
+      
+      // Get the player stats from the CSV
+      const playerStats = importAndSavePlayerData();
+      
+      // Store the player stats in the maps
+      if (playerStats && playerStats.length > 0) {
+        console.log(`Loaded ${playerStats.length} player statistics records from CSV`);
+        
+        // Save the player season stats
+        playerStats.forEach(stats => {
+          this.playerSeasonStatsMap.set(stats.playerId, stats);
+          
+          // Create dummy match stats for each player (in a real app, this would come from another API endpoint)
+          const matchStats: import("@shared/player-interfaces").PlayerMatchStats[] = [];
+          const now = new Date();
+          
+          // Create 5 recent matches with similar stats to the season totals but scaled down
+          for (let i = 0; i < 5; i++) {
+            const matchDate = new Date(now);
+            matchDate.setDate(matchDate.getDate() - (i * 7)); // One match per week
+            
+            const minutesPlayed = stats.appearances && stats.minutesPlayed 
+              ? Math.round(stats.minutesPlayed / stats.appearances) 
+              : 90;
+            
+            const goals = stats.goals 
+              ? Math.random() > 0.7 ? 1 : (Math.random() > 0.95 ? 2 : 0) 
+              : 0;
+              
+            const assists = stats.assists 
+              ? Math.random() > 0.8 ? 1 : 0 
+              : 0;
+              
+            const yellowCard = Math.random() > (1 - (stats.yellowCards || 0) / (stats.appearances || 1) / 2);
+            const redCard = Math.random() > (1 - (stats.redCards || 0) / (stats.appearances || 1) / 2);
+            
+            // Common opponents based on league
+            const leagueOpponents: Record<string, string[]> = {
+              'Premier League': ['Arsenal', 'Chelsea', 'Liverpool', 'Manchester City', 'Tottenham', 'Manchester United'],
+              'Serie A': ['Juventus', 'Inter', 'AC Milan', 'Napoli', 'Roma', 'Lazio'],
+              'La Liga': ['Barcelona', 'Real Madrid', 'Atletico Madrid', 'Sevilla', 'Valencia', 'Villarreal'],
+              'Bundesliga': ['Bayern Munich', 'Borussia Dortmund', 'RB Leipzig', 'Bayer Leverkusen', 'Wolfsburg']
+            };
+            
+            // Get opponents based on league or use default
+            const defaultOpponents = ['Opponent FC', 'United FC', 'City FC', 'Athletic', 'Rovers'];
+            const leagueName = stats.competition || '';
+            const opponents = leagueOpponents[leagueName] || defaultOpponents;
+            const opponent = opponents[Math.floor(Math.random() * opponents.length)];
+            
+            // Generate passing stats based on season average
+            const passesTotal = stats.passesTotal 
+              ? Math.round((stats.passesTotal / (stats.appearances || 1)) * (0.8 + Math.random() * 0.4)) 
+              : Math.round(20 + Math.random() * 40);
+              
+            const passAccuracy = stats.passAccuracy || Math.round(70 + Math.random() * 20);
+            
+            // Generate shot stats based on position and season average
+            const shotsTotal = goals + Math.floor(Math.random() * 3);
+            const shotsOnTarget = goals + (Math.random() > 0.7 ? 1 : 0);
+            
+            // Calculate match rating (1-10 scale)
+            let rating = 6.0; // base rating
+            rating += goals * 0.8;
+            rating += assists * 0.5;
+            rating -= yellowCard ? 0.3 : 0;
+            rating -= redCard ? 1.5 : 0;
+            rating = Math.max(3, Math.min(10, rating));
+            rating = parseFloat(rating.toFixed(1));
+            
+            // Calculate fantasy points
+            let fantasyPoints = minutesPlayed >= 60 ? 2 : 1;
+            
+            if (stats.competition?.includes('Premier League')) {
+              // Use Premier League fantasy points system
+              fantasyPoints += goals * (stats.position === 'forward' ? 4 : stats.position === 'midfielder' ? 5 : 6);
+              fantasyPoints += assists * 3;
+              fantasyPoints -= yellowCard ? 1 : 0;
+              fantasyPoints -= redCard ? 3 : 0;
+            } else {
+              // Generic fantasy points
+              fantasyPoints += goals * 5;
+              fantasyPoints += assists * 3;
+              fantasyPoints -= yellowCard ? 1 : 0;
+              fantasyPoints -= redCard ? 2 : 0;
+            }
+            
+            // Create the match stats
+            matchStats.push({
+              playerId: stats.playerId,
+              matchId: i + 1,
+              matchDate,
+              opponent,
+              homeOrAway: Math.random() > 0.5 ? 'home' : 'away',
+              minutesPlayed,
+              goals,
+              assists,
+              yellowCards: yellowCard ? 1 : 0,
+              redCards: redCard ? 1 : 0,
+              passesTotal,
+              passAccuracy,
+              shotsTotal,
+              shotsOnTarget,
+              rating,
+              fantasyPoints
+            });
+          }
+          
+          // Save the match stats
+          this.playerMatchStatsMap.set(stats.playerId, matchStats);
+        });
+        
+        console.log('Player data initialization completed successfully');
+      } else {
+        console.log('No player data found in CSV');
+      }
+    } catch (error) {
+      console.error('Error initializing player data:', error);
+    }
+  }
+  
   // Initialize sample data
   private initializeSampleData() {
     // Add sample sports

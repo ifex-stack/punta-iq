@@ -1,8 +1,9 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import fs from 'fs';
+import path from 'path';
 import { parse } from 'csv-parse/sync';
 import { PlayerSeasonStats } from '@shared/player-interfaces';
 
+// Interface for raw player data from CSV
 interface RawPlayerData {
   Id: string;
   Name: string;
@@ -65,167 +66,212 @@ interface RawPlayerData {
   'Penalty saved': string;
 }
 
+/**
+ * Imports player data from a CSV file and transforms it into PlayerSeasonStats objects
+ * @param filePath The path to the CSV file
+ * @returns An array of PlayerSeasonStats objects
+ */
 export function importPlayerData(filePath: string): PlayerSeasonStats[] {
   try {
-    const csvData = fs.readFileSync(filePath, 'utf8');
-    const records: RawPlayerData[] = parse(csvData, {
-      columns: true,
-      delimiter: ';',
-      skip_empty_lines: true
-    });
+    const csvPath = path.resolve(filePath);
+    if (!fs.existsSync(csvPath)) {
+      console.error(`CSV file not found: ${csvPath}`);
+      return [];
+    }
 
-    return records.map(record => transformToPlayerStats(record));
+    // Read the CSV file
+    const fileContent = fs.readFileSync(csvPath, 'utf-8');
+    
+    // Parse the CSV data
+    const records = parse(fileContent, {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true
+    }) as RawPlayerData[];
+
+    // Transform raw data into PlayerSeasonStats objects
+    return records.map((record, index) => transformToPlayerStats(record, index + 1));
   } catch (error) {
-    console.error('Error importing player data:', error);
+    console.error(`Error importing player data: ${error}`);
     return [];
   }
 }
 
-function transformToPlayerStats(record: RawPlayerData): PlayerSeasonStats {
-  // Parse numerical values safely
-  const parseNumber = (value: string): number | null => {
-    if (value === '' || value === undefined) return null;
-    const parsed = parseFloat(value);
-    return isNaN(parsed) ? null : parsed;
+/**
+ * Transforms raw player data from CSV into a PlayerSeasonStats object
+ * @param record The raw player data from CSV
+ * @param playerId The ID to assign to the player
+ * @returns A PlayerSeasonStats object
+ */
+function transformToPlayerStats(record: RawPlayerData, playerId: number): PlayerSeasonStats {
+  // Parse numeric values, defaulting to 0 or null if not valid
+  const parseNumeric = (val: string, defaultVal: number | null = 0): number | null => {
+    const num = parseFloat(val);
+    return isNaN(num) ? defaultVal : num;
   };
 
-  // Parse rating value which may have decimal points
-  const parseRating = (value: string): number | null => {
-    if (!value) return null;
-    
-    // Some ratings might come in format "7.200000" - we handle that here
-    const parsed = parseFloat(value);
-    return isNaN(parsed) ? null : parsed;
-  };
-
-  // Parse pass accuracy which is often in percentage 
-  const parseAccuracy = (value: string): number | null => {
-    if (!value) return null;
-    // If value contains '%', remove it
-    const cleanValue = value.replace('%', '');
-    const parsed = parseFloat(cleanValue);
-    return isNaN(parsed) ? null : parsed;
-  };
-
-  // Convert positions to our standard format
-  const standardizePosition = (position: string): string => {
+  // Determine player position from 'Games position'
+  const determinePosition = (position: string): string => {
     position = position.toLowerCase();
-    if (position.includes('goalkeeper')) return 'goalkeeper';
-    if (position.includes('defender')) return 'defender';
-    if (position.includes('midfielder')) return 'midfielder';
-    if (position.includes('attacker') || position.includes('forward')) return 'forward';
-    return position;
+    if (position.includes('goalkeeper') || position.includes('gk')) return 'goalkeeper';
+    if (position.includes('defender') || position.includes('cb') || position.includes('lb') || position.includes('rb')) return 'defender';
+    if (position.includes('midfielder') || position.includes('cm') || position.includes('cdm') || position.includes('cam')) return 'midfielder';
+    if (position.includes('forward') || position.includes('st') || position.includes('lw') || position.includes('rw')) return 'forward';
+    return 'unknown';
   };
+
+  // Extract season from 'League season'
+  const season = record['League season'] || new Date().getFullYear().toString();
+  
+  // Calculate rating - convert from 0-10 scale if needed
+  let rating = parseNumeric(record['Games rating']);
+  if (rating && rating > 0 && rating <= 10) {
+    // Already on a 0-10 scale, which is what we want
+  } else if (rating && rating > 10 && rating <= 100) {
+    // Convert from 0-100 scale to 0-10 scale
+    rating = rating / 10;
+  }
+
+  // Calculate fantasy points based on player stats
+  const fantasyPoints = calculateFantasyPoints(record, determinePosition(record['Games position']));
 
   return {
-    playerId: parseInt(record.Id),
-    season: record['League season'],
+    playerId,
+    season,
     competition: record['League name'],
-    competitionId: parseNumber(record['League id']),
+    competitionId: parseNumeric(record['League id']),
     team: record['Team name'],
-    teamId: parseNumber(record['Team id']),
+    teamId: parseNumeric(record['Team id']),
     
     // Appearance stats
-    appearances: parseNumber(record['Games appearences']),
-    lineups: parseNumber(record['Games lineups']),
-    minutesPlayed: parseNumber(record['Games minutes']) || 0,
-    captain: record['Games captain'] === 'true',
+    appearances: parseNumeric(record['Games appearences']),
+    lineups: parseNumeric(record['Games lineups']),
+    minutesPlayed: parseNumeric(record['Games minutes']) || 0,
+    captain: record['Games captain'] === '1' || record['Games captain']?.toLowerCase() === 'true',
     
     // Goal involvement
-    goals: parseNumber(record['Goals total']) || 0,
-    assists: parseNumber(record['Goals assists']) || 0,
+    goals: parseNumeric(record['Goals total']) || 0,
+    assists: parseNumeric(record['Goals assists']) || 0,
     
     // Disciplinary
-    yellowCards: parseNumber(record['Cards yellow']) || 0,
-    redCards: parseNumber(record['Cards red']) || 0,
+    yellowCards: parseNumeric(record['Cards yellow']) || 0,
+    redCards: parseNumeric(record['Cards red']) || 0,
     
     // Goalkeeper stats
-    cleanSheets: 0, // Calculate from matches data if available
-    goalsConceded: parseNumber(record['Goals conceded']),
-    saves: parseNumber(record['Goals saves']),
+    cleanSheets: 0, // Not directly provided in the CSV
+    goalsConceded: parseNumeric(record['Goals conceded']),
+    saves: parseNumeric(record['Goals saves']),
     
     // Passing stats
-    passesTotal: parseNumber(record['Passes total']),
-    passesKey: parseNumber(record['Passes key']),
-    passAccuracy: parseAccuracy(record['Passes accuracy']),
+    passesTotal: parseNumeric(record['Passes total']),
+    passesKey: parseNumeric(record['Passes key']),
+    passAccuracy: parseNumeric(record['Passes accuracy']),
     
     // Defensive stats
-    tacklesTotal: parseNumber(record['Tackles total']),
-    tacklesBlocks: parseNumber(record['Tackles blocks']),
-    tacklesInterceptions: parseNumber(record['Tackles interceptions']),
-    duelsTotal: parseNumber(record['Duels total']),
-    duelsWon: parseNumber(record['Duels won']),
+    tackles: parseNumeric(record['Tackles total']),
+    tacklesBlocks: parseNumeric(record['Tackles blocks']),
+    tacklesInterceptions: parseNumeric(record['Tackles interceptions']),
+    duelsTotal: parseNumeric(record['Duels total']),
+    duelsWon: parseNumeric(record['Duels won']),
     
     // Attacking stats
-    shotsTotal: parseNumber(record['Shots total']),
-    shotsOnTarget: parseNumber(record['Shots on']),
-    dribblesAttempts: parseNumber(record['Dribbles attempts']),
-    dribblesSuccess: parseNumber(record['Dribbles success']),
+    shotsTotal: parseNumeric(record['Shots total']),
+    shotsOnTarget: parseNumeric(record['Shots on']),
+    dribblesAttempts: parseNumeric(record['Dribbles attempts']),
+    dribblesSuccess: parseNumeric(record['Dribbles success']),
     
     // Additional info
-    rating: parseRating(record['Games rating']),
-    
-    // Calculate fantasy points based on position and stats
-    fantasyPoints: calculateFantasyPoints(
-      standardizePosition(record['Games position'] || ''), 
-      parseNumber(record['Goals total']) || 0,
-      parseNumber(record['Goals assists']) || 0,
-      parseNumber(record['Cards yellow']) || 0,
-      parseNumber(record['Cards red']) || 0,
-      0, // cleanSheets
-      parseNumber(record['Games minutes']) || 0
-    )
+    injury: record['Injured'] === '1' ? 'Injured' : null,
+    fantasyPoints,
+    rating
   };
 }
 
+/**
+ * Calculates fantasy points based on player statistics and position
+ * @param record The raw player data
+ * @param position The player's position
+ * @returns The fantasy points value
+ */
 function calculateFantasyPoints(
-  position: string,
-  goals: number,
-  assists: number,
-  yellowCards: number,
-  redCards: number,
-  cleanSheets: number,
-  minutesPlayed: number
+  record: RawPlayerData,
+  position: string
 ): number {
   let points = 0;
   
-  // Points for playing
-  if (minutesPlayed >= 60) {
-    points += 2;
-  } else if (minutesPlayed > 0) {
-    points += 1;
-  }
+  // Appearance points - 1 for less than 60 mins, 2 for 60+ mins
+  const minutes = parseFloat(record['Games minutes'] || '0');
+  points += minutes >= 60 ? 2 : (minutes > 0 ? 1 : 0);
   
-  // Points for goals based on position
+  // Goals points - more for defenders/goalkeepers
+  const goals = parseFloat(record['Goals total'] || '0');
   if (position === 'goalkeeper' || position === 'defender') {
     points += goals * 6;
   } else if (position === 'midfielder') {
     points += goals * 5;
-  } else { // forward
+  } else {
+    // Forward
     points += goals * 4;
   }
   
-  // Points for assists
+  // Assists - 3 points each
+  const assists = parseFloat(record['Goals assists'] || '0');
   points += assists * 3;
   
-  // Points for cards
-  points -= yellowCards * 1;
-  points -= redCards * 3;
-  
-  // Points for clean sheets based on position
+  // Clean sheet points (estimated)
+  const appearances = parseFloat(record['Games appearences'] || '0');
   if (position === 'goalkeeper' || position === 'defender') {
+    // Estimate clean sheets as approximately 30% of appearances for good players
+    const cleanSheets = Math.round(appearances * 0.3);
     points += cleanSheets * 4;
   } else if (position === 'midfielder') {
+    // Midfielders get 1 point for clean sheets
+    const cleanSheets = Math.round(appearances * 0.3);
     points += cleanSheets * 1;
   }
   
-  return points;
+  // Penalty saves (goalkeeper)
+  if (position === 'goalkeeper') {
+    const penaltySaves = parseFloat(record['Penalty saved'] || '0');
+    points += penaltySaves * 5;
+  }
+  
+  // Card deductions
+  const yellowCards = parseFloat(record['Cards yellow'] || '0');
+  const redCards = parseFloat(record['Cards red'] || '0');
+  points -= yellowCards * 1;
+  points -= redCards * 3;
+  
+  // Penalty misses
+  const penaltyMisses = parseFloat(record['Penalty missed'] || '0');
+  points -= penaltyMisses * 2;
+  
+  // Add bonus points based on rating
+  const rating = parseFloat(record['Games rating'] || '0');
+  if (rating >= 8) {
+    points += 3;
+  } else if (rating >= 7) {
+    points += 2;
+  } else if (rating >= 6) {
+    points += 1;
+  }
+  
+  return Math.max(0, Math.round(points));
 }
 
+/**
+ * Imports player data from the CSV and saves it to storage
+ * This is called during application startup to initialize real player data
+ */
 export function importAndSavePlayerData() {
-  const filePath = path.join(__dirname, '../attached_assets/players_players-statistics_get-players-statistics-for-current-seasons.csv');
-  const playerStats = importPlayerData(filePath);
-  
-  console.log(`Imported ${playerStats.length} player statistics records`);
-  return playerStats;
+  try {
+    const playerStats = importPlayerData('./attached_assets/players_players-statistics_get-players-statistics-for-current-seasons.csv');
+    console.log(`Successfully imported ${playerStats.length} player records from CSV`);
+    
+    // Return the imported player stats for storage service to use
+    return playerStats;
+  } catch (error) {
+    console.error('Error importing and saving player data:', error);
+    return [];
+  }
 }
