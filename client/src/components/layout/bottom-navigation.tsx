@@ -1,8 +1,7 @@
 import { Link, useLocation } from "wouter";
 import {
-  BarChart2Icon,
+  BarChart2,
   CrownIcon,
-  LineChartIcon,
   UserIcon,
   TrophyIcon,
   WrenchIcon,
@@ -12,7 +11,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 
 interface BottomNavigationProps {
-  activePage: "predictions" | "stats" | "fantasy" | "subscription" | "profile" | "admin" | "news" | "gamification";
+  activePage: "predictions_stats" | "fantasy" | "subscription" | "profile" | "admin" | "news" | "gamification";
 }
 
 const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
@@ -31,25 +30,16 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50">
       <div className={`flex justify-around items-center h-16 ${isAdmin ? 'relative' : ''}`}>
         <Link href="/">
-          <a className={`flex flex-col items-center justify-center ${isAdmin ? 'w-1/7' : 'w-1/6'} ${
-            isActive("predictions") ? "text-primary" : "text-muted-foreground"
+          <a className={`flex flex-col items-center justify-center ${isAdmin ? 'w-1/6' : 'w-1/5'} ${
+            isActive("predictions_stats") ? "text-primary" : "text-muted-foreground"
           }`}>
-            <LineChartIcon className="h-5 w-5" />
-            <span className="text-xs mt-1">Predictions</span>
-          </a>
-        </Link>
-        
-        <Link href="/stats">
-          <a className={`flex flex-col items-center justify-center ${isAdmin ? 'w-1/7' : 'w-1/6'} ${
-            isActive("stats") ? "text-primary" : "text-muted-foreground"
-          }`}>
-            <BarChart2Icon className="h-5 w-5" />
-            <span className="text-xs mt-1">Stats</span>
+            <BarChart2 className="h-5 w-5" />
+            <span className="text-xs mt-1">Predictions & Stats</span>
           </a>
         </Link>
         
         <Link href="/news">
-          <a className={`flex flex-col items-center justify-center ${isAdmin ? 'w-1/7' : 'w-1/6'} ${
+          <a className={`flex flex-col items-center justify-center ${isAdmin ? 'w-1/6' : 'w-1/5'} ${
             isActive("news") ? "text-primary" : "text-muted-foreground"
           }`}>
             <NewspaperIcon className="h-5 w-5" />
@@ -58,7 +48,7 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
         </Link>
         
         <Link href="/fantasy/contests">
-          <a className={`flex flex-col items-center justify-center ${isAdmin ? 'w-1/7' : 'w-1/6'} ${
+          <a className={`flex flex-col items-center justify-center ${isAdmin ? 'w-1/6' : 'w-1/5'} ${
             isActive("fantasy") ? "text-primary" : "text-muted-foreground"
           }`}>
             <TrophyIcon className="h-5 w-5" />
@@ -66,17 +56,8 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
           </a>
         </Link>
         
-        <Link href="/subscription">
-          <a className={`flex flex-col items-center justify-center ${isAdmin ? 'w-1/7' : 'w-1/6'} ${
-            isActive("subscription") ? "text-primary" : "text-muted-foreground"
-          }`}>
-            <CrownIcon className="h-5 w-5" />
-            <span className="text-xs mt-1">Upgrade</span>
-          </a>
-        </Link>
-        
         <Link href="/gamification">
-          <a className={`flex flex-col items-center justify-center ${isAdmin ? 'w-1/7' : 'w-1/6'} ${
+          <a className={`flex flex-col items-center justify-center ${isAdmin ? 'w-1/6' : 'w-1/5'} ${
             isActive("gamification") ? "text-primary" : "text-muted-foreground"
           }`}>
             <AwardIcon className="h-5 w-5" />
@@ -85,7 +66,7 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
         </Link>
         
         <Link href="/profile">
-          <a className={`flex flex-col items-center justify-center ${isAdmin ? 'w-1/7' : 'w-1/6'} ${
+          <a className={`flex flex-col items-center justify-center ${isAdmin ? 'w-1/6' : 'w-1/5'} ${
             isActive("profile") ? "text-primary" : "text-muted-foreground"
           }`}>
             <UserIcon className="h-5 w-5" />
@@ -95,7 +76,7 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
         
         {isAdmin && (
           <Link href="/admin">
-            <a className={`flex flex-col items-center justify-center w-1/7 ${
+            <a className={`flex flex-col items-center justify-center w-1/6 ${
               isActive("admin") ? "text-primary" : "text-muted-foreground"
             }`}>
               <WrenchIcon className="h-5 w-5" />
