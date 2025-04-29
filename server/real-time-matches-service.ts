@@ -33,7 +33,15 @@ export class RealTimeMatchesService {
     'american_football',
     'baseball',
     'hockey',
-    'rugby'
+    'rugby',
+    'tennis',
+    'cricket',
+    'formula1',
+    'afl',
+    'handball',
+    'mma',
+    'volleyball',
+    'nba'
   ];
   
   /**

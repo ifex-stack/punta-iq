@@ -224,7 +224,7 @@ class SportsApiService {
   constructor() {
     this.apiKey = process.env.API_SPORTS_KEY || '';
     if (!this.apiKey) {
-      logger.warn('[SportsApiService] API_SPORTS_KEY is not set. API calls will fail.');
+      logger.warn('SportsApiService', 'API_SPORTS_KEY is not set. API calls will fail.');
     }
     
     // Initialize clients for each sport

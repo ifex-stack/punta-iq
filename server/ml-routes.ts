@@ -94,15 +94,20 @@ router.get("/api/predictions/:sport", async (req, res) => {
     // Check if the requested sport is supported by our real-time service
     // All sports are supported now through API-SPORTS integration
     const supportedSports = [
-      'football', 
-      'basketball', 
-      'baseball', 
-      'hockey', 
-      'rugby', 
-      'american_football', 
-      'tennis', 
-      'cricket', 
-      'formula1'
+      'football',
+      'basketball',
+      'american_football',
+      'baseball',
+      'hockey',
+      'rugby',
+      'tennis',
+      'cricket',
+      'formula1',
+      'afl',
+      'handball',
+      'mma',
+      'volleyball',
+      'nba'
     ];
     // Always attempt to use real-time data first for better prediction quality
     if (supportedSports.includes(sport)) {
