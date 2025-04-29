@@ -349,6 +349,10 @@ export class MemStorage implements IStorage {
   private userNewsPreferencesMap: Map<number, UserNewsPreferences>;
   private userSavedNewsMap: Map<number, UserSavedNews>;
   
+  // Player comparison data from API
+  private playerSeasonStatsMap: Map<number, import("@shared/player-interfaces").PlayerSeasonStats>;
+  private playerMatchStatsMap: Map<number, import("@shared/player-interfaces").PlayerMatchStats[]>;
+  
   // Connected websocket clients
   private wsClients: Map<number, WebSocket[]> = new Map();
   
@@ -429,6 +433,10 @@ export class MemStorage implements IStorage {
     this.newsArticlesMap = new Map();
     this.userNewsPreferencesMap = new Map();
     this.userSavedNewsMap = new Map();
+    
+    // Initialize player comparison data maps
+    this.playerSeasonStatsMap = new Map();
+    this.playerMatchStatsMap = new Map();
     
     // Include a sample referral for demonstration
     const sampleReferral: Referral = {
@@ -1232,28 +1240,55 @@ export class MemStorage implements IStorage {
         return null;
       }
       
+      // Check if we have real API data for this player
+      const realPlayerData = this.playerSeasonStatsMap.get(playerId);
+      
+      if (realPlayerData) {
+        // Return the real API data if available
+        return realPlayerData;
+      }
+      
       // Get current season data
       const currentSeason = new Date().getFullYear().toString();
       
-      // Create season stats object based on player data
+      // Create season stats object based on player data with better realistic values
       const seasonStats: import("@shared/player-interfaces").PlayerSeasonStats = {
         playerId: player.id,
         season: currentSeason,
-        matches: player.appearances || 0,
+        appearances: player.appearances || 0,
+        games: player.appearances || 0,
         goals: player.goals || 0,
         assists: player.assists || 0,
         yellowCards: player.yellowCards || 0,
         redCards: player.redCards || 0,
         cleanSheets: player.cleanSheets || 0,
         minutesPlayed: player.minutesPlayed || 0,
-        passAccuracy: Math.floor(Math.random() * 30) + 65, // Placeholder stats until API integration
-        successfulTackles: player.position === 'defender' ? Math.floor(Math.random() * 60) + 20 : Math.floor(Math.random() * 30) + 10,
-        successfulDribbles: player.position === 'midfielder' || player.position === 'forward' ? Math.floor(Math.random() * 40) + 20 : Math.floor(Math.random() * 20) + 5,
-        chancesCreated: Math.floor(Math.random() * 40) + 5,
-        shotsOnTarget: player.position === 'forward' ? Math.floor(Math.random() * 30) + 10 : Math.floor(Math.random() * 15) + 2,
-        shotsTotal: player.position === 'forward' ? Math.floor(Math.random() * 50) + 20 : Math.floor(Math.random() * 25) + 5,
-        xG: parseFloat((Math.random() * (player.goals || 1) * 1.2).toFixed(2)),
-        xA: parseFloat((Math.random() * (player.assists || 1) * 1.1).toFixed(2)),
+        
+        // More realistic stats based on position
+        passAccuracy: player.position === 'midfielder' ? 85 : player.position === 'defender' ? 78 : 70,
+        passesTotal: player.position === 'midfielder' ? 120 : player.position === 'defender' ? 90 : 50,
+        passesKey: player.position === 'midfielder' ? 5 : player.position === 'forward' ? 3 : 1,
+        
+        // Defensive stats
+        tackles: player.position === 'defender' ? 8 : player.position === 'midfielder' ? 5 : 1,
+        tacklesTotal: player.position === 'defender' ? 10 : player.position === 'midfielder' ? 7 : 2,
+        tacklesBlocks: player.position === 'defender' ? 3 : 1,
+        tacklesInterceptions: player.position === 'defender' ? 4 : player.position === 'midfielder' ? 2 : 0,
+        duelsTotal: player.position === 'defender' ? 15 : player.position === 'midfielder' ? 12 : 10,
+        duelsWon: player.position === 'defender' ? 10 : player.position === 'midfielder' ? 8 : 6,
+        
+        // Attacking stats
+        shotsTotal: player.position === 'forward' ? 4 * player.appearances : player.position === 'midfielder' ? 2 * player.appearances : player.appearances / 2,
+        shotsOnTarget: player.position === 'forward' ? 2 * player.appearances : player.position === 'midfielder' ? player.appearances : player.appearances / 4,
+        dribblesAttempts: player.position === 'forward' ? 8 : player.position === 'midfielder' ? 6 : 2,
+        dribblesSuccess: player.position === 'forward' ? 5 : player.position === 'midfielder' ? 4 : 1,
+        
+        // Advanced metrics
+        xG: parseFloat((player.goals * 1.1).toFixed(2)),
+        xA: parseFloat((player.assists * 1.2).toFixed(2)),
+        
+        // Additional info
+        rating: 6.5 + (player.fantasyPointsAvg / 20),
         form: this.getPlayerFormDescription(player),
         fantasyPoints: player.fantasyPointsTotal || 0,
         injury: null // No injuries by default
@@ -1295,11 +1330,18 @@ export class MemStorage implements IStorage {
         return [];
       }
       
-      // Generate sample data for player's recent matches
-      // In a production environment, this would come from a database table
+      // Check if we have real match data for this player
+      const realMatchData = this.playerMatchStatsMap.get(playerId);
+      
+      if (realMatchData && realMatchData.length > 0) {
+        // Return real match data if available (limited to the requested count)
+        return realMatchData.slice(0, limit);
+      }
+      
+      // Generate realistic match data if real data is not available
       const recentMatches: import("@shared/player-interfaces").PlayerMatchStats[] = [];
       
-      // Generate X recent matches with semi-random data
+      // Generate matches with realistic data based on player position and attributes
       const now = new Date();
       
       for (let i = 0; i < limit; i++) {
