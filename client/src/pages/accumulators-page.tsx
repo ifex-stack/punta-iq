@@ -33,8 +33,13 @@ import {
   ChevronRight, RefreshCw, Zap, Trophy, TrendingUp,
   Rocket, Flame, Target, BarChart4, 
   CheckCircle2, XCircle, Percent, 
-  Menu, PlusCircle, BellRing, ExternalLink
+  Menu, PlusCircle, BellRing, ExternalLink,
+  Calendar, ChevronLeft
 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { format, addDays, startOfDay, endOfDay, isToday, isPast, isFuture } from 'date-fns';
+import { PuntaIQLogo } from '@/components/ui/puntaiq-logo';
 
 // Custom icons for sports (since some might not be in Lucide)
 interface IconProps {
@@ -208,6 +213,12 @@ export default function AccumulatorsPage() {
   const [savedAccumulators, setSavedAccumulators] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [currentTab, setCurrentTab] = useState<string>('recommended');
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({
+    from: startOfDay(new Date()),
+    to: endOfDay(addDays(new Date(), 2))
+  });
+  const [dateFilterType, setDateFilterType] = useState<string>('upcoming'); // 'upcoming', 'past', 'custom'
+  const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -441,6 +452,25 @@ export default function AccumulatorsPage() {
   // Generate all available accumulators
   const accumulators = React.useMemo(() => generateAccumulators(), [allPredictions]);
   
+  // Handle date filter changes
+  const handleDateFilterChange = (type: string) => {
+    setDateFilterType(type);
+    
+    // Set appropriate date ranges based on selected filter
+    if (type === 'upcoming') {
+      setDateRange({
+        from: startOfDay(new Date()),
+        to: endOfDay(addDays(new Date(), 7))
+      });
+    } else if (type === 'past') {
+      setDateRange({
+        from: startOfDay(addDays(new Date(), -30)), // Last 30 days
+        to: endOfDay(addDays(new Date(), -1))       // Up to yesterday
+      });
+    }
+    // For 'custom', don't change dateRange - user will set it manually
+  };
+  
   // Filter accumulators based on user selection
   const filteredAccumulators = React.useMemo(() => {
     let filtered = [...accumulators];
@@ -460,6 +490,17 @@ export default function AccumulatorsPage() {
       filtered = filtered.filter(acca => acca.marketType === 'all' || acca.marketType === marketType);
     }
     
+    // Apply date filter
+    if (dateRange.from && dateRange.to) {
+      filtered = filtered.filter(acca => {
+        // Check if any selection in the accumulator falls within the date range
+        return acca.selections.some(selection => {
+          const matchDate = new Date(selection.startTime);
+          return matchDate >= dateRange.from! && matchDate <= dateRange.to!;
+        });
+      });
+    }
+    
     // Apply search filter
     if (searchTerm.trim() !== '') {
       const term = searchTerm.toLowerCase();
@@ -475,7 +516,7 @@ export default function AccumulatorsPage() {
     }
     
     return filtered;
-  }, [accumulators, sport, marketType, searchTerm, currentTab]);
+  }, [accumulators, sport, marketType, searchTerm, currentTab, dateRange]);
 
   // Refresh data
   const refreshData = async () => {
@@ -548,11 +589,11 @@ export default function AccumulatorsPage() {
     <div className="container py-6 max-w-screen-xl animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={handleBack}>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={handleBack} className="mr-1">
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-2xl font-bold">Accumulators</h1>
+          <PuntaIQLogo size="md" />
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={refreshData}>
@@ -629,9 +670,10 @@ export default function AccumulatorsPage() {
                 </div>
               </div>
 
-              {/* Market type filter */}
-              <div className="space-y-2">
+              {/* Market type filter - organized by sport */}
+              <div className="space-y-3">
                 <h3 className="text-sm font-medium">Market Type</h3>
+                
                 <div className="flex flex-wrap gap-2">
                   <Badge 
                     variant={marketType === 'all' ? 'default' : 'outline'} 
@@ -640,18 +682,200 @@ export default function AccumulatorsPage() {
                   >
                     All Markets
                   </Badge>
-                  
-                  {getEffectiveMarkets().map(market => (
-                    <Badge 
-                      key={market.id}
-                      variant={marketType === market.id ? 'default' : 'outline'} 
-                      className="cursor-pointer hover:bg-muted"
-                      onClick={() => setMarketType(market.id)}
-                    >
-                      {market.icon} {market.name}
-                    </Badge>
-                  ))}
                 </div>
+                
+                {/* Only show relevant sports based on current selection */}
+                {(sport === 'all' || sport === 'football') && (
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-medium flex items-center">
+                      <FootballIcon className="h-3.5 w-3.5 mr-1" /> Football Markets
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {FOOTBALL_MARKETS.map(market => (
+                        <Badge 
+                          key={market.id}
+                          variant={marketType === market.id ? 'default' : 'outline'} 
+                          className="cursor-pointer hover:bg-muted"
+                          onClick={() => setMarketType(market.id)}
+                        >
+                          {market.icon} {market.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {(sport === 'all' || sport === 'basketball') && (
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-medium flex items-center">
+                      <Basketball className="h-3.5 w-3.5 mr-1" /> Basketball Markets
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {BASKETBALL_MARKETS.map(market => (
+                        <Badge 
+                          key={market.id}
+                          variant={marketType === market.id ? 'default' : 'outline'} 
+                          className="cursor-pointer hover:bg-muted"
+                          onClick={() => setMarketType(market.id)}
+                        >
+                          {market.icon} {market.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {(sport === 'all' || sport === 'tennis') && (
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-medium flex items-center">
+                      <Tennis className="h-3.5 w-3.5 mr-1" /> Tennis Markets
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {TENNIS_MARKETS.map(market => (
+                        <Badge 
+                          key={market.id}
+                          variant={marketType === market.id ? 'default' : 'outline'} 
+                          className="cursor-pointer hover:bg-muted"
+                          onClick={() => setMarketType(market.id)}
+                        >
+                          {market.icon} {market.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {(sport === 'all' || sport === 'volleyball') && (
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-medium flex items-center">
+                      <Volleyball className="h-3.5 w-3.5 mr-1" /> Volleyball Markets
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {VOLLEYBALL_MARKETS.map(market => (
+                        <Badge 
+                          key={market.id}
+                          variant={marketType === market.id ? 'default' : 'outline'} 
+                          className="cursor-pointer hover:bg-muted"
+                          onClick={() => setMarketType(market.id)}
+                        >
+                          {market.icon} {market.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Date filter */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium">Date Range</h3>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  <Badge 
+                    variant={dateFilterType === 'upcoming' ? 'default' : 'outline'} 
+                    className="cursor-pointer hover:bg-muted"
+                    onClick={() => handleDateFilterChange('upcoming')}
+                  >
+                    <Activity className="h-3.5 w-3.5 mr-1" /> Upcoming (7 days)
+                  </Badge>
+                  <Badge 
+                    variant={dateFilterType === 'past' ? 'default' : 'outline'} 
+                    className="cursor-pointer hover:bg-muted"
+                    onClick={() => handleDateFilterChange('past')}
+                  >
+                    <Clock className="h-3.5 w-3.5 mr-1" /> Historical (30 days)
+                  </Badge>
+                  <Badge 
+                    variant={dateFilterType === 'custom' ? 'default' : 'outline'} 
+                    className="cursor-pointer hover:bg-muted"
+                    onClick={() => {
+                      setDateFilterType('custom');
+                      setIsDatePopoverOpen(true);
+                    }}
+                  >
+                    <Calendar className="h-3.5 w-3.5 mr-1" /> Custom
+                  </Badge>
+                </div>
+
+                {/* Custom Date Range Selector */}
+                {dateFilterType === 'custom' && (
+                  <div className="p-2 rounded-md border bg-card shadow-sm">
+                    <Popover open={isDatePopoverOpen} onOpenChange={setIsDatePopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          className="w-full justify-between text-left font-normal flex items-center"
+                          size="sm"
+                        >
+                          <div className="flex items-center">
+                            <Calendar className="mr-2 h-4 w-4" />
+                            <span>
+                              {dateRange.from ? (
+                                dateRange.to ? (
+                                  <>
+                                    {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
+                                  </>
+                                ) : (
+                                  format(dateRange.from, "LLL dd, y")
+                                )
+                              ) : (
+                                "Pick a date range"
+                              )}
+                            </span>
+                          </div>
+                          <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="center">
+                        <CalendarComponent
+                          mode="range"
+                          defaultMonth={dateRange.from}
+                          selected={{
+                            from: dateRange.from,
+                            to: dateRange.to
+                          }}
+                          onSelect={(range) => {
+                            if (range) {
+                              setDateRange({
+                                from: range.from,
+                                to: range.to
+                              });
+                              if (range.from && range.to) {
+                                // Close popover when a complete range is selected
+                                setTimeout(() => setIsDatePopoverOpen(false), 300);
+                              }
+                            }
+                          }}
+                          numberOfMonths={2}
+                          initialFocus
+                        />
+                        <div className="p-3 border-t flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground">
+                            Select start and end dates
+                          </span>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => setIsDatePopoverOpen(false)}
+                          >
+                            Apply
+                          </Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                    <div className="mt-2 flex gap-2 items-center text-xs text-muted-foreground">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      <span>Data availability varies by date range</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Current selection display */}
+                {!isDatePopoverOpen && dateFilterType === 'custom' && dateRange.from && dateRange.to && (
+                  <div className="text-xs text-muted-foreground">
+                    <span className="font-medium">Selected range: </span>
+                    {format(dateRange.from, "MMM dd, yyyy")} to {format(dateRange.to, "MMM dd, yyyy")}
+                  </div>
+                )}
               </div>
 
               {/* Help section */}
