@@ -301,9 +301,8 @@ class SportsApiService {
       
       // API-Football requires a season parameter
       if (sport === 'football' && !options.season) {
-        // Use current year as the season
-        const currentYear = new Date().getFullYear();
-        queryParams.season = currentYear;
+        // Use 2023 (within free tier range according to API)
+        queryParams.season = 2023;
       }
       
       if (['basketball', 'baseball', 'american_football', 'rugby', 'hockey', 'afl', 'handball', 'volleyball'].includes(sport)) {
@@ -327,6 +326,13 @@ class SportsApiService {
       let responseData;
       
       try {
+        // Log the full request details for debugging
+        const requestUrl = `${client.defaults.baseURL}${endpoint}`;
+        logger.info('SportsApiService', `Making request to: ${requestUrl}`, {
+          headers: client.defaults.headers,
+          params: queryParams
+        });
+        
         const response = await client.get(endpoint, { params: queryParams });
         responseData = response.data;
         
@@ -334,6 +340,9 @@ class SportsApiService {
         logger.info('SportsApiService', `${sport} API response status: ${response.status}`);
         logger.info('SportsApiService', `${sport} API response size: ${
           responseData && responseData.response ? responseData.response.length : 'No data'}`);
+        
+        // Log response headers for debugging authentication issues
+        logger.info('SportsApiService', 'Response headers:', response.headers);
         
         if (responseData.errors && Object.keys(responseData.errors).length > 0) {
           logger.error('SportsApiService', 'API returned errors:', responseData.errors);
@@ -344,6 +353,7 @@ class SportsApiService {
         if (error.response) {
           logger.error('SportsApiService', `Status: ${error.response.status}`);
           logger.error('SportsApiService', `Data: ${JSON.stringify(error.response.data)}`);
+          logger.error('SportsApiService', `Headers: ${JSON.stringify(error.response.headers)}`);
         }
         throw error; // Re-throw to be caught by the outer try/catch
       }
