@@ -2015,7 +2015,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
-      const { referralCode } = req.body;
+      const { referralCode, channel, utmParameters } = req.body;
       
       if (!referralCode) {
         return res.status(400).json({ message: "Referral code is required" });
@@ -2044,11 +2044,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "You have already been referred by someone" });
       }
       
-      // Create the referral
+      // Create the referral with channel and UTM tracking
       const referral = await storage.createReferral({
         referrerId: referrer.id,
         referredId: req.user.id,
-        status: 'pending'
+        status: 'pending',
+        channel: channel || null,
+        utmParameters: utmParameters || null
       });
       
       res.status(201).json({ 

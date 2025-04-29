@@ -770,10 +770,40 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
       rewardAmount: 0,
       completedAt: null,
-      rewardDate: null
+      rewardDate: null,
+      // Add support for tracking channel if provided
+      channel: referral.channel || null,
+      // Add support for UTM parameters if provided
+      utmParameters: referral.utmParameters || null
     };
     
     this.referralsMap.set(id, newReferral);
+    
+    // Update the user's referral streak if this is a new referral
+    const referrer = await this.getUser(referral.referrerId);
+    if (referrer) {
+      // Check if the user has made a referral in the last 7 days
+      const today = new Date();
+      const lastWeek = new Date(today);
+      lastWeek.setDate(today.getDate() - 7);
+      
+      // Only update if this is a fresh streak (no referral in the last week) or continuing streak
+      if (!referrer.lastReferralDate || new Date(referrer.lastReferralDate) > lastWeek) {
+        await this.usersMap.set(referrer.id, {
+          ...referrer,
+          referralStreak: (referrer.referralStreak || 0) + 1,
+          lastReferralDate: today
+        });
+      } else {
+        // It's been more than a week, reset streak
+        await this.usersMap.set(referrer.id, {
+          ...referrer,
+          referralStreak: 1,
+          lastReferralDate: today
+        });
+      }
+    }
+    
     return newReferral;
   }
   
@@ -833,7 +863,12 @@ export class MemStorage implements IStorage {
     nextTierThreshold: number | null,
     progress: number,
     streakCount: number,
-    lastReferralDate: Date | null
+    lastReferralDate: Date | null,
+    channelBreakdown: Record<string, number>,
+    monthlyStats: Array<{ month: string, count: number }>,
+    conversionRate: number,
+    tierHistory: Array<{ tier: string, achievedAt: Date }>,
+    perks: Array<{ name: string, description: string, tier: string, isUnlocked: boolean }>
   }> {
     const userReferrals = Array.from(this.referralsMap.values()).filter(
       referral => referral.referrerId === userId
@@ -877,7 +912,8 @@ export class MemStorage implements IStorage {
       { name: 'bronze', threshold: 1 },
       { name: 'silver', threshold: 5 },
       { name: 'gold', threshold: 10 },
-      { name: 'platinum', threshold: 25 }
+      { name: 'platinum', threshold: 25 },
+      { name: 'diamond', threshold: 50 }
     ];
     
     // Determine current tier
@@ -915,6 +951,97 @@ export class MemStorage implements IStorage {
       progress = 0;
     }
     
+    // Channel breakdown
+    const channelBreakdown: Record<string, number> = {};
+    userReferrals.forEach(referral => {
+      const channel = referral.channel || 'unknown';
+      channelBreakdown[channel] = (channelBreakdown[channel] || 0) + 1;
+    });
+    
+    // Calculate monthly stats
+    const monthlyStats: Array<{ month: string, count: number }> = [];
+    const monthMap: Record<string, number> = {};
+    
+    userReferrals.forEach(referral => {
+      const date = new Date(referral.createdAt);
+      const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
+      const monthName = date.toLocaleString('default', { month: 'short' });
+      const monthDisplayKey = `${monthName} ${date.getFullYear()}`;
+      
+      monthMap[monthDisplayKey] = (monthMap[monthDisplayKey] || 0) + 1;
+    });
+    
+    Object.entries(monthMap).forEach(([month, count]) => {
+      monthlyStats.push({ month, count });
+    });
+    
+    // Sort monthly stats by date
+    monthlyStats.sort((a, b) => {
+      const [aMonth, aYear] = a.month.split(' ');
+      const [bMonth, bYear] = b.month.split(' ');
+      
+      if (aYear !== bYear) return parseInt(aYear) - parseInt(bYear);
+      
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return months.indexOf(aMonth) - months.indexOf(bMonth);
+    });
+    
+    // Calculate conversion rate
+    const conversionRate = totalReferrals > 0 ? (completedReferrals / totalReferrals) * 100 : 0;
+    
+    // Generate tier history (simulated since we don't store this historically)
+    const tierHistory = tiers
+      .filter(tier => completedReferrals >= tier.threshold)
+      .map((tier, index) => {
+        // Simulate achieved dates based on chronological order
+        const achievedAt = new Date();
+        achievedAt.setMonth(achievedAt.getMonth() - (tiers.length - index));
+        return {
+          tier: tier.name,
+          achievedAt
+        };
+      });
+    
+    // Referral program perks based on tier
+    const perks = [
+      {
+        name: 'Welcome Bonus',
+        description: 'Receive 200 points just for joining the referral program',
+        tier: 'bronze',
+        isUnlocked: currentTier !== 'none'
+      },
+      {
+        name: 'Bonus Predictions',
+        description: 'Get access to 3 premium predictions per week',
+        tier: 'bronze',
+        isUnlocked: ['bronze', 'silver', 'gold', 'platinum', 'diamond'].includes(currentTier)
+      },
+      {
+        name: 'Early Access',
+        description: 'Get predictions 1 hour before regular users',
+        tier: 'silver',
+        isUnlocked: ['silver', 'gold', 'platinum', 'diamond'].includes(currentTier)
+      },
+      {
+        name: 'Double Points',
+        description: 'Earn double points for all successful referrals',
+        tier: 'gold',
+        isUnlocked: ['gold', 'platinum', 'diamond'].includes(currentTier)
+      },
+      {
+        name: 'Premium Access',
+        description: 'Get 1 month of free premium membership',
+        tier: 'platinum',
+        isUnlocked: ['platinum', 'diamond'].includes(currentTier)
+      },
+      {
+        name: 'VIP Status',
+        description: 'Permanent VIP badge and special platform features',
+        tier: 'diamond',
+        isUnlocked: currentTier === 'diamond'
+      }
+    ];
+    
     return {
       totalReferrals,
       pendingReferrals,
@@ -925,7 +1052,12 @@ export class MemStorage implements IStorage {
       nextTierThreshold,
       progress,
       streakCount,
-      lastReferralDate
+      lastReferralDate,
+      channelBreakdown,
+      monthlyStats,
+      conversionRate,
+      tierHistory,
+      perks
     };
   }
   

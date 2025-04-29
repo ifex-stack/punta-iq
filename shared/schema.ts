@@ -42,6 +42,9 @@ export const users = pgTable("users", {
   lastReferralDate: timestamp("last_referral_date"),
 });
 
+// Referral Tiers enum
+export const referralTierEnum = pgEnum('referral_tier', ['bronze', 'silver', 'gold', 'platinum', 'diamond']);
+
 // Referrals table
 export const referrals = pgTable("referrals", {
   id: serial("id").primaryKey(),
@@ -52,6 +55,8 @@ export const referrals = pgTable("referrals", {
   completedAt: timestamp("completed_at"),
   rewardAmount: integer("reward_amount"),
   rewardDate: timestamp("reward_date"),
+  channel: text("channel"), // The channel through which this referral came (e.g., 'whatsapp', 'email', 'twitter')
+  utmParameters: json("utm_parameters"), // Track UTM parameters for attribution
 });
 
 // User relations
@@ -83,6 +88,8 @@ export const insertReferralSchema = createInsertSchema(referrals).pick({
   referrerId: true,
   referredId: true,
   status: true,
+  channel: true,
+  utmParameters: true,
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
