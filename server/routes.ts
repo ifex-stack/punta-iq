@@ -1588,5 +1588,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Player statistics routes for player comparison
+  app.get("/api/players/stats", async (req, res) => {
+    try {
+      // Get all player season statistics
+      const playerStats = await storage.getAllPlayerSeasonStats();
+      res.json(playerStats);
+    } catch (error: any) {
+      console.error("Error fetching player statistics:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch player statistics" });
+    }
+  });
+  
+  app.get("/api/players/:id/season-stats", async (req, res) => {
+    try {
+      const playerId = parseInt(req.params.id);
+      const playerStats = await storage.getPlayerSeasonStats(playerId);
+      
+      if (!playerStats) {
+        return res.status(404).json({ message: "Player statistics not found" });
+      }
+      
+      res.json(playerStats);
+    } catch (error: any) {
+      console.error(`Error fetching season statistics for player ${req.params.id}:`, error);
+      res.status(500).json({ message: error.message || "Failed to fetch player season statistics" });
+    }
+  });
+  
+  app.get("/api/players/:id/match-stats", async (req, res) => {
+    try {
+      const playerId = parseInt(req.params.id);
+      const matchStats = await storage.getPlayerMatchStats(playerId);
+      
+      res.json(matchStats);
+    } catch (error: any) {
+      console.error(`Error fetching match statistics for player ${req.params.id}:`, error);
+      res.status(500).json({ message: error.message || "Failed to fetch player match statistics" });
+    }
+  });
+  
+  app.get("/api/players/comparison", async (req, res) => {
+    try {
+      const playerIds = req.query.ids ? (req.query.ids as string).split(',').map(id => parseInt(id)) : [];
+      
+      if (playerIds.length === 0) {
+        return res.status(400).json({ message: "Player IDs are required" });
+      }
+      
+      // Get season stats for all requested players
+      const playerStats = await Promise.all(
+        playerIds.map(id => storage.getPlayerSeasonStats(id))
+      );
+      
+      // Filter out any undefined stats
+      const filteredStats = playerStats.filter(stats => stats !== undefined);
+      
+      res.json(filteredStats);
+    } catch (error: any) {
+      console.error("Error comparing players:", error);
+      res.status(500).json({ message: error.message || "Failed to compare players" });
+    }
+  });
+
   return httpServer;
 }
