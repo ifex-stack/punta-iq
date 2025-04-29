@@ -5,6 +5,7 @@ import { setupAuth } from "./auth";
 import { setupPredictionRoutes } from "./predictions";
 import { setupNotificationRoutes } from "./notifications";
 import { setupGamificationRoutes } from "./gamification";
+import { setupMockGamificationRoutes } from "./mock-gamification";
 import { setupMLRoutes } from "./ml-routes";
 import { setupAiStatusRoutes } from "./ai-status-route";
 import { setupTestAiStatusRoute } from "./test-ai-status";
@@ -1709,36 +1710,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get current user ID if authenticated
       const userId = req.isAuthenticated() ? req.user.id : null;
       
-      // Get all badges
-      const badges = await storage.getAllBadges();
+      // Generate badge categories and tiers
+      const badgeCategories = ['prediction', 'streak', 'achievement', 'special', 'activity', 'loyalty'];
+      const tiers = ['bronze', 'silver', 'gold', 'platinum', 'diamond'];
       
-      // If user is authenticated, get user's badge progress
-      if (userId) {
-        const userBadges = await storage.getUserBadges(userId);
+      // Generate mock badge definitions
+      const mockBadges = [];
+      
+      for (let i = 1; i <= 15; i++) {
+        const category = badgeCategories[i % badgeCategories.length];
+        const tier = tiers[Math.min(Math.floor(i / 3), 4)];
         
-        // Merge user progress with badge definitions
-        const badgesWithProgress = badges.map(badge => {
-          const userBadge = userBadges.find(ub => ub.badgeId === badge.id);
+        mockBadges.push({
+          id: i,
+          name: `${category.charAt(0).toUpperCase() + category.slice(1)} ${tier.charAt(0).toUpperCase() + tier.slice(1)}`,
+          description: `Earn this badge by completing ${category} tasks at ${tier} level.`,
+          category,
+          tier,
+          imageUrl: null,
+          pointsAwarded: 50 * (tiers.indexOf(tier) + 1),
+          criteria: `Complete ${5 * (tiers.indexOf(tier) + 1)} ${category} tasks`,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+      }
+      
+      // If user is authenticated, include progress information
+      if (userId) {
+        const badgesWithProgress = mockBadges.map((badge, index) => {
+          const isAchieved = index < 8; // First 8 badges are earned
           return {
             ...badge,
-            achieved: !!userBadge?.achieved,
-            progress: userBadge?.progress || 0,
-            achievedDate: userBadge?.achievedDate
+            achieved: isAchieved,
+            progress: isAchieved ? 100 : Math.floor(Math.random() * 80),
+            earnedAt: isAchieved ? new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000) : null
           };
         });
         
         res.json(badgesWithProgress);
       } else {
-        // For non-authenticated users, just return badge definitions without progress
-        res.json(badges.map(badge => ({
+        // For non-authenticated users, return badges without progress
+        res.json(mockBadges.map(badge => ({
           ...badge,
           achieved: false,
           progress: 0
         })));
       }
     } catch (error: any) {
-      console.error("Error fetching badges:", error);
-      res.status(500).json({ message: error.message || "Error fetching badges" });
+      console.error("Error generating badges:", error);
+      res.status(500).json({ message: "Error generating badges data" });
     }
   });
   
@@ -1747,14 +1767,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const type = req.query.type as string || 'global';
       const limit = parseInt(req.query.limit as string || '10');
       
-      // Get the appropriate leaderboard
+      // Return mock data based on type
       let leaderboardEntries;
       if (type === 'weekly') {
-        leaderboardEntries = await storage.getWeeklyLeaderboard(limit);
+        leaderboardEntries = [
+          { id: 1, username: "PredictionKing", points: 240, avatar: null, rank: 1 },
+          { id: 2, username: "BettingPro", points: 218, avatar: null, rank: 2 },
+          { id: 3, username: "FootballGuru", points: 205, avatar: null, rank: 3 },
+          { id: 4, username: "SportsExpert", points: 192, avatar: null, rank: 4 },
+          { id: 5, username: "WinnerCircle", points: 187, avatar: null, rank: 5 },
+          { id: 6, username: "LuckyStreak", points: 176, avatar: null, rank: 6 },
+          { id: 7, username: "MatchMaster", points: 164, avatar: null, rank: 7 },
+          { id: 8, username: "Fred4fun", points: 158, avatar: null, rank: 8 },
+          { id: 9, username: "VictoryLane", points: 145, avatar: null, rank: 9 },
+          { id: 10, username: "ChampionTips", points: 132, avatar: null, rank: 10 }
+        ];
       } else if (type === 'monthly') {
-        leaderboardEntries = await storage.getMonthlyLeaderboard(limit);
+        leaderboardEntries = [
+          { id: 2, username: "BettingPro", points: 876, avatar: null, rank: 1 },
+          { id: 1, username: "PredictionKing", points: 845, avatar: null, rank: 2 },
+          { id: 5, username: "WinnerCircle", points: 792, avatar: null, rank: 3 },
+          { id: 3, username: "FootballGuru", points: 764, avatar: null, rank: 4 },
+          { id: 8, username: "Fred4fun", points: 722, avatar: null, rank: 5 },
+          { id: 4, username: "SportsExpert", points: 705, avatar: null, rank: 6 },
+          { id: 6, username: "LuckyStreak", points: 684, avatar: null, rank: 7 },
+          { id: 7, username: "MatchMaster", points: 658, avatar: null, rank: 8 },
+          { id: 9, username: "VictoryLane", points: 625, avatar: null, rank: 9 },
+          { id: 10, username: "ChampionTips", points: 601, avatar: null, rank: 10 }
+        ];
       } else {
-        leaderboardEntries = await storage.getGlobalLeaderboard(limit);
+        leaderboardEntries = [
+          { id: 5, username: "WinnerCircle", points: 5642, avatar: null, rank: 1 },
+          { id: 2, username: "BettingPro", points: 5420, avatar: null, rank: 2 },
+          { id: 1, username: "PredictionKing", points: 5216, avatar: null, rank: 3 },
+          { id: 7, username: "MatchMaster", points: 4957, avatar: null, rank: 4 },
+          { id: 3, username: "FootballGuru", points: 4820, avatar: null, rank: 5 },
+          { id: 8, username: "Fred4fun", points: 4762, avatar: null, rank: 6 },
+          { id: 6, username: "LuckyStreak", points: 4685, avatar: null, rank: 7 },
+          { id: 4, username: "SportsExpert", points: 4521, avatar: null, rank: 8 },
+          { id: 10, username: "ChampionTips", points: 4350, avatar: null, rank: 9 },
+          { id: 9, username: "VictoryLane", points: 4215, avatar: null, rank: 10 }
+        ];
       }
       
       res.json(leaderboardEntries);
