@@ -88,21 +88,21 @@ export class RealTimeMatchesService {
   }
   
   /**
-   * Get today's basketball matches from the API-SPORTS service
+   * Get today's basketball matches from the OddsAPI
    */
   async getTodayBasketballMatches(): Promise<RealTimeMatch[]> {
     try {
-      logger.info('RealTimeMatches', 'Fetching today basketball matches from API-SPORTS');
+      logger.info('RealTimeMatches', 'Fetching today basketball matches from OddsAPI');
       
-      // First, try to get matches from the API
-      const apiMatches = await sportsApiService.getTodayFixtures('basketball');
+      // First, try to get matches from the OddsAPI
+      const apiMatches = await oddsAPIService.getTodayEvents('basketball');
       
       if (apiMatches.length > 0) {
-        logger.info('RealTimeMatches', 'Successfully fetched basketball matches from API', { count: apiMatches.length });
+        logger.info('RealTimeMatches', 'Successfully fetched basketball matches from OddsAPI', { count: apiMatches.length });
         return this.convertToRealTimeMatches(apiMatches);
       }
       
-      // If no matches from API, try the database as fallback
+      // If no matches from OddsAPI, try the database as fallback
       const dbMatches = await this.getMatchesFromDatabase('basketball');
       
       if (dbMatches.length > 0) {
@@ -110,7 +110,7 @@ export class RealTimeMatchesService {
         return dbMatches;
       }
       
-      // If still no matches, return an empty array (no more static fixtures)
+      // If still no matches, return an empty array
       logger.warn('RealTimeMatches', 'No basketball matches found from API or database');
       return [];
     } catch (error) {
@@ -129,7 +129,7 @@ export class RealTimeMatchesService {
   }
   
   /**
-   * Get today's matches for a specific sport from the API-SPORTS service
+   * Get today's matches for a specific sport from the OddsAPI
    */
   async getSportMatches(sport: string): Promise<RealTimeMatch[]> {
     // Validate sport is supported
@@ -138,18 +138,21 @@ export class RealTimeMatchesService {
       return [];
     }
     
+    // Map the internal sport name to OddsAPI sport key
+    const sportKey = this.mapSportToOddsApiKey(sport);
+    
     try {
-      logger.info('RealTimeMatches', `Fetching today ${sport} matches from API-SPORTS`);
+      logger.info('RealTimeMatches', `Fetching today ${sport} matches from OddsAPI using key: ${sportKey}`);
       
-      // First, try to get matches from the API
-      const apiMatches = await sportsApiService.getTodayFixtures(sport);
+      // First, try to get matches from the OddsAPI
+      const apiMatches = await oddsAPIService.getTodayEvents(sportKey);
       
       if (apiMatches.length > 0) {
-        logger.info('RealTimeMatches', `Successfully fetched ${sport} matches from API`, { count: apiMatches.length });
+        logger.info('RealTimeMatches', `Successfully fetched ${sport} matches from OddsAPI`, { count: apiMatches.length });
         return this.convertToRealTimeMatches(apiMatches);
       }
       
-      // If no matches from API, try the database as fallback
+      // If no matches from OddsAPI, try the database as fallback
       const dbMatches = await this.getMatchesFromDatabase(sport);
       
       if (dbMatches.length > 0) {
@@ -173,6 +176,28 @@ export class RealTimeMatchesService {
       
       return [];
     }
+  }
+  
+  /**
+   * Map our internal sport names to OddsAPI sport keys
+   */
+  private mapSportToOddsApiKey(sport: string): string {
+    const sportMapping: Record<string, string> = {
+      'football': 'soccer',
+      'basketball': 'basketball',
+      'american_football': 'americanfootball',
+      'baseball': 'baseball',
+      'hockey': 'icehockey',
+      'rugby': 'rugbyunion',
+      'tennis': 'tennis',
+      'cricket': 'cricket',
+      'formula1': 'f1',
+      'mma': 'mma',
+      'volleyball': 'volleyball',
+      'nba': 'basketball_nba'
+    };
+    
+    return sportMapping[sport] || sport;
   }
   
   /**
@@ -250,13 +275,34 @@ export class RealTimeMatchesService {
       targetDate.setDate(targetDate.getDate() + dateOffset);
       const dateStr = targetDate.toISOString().split('T')[0]; // YYYY-MM-DD
       
-      // Fetch matches from API with specific date
-      const options = sport === 'football' ? { date: dateStr, season: 2023 } : { date: dateStr };
-      const apiMatches = await sportsApiService.getFixtures(sport, options);
+      // Map the internal sport name to OddsAPI sport key
+      const sportKey = this.mapSportToOddsApiKey(sport);
       
-      if (apiMatches.length > 0) {
-        logger.info('RealTimeMatches', `Successfully fetched ${sport} matches for date ${dateStr}`, { count: apiMatches.length });
-        return this.convertToRealTimeMatches(apiMatches);
+      logger.info('RealTimeMatches', `Fetching ${sport} matches for date ${dateStr} from OddsAPI using key: ${sportKey}`);
+      
+      // For today's matches, we can use the getTodayEvents method
+      if (dateOffset === 0) {
+        const apiMatches = await oddsAPIService.getTodayEvents(sportKey);
+        
+        if (apiMatches.length > 0) {
+          logger.info('RealTimeMatches', `Successfully fetched ${sport} matches for today from OddsAPI`, { count: apiMatches.length });
+          return this.convertToRealTimeMatches(apiMatches);
+        }
+      } else {
+        // For other dates, we need to get upcoming events and filter by date
+        // OddsAPI doesn't directly support date filtering in the API, but we can do it client-side
+        const apiMatches = await oddsAPIService.getUpcomingEvents(sportKey, 7); // Get upcoming matches for next 7 days
+        
+        // Filter matches by the target date
+        const targetMatches = apiMatches.filter(match => {
+          const matchDate = new Date(match.startTime);
+          return matchDate.toISOString().split('T')[0] === dateStr;
+        });
+        
+        if (targetMatches.length > 0) {
+          logger.info('RealTimeMatches', `Successfully fetched ${sport} matches for date ${dateStr} from OddsAPI`, { count: targetMatches.length });
+          return this.convertToRealTimeMatches(targetMatches);
+        }
       }
       
       // If no API data, try from database
@@ -339,17 +385,20 @@ export class RealTimeMatchesService {
    */
   async getUpcomingMatches(sport: string, days: number = 7): Promise<RealTimeMatch[]> {
     try {
-      logger.info('RealTimeMatches', `Fetching upcoming ${sport} matches for next ${days} days`);
+      // Map the internal sport name to OddsAPI sport key
+      const sportKey = this.mapSportToOddsApiKey(sport);
       
-      // Use the API service to get upcoming fixtures
-      const apiMatches = await sportsApiService.getUpcomingFixtures(sport, days);
+      logger.info('RealTimeMatches', `Fetching upcoming ${sport} matches for next ${days} days from OddsAPI using key: ${sportKey}`);
+      
+      // Use the OddsAPI service to get upcoming events
+      const apiMatches = await oddsAPIService.getUpcomingEvents(sportKey, days);
       
       if (apiMatches.length > 0) {
-        logger.info('RealTimeMatches', `Successfully fetched upcoming ${sport} matches`, { count: apiMatches.length });
+        logger.info('RealTimeMatches', `Successfully fetched upcoming ${sport} matches from OddsAPI`, { count: apiMatches.length });
         return this.convertToRealTimeMatches(apiMatches);
       }
       
-      logger.warn('RealTimeMatches', `No upcoming ${sport} matches found`);
+      logger.warn('RealTimeMatches', `No upcoming ${sport} matches found from OddsAPI`);
       return [];
     } catch (error) {
       logger.error('RealTimeMatches', `Error fetching upcoming ${sport} matches`, error);
