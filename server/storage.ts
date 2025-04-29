@@ -4685,14 +4685,14 @@ export class DatabaseStorage implements IStorage {
   // Fantasy Team Players Management
   async getFantasyTeamPlayers(teamId: number): Promise<FantasyTeamPlayer[]> {
     // Get all players in the team
-    const teamPlayers = await db
+    const teamPlayersList = await db
       .select()
       .from(teamPlayers)
       .where(eq(teamPlayers.teamId, teamId));
     
     // Get the player details for each team player
     const result = await Promise.all(
-      teamPlayers.map(async (tp) => {
+      teamPlayersList.map(async (tp) => {
         const [player] = await db
           .select()
           .from(players)

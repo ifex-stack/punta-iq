@@ -1,156 +1,204 @@
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Shield, Award, Medal, Star, Trophy, Target, Flame, Activity } from 'lucide-react';
+import React from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { BadgeCheckIcon, TrophyIcon, StarIcon, HeartIcon, ZapIcon, ClockIcon, TargetIcon, TrendingUpIcon, AwardIcon } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
-interface Badge {
+// Badge interface
+export interface UserBadge {
   id: number;
+  userId: number;
+  badgeId: number;
   name: string;
   description: string;
+  imageUrl?: string;
   category: string;
-  icon: string;
-  achieved: boolean;
-  progress?: number;
-  maxProgress?: number;
-  achievedDate?: Date;
-  tier: 'bronze' | 'silver' | 'gold' | 'platinum';
+  tier: 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';
+  progress: number;
+  target: number;
+  earnedAt: Date | null;
+  isNew: boolean;
 }
 
-interface BadgesGridProps {
-  badges: Badge[];
-  isLoading?: boolean;
-  filterCategory?: string;
-}
-
-// Helper function to render the appropriate icon
-const renderBadgeIcon = (iconName: string, tier: string) => {
-  const tierColors = {
-    bronze: 'text-amber-600',
-    silver: 'text-slate-400',
-    gold: 'text-yellow-400',
-    platinum: 'text-cyan-400'
-  };
-  
-  const colorClass = tierColors[tier as keyof typeof tierColors] || 'text-muted-foreground';
-  const sizeClass = 'h-8 w-8';
-  
-  switch (iconName) {
-    case 'shield':
-      return <Shield className={`${sizeClass} ${colorClass}`} />;
-    case 'award':
-      return <Award className={`${sizeClass} ${colorClass}`} />;
-    case 'medal':
-      return <Medal className={`${sizeClass} ${colorClass}`} />;
-    case 'star':
-      return <Star className={`${sizeClass} ${colorClass}`} />;
-    case 'trophy':
-      return <Trophy className={`${sizeClass} ${colorClass}`} />;
-    case 'target':
-      return <Target className={`${sizeClass} ${colorClass}`} />;
-    case 'flame':
-      return <Flame className={`${sizeClass} ${colorClass}`} />;
+// Function to get icon based on badge category
+const getBadgeIcon = (category: string, className: string = "h-6 w-6") => {
+  switch (category.toLowerCase()) {
+    case 'prediction':
+      return <TargetIcon className={className} />;
+    case 'streak':
+      return <TrendingUpIcon className={className} />;
+    case 'activity':
+      return <ClockIcon className={className} />;
+    case 'special':
+      return <AwardIcon className={className} />;
+    case 'achievement':
+      return <TrophyIcon className={className} />;
+    case 'social':
+      return <HeartIcon className={className} />;
+    case 'power':
+      return <ZapIcon className={className} />;
+    case 'loyalty':
+      return <StarIcon className={className} />;
     default:
-      return <Activity className={`${sizeClass} ${colorClass}`} />;
+      return <BadgeCheckIcon className={className} />;
   }
 };
 
-export function BadgesGrid({ badges, isLoading = false, filterCategory }: BadgesGridProps) {
-  // Filter badges by category if a filter is provided
-  const filteredBadges = filterCategory 
-    ? badges.filter(badge => badge.category === filterCategory)
-    : badges;
+// Function to get color based on badge tier
+const getBadgeColor = (tier: string) => {
+  switch (tier.toLowerCase()) {
+    case 'bronze':
+      return 'bg-amber-700';
+    case 'silver':
+      return 'bg-slate-400';
+    case 'gold':
+      return 'bg-amber-400';
+    case 'platinum':
+      return 'bg-slate-300';
+    case 'diamond':
+      return 'bg-sky-400';
+    default:
+      return 'bg-slate-600';
+  }
+};
+
+const BadgeCard = ({ badge }: { badge: UserBadge }) => {
+  const isEarned = badge.earnedAt !== null;
+  const progressPercentage = Math.min(100, Math.round((badge.progress / badge.target) * 100));
   
-  // Show loading state
+  return (
+    <Card className={`overflow-hidden transition-all ${isEarned ? 'border-primary' : 'border-muted'} ${badge.isNew ? 'ring-2 ring-primary' : ''}`}>
+      <CardHeader className={`py-4 ${isEarned ? getBadgeColor(badge.tier) : 'bg-muted'}`}>
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-sm font-medium text-white">{badge.name}</CardTitle>
+          <div className={`rounded-full p-1 ${isEarned ? 'bg-white' : 'bg-muted-foreground/20'}`}>
+            {getBadgeIcon(badge.category, "h-5 w-5")}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-4">
+        <CardDescription className="text-xs mb-3 min-h-[40px]">{badge.description}</CardDescription>
+        <div className="space-y-2">
+          <div className="flex justify-between text-xs">
+            <span>Progress</span>
+            <span className="font-semibold">{badge.progress}/{badge.target}</span>
+          </div>
+          <Progress value={progressPercentage} className="h-2" />
+          {badge.isNew && isEarned && (
+            <Badge variant="outline" className="bg-primary/10 text-primary text-xs">
+              New!
+            </Badge>
+          )}
+        </div>
+      </CardContent>
+      {isEarned && (
+        <CardFooter className="p-3 bg-muted/30 text-xs text-muted-foreground border-t">
+          <div className="flex items-center space-x-1">
+            <BadgeCheckIcon className="h-3 w-3" />
+            <span>Earned {new Date(badge.earnedAt!).toLocaleDateString()}</span>
+          </div>
+        </CardFooter>
+      )}
+    </Card>
+  );
+};
+
+export function BadgesGrid() {
+  const { toast } = useToast();
+  
+  const { data: badges, isLoading, isError } = useQuery<UserBadge[]>({
+    queryKey: ['/api/user/badges'],
+    retry: 2,
+    onSuccess: (data) => {
+      console.log("Badges loaded successfully", data?.length || 0);
+    },
+    onError: () => {
+      console.error("Error fetching badges");
+      toast({
+        title: "Error loading badges",
+        description: "Could not load your badges. Please try again later.",
+        variant: "destructive",
+      });
+    },
+  });
+
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-        {Array.from({ length: 8 }).map((_, index) => (
-          <Card key={index} className="animate-pulse">
-            <CardHeader className="p-4">
-              <div className="flex justify-center mb-2">
-                <div className="w-12 h-12 rounded-full bg-muted"></div>
-              </div>
-              <div className="h-4 bg-muted rounded-md w-4/5 mx-auto"></div>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <div className="h-3 bg-muted rounded-md w-full mt-2"></div>
-              <div className="h-3 bg-muted rounded-md w-4/5 mt-2"></div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="space-y-4">
+        <div className="flex justify-between">
+          <h2 className="text-xl font-semibold">Achievements & Badges</h2>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader className="bg-muted h-14"></CardHeader>
+              <CardContent className="p-4 space-y-4">
+                <div className="h-4 bg-muted rounded w-3/4"></div>
+                <div className="h-4 bg-muted rounded w-1/2"></div>
+                <div className="h-2 bg-muted rounded w-full"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
-  
-  // Show empty state
-  if (!filteredBadges.length) {
+
+  if (isError || !badges) {
     return (
-      <div className="text-center py-12">
-        <Trophy className="h-12 w-12 text-muted-foreground opacity-30 mx-auto mb-4" />
-        <h3 className="text-lg font-medium mb-1">No Badges Found</h3>
-        <p className="text-sm text-muted-foreground">
-          {filterCategory 
-            ? `No ${filterCategory} badges are available yet.` 
-            : "You haven't earned any badges yet. Keep playing to earn achievements!"}
+      <div className="text-center p-8 border rounded-lg bg-card">
+        <BadgeCheckIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+        <h3 className="font-semibold text-lg mb-2">Could not load badges</h3>
+        <p className="text-muted-foreground mb-4">
+          We're having trouble loading your achievement badges right now.
         </p>
       </div>
     );
   }
-  
+
+  // Sort badges: earned first (newest to oldest), then unearned by progress percentage
+  const sortedBadges = [...badges].sort((a, b) => {
+    // First sort by earned status
+    if (!!a.earnedAt !== !!b.earnedAt) {
+      return a.earnedAt ? -1 : 1;
+    }
+    
+    // If both are earned, sort by earnedAt date (newest first)
+    if (a.earnedAt && b.earnedAt) {
+      return new Date(b.earnedAt).getTime() - new Date(a.earnedAt).getTime();
+    }
+    
+    // If neither is earned, sort by progress percentage
+    const aProgress = a.progress / a.target;
+    const bProgress = b.progress / b.target;
+    return bProgress - aProgress;
+  });
+
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-      {filteredBadges.map((badge) => (
-        <TooltipProvider key={badge.id} delayDuration={300}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Card className={`transition-all ${badge.achieved ? 'bg-background' : 'bg-muted/30 opacity-70'}`}>
-                <CardHeader className="p-4 pb-2 text-center">
-                  <div className="flex justify-center mb-2">
-                    {renderBadgeIcon(badge.icon, badge.tier)}
-                  </div>
-                  <CardTitle className="text-sm font-semibold">{badge.name}</CardTitle>
-                  <CardDescription className="text-xs">
-                    {badge.category} • {badge.tier.charAt(0).toUpperCase() + badge.tier.slice(1)}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  {badge.achieved ? (
-                    <p className="text-xs text-center text-muted-foreground">
-                      Achieved{' '}
-                      {badge.achievedDate && (
-                        <span>on {new Date(badge.achievedDate).toLocaleDateString()}</span>
-                      )}
-                    </p>
-                  ) : badge.progress !== undefined && badge.maxProgress ? (
-                    <div className="w-full bg-muted rounded-full h-1.5 mt-2">
-                      <div 
-                        className="bg-primary h-1.5 rounded-full transition-all" 
-                        style={{ 
-                          width: `${Math.min(100, (badge.progress / badge.maxProgress) * 100)}%` 
-                        }}
-                      ></div>
-                      <p className="text-xs text-center mt-1 text-muted-foreground">
-                        {badge.progress} / {badge.maxProgress}
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-center mt-2 text-muted-foreground">Not yet achieved</p>
-                  )}
-                </CardContent>
-              </Card>
-            </TooltipTrigger>
-            <TooltipContent side="top" className="max-w-[250px]">
-              <p className="font-medium mb-1">{badge.name}</p>
-              <p className="text-xs">{badge.description}</p>
-              {!badge.achieved && badge.progress !== undefined && (
-                <p className="text-xs mt-1 font-medium">
-                  Progress: {badge.progress} / {badge.maxProgress}
-                </p>
-              )}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      ))}
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Achievements & Badges</h2>
+        <div className="text-sm text-muted-foreground">
+          {badges.filter(b => b.earnedAt).length}/{badges.length} Unlocked
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {sortedBadges.map(badge => (
+          <BadgeCard key={badge.id} badge={badge} />
+        ))}
+      </div>
     </div>
   );
 }
+
+export default BadgesGrid;
