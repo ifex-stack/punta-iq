@@ -18,6 +18,7 @@ import { PlayerSeasonStats, PlayerMatchStats } from "@shared/player-interfaces";
 
 import { realTimeMatchesService } from "./real-time-matches-service";
 import { openaiClient } from "./openai-client";
+import { oddsAPIService } from "./odds-api-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
@@ -43,6 +44,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up fixed news routes
   setupNewsRoutes(app);
+  
+  // Test endpoint for OddsAPI
+  app.get("/api/oddsapi/test", async (req, res) => {
+    try {
+      const sports = await oddsAPIService.fetchSports();
+      res.json({
+        success: true,
+        message: "Successfully connected to OddsAPI",
+        sports: sports.length,
+        sportsList: sports
+      });
+    } catch (error: any) {
+      console.error("Error testing OddsAPI:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error connecting to OddsAPI",
+        error: error.message
+      });
+    }
+  });
+  
+  // Test endpoint for OddsAPI football matches
+  app.get("/api/oddsapi/football", async (req, res) => {
+    try {
+      // Use soccer as the key for football in OddsAPI
+      const matches = await oddsAPIService.getTodayEvents("soccer");
+      res.json({
+        success: true,
+        message: "Successfully fetched football matches from OddsAPI",
+        matches: matches.length, 
+        matchesList: matches
+      });
+    } catch (error: any) {
+      console.error("Error fetching football matches from OddsAPI:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error fetching football matches from OddsAPI",
+        error: error.message
+      });
+    }
+  });
   
   // Sports routes
   app.get("/api/sports", async (req, res) => {

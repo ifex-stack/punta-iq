@@ -58,7 +58,7 @@ export class OddsAPIService {
       apiKey: process.env.API_SPORTS_KEY || '0f4365e761a8019b22bf5c8b524c6d71'
     };
     
-    logger.info('OddsAPIService', 'Service initialized');
+    logger.info('OddsAPIService', 'Service initialized with API key: ' + this.config.apiKey.substring(0, 5) + '...');
   }
   
   /**
