@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
+import { PlayerSeasonStats, PlayerMatchStats } from '@shared/player-interfaces';
 import { 
   ArrowLeft, 
   Lightbulb, 
@@ -298,12 +299,12 @@ export default function PlayerAnalysisPage() {
                   
                   {recentMatches && recentMatches.length > 0 ? (
                     <div className="space-y-4">
-                      {recentMatches.map((match) => (
+                      {recentMatches.map((match: any) => (
                         <Card key={match.matchId} className="overflow-hidden">
                           <div className="bg-muted px-4 py-2 flex justify-between">
                             <div className="font-medium">{match.homeTeam} vs {match.awayTeam}</div>
                             <div className="text-sm text-muted-foreground">
-                              {new Date(match.matchDate).toLocaleDateString()}
+                              {match.matchDate ? new Date(match.matchDate).toLocaleDateString() : 'No date'}
                             </div>
                           </div>
                           
@@ -331,22 +332,22 @@ export default function PlayerAnalysisPage() {
                               {match.cleanSheet && (
                                 <Badge variant="outline" className="text-xs">Clean Sheet</Badge>
                               )}
-                              {match.yellowCards > 0 && (
+                              {match.yellowCards && match.yellowCards > 0 && (
                                 <Badge variant="outline" className="text-xs bg-yellow-100">
                                   {match.yellowCards} Yellow Card{match.yellowCards > 1 ? 's' : ''}
                                 </Badge>
                               )}
-                              {match.redCards > 0 && (
+                              {match.redCards && match.redCards > 0 && (
                                 <Badge variant="outline" className="text-xs bg-red-100">
                                   {match.redCards} Red Card{match.redCards > 1 ? 's' : ''}
                                 </Badge>
                               )}
-                              {match.keyPasses > 0 && (
+                              {match.keyPasses && match.keyPasses > 0 && (
                                 <Badge variant="outline" className="text-xs">
                                   {match.keyPasses} Key Pass{match.keyPasses > 1 ? 'es' : ''}
                                 </Badge>
                               )}
-                              {match.interceptions > 0 && (
+                              {match.interceptions && match.interceptions > 0 && (
                                 <Badge variant="outline" className="text-xs">
                                   {match.interceptions} Interception{match.interceptions > 1 ? 's' : ''}
                                 </Badge>

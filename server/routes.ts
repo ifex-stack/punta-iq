@@ -694,6 +694,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get detailed player stats for analysis page
+  app.get("/api/players/:id/stats", async (req, res) => {
+    try {
+      const playerId = parseInt(req.params.id);
+      
+      if (isNaN(playerId)) {
+        return res.status(400).json({ message: "Invalid player ID" });
+      }
+      
+      // Get player basic info
+      const player = await storage.getFootballPlayerById(playerId);
+      if (!player) {
+        return res.status(404).json({ message: "Player not found" });
+      }
+      
+      // Get player season stats
+      const seasonStats = await storage.getPlayerSeasonStats(playerId);
+      
+      // Get recent matches
+      const recentMatches = await storage.getPlayerRecentMatches(playerId, 5);
+      
+      res.json({
+        player,
+        seasonStats,
+        recentMatches
+      });
+    } catch (error: any) {
+      console.error("Error fetching player stats:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch player stats" });
+    }
+  });
+  
   // Get contextual performance hints for a player
   app.get("/api/players/:id/performance-hints", async (req, res) => {
     try {
@@ -1032,6 +1064,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   */
+  
+  // Gamification system endpoints
+  app.get("/api/badges", async (req, res) => {
+    try {
+      // Get current user ID if authenticated
+      const userId = req.isAuthenticated() ? req.user.id : null;
+      
+      // Get all badges
+      const badges = await storage.getAllBadges();
+      
+      // If user is authenticated, get user's badge progress
+      if (userId) {
+        const userBadges = await storage.getUserBadges(userId);
+        
+        // Merge user progress with badge definitions
+        const badgesWithProgress = badges.map(badge => {
+          const userBadge = userBadges.find(ub => ub.badgeId === badge.id);
+          return {
+            ...badge,
+            achieved: !!userBadge?.achieved,
+            progress: userBadge?.progress || 0,
+            achievedDate: userBadge?.achievedDate
+          };
+        });
+        
+        res.json(badgesWithProgress);
+      } else {
+        // For non-authenticated users, just return badge definitions without progress
+        res.json(badges.map(badge => ({
+          ...badge,
+          achieved: false,
+          progress: 0
+        })));
+      }
+    } catch (error: any) {
+      console.error("Error fetching badges:", error);
+      res.status(500).json({ message: error.message || "Error fetching badges" });
+    }
+  });
+  
+  app.get("/api/leaderboard", async (req, res) => {
+    try {
+      const type = req.query.type as string || 'global';
+      const limit = parseInt(req.query.limit as string || '10');
+      
+      // Get the appropriate leaderboard
+      let leaderboardEntries;
+      if (type === 'weekly') {
+        leaderboardEntries = await storage.getWeeklyLeaderboard(limit);
+      } else if (type === 'monthly') {
+        leaderboardEntries = await storage.getMonthlyLeaderboard(limit);
+      } else {
+        leaderboardEntries = await storage.getGlobalLeaderboard(limit);
+      }
+      
+      res.json(leaderboardEntries);
+    } catch (error: any) {
+      console.error("Error fetching leaderboard:", error);
+      res.status(500).json({ message: error.message || "Error fetching leaderboard" });
+    }
+  });
   
   // Feature flags endpoint
   app.get("/api/feature-flags", async (req, res) => {
