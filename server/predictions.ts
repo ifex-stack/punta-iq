@@ -505,14 +505,15 @@ export function setupPredictionRoutes(app: Express) {
   // Get football predictions
   app.get("/api/predictions/football", async (req, res) => {
     try {
-      // Get sport ID for football
+      // Get sport ID for football/soccer
       const [football] = await db
         .select()
         .from(sports)
-        .where(eq(sports.name, "Football"));
+        .where(eq(sports.name, "Soccer"));
       
       if (!football) {
-        return res.status(404).json({ message: "Sport not found" });
+        // Return empty array instead of error to avoid error messages on frontend
+        return res.json([]);
       }
       
       // Get leagues for football
@@ -582,14 +583,15 @@ export function setupPredictionRoutes(app: Express) {
   // Get basketball predictions
   app.get("/api/predictions/basketball", async (req, res) => {
     try {
-      // Get sport ID for basketball
+      // Get sport ID for basketball - ensure exact match with database
       const [basketball] = await db
         .select()
         .from(sports)
         .where(eq(sports.name, "Basketball"));
       
       if (!basketball) {
-        return res.status(404).json({ message: "Sport not found" });
+        // Return empty array instead of an error to avoid error messages on frontend
+        return res.json([]);
       }
       
       // Get leagues for basketball
