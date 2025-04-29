@@ -103,8 +103,8 @@ export interface IStorage {
   getAllFootballPlayers(limit?: number, offset?: number, filters?: any): Promise<FootballPlayer[]>;
   getFootballPlayerById(id: number): Promise<FootballPlayer | undefined>;
   searchFootballPlayers(query: string, position?: string, team?: string, limit?: number): Promise<FootballPlayer[]>;
-  getPlayerSeasonStats(playerId: number): Promise<PlayerSeasonStats | null>;
-  getPlayerRecentMatches(playerId: number, limit?: number): Promise<PlayerMatchStats[]>;
+  getPlayerSeasonStats(playerId: number): Promise<import("@shared/player-interfaces").PlayerSeasonStats | null>;
+  getPlayerRecentMatches(playerId: number, limit?: number): Promise<import("@shared/player-interfaces").PlayerMatchStats[]>;
   createFootballPlayer(player: InsertFootballPlayer): Promise<FootballPlayer>;
   updateFootballPlayerStats(id: number, stats: Partial<FootballPlayer>): Promise<FootballPlayer>;
   updateUserFantasyPoints(userId: number, points: number): Promise<User>;
@@ -1223,7 +1223,7 @@ export class MemStorage implements IStorage {
   }
   
   // Player stats comparison methods
-  async getPlayerSeasonStats(playerId: number): Promise<PlayerSeasonStats | null> {
+  async getPlayerSeasonStats(playerId: number): Promise<import("@shared/player-interfaces").PlayerSeasonStats | null> {
     try {
       // Check if the player exists
       const player = await this.getFootballPlayerById(playerId);
@@ -1236,7 +1236,7 @@ export class MemStorage implements IStorage {
       const currentSeason = new Date().getFullYear().toString();
       
       // Create season stats object based on player data
-      const seasonStats: PlayerSeasonStats = {
+      const seasonStats: import("@shared/player-interfaces").PlayerSeasonStats = {
         playerId: player.id,
         season: currentSeason,
         matches: player.appearances || 0,
@@ -1286,7 +1286,7 @@ export class MemStorage implements IStorage {
     return formOptions[4];
   }
   
-  async getPlayerRecentMatches(playerId: number, limit = 5): Promise<PlayerMatchStats[]> {
+  async getPlayerRecentMatches(playerId: number, limit = 5): Promise<import("@shared/player-interfaces").PlayerMatchStats[]> {
     try {
       // Check if player exists
       const player = await this.getFootballPlayerById(playerId);
@@ -1297,7 +1297,7 @@ export class MemStorage implements IStorage {
       
       // Generate sample data for player's recent matches
       // In a production environment, this would come from a database table
-      const recentMatches: PlayerMatchStats[] = [];
+      const recentMatches: import("@shared/player-interfaces").PlayerMatchStats[] = [];
       
       // Generate X recent matches with semi-random data
       const now = new Date();

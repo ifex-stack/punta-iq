@@ -14,6 +14,7 @@ import { PushNotificationService } from "./push-notification-service";
 import { newsRecommendationEngine } from "./recommendation-engine";
 import { db, pool } from "./db";
 import { setupNewsRoutes } from "./news-routes";
+import { PlayerSeasonStats, PlayerMatchStats } from "@shared/player-interfaces";
 
 import { realTimeMatchesService } from "./real-time-matches-service";
 
