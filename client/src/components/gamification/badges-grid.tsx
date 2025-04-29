@@ -1,14 +1,22 @@
 import { useState } from "react";
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Lock, Award } from "lucide-react";
-import { format } from "date-fns";
+import { Award, Lock } from "lucide-react";
 
 interface Badge {
   id: number;
@@ -16,9 +24,12 @@ interface Badge {
   description: string;
   category: string;
   tier: 'bronze' | 'silver' | 'gold' | 'platinum';
-  iconUrl: string;
-  requirements: string;
+  icon: string;
+  points: number;
+  requirements: any;
+  isActive: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
 
 interface UserBadge {
@@ -26,6 +37,7 @@ interface UserBadge {
   userId: number;
   badgeId: number;
   awardedAt: string;
+  isNew?: boolean;
   badge?: Badge;
 }
 
@@ -36,29 +48,24 @@ interface BadgesGridProps {
 }
 
 export default function BadgesGrid({ earnedBadges, lockedBadges, allBadges }: BadgesGridProps) {
-  const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
-  const [selectedUserBadge, setSelectedUserBadge] = useState<UserBadge | null>(null);
+  const [selectedEarnedBadge, setSelectedEarnedBadge] = useState<UserBadge | null>(null);
+  const [selectedLockedBadge, setSelectedLockedBadge] = useState<Badge | null>(null);
+
+  // Find the badge details for each user badge
+  const earnedBadgesWithDetails = earnedBadges.map(userBadge => {
+    const badge = allBadges.find(badge => badge.id === userBadge.badgeId);
+    return { ...userBadge, badge };
+  });
 
   const handleOpenEarnedBadge = (userBadge: UserBadge) => {
-    const badge = allBadges.find(b => b.id === userBadge.badgeId);
-    if (badge) {
-      setSelectedBadge(badge);
-      setSelectedUserBadge(userBadge);
-    }
+    setSelectedEarnedBadge(userBadge);
   };
 
   const handleOpenLockedBadge = (badge: Badge) => {
-    setSelectedBadge(badge);
-    setSelectedUserBadge(null);
+    setSelectedLockedBadge(badge);
   };
 
-  const handleCloseDialog = () => {
-    setSelectedBadge(null);
-    setSelectedUserBadge(null);
-  };
-
-  // Get badge color based on tier
-  const getBadgeColor = (tier: string) => {
+  const getBadgeTierColor = (tier: string) => {
     switch (tier) {
       case 'bronze':
         return 'bg-amber-700';
@@ -69,138 +76,153 @@ export default function BadgesGrid({ earnedBadges, lockedBadges, allBadges }: Ba
       case 'platinum':
         return 'bg-cyan-500';
       default:
-        return 'bg-gray-400';
+        return 'bg-slate-300';
     }
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Earned badges */}
-      {earnedBadges.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-xl font-semibold">Earned Badges</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {earnedBadges.map((userBadge) => {
-              const badge = allBadges.find(b => b.id === userBadge.badgeId);
-              if (!badge) return null;
-              return (
-                <div 
-                  key={userBadge.id}
-                  className="relative group cursor-pointer rounded-lg border p-4 flex flex-col items-center space-y-3 transition-all hover:shadow-md"
-                  onClick={() => handleOpenEarnedBadge(userBadge)}
-                >
-                  <div className={`p-2 rounded-full ${getBadgeColor(badge.tier)}`}>
-                    {badge.iconUrl ? (
-                      <img 
-                        src={badge.iconUrl} 
-                        alt={badge.name} 
-                        className="h-12 w-12"
-                      />
-                    ) : (
-                      <Award className="h-12 w-12 text-white" />
-                    )}
-                  </div>
-                  <div className="text-center">
-                    <h4 className="font-medium text-sm">{badge.name}</h4>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Earned {format(new Date(userBadge.awardedAt), 'MMM d, yyyy')}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+  const getIconForBadge = (icon: string) => {
+    // This is a simplified version - in a real app, you'd have a mapping of icons
+    return <Award className="h-10 w-10" />;
+  };
 
-      {/* Locked badges */}
-      {lockedBadges.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-xl font-semibold">Available Badges</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {lockedBadges.map((badge) => (
-              <div 
-                key={badge.id}
-                className="relative group cursor-pointer rounded-lg border p-4 flex flex-col items-center space-y-3 transition-all hover:shadow-md opacity-70 hover:opacity-100"
-                onClick={() => handleOpenLockedBadge(badge)}
+  return (
+    <div>
+      {/* Earned Badges Section */}
+      <div className="mb-8">
+        <h3 className="text-lg font-medium mb-4">Earned Badges ({earnedBadgesWithDetails.length})</h3>
+        {earnedBadgesWithDetails.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            You haven't earned any badges yet. Start making predictions to earn your first badge!
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {earnedBadgesWithDetails.map(userBadge => (
+              <Card 
+                key={userBadge.id} 
+                className="cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => handleOpenEarnedBadge(userBadge)}
               >
-                <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-lg">
-                  <Lock className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <div className={`p-2 rounded-full bg-gray-200`}>
-                  {badge.iconUrl ? (
-                    <img 
-                      src={badge.iconUrl} 
-                      alt={badge.name} 
-                      className="h-12 w-12 grayscale"
-                    />
-                  ) : (
-                    <Award className="h-12 w-12 text-muted-foreground" />
-                  )}
-                </div>
-                <div className="text-center">
-                  <h4 className="font-medium text-sm">{badge.name}</h4>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {badge.category}
+                <CardHeader className="p-4 pb-2">
+                  <div className="flex justify-center">
+                    <div className={`rounded-full p-3 ${getBadgeTierColor(userBadge.badge?.tier || 'bronze')}`}>
+                      {getIconForBadge(userBadge.badge?.icon || 'award')}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-2 text-center">
+                  <h4 className="font-semibold">{userBadge.badge?.name || 'Badge'}</h4>
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                    {userBadge.badge?.description || 'Badge description'}
                   </p>
-                </div>
-              </div>
+                </CardContent>
+                <CardFooter className="p-4 pt-0 flex justify-center">
+                  <Badge variant="outline" className="capitalize">{userBadge.badge?.tier || 'bronze'}</Badge>
+                </CardFooter>
+              </Card>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Badge detail dialog */}
-      <Dialog open={!!selectedBadge} onOpenChange={() => handleCloseDialog()}>
+      {/* Locked Badges Section */}
+      <div>
+        <h3 className="text-lg font-medium mb-4">Locked Badges ({lockedBadges.length})</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {lockedBadges.map(badge => (
+            <Card 
+              key={badge.id} 
+              className="cursor-pointer hover:shadow-md transition-shadow opacity-70 hover:opacity-90"
+              onClick={() => handleOpenLockedBadge(badge)}
+            >
+              <CardHeader className="p-4 pb-2">
+                <div className="flex justify-center relative">
+                  <div className="rounded-full p-3 bg-gray-300">
+                    {getIconForBadge(badge.icon)}
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Lock className="h-6 w-6 text-gray-700" />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 pt-2 text-center">
+                <h4 className="font-semibold">{badge.name}</h4>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                  {badge.description}
+                </p>
+              </CardContent>
+              <CardFooter className="p-4 pt-0 flex justify-center">
+                <Badge variant="outline" className="capitalize">{badge.tier}</Badge>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Dialog for Earned Badge */}
+      <Dialog 
+        open={!!selectedEarnedBadge} 
+        onOpenChange={open => !open && setSelectedEarnedBadge(null)}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{selectedBadge?.name}</DialogTitle>
+            <DialogTitle>{selectedEarnedBadge?.badge?.name}</DialogTitle>
             <DialogDescription>
-              {selectedUserBadge ? 'You earned this badge!' : 'Keep working to earn this badge'}
+              {selectedEarnedBadge?.badge?.description}
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="flex flex-col items-center space-y-4 py-4">
-            <div className={`p-3 rounded-full ${selectedBadge ? getBadgeColor(selectedBadge.tier) : 'bg-gray-200'}`}>
-              {selectedBadge?.iconUrl ? (
-                <img 
-                  src={selectedBadge.iconUrl} 
-                  alt={selectedBadge.name} 
-                  className={`h-16 w-16 ${!selectedUserBadge ? 'grayscale' : ''}`}
-                />
-              ) : (
-                <Award className={`h-16 w-16 ${selectedUserBadge ? 'text-white' : 'text-muted-foreground'}`} />
-              )}
+          <div className="flex flex-col items-center py-4">
+            <div className={`rounded-full p-5 mb-4 ${getBadgeTierColor(selectedEarnedBadge?.badge?.tier || 'bronze')}`}>
+              {getIconForBadge(selectedEarnedBadge?.badge?.icon || 'award')}
             </div>
-            
             <div className="text-center space-y-2">
-              <h3 className="font-semibold text-lg">{selectedBadge?.name}</h3>
-              <p className="text-sm text-muted-foreground">{selectedBadge?.description}</p>
-              
-              {selectedUserBadge && (
-                <div className="mt-4 pt-4 border-t">
-                  <p className="text-sm">
-                    <span className="font-medium">Earned on:</span>{' '}
-                    {format(new Date(selectedUserBadge.awardedAt), 'MMMM d, yyyy')}
-                  </p>
-                </div>
-              )}
-              
-              {!selectedUserBadge && selectedBadge && (
-                <div className="mt-4 pt-4 border-t">
-                  <p className="text-sm font-medium">Requirements:</p>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedBadge.requirements}
-                  </p>
-                </div>
-              )}
+              <p><strong>Category:</strong> {selectedEarnedBadge?.badge?.category}</p>
+              <p><strong>Points Earned:</strong> {selectedEarnedBadge?.badge?.points}</p>
+              <p><strong>Earned On:</strong> {new Date(selectedEarnedBadge?.awardedAt || '').toLocaleDateString()}</p>
+              <Badge className="capitalize mt-2">{selectedEarnedBadge?.badge?.tier} tier</Badge>
             </div>
           </div>
-          
-          <div className="mt-4 flex justify-end">
-            <Button variant="outline" onClick={handleCloseDialog}>
-              Close
-            </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog for Locked Badge */}
+      <Dialog 
+        open={!!selectedLockedBadge} 
+        onOpenChange={open => !open && setSelectedLockedBadge(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{selectedLockedBadge?.name}</DialogTitle>
+            <DialogDescription>
+              Here's how to earn this badge
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center py-4">
+            <div className="rounded-full p-5 mb-4 bg-gray-200 relative">
+              {getIconForBadge(selectedLockedBadge?.icon || 'award')}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Lock className="h-8 w-8 text-gray-700" />
+              </div>
+            </div>
+            <div className="text-center space-y-2">
+              <p>{selectedLockedBadge?.description}</p>
+              <p className="font-medium mt-2">Requirements:</p>
+              <div className="bg-gray-100 p-3 rounded-md text-sm">
+                {selectedLockedBadge?.requirements?.type === 'prediction_count' && (
+                  <p>Make {selectedLockedBadge.requirements.count} predictions</p>
+                )}
+                {selectedLockedBadge?.requirements?.type === 'login_streak' && (
+                  <p>Log in for {selectedLockedBadge.requirements.days} consecutive days</p>
+                )}
+                {selectedLockedBadge?.requirements?.type === 'accumulator_created' && (
+                  <p>Create {selectedLockedBadge.requirements.count} accumulator prediction</p>
+                )}
+                {selectedLockedBadge?.requirements?.type === 'fantasy_contest_win' && (
+                  <p>Win {selectedLockedBadge.requirements.count} fantasy football contest</p>
+                )}
+              </div>
+              <p><strong>Points Value:</strong> {selectedLockedBadge?.points}</p>
+              <Badge className="capitalize mt-2">{selectedLockedBadge?.tier} tier</Badge>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

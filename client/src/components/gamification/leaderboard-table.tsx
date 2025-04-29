@@ -1,22 +1,21 @@
-import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpRight, ArrowDownRight, Search, Medal, Minus, Trophy } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-interface Leaderboard {
-  id: number;
-  name: string;
-  description: string;
-  type: 'weekly' | 'monthly' | 'seasonal' | 'all_time' | 'fantasy' | 'prediction_accuracy';
-  startDate: string;
-  endDate: string;
-  isActive: boolean;
-  lastUpdated: string;
-  entries?: LeaderboardEntry[];
-}
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ArrowDown, ArrowUp, Minus, Trophy, Users } from "lucide-react";
 
 interface LeaderboardEntry {
   id: number;
@@ -30,6 +29,18 @@ interface LeaderboardEntry {
   lastUpdated: string;
 }
 
+interface Leaderboard {
+  id: number;
+  name: string;
+  description: string;
+  type: 'weekly' | 'monthly' | 'seasonal' | 'all_time' | 'fantasy' | 'prediction_accuracy';
+  period?: string;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  entries?: LeaderboardEntry[];
+}
+
 interface LeaderboardTableProps {
   leaderboard: Leaderboard | null;
   userId?: number;
@@ -37,226 +48,173 @@ interface LeaderboardTableProps {
 }
 
 export default function LeaderboardTable({ leaderboard, userId, limit = 100 }: LeaderboardTableProps) {
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 10;
-
-  // If no leaderboard is passed, return empty state
   if (!leaderboard) {
     return (
-      <div className="text-center py-10">
-        <Trophy className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium">No active leaderboard</h3>
-        <p className="text-muted-foreground">
-          Check back later for new leaderboard competitions.
-        </p>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Leaderboard</CardTitle>
+          <CardDescription>No leaderboard data available.</CardDescription>
+        </CardHeader>
+      </Card>
     );
   }
 
-  // Get entries from leaderboard or empty array
-  const entries = leaderboard?.entries || [];
+  // Get entries from the leaderboard or use an empty array if none exist
+  const entries = (leaderboard.entries || []).slice(0, limit);
   
-  // Filter entries based on search
-  const filteredEntries = entries.filter((entry: LeaderboardEntry) => 
-    !search || 
-    (entry.username && entry.username.toLowerCase().includes(search.toLowerCase()))
-  );
+  // Filter entries if needed (can be used to show only top 10, etc.)
+  const filteredEntries = entries;
   
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredEntries.length / itemsPerPage);
-  const startIndex = (page - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage - 1, filteredEntries.length - 1);
-  
-  // Get current page entries
-  const paginatedEntries = filteredEntries.slice(startIndex, startIndex + itemsPerPage);
-  
-  // Find current user's entry
+  // Find the current user's entry and rank
   const userEntry = entries.find((entry: LeaderboardEntry) => entry.userId === userId);
-  const userRank = userEntry ? entries.findIndex((entry: LeaderboardEntry) => entry.userId === userId) + 1 : null;
+  const userRank = userEntry ? userEntry.rank : null;
 
-  // Determine if user entry should be shown separately (if not on current page)
-  const showUserSeparately = userEntry && userRank !== null && 
-    (userRank < startIndex + 1 || userRank > endIndex);
+  // Format date range for display
+  const formatDateRange = () => {
+    const start = new Date(leaderboard.startDate);
+    const end = new Date(leaderboard.endDate);
+    return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
+  };
+
+  // Helper to render rank change indicator
+  const renderRankChange = (entry: LeaderboardEntry) => {
+    if (!entry.previousRank) return null;
+    
+    const diff = entry.previousRank - entry.rank;
+    
+    if (diff > 0) {
+      return (
+        <Badge variant="outline" className="ml-2 text-green-600 border-green-200 bg-green-50">
+          <ArrowUp className="h-3 w-3 mr-1" />
+          {diff}
+        </Badge>
+      );
+    } else if (diff < 0) {
+      return (
+        <Badge variant="outline" className="ml-2 text-red-600 border-red-200 bg-red-50">
+          <ArrowDown className="h-3 w-3 mr-1" />
+          {Math.abs(diff)}
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge variant="outline" className="ml-2 text-gray-600 border-gray-200 bg-gray-50">
+          <Minus className="h-3 w-3" />
+        </Badge>
+      );
+    }
+  };
+
+  // Get the icon based on leaderboard type
+  const getLeaderboardIcon = () => {
+    switch (leaderboard.type) {
+      case 'fantasy':
+        return <Users className="h-5 w-5 text-indigo-500" />;
+      default:
+        return <Trophy className="h-5 w-5 text-amber-500" />;
+    }
+  };
+
+  // Get user initials for avatar
+  const getUserInitials = (username: string = '') => {
+    return username.substring(0, 2).toUpperCase();
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 justify-between items-start">
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div>
-          <h3 className="text-lg font-medium">
-            {leaderboard.name}
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            {new Date(leaderboard.startDate).toLocaleDateString()} - {new Date(leaderboard.endDate).toLocaleDateString()}
-          </p>
+          <CardTitle>{leaderboard.name}</CardTitle>
+          <CardDescription className="mt-1">
+            {leaderboard.description}<br />
+            <span className="text-xs font-medium">Period: {formatDateRange()}</span>
+          </CardDescription>
         </div>
-
-        <div className="w-full md:w-64">
-          <Label htmlFor="search" className="sr-only">Search</Label>
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="search"
-              type="search"
-              placeholder="Search users..."
-              className="pl-8"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+        <div>
+          {getLeaderboardIcon()}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {filteredEntries.length === 0 ? (
+          <div className="py-8 text-center text-muted-foreground">
+            No entries found for this leaderboard. Be the first to compete!
           </div>
-        </div>
-      </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-16">Rank</TableHead>
+                <TableHead>User</TableHead>
+                <TableHead className="text-right">Points</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredEntries.map((entry: LeaderboardEntry) => (
+                <TableRow 
+                  key={entry.id}
+                  className={entry.userId === userId ? "bg-muted/50" : ""}
+                >
+                  <TableCell className="font-medium">
+                    {entry.rank}
+                    {renderRankChange(entry)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center">
+                      <Avatar className="h-8 w-8 mr-2">
+                        <AvatarFallback className={
+                          entry.rank === 1 ? "bg-amber-100 text-amber-800" :
+                          entry.rank === 2 ? "bg-slate-100 text-slate-800" :
+                          entry.rank === 3 ? "bg-amber-50 text-amber-700" :
+                          "bg-muted"
+                        }>
+                          {getUserInitials(entry.username)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className={entry.userId === userId ? "font-medium" : ""}>
+                        {entry.username} {entry.userId === userId && <span className="text-xs text-muted-foreground">(You)</span>}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {entry.points}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
 
-      <div className="border rounded-md">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b bg-muted/40">
-              <th className="text-left font-medium p-3 w-16">Rank</th>
-              <th className="text-left font-medium p-3">User</th>
-              <th className="text-left font-medium p-3 hidden md:table-cell">Change</th>
-              <th className="text-right font-medium p-3">Points</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedEntries.length > 0 ? (
-              <>
-                {paginatedEntries.map((entry: any, idx: number) => {
-                  const actualRank = startIndex + idx + 1;
-                  const rankChange = entry.previousRank 
-                    ? entry.previousRank - actualRank 
-                    : 0;
-                  
-                  return (
-                    <tr 
-                      key={entry.userId} 
-                      className={cn(
-                        "border-b",
-                        entry.userId === userId ? "bg-muted/50" : ""
-                      )}
-                    >
-                      <td className="p-3">
-                        {actualRank <= 3 ? (
-                          <div className="flex items-center">
-                            <Medal className={cn(
-                              "h-5 w-5 mr-1.5",
-                              actualRank === 1 ? "text-yellow-500" : 
-                              actualRank === 2 ? "text-gray-400" :
-                              "text-amber-600"
-                            )} />
-                            <span>{actualRank}</span>
-                          </div>
-                        ) : (
-                          <span>{actualRank}</span>
-                        )}
-                      </td>
-                      <td className="p-3 font-medium">
-                        {entry.username || `User ${entry.userId}`}
-                      </td>
-                      <td className="p-3 hidden md:table-cell">
-                        {rankChange > 0 ? (
-                          <span className="flex items-center text-green-600">
-                            <ArrowUpRight className="h-4 w-4 mr-1" />
-                            {rankChange}
-                          </span>
-                        ) : rankChange < 0 ? (
-                          <span className="flex items-center text-red-600">
-                            <ArrowDownRight className="h-4 w-4 mr-1" />
-                            {Math.abs(rankChange)}
-                          </span>
-                        ) : (
-                          <span className="flex items-center text-muted-foreground">
-                            <Minus className="h-4 w-4 mr-1" />
-                            0
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-3 text-right font-mono font-medium">
-                        {entry.points}
-                      </td>
-                    </tr>
-                  );
-                })}
-                
-                {/* Show user entry separately if not on current page */}
-                {showUserSeparately && (
-                  <>
-                    <tr className="border-b border-t border-dashed">
-                      <td colSpan={4} className="p-1 text-center text-xs text-muted-foreground">
-                        &bull; &bull; &bull;
-                      </td>
-                    </tr>
-                    <tr 
-                      className="border-b bg-muted/50"
-                    >
-                      <td className="p-3">
-                        {userRank}
-                      </td>
-                      <td className="p-3 font-medium">
-                        {userEntry.username || `User ${userEntry.userId}`}
-                        <Badge variant="outline" className="ml-2">You</Badge>
-                      </td>
-                      <td className="p-3 hidden md:table-cell">
-                        {userEntry.previousRank && userRank !== null && userEntry.previousRank !== userRank ? (
-                          userEntry.previousRank > userRank ? (
-                            <span className="flex items-center text-green-600">
-                              <ArrowUpRight className="h-4 w-4 mr-1" />
-                              {userEntry.previousRank - userRank}
-                            </span>
-                          ) : (
-                            <span className="flex items-center text-red-600">
-                              <ArrowDownRight className="h-4 w-4 mr-1" />
-                              {userRank - userEntry.previousRank}
-                            </span>
-                          )
-                        ) : (
-                          <span className="flex items-center text-muted-foreground">
-                            <Minus className="h-4 w-4 mr-1" />
-                            0
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-3 text-right font-mono font-medium">
-                        {userEntry.points}
-                      </td>
-                    </tr>
-                  </>
-                )}
-              </>
-            ) : (
-              <tr>
-                <td colSpan={4} className="p-6 text-center text-muted-foreground">
-                  No entries found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-between items-center">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage(Math.max(1, page - 1))}
-            disabled={page === 1}
-          >
-            Previous
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Page {page} of {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage(Math.min(totalPages, page + 1))}
-            disabled={page === totalPages}
-          >
-            Next
-          </Button>
-        </div>
-      )}
-    </div>
+        {/* Show user's rank if not in the displayed entries */}
+        {userId && userEntry && !filteredEntries.some(entry => entry.userId === userId) && (
+          <div className="mt-4 pt-4 border-t">
+            <Table>
+              <TableBody>
+                <TableRow className="bg-muted/50">
+                  <TableCell className="font-medium">
+                    {userEntry.rank}
+                    {renderRankChange(userEntry)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center">
+                      <Avatar className="h-8 w-8 mr-2">
+                        <AvatarFallback>
+                          {getUserInitials(userEntry.username)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="font-medium">
+                        {userEntry.username} <span className="text-xs text-muted-foreground">(You)</span>
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {userEntry.points}
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
