@@ -661,7 +661,7 @@ export default function PredictionsAndStatsPage() {
           {/* Error state */}
           {hasError && (
             <Card className="border-red-200 bg-red-50 dark:bg-red-950/20 mb-6">
-              <CardContent className="flex items-center py-6">
+              <CardContent className="flex items-center p-6">
                 <AlertCircle className="h-5 w-5 text-red-500 mr-3" />
                 <div>
                   <h3 className="font-medium text-red-800 dark:text-red-400">Error loading predictions</h3>
@@ -854,7 +854,7 @@ export default function PredictionsAndStatsPage() {
                     <PredictionSkeletons count={2} />
                   ) : savedPredictionsList.length === 0 ? (
                     <Card className="bg-muted/40 border-dashed">
-                      <CardContent className="py-10 flex flex-col items-center justify-center text-center">
+                      <CardContent className="p-10 flex flex-col items-center justify-center text-center">
                         <BookmarkIcon className="h-12 w-12 text-muted-foreground mb-4" />
                         <h3 className="text-lg font-medium">No saved predictions</h3>
                         <p className="text-muted-foreground mt-1 max-w-xs">
@@ -903,11 +903,11 @@ export default function PredictionsAndStatsPage() {
                   </div>
                   
                   {isLoading ? (
-                    <CardContent className="pt-6">
+                    <CardContent className="px-6 pt-6 pb-6">
                       <Skeleton className="h-[200px] w-full rounded-lg" />
                     </CardContent>
                   ) : allAccumulators.length === 0 ? (
-                    <CardContent className="py-10 flex flex-col items-center justify-center text-center">
+                    <CardContent className="p-10 flex flex-col items-center justify-center text-center">
                       <p className="text-muted-foreground">No accumulators available</p>
                     </CardContent>
                   ) : (
@@ -963,7 +963,7 @@ export default function PredictionsAndStatsPage() {
                 {/* Premium subscription card */}
                 {(!user?.subscriptionTier || user.subscriptionTier === "free") && (
                   <Card className="bg-gradient-to-br from-indigo-50 to-blue-50 border-blue-100 dark:from-indigo-950 dark:to-blue-950 dark:border-blue-800">
-                    <CardContent className="pt-6">
+                    <CardContent className="px-6 pt-6 pb-6">
                       <div className="flex items-center mb-3">
                         <Badge className="bg-blue-600 text-white py-1 px-3 rounded-full mr-2">Premium</Badge>
                         <Star className="h-4 w-4 text-amber-400" fill="currentColor" />
@@ -1006,7 +1006,7 @@ export default function PredictionsAndStatsPage() {
         <TabsContent value="stats" className="space-y-6 mt-2">
           {!user ? (
             <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
-              <CardContent className="flex items-center py-8 px-6">
+              <CardContent className="flex items-center p-8">
                 <div className="flex-1">
                   <h3 className="text-lg font-bold">Sign In Required</h3>
                   <p className="text-muted-foreground mt-1 max-w-xl">
