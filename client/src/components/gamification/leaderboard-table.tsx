@@ -107,7 +107,7 @@ export default function LeaderboardTable({ leaderboard, userId, limit = 100 }: L
   const userRank = userEntry ? entries.findIndex((entry: LeaderboardEntry) => entry.userId === userId) + 1 : null;
 
   // Determine if user entry should be shown separately (if not on current page)
-  const showUserSeparately = userEntry && 
+  const showUserSeparately = userEntry && userRank !== null && 
     (userRank < startIndex + 1 || userRank > endIndex);
 
   // Ensure leaderboard exists at this point

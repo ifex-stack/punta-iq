@@ -23,6 +23,14 @@ type UserResponse = {
     results: boolean;
     promotions: boolean;
   };
+  // Gamification fields
+  fantasyPoints: number;
+  totalContestsWon: number;
+  totalContestsEntered: number;
+  referralCode: string;
+  referredBy: number | null;
+  referralStreak: number;
+  lastReferralDate: string | null;
 };
 
 type AuthContextType = {
