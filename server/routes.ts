@@ -1609,14 +1609,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get trending news articles
+  // Get AI-enhanced trending news articles
   app.get("/api/news/trending", async (req, res) => {
     try {
-      console.log("Fetching trending news articles");
+      console.log("Fetching AI-enhanced trending news articles");
       
       const count = req.query.count ? parseInt(req.query.count as string) : 5;
       
-      // Use direct SQL query with explicit column casting and ordering
+      // Try using the enhanced recommendation engine first
+      try {
+        // Get trending articles using the enhanced recommendation engine
+        const trendingArticles = await newsRecommendationEngine.getTrendingArticles(count);
+        console.log(`Retrieved ${trendingArticles.length} trending articles using AI-enhanced algorithm`);
+        
+        if (trendingArticles && trendingArticles.length > 0) {
+          return res.json(trendingArticles);
+        }
+      } catch (engineError) {
+        // Log the error but continue to fallback method
+        console.error("Error using recommendation engine for trending articles:", engineError);
+        console.log("Falling back to direct SQL query for trending articles");
+      }
+      
+      // Fallback: Use direct SQL query with explicit column casting and ordering
       const { rows } = await pool.query(`
         SELECT 
           id::integer, 
@@ -1630,11 +1645,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           COALESCE(views, 0) as views,
           COALESCE(likes, 0) as likes
         FROM news_articles 
+        WHERE published_at > NOW() - INTERVAL '30 days'
         ORDER BY (COALESCE(views, 0) + COALESCE(likes, 0) * 2) DESC, published_at DESC 
         LIMIT $1
       `, [count]);
       
-      console.log(`Found ${rows.length} trending articles via direct SQL`);
+      console.log(`Found ${rows.length} trending articles via direct SQL (fallback method)`);
       
       // Transform to camelCase property names for frontend consumption
       const articles = rows.map(row => ({
