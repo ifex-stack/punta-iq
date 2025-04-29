@@ -73,6 +73,7 @@ interface RawPlayerData {
  */
 export function importPlayerData(filePath: string): PlayerSeasonStats[] {
   try {
+    console.log(`Attempting to import player data from: ${filePath}`);
     const csvPath = path.resolve(filePath);
     if (!fs.existsSync(csvPath)) {
       console.error(`CSV file not found: ${csvPath}`);
@@ -80,9 +81,13 @@ export function importPlayerData(filePath: string): PlayerSeasonStats[] {
     }
 
     // Read the CSV file
+    console.log(`Reading file: ${csvPath}`);
     const fileContent = fs.readFileSync(csvPath, 'utf-8');
+    console.log(`CSV file size: ${fileContent.length} bytes`);
+    console.log(`First 100 characters: ${fileContent.substring(0, 100)}`);
     
     // Parse the CSV data with semicolon delimiter
+    console.log(`Parsing CSV with semicolon delimiter`);
     const records = parse(fileContent, {
       columns: true,
       skip_empty_lines: true,
@@ -318,13 +323,32 @@ function calculateFantasyPoints(
  */
 export function importAndSavePlayerData() {
   try {
-    // Set the path to the CSV file
-    const csvPath = './attached_assets/players_players-statistics_get-players-statistics-for-current-seasons.csv';
+    // Set the path to the CSV file - try both with and without leading dot
+    let csvPath = './attached_assets/players_players-statistics_get-players-statistics-for-current-seasons.csv';
     
-    // Check if the file exists first
+    // Check if the file exists first with relative path
     if (!fs.existsSync(path.resolve(csvPath))) {
-      console.warn(`Player statistics CSV file not found at ${csvPath}`);
-      return [];
+      console.warn(`Player statistics CSV file not found at ${csvPath}, trying alternative path...`);
+      
+      // Try without the leading dot
+      csvPath = 'attached_assets/players_players-statistics_get-players-statistics-for-current-seasons.csv';
+      
+      if (!fs.existsSync(path.resolve(csvPath))) {
+        console.warn(`Player statistics CSV file not found at ${csvPath} either`);
+        
+        // Try with absolute path
+        const potentialPaths = [
+          './attached_assets/players_players-statistics_get-players-statistics-for-current-seasons.csv',
+          'attached_assets/players_players-statistics_get-players-statistics-for-current-seasons.csv',
+          path.join(process.cwd(), 'attached_assets', 'players_players-statistics_get-players-statistics-for-current-seasons.csv')
+        ];
+        
+        console.log('Current directory:', process.cwd());
+        console.log('Trying the following paths:');
+        potentialPaths.forEach(p => console.log(` - ${p} (exists: ${fs.existsSync(path.resolve(p))})`));
+        
+        return [];
+      }
     }
     
     // Import the player data
