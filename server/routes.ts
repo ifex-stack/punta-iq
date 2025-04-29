@@ -4,7 +4,7 @@ import { WebSocketServer } from "ws";
 import { setupAuth } from "./auth";
 import { setupPredictionRoutes } from "./predictions";
 import { setupNotificationRoutes } from "./notifications";
-import { setupGamificationRoutes } from "./gamification";
+// import { setupGamificationRoutes } from "./gamification";
 import { setupMockGamificationRoutes } from "./mock-gamification";
 import { setupMLRoutes } from "./ml-routes";
 import { setupAiStatusRoutes } from "./ai-status-route";
@@ -14,10 +14,8 @@ import { getFantasyStore } from "./fantasy-data-init";
 import { PushNotificationService } from "./push-notification-service";
 import { newsRecommendationEngine } from "./recommendation-engine";
 import { db, pool } from "./db";
-import { setupMockGamificationRoutes } from "./mock-gamification";
 import { setupNewsRoutes } from "./news-routes";
 import { PlayerSeasonStats, PlayerMatchStats } from "@shared/player-interfaces";
-
 import { realTimeMatchesService } from "./real-time-matches-service";
 import { openaiClient } from "./openai-client";
 import { oddsAPIService } from "./odds-api-service";
@@ -32,14 +30,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up notification routes
   setupNotificationRoutes(app);
   
-  // Set up gamification routes (badges & leaderboards)
-  try {
-    setupGamificationRoutes(app);
-  } catch (error) {
-    console.warn('Failed to set up regular gamification routes, using mock routes:', error);
-  }
-  
-  // Set up mock gamification routes to handle when the real ones fail
+  // Set up mock gamification routes for badges & leaderboards
+  console.log('Setting up mock gamification routes...');
   setupMockGamificationRoutes(app);
   
   // Set up AI status route (register this BEFORE the ML routes to prevent path conflicts)
