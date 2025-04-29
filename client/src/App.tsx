@@ -16,7 +16,7 @@ import HistoricalDashboard from "@/pages/historical-dashboard";
 import FantasyContestsPage from "@/pages/fantasy-contests-page";
 import FantasyContestCreatePage from "@/pages/fantasy-contest-create-page";
 import FantasyTeamBuildPage from "@/pages/fantasy-team-build-page";
-import PredictionsAndStatsPage from "@/pages/predictions-and-stats-page";
+import NewPredictionsAndStatsPage from "@/pages/new-predictions-and-stats-page";
 import AdvancedPredictionsPage from "@/pages/advanced-predictions-page";
 import PlayerComparisonPage from "@/pages/player-comparison-page";
 import PlayerAnalysisPage from "@/pages/player-analysis-page";
@@ -78,9 +78,9 @@ const Router: React.FC = () => {
       <div className="flex-1 relative">
         <AppLayout>
           <Switch>
-            <ProtectedRoute path="/" component={PredictionsAndStatsPage} />
-            <ProtectedRoute path="/predictions" component={PredictionsAndStatsPage} />
-            <ProtectedRoute path="/stats" component={PredictionsAndStatsPage} />
+            <ProtectedRoute path="/" component={NewPredictionsAndStatsPage} />
+            <ProtectedRoute path="/predictions" component={NewPredictionsAndStatsPage} />
+            <ProtectedRoute path="/stats" component={NewPredictionsAndStatsPage} />
             <ProtectedRoute path="/history" component={HistoricalDashboard} />
             <ProtectedRoute path="/predictions/advanced" component={AdvancedPredictionsPage} />
             <ProtectedRoute path="/fantasy/contests" component={FantasyContestsPage} />

@@ -2430,6 +2430,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add direct access to OddsAPI data for our new frontend implementation
+  app.get("/api/odds/football", async (req, res) => {
+    try {
+      console.log("OddsAPI: Direct football odds request received");
+      const events = await oddsAPIService.getTodayEvents('soccer');
+      
+      const enhancedEvents = events.map(event => {
+        // Calculate basic prediction confidence based on odds
+        const homeOdds = event.homeOdds || 0;
+        const drawOdds = event.drawOdds || 0;
+        const awayOdds = event.awayOdds || 0;
+        
+        // Generate prediction - simple algorithm based on odds
+        let prediction = '';
+        let confidence = 0;
+        
+        if (homeOdds > 0 && homeOdds <= drawOdds && homeOdds <= awayOdds) {
+          prediction = 'Home Win';
+          confidence = Math.round(100 * (1 / homeOdds) / (1/homeOdds + 1/drawOdds + 1/awayOdds));
+        } else if (drawOdds > 0 && drawOdds <= homeOdds && drawOdds <= awayOdds) {
+          prediction = 'Draw';
+          confidence = Math.round(100 * (1 / drawOdds) / (1/homeOdds + 1/drawOdds + 1/awayOdds));
+        } else if (awayOdds > 0) {
+          prediction = 'Away Win';
+          confidence = Math.round(100 * (1 / awayOdds) / (1/homeOdds + 1/drawOdds + 1/awayOdds));
+        }
+        
+        // Ensure confidence is in a reasonable range
+        confidence = Math.max(Math.min(confidence, 95), 40);
+        
+        // Generate explanation based on the prediction
+        let explanation = '';
+        if (prediction === 'Home Win') {
+          explanation = `${event.homeTeam} are favored to win against ${event.awayTeam} with ${confidence}% confidence based on current odds.`;
+        } else if (prediction === 'Draw') {
+          explanation = `${event.homeTeam} and ${event.awayTeam} are likely to draw with ${confidence}% confidence based on current odds.`;
+        } else {
+          explanation = `${event.awayTeam} are favored to win against ${event.homeTeam} with ${confidence}% confidence based on current odds.`;
+        }
+        
+        return {
+          ...event,
+          prediction,
+          confidence,
+          explanation,
+          valueBet: confidence > 70 ? {
+            market: 'Match Result',
+            selection: prediction,
+            odds: prediction === 'Home Win' ? homeOdds : prediction === 'Draw' ? drawOdds : awayOdds,
+            value: Math.round((confidence/100) * 15)
+          } : undefined
+        };
+      });
+      
+      res.json(enhancedEvents);
+    } catch (error) {
+      console.error("OddsAPI: Error getting football odds", error);
+      res.status(500).json({ error: "Failed to fetch odds data" });
+    }
+  });
+
+  // Add a route for all supported sports
+  app.get("/api/odds/sports", async (req, res) => {
+    try {
+      const sports = await oddsAPIService.getAllSports();
+      res.json(sports);
+    } catch (error) {
+      console.error("OddsAPI: Error getting sports list", error);
+      res.status(500).json({ error: "Failed to fetch sports data" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Create WebSocket server for real-time notifications
