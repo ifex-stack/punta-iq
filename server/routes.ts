@@ -724,7 +724,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Combine player data for the OpenAI client
       const playerData = {
-        ...player,
+        id: player.id,
+        name: player.name,
+        position: player.position,
+        team: player.team,
+        league: player.league,
         seasonStats
       };
       
