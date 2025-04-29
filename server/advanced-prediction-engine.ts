@@ -45,12 +45,19 @@ export class AdvancedPredictionEngine {
   }
   
   /**
-   * Generate a baseline prediction using statistical models
+   * Generate a baseline prediction using statistical models and live odds data
    */
   private generateBaselinePrediction(matchData: any, historicalData: any = null): any {
     try {
       // Extract basic team information
       const { homeTeam, awayTeam, league, sport } = matchData;
+      
+      // Log the available odds data from OddsAPI
+      logger.debug('AdvancedPredictionEngine', 'Using odds data from OddsAPI', { 
+        homeOdds: matchData.homeOdds,
+        drawOdds: matchData.drawOdds,
+        awayOdds: matchData.awayOdds
+      });
       
       // Generate prediction based on sport
       if (sport === 'football') {
@@ -70,7 +77,7 @@ export class AdvancedPredictionEngine {
         confidence: 50,
         predictions: {},
         analysisFactors: [],
-        predictionMethods: ['statistical-baseline'],
+        predictionMethods: ['statistical-baseline', 'real-odds-analysis'],
       };
     } catch (error) {
       logger.error('AdvancedPredictionEngine', 'Error generating baseline prediction', error);
@@ -82,22 +89,69 @@ export class AdvancedPredictionEngine {
   }
   
   /**
-   * Generate football-specific baseline prediction
+   * Generate football-specific baseline prediction using real odds data from OddsAPI when available
    */
   private generateFootballBaseline(matchData: any, historicalData: any = null): any {
     const { homeTeam, awayTeam, league, id } = matchData;
     
-    // Use historical data if available, otherwise use statistical estimates
-    // In a real implementation, these would be calculated from actual data
-    const homeStrength = (historicalData?.homeStrength) || Math.random() * 0.3 + 0.7; // 0.7-1.0
-    const awayStrength = (historicalData?.awayStrength) || Math.random() * 0.3 + 0.6; // 0.6-0.9
-    const homeAdvantage = 1.3; // Standard home advantage factor
+    // Check if we have real odds data from OddsAPI
+    const hasRealOdds = matchData.homeOdds && 
+                     (matchData.drawOdds || matchData.drawOdds === 0) && 
+                     matchData.awayOdds;
     
-    // Calculate win probabilities
-    const homeProbability = Math.min(85, Math.floor((homeStrength * homeAdvantage) / (homeStrength * homeAdvantage + awayStrength) * 100));
-    const drawFactor = Math.min(1, (100 - Math.abs(homeStrength * 100 - awayStrength * 100)) / 50);
-    const drawProbability = Math.floor(28 * drawFactor);
-    const awayProbability = Math.max(5, 100 - homeProbability - drawProbability);
+    let homeStrength, awayStrength, homeAdvantage;
+    let homeProbability, drawProbability, awayProbability;
+    let homeOdds, drawOdds, awayOdds;
+    
+    if (hasRealOdds) {
+      // Use real odds from OddsAPI to calculate probabilities
+      logger.info('AdvancedPredictionEngine', 'Using real odds data from OddsAPI', { 
+        match: `${homeTeam} vs ${awayTeam}`,
+        odds: { home: matchData.homeOdds, draw: matchData.drawOdds, away: matchData.awayOdds }
+      });
+      
+      // Convert odds to probabilities (accounting for bookmaker margin)
+      const rawHomeProb = 1 / matchData.homeOdds;
+      const rawDrawProb = 1 / matchData.drawOdds;
+      const rawAwayProb = 1 / matchData.awayOdds;
+      const totalRawProb = rawHomeProb + rawDrawProb + rawAwayProb;
+      const margin = totalRawProb - 1.0;
+      
+      // Normalize probabilities by removing the bookmaker margin
+      homeProbability = Math.min(90, Math.floor((rawHomeProb / totalRawProb) * 100));
+      drawProbability = Math.floor((rawDrawProb / totalRawProb) * 100);
+      awayProbability = Math.max(5, 100 - homeProbability - drawProbability);
+      
+      // Reverse-engineer team strengths based on probabilities
+      homeAdvantage = 1.3;
+      // This is a simplified approach to derive team strength from odds
+      const strengthRatio = homeProbability / (homeProbability + awayProbability);
+      homeStrength = Math.min(0.95, Math.max(0.7, strengthRatio));
+      awayStrength = Math.min(0.9, Math.max(0.6, 1 - strengthRatio));
+      
+      // Use real market odds
+      homeOdds = matchData.homeOdds;
+      drawOdds = matchData.drawOdds;
+      awayOdds = matchData.awayOdds;
+    } else {
+      // Fallback to statistical estimates if no real odds are available
+      logger.debug('AdvancedPredictionEngine', 'No real odds available, using statistical estimates');
+      
+      homeStrength = (historicalData?.homeStrength) || Math.random() * 0.3 + 0.7; // 0.7-1.0
+      awayStrength = (historicalData?.awayStrength) || Math.random() * 0.3 + 0.6; // 0.6-0.9
+      homeAdvantage = 1.3; // Standard home advantage factor
+      
+      // Calculate win probabilities
+      homeProbability = Math.min(85, Math.floor((homeStrength * homeAdvantage) / (homeStrength * homeAdvantage + awayStrength) * 100));
+      const drawFactor = Math.min(1, (100 - Math.abs(homeStrength * 100 - awayStrength * 100)) / 50);
+      drawProbability = Math.floor(28 * drawFactor);
+      awayProbability = Math.max(5, 100 - homeProbability - drawProbability);
+      
+      // Calculate simulated market odds
+      homeOdds = (100 / homeProbability) * 0.85;
+      drawOdds = (100 / drawProbability) * 0.85;
+      awayOdds = (100 / awayProbability) * 0.85;
+    }
     
     // Determine most likely outcome
     let predictedOutcome = 'H';
@@ -156,11 +210,6 @@ export class AdvancedPredictionEngine {
     const firstHalfGoalsProbability = Math.min(85, Math.max(40,
       Math.floor(50 + (homeStrength * 10) + (awayStrength * 5))
     ));
-    
-    // Market odds (simulated)
-    const homeOdds = (100 / homeProbability) * 0.85;
-    const drawOdds = (100 / drawProbability) * 0.85;
-    const awayOdds = (100 / awayProbability) * 0.85;
     
     return {
       id: `pred-${id || Date.now()}`,
@@ -242,19 +291,62 @@ export class AdvancedPredictionEngine {
   }
   
   /**
-   * Generate basketball-specific baseline prediction
+   * Generate basketball-specific baseline prediction using real odds data from OddsAPI when available
    */
   private generateBasketballBaseline(matchData: any, historicalData: any = null): any {
     const { homeTeam, awayTeam, league, id } = matchData;
     
-    // Use historical data if available, otherwise use statistical estimates
-    const homeStrength = (historicalData?.homeStrength) || Math.random() * 0.3 + 0.7; // 0.7-1.0
-    const awayStrength = (historicalData?.awayStrength) || Math.random() * 0.3 + 0.6; // 0.6-0.9
-    const homeAdvantage = 1.2; // Standard home advantage factor for basketball
+    // Check if we have real odds data from OddsAPI
+    const hasRealOdds = matchData.homeOdds && matchData.awayOdds;
     
-    // Calculate win probabilities
-    const homeProbability = Math.min(90, Math.floor((homeStrength * homeAdvantage) / (homeStrength * homeAdvantage + awayStrength) * 100));
-    const awayProbability = 100 - homeProbability;
+    let homeStrength, awayStrength, homeAdvantage;
+    let homeProbability, awayProbability;
+    let homeOdds, awayOdds;
+    
+    if (hasRealOdds) {
+      // Use real odds from OddsAPI to calculate probabilities
+      logger.info('AdvancedPredictionEngine', 'Using real odds data from OddsAPI for basketball', { 
+        match: `${homeTeam} vs ${awayTeam}`,
+        odds: { home: matchData.homeOdds, away: matchData.awayOdds }
+      });
+      
+      // Convert odds to probabilities (accounting for bookmaker margin)
+      const rawHomeProb = 1 / matchData.homeOdds;
+      const rawAwayProb = 1 / matchData.awayOdds;
+      const totalRawProb = rawHomeProb + rawAwayProb;
+      const margin = totalRawProb - 1.0;
+      
+      // Normalize probabilities by removing the bookmaker margin
+      homeProbability = Math.min(95, Math.floor((rawHomeProb / totalRawProb) * 100));
+      awayProbability = 100 - homeProbability;
+      
+      // Reverse-engineer team strengths based on probabilities
+      homeAdvantage = 1.2; // Standard home advantage factor for basketball
+      
+      // This is a simplified approach to derive team strength from odds
+      const strengthRatio = homeProbability / 100;
+      homeStrength = Math.min(0.95, Math.max(0.7, strengthRatio));
+      awayStrength = Math.min(0.9, Math.max(0.6, 1 - (strengthRatio - 0.5)));
+      
+      // Use real market odds
+      homeOdds = matchData.homeOdds;
+      awayOdds = matchData.awayOdds;
+    } else {
+      // Fallback to statistical estimates if no real odds are available
+      logger.debug('AdvancedPredictionEngine', 'No real basketball odds available, using statistical estimates');
+      
+      homeStrength = (historicalData?.homeStrength) || Math.random() * 0.3 + 0.7; // 0.7-1.0
+      awayStrength = (historicalData?.awayStrength) || Math.random() * 0.3 + 0.6; // 0.6-0.9
+      homeAdvantage = 1.2; // Standard home advantage factor for basketball
+      
+      // Calculate win probabilities
+      homeProbability = Math.min(90, Math.floor((homeStrength * homeAdvantage) / (homeStrength * homeAdvantage + awayStrength) * 100));
+      awayProbability = 100 - homeProbability;
+      
+      // Calculate simulated market odds
+      homeOdds = (100 / homeProbability) * 0.9;
+      awayOdds = (100 / awayProbability) * 0.9;
+    }
     
     // Determine most likely outcome
     const predictedOutcome = homeProbability > awayProbability ? 'H' : 'A';
@@ -274,10 +366,6 @@ export class AdvancedPredictionEngine {
     // Spread calculation
     const spread = Math.abs(homePoints - awayPoints);
     const favoredTeam = homePoints > awayPoints ? 'H' : 'A';
-    
-    // Market odds (simulated)
-    const homeOdds = (100 / homeProbability) * 0.9;
-    const awayOdds = (100 / awayProbability) * 0.9;
     
     return {
       id: `pred-${id || Date.now()}`,
@@ -427,13 +515,18 @@ export class AdvancedPredictionEngine {
     let awayTeamWins = 0;
     
     recentMatches.forEach(match => {
-      if (match.homeTeam === homeTeam && match.homeScore > match.awayScore) {
+      const currentHomeTeam = match.homeTeam || '';
+      const currentAwayTeam = match.awayTeam || '';
+      const homeScore = match.homeScore || 0;
+      const awayScore = match.awayScore || 0;
+      
+      if (currentHomeTeam === homeTeam && homeScore > awayScore) {
         homeTeamWins++;
-      } else if (match.awayTeam === homeTeam && match.awayScore > match.homeScore) {
+      } else if (currentAwayTeam === homeTeam && awayScore > homeScore) {
         homeTeamWins++;
-      } else if (match.homeTeam === awayTeam && match.homeScore > match.awayScore) {
+      } else if (currentHomeTeam === awayTeam && homeScore > awayScore) {
         awayTeamWins++;
-      } else if (match.awayTeam === awayTeam && match.awayScore > match.homeScore) {
+      } else if (currentAwayTeam === awayTeam && awayScore > homeScore) {
         awayTeamWins++;
       }
     });
@@ -487,7 +580,7 @@ export class AdvancedPredictionEngine {
       const avgConceded = goalsConceded / form.length;
       
       // Last 5 matches form string (e.g. "WDLWW")
-      const formString = form.slice(0, 5).map(m => m.result).join('');
+      const formString = form.slice(0, 5).map(m => m.result || '-').join('');
       
       return {
         available: true,
@@ -512,8 +605,8 @@ export class AdvancedPredictionEngine {
     let betterForm = 'Even';
     
     if (homeFormAnalysis.available && awayFormAnalysis.available) {
-      const homeWinPct = parseFloat(homeFormAnalysis.winPercentage);
-      const awayWinPct = parseFloat(awayFormAnalysis.winPercentage);
+      const homeWinPct = parseFloat(homeFormAnalysis.winPercentage || '0');
+      const awayWinPct = parseFloat(awayFormAnalysis.winPercentage || '0');
       
       if (homeWinPct > awayWinPct + 15) {
         betterForm = 'Home team significantly better';
