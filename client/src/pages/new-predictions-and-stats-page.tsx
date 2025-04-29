@@ -190,6 +190,50 @@ export default function NewPredictionsAndStatsPage() {
   const topConfidenceBets = [...filteredPredictions]
     .sort((a, b) => b.confidence - a.confidence)
     .slice(0, 3);
+    
+  // Generate accumulator predictions with different odds levels
+  const generateAccumulator = (targetOdds: number) => {
+    // Clone and shuffle predictions to get various combinations
+    const shuffled = [...filteredPredictions]
+      .filter(p => p.confidence > 60)
+      .sort(() => 0.5 - Math.random());
+      
+    let currentOdds = 1;
+    const selections: Prediction[] = [];
+    
+    // Add predictions until we reach or exceed target odds
+    for (const prediction of shuffled) {
+      if (selections.length >= 10) break; // Maximum 10 selections
+      
+      // Calculate new odds if we add this prediction
+      const newOdds = currentOdds * (prediction.odds || 1.5);
+      
+      // If adding this would exceed target odds by too much, skip
+      if (selections.length > 0 && newOdds > targetOdds * 1.5) continue;
+      
+      selections.push(prediction);
+      currentOdds = newOdds;
+      
+      // Stop if we've reached target odds range
+      if (currentOdds >= targetOdds * 0.8 && currentOdds <= targetOdds * 1.2) break;
+    }
+    
+    return {
+      selections,
+      totalOdds: currentOdds.toFixed(2),
+      potentialReturn: (100 * currentOdds).toFixed(2),
+      confidence: Math.floor(selections.reduce((sum, p) => sum + p.confidence, 0) / selections.length)
+    };
+  };
+  
+  // Generate accumulators with different odds targets
+  const accumulators = {
+    low: generateAccumulator(2),
+    medium: generateAccumulator(5),
+    high: generateAccumulator(10),
+    veryHigh: generateAccumulator(20),
+    extreme: generateAccumulator(50)
+  };
 
   // Refresh data
   const refreshData = async () => {
@@ -252,6 +296,9 @@ export default function NewPredictionsAndStatsPage() {
   // Check if we have data to show
   const hasPredictions = filteredPredictions && filteredPredictions.length > 0;
 
+  // Get location setter for navigation
+  const [_, setLocation] = useLocation();
+  
   // Handler for viewing prediction details
   const handleViewPredictionDetails = (prediction: Prediction) => {
     try {
@@ -297,6 +344,7 @@ export default function NewPredictionsAndStatsPage() {
               
               <Button
                 className="bg-white text-blue-700 hover:bg-blue-100"
+                onClick={() => setLocation('/advanced-analysis')}
               >
                 Advanced Analysis
                 <ArrowUpRight className="ml-2 h-4 w-4" />
@@ -517,6 +565,123 @@ export default function NewPredictionsAndStatsPage() {
                   ))}
                 </CardContent>
               </Card>
+            </div>
+          )}
+          
+          {/* Accumulators section */}
+          {!isLoadingOdds && hasPredictions && (
+            <div className="space-y-4 mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold flex items-center">
+                  <Activity className="h-5 w-5 mr-2 text-indigo-600" />
+                  Accumulator Predictions
+                </h2>
+                <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30">
+                  AI-Generated
+                </Badge>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                {/* Low odds accumulator */}
+                <Card className="border-indigo-200 dark:border-indigo-800/50 hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-2 pt-4">
+                    <CardTitle className="text-base font-medium">Low Risk</CardTitle>
+                    <CardDescription className="text-xs">Odds: {accumulators.low.totalOdds}x</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0 pb-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center mb-1">
+                        <Badge variant="secondary" className="font-medium">{accumulators.low.selections.length} Selections</Badge>
+                        <Badge className="bg-green-100 text-green-800 hover:bg-green-200 border-green-200">{accumulators.low.confidence}% Confidence</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">Stake: £100</p>
+                      <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-md">
+                        <p className="text-center text-green-800 dark:text-green-400 font-medium">Potential Return: £{accumulators.low.potentialReturn}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Medium odds accumulator */}
+                <Card className="border-indigo-200 dark:border-indigo-800/50 hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-2 pt-4">
+                    <CardTitle className="text-base font-medium">Medium Risk</CardTitle>
+                    <CardDescription className="text-xs">Odds: {accumulators.medium.totalOdds}x</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0 pb-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center mb-1">
+                        <Badge variant="secondary" className="font-medium">{accumulators.medium.selections.length} Selections</Badge>
+                        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200">{accumulators.medium.confidence}% Confidence</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">Stake: £100</p>
+                      <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+                        <p className="text-center text-blue-800 dark:text-blue-400 font-medium">Potential Return: £{accumulators.medium.potentialReturn}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* High odds accumulator */}
+                <Card className="border-indigo-200 dark:border-indigo-800/50 hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-2 pt-4">
+                    <CardTitle className="text-base font-medium">High Risk</CardTitle>
+                    <CardDescription className="text-xs">Odds: {accumulators.high.totalOdds}x</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0 pb-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center mb-1">
+                        <Badge variant="secondary" className="font-medium">{accumulators.high.selections.length} Selections</Badge>
+                        <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-200">{accumulators.high.confidence}% Confidence</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">Stake: £100</p>
+                      <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded-md">
+                        <p className="text-center text-amber-800 dark:text-amber-400 font-medium">Potential Return: £{accumulators.high.potentialReturn}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Very High odds accumulator */}
+                <Card className="border-indigo-200 dark:border-indigo-800/50 hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-2 pt-4">
+                    <CardTitle className="text-base font-medium">Very High Risk</CardTitle>
+                    <CardDescription className="text-xs">Odds: {accumulators.veryHigh.totalOdds}x</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0 pb-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center mb-1">
+                        <Badge variant="secondary" className="font-medium">{accumulators.veryHigh.selections.length} Selections</Badge>
+                        <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-200 border-orange-200">{accumulators.veryHigh.confidence}% Confidence</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">Stake: £100</p>
+                      <div className="p-2 bg-orange-50 dark:bg-orange-900/20 rounded-md">
+                        <p className="text-center text-orange-800 dark:text-orange-400 font-medium">Potential Return: £{accumulators.veryHigh.potentialReturn}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Extreme odds accumulator */}
+                <Card className="border-indigo-200 dark:border-indigo-800/50 hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-2 pt-4">
+                    <CardTitle className="text-base font-medium">Extreme Risk</CardTitle>
+                    <CardDescription className="text-xs">Odds: {accumulators.extreme.totalOdds}x</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0 pb-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center mb-1">
+                        <Badge variant="secondary" className="font-medium">{accumulators.extreme.selections.length} Selections</Badge>
+                        <Badge className="bg-red-100 text-red-800 hover:bg-red-200 border-red-200">{accumulators.extreme.confidence}% Confidence</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">Stake: £100</p>
+                      <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-md">
+                        <p className="text-center text-red-800 dark:text-red-400 font-medium">Potential Return: £{accumulators.extreme.potentialReturn}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           )}
           
