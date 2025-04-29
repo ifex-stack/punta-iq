@@ -115,21 +115,11 @@ const BadgeCard = ({ badge }: { badge: UserBadge }) => {
 export function BadgesGrid() {
   const { toast } = useToast();
   
-  const { data: badges, isLoading, isError } = useQuery<UserBadge[]>({
+  // Define as any to temporarily fix type issues 
+  const { data: badges, isLoading, isError } = useQuery({
     queryKey: ['/api/user/badges'],
-    retry: 2,
-    onSuccess: (data) => {
-      console.log("Badges loaded successfully", data?.length || 0);
-    },
-    onError: () => {
-      console.error("Error fetching badges");
-      toast({
-        title: "Error loading badges",
-        description: "Could not load your badges. Please try again later.",
-        variant: "destructive",
-      });
-    },
-  });
+    retry: 2
+  }) as { data: UserBadge[] | undefined, isLoading: boolean, isError: boolean };
 
   if (isLoading) {
     return (

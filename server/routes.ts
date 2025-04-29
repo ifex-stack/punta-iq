@@ -1126,6 +1126,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Combined leaderboards endpoint
+  app.get('/api/leaderboards', async (req, res) => {
+    try {
+      const userId = req.isAuthenticated() ? req.user.id : undefined;
+      
+      // Generate sample leaderboard data for demonstration
+      const generateLeaderboardData = (type: string, entries: number = 10) => {
+        const data = [];
+        for (let i = 1; i <= entries; i++) {
+          const isCurrentUser = i === 3 && userId !== undefined; // Put user at rank 3 for demo
+          data.push({
+            id: i,
+            userId: isCurrentUser ? userId : 1000 + i,
+            leaderboardId: 1,
+            rank: i,
+            previousRank: Math.max(1, i + (Math.random() > 0.7 ? 1 : Math.random() > 0.5 ? -1 : 0)),
+            points: Math.floor(1000 - (i * 50) + Math.random() * 20),
+            username: isCurrentUser ? req.user?.username || "You" : `Player${1000 + i}`,
+            avatarUrl: undefined,
+            details: {
+              winStreak: Math.floor(Math.random() * 5),
+              accuracy: Math.floor(50 + Math.random() * 30),
+              gamesPlayed: Math.floor(10 + Math.random() * 30)
+            },
+            lastUpdated: new Date()
+          });
+        }
+        return data;
+      };
+      
+      // In the future, replace with actual leaderboard data
+      // const [weekly, monthly, global] = await Promise.all([
+      //   storage.getWeeklyLeaderboard(userId),
+      //   storage.getMonthlyLeaderboard(userId),
+      //   storage.getGlobalLeaderboard(userId),
+      // ]);
+      
+      // Use sample data for now
+      const weekly = generateLeaderboardData('weekly');
+      const monthly = generateLeaderboardData('monthly', 15);
+      const global = generateLeaderboardData('global', 20);
+      
+      res.json({
+        weekly,
+        monthly,
+        global
+      });
+    } catch (error) {
+      console.error('[ERROR] Failed to fetch leaderboards:', error);
+      res.status(500).json({ message: 'Failed to fetch leaderboards' });
+    }
+  });
+  
+  // Endpoint to get all user badges
+  app.get('/api/user/badges', async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    try {
+      // Generate sample badges for demonstration
+      const badgeCategories = ['prediction', 'streak', 'achievement', 'special', 'activity', 'loyalty'];
+      const tiers = ['bronze', 'silver', 'gold', 'platinum', 'diamond'];
+      
+      const generateBadges = () => {
+        const badges = [];
+        
+        // Generate a mix of earned and unearned badges
+        for (let i = 1; i <= 12; i++) {
+          const isEarned = i <= 7; // First 7 are earned
+          const category = badgeCategories[i % badgeCategories.length];
+          const tier = tiers[Math.min(Math.floor(i / 3), 4)];
+          const progress = isEarned ? 100 : Math.floor(Math.random() * 80);
+          const target = 100;
+          
+          badges.push({
+            id: i,
+            userId: req.user.id,
+            badgeId: i,
+            name: `${category.charAt(0).toUpperCase() + category.slice(1)} ${tier.charAt(0).toUpperCase() + tier.slice(1)}`,
+            description: `Earn this badge by completing ${category} tasks at ${tier} level.`,
+            category,
+            tier,
+            progress,
+            target,
+            earnedAt: isEarned ? new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000) : null,
+            isNew: isEarned && i <= 2 // First 2 earned badges are new
+          });
+        }
+        
+        return badges;
+      };
+      
+      // In the future, replace with actual badge data
+      // const badges = await storage.getUserBadges(req.user.id);
+      const badges = generateBadges();
+      
+      res.json(badges);
+    } catch (error) {
+      console.error('[ERROR] Failed to fetch badges:', error);
+      res.status(500).json({ message: 'Failed to fetch badges' });
+    }
+  });
+  
   // Feature flags endpoint
   app.get("/api/feature-flags", async (req, res) => {
     try {

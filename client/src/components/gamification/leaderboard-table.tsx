@@ -159,21 +159,11 @@ export function LeaderboardTable() {
     global: LeaderboardEntry[];
   }
 
-  const { data: leaderboards, isLoading, isError } = useQuery<LeaderboardsResponse>({
+  // Define as any to temporarily fix type issues
+  const { data: leaderboards, isLoading, isError } = useQuery({
     queryKey: ['/api/leaderboards'],
-    retry: 2,
-    onSuccess: (data) => {
-      console.log("Leaderboards loaded successfully");
-    },
-    onError: () => {
-      console.error("Error fetching leaderboards");
-      toast({
-        title: "Error loading leaderboards",
-        description: "Could not load the leaderboards. Please try again later.",
-        variant: "destructive",
-      });
-    },
-  });
+    retry: 2
+  }) as { data: LeaderboardsResponse | undefined, isLoading: boolean, isError: boolean };
 
   if (isLoading) {
     return <LeaderboardSkeleton />;
