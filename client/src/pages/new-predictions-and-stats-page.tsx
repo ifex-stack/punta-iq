@@ -424,7 +424,7 @@ export default function NewPredictionsAndStatsPage() {
                               <Badge variant="outline" className="mr-2 text-green-700 bg-green-50 border-green-200 dark:bg-green-900/30">
                                 {prediction.valueBet?.value}% Value
                               </Badge>
-                              {prediction.prediction} @ {prediction.odds.toFixed(2)}
+                              {prediction.prediction} @ {prediction.odds?.toFixed(2) || '-'}
                             </div>
                           </div>
                           <Button variant="ghost" size="icon" onClick={() => handleSavePrediction(prediction.id)}>
@@ -461,7 +461,7 @@ export default function NewPredictionsAndStatsPage() {
                               <Badge variant="outline" className="mr-2 text-blue-700 bg-blue-50 border-blue-200 dark:bg-blue-900/30">
                                 {prediction.confidence}% Confidence
                               </Badge>
-                              {prediction.prediction} @ {prediction.odds.toFixed(2)}
+                              {prediction.prediction} @ {prediction.odds?.toFixed(2) || '-'}
                             </div>
                           </div>
                           <Button variant="ghost" size="icon" onClick={() => handleSavePrediction(prediction.id)}>
@@ -602,19 +602,19 @@ export default function NewPredictionsAndStatsPage() {
                                       <div className="space-y-1 text-sm">
                                         <div className="flex justify-between">
                                           <span className="text-muted-foreground">Market:</span>
-                                          <span className="font-medium">{prediction.valueBet.market}</span>
+                                          <span className="font-medium">{prediction.valueBet?.market || '-'}</span>
                                         </div>
                                         <div className="flex justify-between">
                                           <span className="text-muted-foreground">Selection:</span>
-                                          <span className="font-medium">{prediction.valueBet.selection}</span>
+                                          <span className="font-medium">{prediction.valueBet?.selection || '-'}</span>
                                         </div>
                                         <div className="flex justify-between">
                                           <span className="text-muted-foreground">Odds:</span>
-                                          <span className="font-medium">{prediction.valueBet.odds.toFixed(2)}</span>
+                                          <span className="font-medium">{prediction.valueBet?.odds?.toFixed(2) || '-'}</span>
                                         </div>
                                         <div className="flex justify-between">
                                           <span className="text-muted-foreground">Value Rating:</span>
-                                          <span className="font-medium text-green-700 dark:text-green-400">{prediction.valueBet.value}%</span>
+                                          <span className="font-medium text-green-700 dark:text-green-400">{prediction.valueBet?.value || '-'}%</span>
                                         </div>
                                       </div>
                                     </div>
