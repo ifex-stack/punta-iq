@@ -9,9 +9,10 @@ import { apiRequest } from "@/lib/queryClient";
 
 interface ReferralTiersProps {
   userId: number;
+  className?: string;
 }
 
-export const ReferralTiers: FC<ReferralTiersProps> = ({ userId }) => {
+export const ReferralTiers: FC<ReferralTiersProps> = ({ userId, className }) => {
   const { toast } = useToast();
   
   // Get user's referral stats including tier information
@@ -118,7 +119,7 @@ export const ReferralTiers: FC<ReferralTiersProps> = ({ userId }) => {
   const nextTier = getNextTier();
   
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader className="pb-3">
         <CardTitle className="text-xl flex items-center gap-2">
           <BarChart className="w-5 h-5 text-primary" />

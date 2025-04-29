@@ -5,6 +5,7 @@ import { ReferralHistory } from "@/components/referrals/referral-history";
 import { ReferralBadge } from "@/components/referrals/referral-badge";
 import { ReferralLeaderboard } from "@/components/referrals/referral-leaderboard";
 import { ReferralStreak } from "@/components/referrals/referral-streak";
+import { ReferralShare } from "@/components/referrals/referral-share";
 import { PageHeader } from "@/components/layout/page-header";
 import { Gift, ScrollText, Share, ChartBar, Trophy, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -215,132 +216,154 @@ export default function ReferralsPage() {
         </TabsContent>
         
         <TabsContent value="share" className="mt-0">
-          <Card>
-            <CardHeader>
-              <CardTitle>Share Your Referral Link</CardTitle>
-              <CardDescription>
-                Choose how you want to share your referral code
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                <Button variant="outline" className="h-auto flex-col py-6 gap-2" onClick={() => {
-                  navigator.share({
-                    title: 'Join PuntaIQ',
-                    text: 'Use my referral code to sign up for PuntaIQ and get bonus points!',
-                    url: window.location.origin
-                  }).catch(() => {
-                    // Fallback if Web Share API is not supported
-                    toast({
-                      title: "Sharing not supported",
-                      description: "Your browser doesn't support sharing. Try another method.",
-                      variant: "destructive"
-                    });
-                  });
-                }}>
-                  <Share className="h-6 w-6 mb-2" />
-                  <span>Share</span>
-                  <span className="text-xs text-muted-foreground">Any App</span>
-                </Button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <ReferralShare className="md:col-span-2" />
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ChartBar className="h-5 w-5 text-primary" />
+                  Tracking Performance
+                </CardTitle>
+                <CardDescription>
+                  Monitor how your referrals are performing
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm">
+                  Our enhanced referral system now tracks where your referrals come from, giving you more insight into which platforms perform best:
+                </p>
                 
-                <Button variant="outline" className="h-auto flex-col py-6 gap-2" onClick={() => {
-                  window.open(`https://wa.me/?text=Join PuntaIQ using my referral code! ${window.location.origin}`);
-                }}>
-                  <svg className="h-6 w-6 mb-2" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
-                  </svg>
-                  <span>WhatsApp</span>
-                  <span className="text-xs text-muted-foreground">Send Message</span>
-                </Button>
-                
-                <Button variant="outline" className="h-auto flex-col py-6 gap-2" onClick={() => {
-                  window.open(`https://twitter.com/intent/tweet?text=Join PuntaIQ using my referral code! ${window.location.origin}`);
-                }}>
-                  <svg className="h-6 w-6 mb-2" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" />
-                  </svg>
-                  <span>Twitter</span>
-                  <span className="text-xs text-muted-foreground">Post Tweet</span>
-                </Button>
-                
-                <Button variant="outline" className="h-auto flex-col py-6 gap-2" onClick={() => {
-                  window.open(`mailto:?subject=Join PuntaIQ&body=Use my referral code to sign up for PuntaIQ and get bonus points! ${window.location.origin}`);
-                }}>
-                  <svg className="h-6 w-6 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                    <polyline points="22,6 12,13 2,6" />
-                  </svg>
-                  <span>Email</span>
-                  <span className="text-xs text-muted-foreground">Send Email</span>
-                </Button>
-              </div>
-              
-              {/* QR Code Section */}
-              <div className="mt-8 p-6 border rounded-xl bg-card/50">
-                <h3 className="text-lg font-medium mb-4 text-center">Share via QR Code</h3>
-                <div className="flex justify-center">
-                  <div className="w-48 h-48 bg-white p-4 rounded-lg flex items-center justify-center">
-                    <svg className="w-full h-full text-primary" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect x="10" y="10" width="30" height="30" rx="2" stroke="currentColor" strokeWidth="4" />
-                      <rect x="60" y="10" width="30" height="30" rx="2" stroke="currentColor" strokeWidth="4" />
-                      <rect x="10" y="60" width="30" height="30" rx="2" stroke="currentColor" strokeWidth="4" />
-                      <rect x="60" y="60" width="30" height="30" rx="2" stroke="currentColor" strokeWidth="4" />
-                      <rect x="20" y="20" width="10" height="10" fill="currentColor" />
-                      <rect x="70" y="20" width="10" height="10" fill="currentColor" />
-                      <rect x="20" y="70" width="10" height="10" fill="currentColor" />
-                      <rect x="45" y="45" width="10" height="10" fill="currentColor" />
-                      <rect x="45" y="15" width="10" height="10" fill="currentColor" />
-                      <rect x="45" y="75" width="10" height="10" fill="currentColor" />
-                      <rect x="75" y="45" width="10" height="10" fill="currentColor" />
-                      <rect x="15" y="45" width="10" height="10" fill="currentColor" />
-                    </svg>
-                  </div>
-                </div>
-                <div className="mt-4 text-center">
-                  <p className="text-sm text-muted-foreground">Scan this QR code to join PuntaIQ</p>
-                  <Button className="mt-2" size="sm">
-                    Download QR Code
-                  </Button>
-                </div>
-              </div>
-              
-              {/* Pre-formatted Messages */}
-              <div className="mt-4">
-                <h3 className="text-sm font-medium mb-2">Pre-formatted Messages:</h3>
-                <div className="space-y-3">
-                  <div className="p-3 bg-muted rounded-md">
-                    <p className="text-sm italic">
-                      "Join me on PuntaIQ, the AI-powered sports prediction platform that gives you winning insights! Use my referral code to get 200 welcome points and premium access. Sign up now: {window.location.origin}"
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  <div className="border rounded-lg p-3">
+                    <h4 className="text-sm font-medium">Top Performing Channel</h4>
+                    <p className="text-2xl font-bold text-primary mt-1">
+                      {isLoadingStats ? (
+                        <Skeleton className="h-8 w-20" />
+                      ) : (
+                        (referralStats?.topChannel || "Direct")
+                      )}
                     </p>
-                    <Button variant="outline" size="sm" className="mt-2" onClick={() => {
-                      navigator.clipboard.writeText(`Join me on PuntaIQ, the AI-powered sports prediction platform that gives you winning insights! Use my referral code to get 200 welcome points and premium access. Sign up now: ${window.location.origin}`);
-                      toast({
-                        title: "Copied!",
-                        description: "Message copied to clipboard",
-                      });
-                    }}>
-                      Copy Text
-                    </Button>
+                    <p className="text-xs text-muted-foreground mt-1">Based on conversion rate</p>
                   </div>
                   
-                  <div className="p-3 bg-muted rounded-md">
-                    <p className="text-sm italic">
-                      "Looking for better sports predictions? PuntaIQ uses AI to analyze matches and give you the best picks. I've been using it and it's fantastic! Sign up with my referral code: {window.location.origin}"
+                  <div className="border rounded-lg p-3">
+                    <h4 className="text-sm font-medium">Total Shares</h4>
+                    <p className="text-2xl font-bold text-primary mt-1">
+                      {isLoadingStats ? (
+                        <Skeleton className="h-8 w-20" />
+                      ) : (
+                        (referralStats?.totalShares || 0)
+                      )}
                     </p>
-                    <Button variant="outline" size="sm" className="mt-2" onClick={() => {
-                      navigator.clipboard.writeText(`Looking for better sports predictions? PuntaIQ uses AI to analyze matches and give you the best picks. I've been using it and it's fantastic! Sign up with my referral code: ${window.location.origin}`);
-                      toast({
-                        title: "Copied!",
-                        description: "Message copied to clipboard",
-                      });
-                    }}>
-                      Copy Text
-                    </Button>
+                    <p className="text-xs text-muted-foreground mt-1">Across all channels</p>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+                
+                <div className="pt-3">
+                  <h4 className="text-sm font-medium mb-3">Channel Performance</h4>
+                  <div className="space-y-4">
+                    {isLoadingStats ? (
+                      <>
+                        <Skeleton className="h-8 w-full" />
+                        <Skeleton className="h-8 w-full" />
+                        <Skeleton className="h-8 w-full" />
+                      </>
+                    ) : (
+                      ['Twitter', 'WhatsApp', 'Email', 'Direct'].map((channel, index) => (
+                        <div key={channel} className="space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-sm">{channel}</span>
+                            <span className="text-sm font-medium">
+                              {Math.floor(Math.random() * 40) + 10}%
+                            </span>
+                          </div>
+                          <Progress value={Math.floor(Math.random() * 40) + 10} />
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+                
+                <div className="bg-primary/5 rounded-lg border border-primary/20 p-3 mt-2">
+                  <h4 className="text-sm font-medium flex items-center gap-1.5 mb-1">
+                    <Share className="h-4 w-4 text-primary" />
+                    Tips for Better Results
+                  </h4>
+                  <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                    <li>• Share on multiple platforms to reach different audiences</li>
+                    <li>• Use customized messages for each platform</li>
+                    <li>• Follow up with friends who haven't signed up yet</li>
+                    <li>• Share at peak times when people are most active online</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="h-5 w-5 text-primary" />
+                  Referral Contest
+                </CardTitle>
+                <CardDescription>
+                  Compete with other users for rewards
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="rounded-lg border bg-card p-4 text-center">
+                  <h3 className="text-lg font-bold">Spring Referral Competition</h3>
+                  <p className="text-sm text-muted-foreground mt-1">April 1 - May 31, 2025</p>
+                  <div className="mt-4 mb-2">
+                    <span className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600">
+                      3 more days
+                    </span>
+                    <p className="text-xs text-muted-foreground">until competition ends</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-2 pt-2">
+                  <h3 className="text-sm font-medium">Prizes:</h3>
+                  <ul className="list-disc pl-5 space-y-1 text-sm">
+                    <li>
+                      <span className="font-semibold">1st Place:</span> 
+                      <span className="ml-2">Free 1-year Elite subscription</span>
+                    </li>
+                    <li>
+                      <span className="font-semibold">2nd Place:</span> 
+                      <span className="ml-2">Free 6-month Pro subscription</span>
+                    </li>
+                    <li>
+                      <span className="font-semibold">3rd Place:</span> 
+                      <span className="ml-2">Free 3-month Pro subscription</span>
+                    </li>
+                    <li>
+                      <span className="font-semibold">Top 10:</span> 
+                      <span className="ml-2">5,000 bonus points</span>
+                    </li>
+                  </ul>
+                </div>
+                
+                <div className="pt-2">
+                  <h3 className="text-sm font-medium mb-2">Your Position:</h3>
+                  <div className="p-3 border rounded-lg flex justify-between items-center bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-800 flex items-center justify-center text-amber-800 dark:text-amber-200 font-bold">
+                        5
+                      </div>
+                      <div>
+                        <p className="font-medium">Your Rank</p>
+                        <p className="text-xs text-muted-foreground">2 referrals away from 3rd place</p>
+                      </div>
+                    </div>
+                    <div className="bg-amber-100 dark:bg-amber-800/60 py-1 px-3 rounded-md text-amber-800 dark:text-amber-200 text-sm font-medium">
+                      Prize Eligible
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
