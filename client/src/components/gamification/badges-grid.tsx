@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Badge } from "lucide-react";
+import { Badge as LucideBadge } from "lucide-react";
 import { Award, AlertCircle, Lock, Trophy } from "lucide-react";
 import { 
   Dialog, 
@@ -14,8 +14,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-// Badge tier colors
-const tierColors = {
+// Badge tier types and colors
+type BadgeTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';
+
+const tierColors: Record<BadgeTier, string> = {
   bronze: "bg-amber-800",
   silver: "bg-slate-400",
   gold: "bg-amber-400",
@@ -23,23 +25,54 @@ const tierColors = {
   diamond: "bg-blue-400"
 };
 
-// Badge category icons
-const categoryIcons = {
+// Badge category types and icons
+type BadgeCategory = 'prediction' | 'fantasy' | 'engagement' | 'achievement';
+
+const categoryIcons: Record<BadgeCategory, React.ReactNode> = {
   prediction: <Award className="h-5 w-5" />,
-  fantasy: <Badge className="h-5 w-5" />,
+  fantasy: <LucideBadge className="h-5 w-5" />,
   engagement: <AlertCircle className="h-5 w-5" />,
   achievement: <Award className="h-5 w-5" />
 };
 
+// Types for badges
+interface Badge {
+  id: number;
+  name: string;
+  description: string;
+  category: BadgeCategory;
+  tier: BadgeTier;
+  icon: string;
+  points: number;
+  requirements?: {
+    description: string;
+    unit?: string;
+  };
+  isActive: boolean;
+}
+
+interface UserBadge {
+  id: number;
+  userId: number;
+  badgeId: number;
+  earnedAt: string;
+  isNew: boolean;
+  isViewed: boolean;
+  progress?: {
+    current: number;
+    target: number;
+  };
+}
+
 interface BadgesGridProps {
-  earnedBadges: any[];
-  lockedBadges: any[];
-  allBadges: any[];
+  earnedBadges: UserBadge[];
+  lockedBadges: Badge[];
+  allBadges: Badge[];
 }
 
 interface BadgeItemProps {
-  badge: any;
-  earnedData?: any;
+  badge: Badge;
+  earnedData?: UserBadge;
   isLocked?: boolean;
 }
 
@@ -197,7 +230,7 @@ export default function BadgesGrid({ earnedBadges, lockedBadges, allBadges }: Ba
   };
 
   // Map of badge ID to earned badge data
-  const earnedBadgesMap = earnedBadges.reduce((map, userBadge) => {
+  const earnedBadgesMap = earnedBadges.reduce<Record<number, UserBadge>>((map, userBadge) => {
     map[userBadge.badgeId] = userBadge;
     return map;
   }, {});
