@@ -233,8 +233,7 @@ class SportsApiService {
       this.clients.set(sport, axios.create({
         baseURL: config.baseUrl,
         headers: {
-          'x-rapidapi-key': this.apiKey,
-          'x-rapidapi-host': new URL(config.baseUrl).host
+          'x-apisports-key': this.apiKey
         }
       }));
       logger.info('SportsApiService', `Initialized client for ${sport}`);
@@ -299,6 +298,14 @@ class SportsApiService {
       
       // Each sport API might have slightly different parameter names and response structures
       // So we need special handling for some sports
+      
+      // API-Football requires a season parameter
+      if (sport === 'football' && !options.season) {
+        // Use current year as the season
+        const currentYear = new Date().getFullYear();
+        queryParams.season = currentYear;
+      }
+      
       if (['basketball', 'baseball', 'american_football', 'rugby', 'hockey', 'afl', 'handball', 'volleyball'].includes(sport)) {
         if (options.date) {
           queryParams.date = options.date;
