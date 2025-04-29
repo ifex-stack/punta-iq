@@ -21,6 +21,7 @@ import PredictionsPage from "@/pages/predictions-page";
 import AdvancedPredictionsPage from "@/pages/advanced-predictions-page";
 import PlayerComparisonPage from "@/pages/player-comparison-page";
 import ReferralsPage from "@/pages/referrals-page";
+import GamificationPage from "@/pages/gamification-page";
 import AdminPage from "@/pages/admin-page";
 import FeedbackPage from "@/pages/feedback";
 import NewsPage from "@/pages/news-page";
@@ -91,6 +92,7 @@ const Router: React.FC = () => {
             <ProtectedRoute path="/subscription-success" component={SubscriptionSuccessPage} />
             <ProtectedRoute path="/profile" component={ProfilePage} />
             <ProtectedRoute path="/referrals" component={ReferralsPage} />
+            <ProtectedRoute path="/gamification" component={GamificationPage} />
             <ProtectedRoute path="/admin" component={AdminPage} />
             <Route path="/news" component={NewsPage} />
             <Route path="/faq" component={FAQPage} />

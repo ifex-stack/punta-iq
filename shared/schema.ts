@@ -32,7 +32,7 @@ export const users = pgTable("users", {
     results: true,
     promotions: true,
   }),
-  // Fantasy gamification properties
+  // Gamification properties
   fantasyPoints: integer("fantasy_points").default(0).notNull(),
   totalContestsWon: integer("total_contests_won").default(0).notNull(),
   totalContestsEntered: integer("total_contests_entered").default(0).notNull(),
