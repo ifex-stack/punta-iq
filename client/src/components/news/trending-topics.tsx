@@ -37,12 +37,12 @@ function TopicSkeleton() {
 }
 
 export function TrendingTopics() {
-  // Use default type for the query hook (it's inferred from the generic type)
+  // Use our reliable direct trending topics endpoint
   const { data: trendingTopics, isLoading } = useQuery<TrendingTopic[]>({
-    queryKey: ["/api/news/trending-topics"],
+    queryKey: ["/api/direct-trending-topics"],
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 1
+    retry: 2
   });
 
   return (
