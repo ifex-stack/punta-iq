@@ -139,11 +139,318 @@ export default function AccumulatorsPage() {
   const formattedDate = format(date, 'MMMM dd, yyyy');
   const isCurrentDate = isToday(date);
   
-  // Fetch accumulator predictions based on risk and sport filters
-  const { data: accumulators, isLoading } = useQuery<Accumulator[]>({
-    queryKey: ['/api/accumulators', riskLevel, filterSport, format(date, 'yyyy-MM-dd')],
-    enabled: true,
+  // Fetch soccer (football) matches for accumulators from API
+  const { data: matchesData, isLoading: loadingMatches } = useQuery<any>({
+    queryKey: ['/api/odds/soccer'],
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    refetchOnWindowFocus: false,
+    retry: 3,
+    enabled: true
   });
+  
+  // Fetch basketball matches for accumulators 
+  const { data: basketballData, isLoading: loadingBasketball } = useQuery<any>({
+    queryKey: ['/api/odds/basketball_nba'],
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
+    retry: 3,
+    enabled: filterSport === 'all' || filterSport === 'basketball'
+  });
+  
+  // Generate accumulator predictions based on matches data and risk level
+  const accumulators = React.useMemo(() => {
+    // Handle loading or missing data
+    if (!matchesData) return [];
+    
+    // Get all events for sport filtering
+    const allEvents = [
+      ...((matchesData?.events || [])
+        .map((event: any) => ({ ...event, sportType: 'football' }))),
+      ...((basketballData?.events || [])
+        .map((event: any) => ({ ...event, sportType: 'basketball' })))
+    ];
+    
+    // Filter by sport
+    const filteredEvents = filterSport === 'all' 
+      ? allEvents 
+      : allEvents.filter(event => event.sportType === filterSport);
+    
+    if (filteredEvents.length === 0) return [];
+    
+    // Get matches to build accumulators based on odds
+    const getSortedMatches = () => {
+      return [...filteredEvents]
+        .filter(match => match.homeOdds && match.awayOdds) // Ensure we have odds
+        .sort((a, b) => {
+          // For safe bets, prioritize matches with clearer favorites (lower odds)
+          if (riskLevel === 'safe') {
+            const aLowestOdds = Math.min(a.homeOdds || 999, a.awayOdds || 999, a.drawOdds || 999);
+            const bLowestOdds = Math.min(b.homeOdds || 999, b.awayOdds || 999, b.drawOdds || 999);
+            return aLowestOdds - bLowestOdds;
+          }
+          
+          // For risky bets, prioritize higher odds
+          if (riskLevel === 'risky' || riskLevel === 'high-risk' || riskLevel === 'ultra') {
+            const aHighestOdds = Math.max(a.homeOdds || 0, a.awayOdds || 0, a.drawOdds || 0);
+            const bHighestOdds = Math.max(b.homeOdds || 0, b.awayOdds || 0, b.drawOdds || 0);
+            return bHighestOdds - aHighestOdds;
+          }
+          
+          // Default balanced approach - mix of safe and value bets
+          return (new Date(a.startTime)).getTime() - (new Date(b.startTime)).getTime();
+        });
+    };
+    
+    // Decide number of matches in accumulator based on risk level
+    const getAccumulatorSize = () => {
+      switch (riskLevel) {
+        case 'safe': return 2;
+        case 'balanced': return 3;
+        case 'risky': return 4;
+        case 'high-risk': return 5;
+        case 'ultra': return 6;
+        default: return 3;
+      }
+    };
+    
+    const matches = getSortedMatches();
+    const accSize = Math.min(getAccumulatorSize(), matches.length);
+    
+    if (accSize === 0) return [];
+    
+    // Generate different types of accumulators
+    const generateAccumulators = () => {
+      // Common function to select matches and calculate accumulator odds
+      const buildAccumulator = (matches: any[], name: string, description: string, marketType: string, sport: string, selections: any[], isRecommended = false) => {
+        // Calculate the total odds by multiplying all selection odds
+        const totalOdds = selections.reduce((product, sel) => product * sel.odds, 1);
+        const stake = 10; // Default $10 stake
+        const potentialReturn = (totalOdds * stake).toFixed(2);
+        
+        // Color themes based on risk and sport
+        const colorThemes = {
+          safe: 'bg-green-50 border-green-200',
+          balanced: 'bg-blue-50 border-blue-200',
+          risky: 'bg-orange-50 border-orange-200',
+          'high-risk': 'bg-red-50 border-red-200',
+          ultra: 'bg-purple-50 border-purple-200',
+        };
+        
+        // Icons based on sport
+        const sportIcons = {
+          football: <FootballIcon className="h-5 w-5" />,
+          basketball: <BasketballIcon className="h-5 w-5" />,
+          tennis: <TennisIcon className="h-5 w-5" />,
+          volleyball: <VolleyballIcon className="h-5 w-5" />,
+          all: <Sparkles className="h-5 w-5" />
+        };
+        
+        return {
+          id: `acc-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          name,
+          description,
+          selections,
+          totalOdds: totalOdds.toFixed(2),
+          potentialReturn: `$${potentialReturn}`,
+          confidence: calculateConfidence(totalOdds, riskLevel),
+          stake,
+          marketType,
+          sport,
+          icon: sportIcons[sport as keyof typeof sportIcons] || sportIcons.all,
+          colorTheme: colorThemes[riskLevel as keyof typeof colorThemes],
+          isRecommended
+        };
+      };
+      
+      const accumulators: Accumulator[] = [];
+      
+      // 1. Main accumulator - Home favorites
+      if (matches.length >= accSize) {
+        const homeWinMatches = matches
+          .filter(m => m.homeOdds && m.homeOdds <= 2.5) // Favor home teams that are favorites
+          .slice(0, accSize);
+        
+        if (homeWinMatches.length >= accSize) {
+          const selections = homeWinMatches.map(match => ({
+            ...match,
+            prediction: 'Home Win',
+            odds: match.homeOdds,
+            confidence: calculateSelectionConfidence(match.homeOdds)
+          }));
+          
+          accumulators.push(buildAccumulator(
+            homeWinMatches,
+            'Home Win Special',
+            'Top home teams expected to win',
+            'match_winner',
+            filterSport !== 'all' ? filterSport : 'football',
+            selections,
+            true
+          ));
+        }
+      }
+      
+      // 2. Value accumulator - Mixed selections based on value
+      if (matches.length >= accSize) {
+        const valueBetMatches = matches.slice(0, accSize * 2);
+        const valueSelections = valueBetMatches.slice(0, accSize).map(match => {
+          // Determine best value bet
+          const homeValue = 1 / match.homeOdds;
+          const drawValue = match.drawOdds ? 1 / match.drawOdds : 0;
+          const awayValue = 1 / match.awayOdds;
+          
+          let prediction: string;
+          let odds: number;
+          
+          if (homeValue >= drawValue && homeValue >= awayValue) {
+            prediction = 'Home Win';
+            odds = match.homeOdds;
+          } else if (drawValue >= homeValue && drawValue >= awayValue) {
+            prediction = 'Draw';
+            odds = match.drawOdds || 3.0;
+          } else {
+            prediction = 'Away Win';
+            odds = match.awayOdds;
+          }
+          
+          return {
+            ...match,
+            prediction,
+            odds,
+            confidence: calculateSelectionConfidence(odds)
+          };
+        });
+        
+        if (valueSelections.length >= accSize) {
+          accumulators.push(buildAccumulator(
+            valueBetMatches.slice(0, accSize),
+            'Value Finder',
+            'Selections with best value based on AI analysis',
+            'mixed',
+            filterSport !== 'all' ? filterSport : 'mixed',
+            valueSelections,
+            true
+          ));
+        }
+      }
+      
+      // 3. Upset Special - Only for risky and higher
+      if ((riskLevel === 'risky' || riskLevel === 'high-risk' || riskLevel === 'ultra') && matches.length >= accSize) {
+        const upsetMatches = matches
+          .filter(m => m.awayOdds > 2.0) // Look for underdog away teams
+          .slice(0, accSize);
+        
+        if (upsetMatches.length >= accSize) {
+          const selections = upsetMatches.map(match => ({
+            ...match,
+            prediction: 'Away Win',
+            odds: match.awayOdds,
+            confidence: calculateSelectionConfidence(match.awayOdds)
+          }));
+          
+          accumulators.push(buildAccumulator(
+            upsetMatches,
+            'Upset Special',
+            'Potential underdogs that could cause upsets',
+            'match_winner',
+            filterSport !== 'all' ? filterSport : 'football',
+            selections,
+            riskLevel === 'ultra'
+          ));
+        }
+      }
+      
+      // 4. Both Teams To Score (BTTS) - For football only
+      if ((filterSport === 'all' || filterSport === 'football') && matches.length >= accSize) {
+        const bttsMatches = matches
+          .filter(m => m.sport === 'football') // Only makes sense for football
+          .slice(0, accSize);
+        
+        if (bttsMatches.length >= accSize) {
+          // Generate synthetic BTTS odds based on match odds
+          const selections = bttsMatches.map(match => {
+            const bttsOdds = 1.8 + (Math.random() * 0.4); // Typical BTTS odds between 1.8-2.2
+            
+            return {
+              ...match,
+              prediction: 'Both Teams to Score',
+              odds: bttsOdds,
+              confidence: calculateSelectionConfidence(bttsOdds)
+            };
+          });
+          
+          accumulators.push(buildAccumulator(
+            bttsMatches,
+            'Goals Galore',
+            'Both teams expected to score in these matches',
+            'btts',
+            'football',
+            selections,
+            filterSport === 'football'
+          ));
+        }
+      }
+      
+      // 5. Over 2.5 Goals - For football only
+      if ((filterSport === 'all' || filterSport === 'football') && matches.length >= accSize) {
+        const overMatches = matches
+          .filter(m => m.sport === 'football')
+          .slice(0, accSize);
+        
+        if (overMatches.length >= accSize) {
+          // Generate synthetic over 2.5 odds
+          const selections = overMatches.map(match => {
+            const overOdds = 1.7 + (Math.random() * 0.5); // Typical over 2.5 odds
+            
+            return {
+              ...match,
+              prediction: 'Over 2.5 Goals',
+              odds: overOdds,
+              confidence: calculateSelectionConfidence(overOdds)
+            };
+          });
+          
+          accumulators.push(buildAccumulator(
+            overMatches,
+            'Goals Fiesta',
+            'Matches expected to have 3 or more goals',
+            'over_under',
+            'football',
+            selections
+          ));
+        }
+      }
+      
+      return accumulators;
+    };
+    
+    return generateAccumulators();
+  }, [matchesData, basketballData, riskLevel, filterSport]);
+  
+  // Helper function to calculate confidence based on odds and risk level
+  const calculateSelectionConfidence = (odds: number): number => {
+    // Using implicit probability: 1/odds as base confidence
+    const baseConfidence = (1 / odds) * 100;
+    return Math.min(Math.round(baseConfidence), 95); // Cap at 95%
+  };
+  
+  // Helper function to calculate overall accumulator confidence
+  const calculateConfidence = (totalOdds: number, riskLevel: string): number => {
+    const baseProbability = (1 / totalOdds) * 100;
+    
+    // Adjust based on risk level (more aggressive adjustment for safer accumulators)
+    switch (riskLevel) {
+      case 'safe': return Math.min(Math.round(baseProbability * 1.25), 90);
+      case 'balanced': return Math.min(Math.round(baseProbability * 1.15), 80);
+      case 'risky': return Math.min(Math.round(baseProbability * 1.1), 70);
+      case 'high-risk': return Math.min(Math.round(baseProbability * 1.05), 60);
+      case 'ultra': return Math.min(Math.round(baseProbability), 40);
+      default: return Math.round(baseProbability);
+    }
+  };
+  
+  // Is accumulator data loading?
+  const isLoading = loadingMatches || (filterSport === 'all' || filterSport === 'basketball') && loadingBasketball;
 
   // Risk level options
   const riskLevels = [

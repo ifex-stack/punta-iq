@@ -366,23 +366,26 @@ export default function AdvancedAnalysisPage() {
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Fetch available sports
-  const { data: sports, isLoading: loadingSports } = useQuery<OddsAPISport[]>({
+  // Fetch available sports directly from API
+  const { data: sports, isLoading: loadingSports } = useQuery<any>({
     queryKey: ['/api/odds/sports'],
     staleTime: 1000 * 60 * 60, // Cache for 1 hour
+    refetchOnWindowFocus: false,
+    retry: 3,
+    enabled: true
   });
   
-  // Fetch matches for selected sport
+  // Directly fetch matches for soccer (football)
   const { 
     data: matchesData, 
     isLoading: loadingMatches,
     refetch: refetchMatches
-  } = useQuery<MatchesResponse>({
-    queryKey: ['/api/odds', selectedSport],
-    enabled: !!selectedSport,
+  } = useQuery<any>({
+    queryKey: ['/api/odds/soccer'],
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     refetchOnWindowFocus: false,
-    retry: 3
+    retry: 3,
+    enabled: true
   });
   
   // Derived values
@@ -395,7 +398,7 @@ export default function AdvancedAnalysisPage() {
     : [];
   
   const filteredMatches = searchQuery 
-    ? matches.filter(match => 
+    ? matches.filter((match: any) => 
         match.homeTeam.toLowerCase().includes(searchQuery.toLowerCase()) || 
         match.awayTeam.toLowerCase().includes(searchQuery.toLowerCase())
       )
