@@ -46,6 +46,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up fixed news routes
   setupNewsRoutes(app);
   
+  // Direct trending topics API endpoint
+  app.get("/api/direct-trending-topics", (req, res) => {
+    console.log("Direct trending topics API endpoint called");
+    const trendingTopics = [
+      {
+        id: "team-liverpool",
+        title: "Liverpool",
+        date: new Date().toISOString(),
+        description: "Liverpool secured a dramatic win against Arsenal to maintain their title challenge.",
+        tags: ["Premier League", "Jürgen Klopp", "Title Race"],
+        category: "Football",
+        articleCount: 14
+      },
+      {
+        id: "tag-nba-playoffs",
+        title: "NBA Playoffs",
+        date: new Date().toISOString(),
+        description: "Lakers and Celtics advance to conference semifinals after thrilling game 7 victories.",
+        tags: ["Basketball", "Lakers", "Celtics"],
+        category: "Basketball",
+        articleCount: 11
+      },
+      {
+        id: "team-nigeria",
+        title: "Nigeria",
+        date: new Date().toISOString(),
+        description: "Nigeria's national team announces new coaching staff ahead of upcoming qualifiers.",
+        tags: ["African Football", "World Cup Qualifiers", "Super Eagles"],
+        category: "Football",
+        articleCount: 8
+      },
+      {
+        id: "tag-formula1",
+        title: "Formula 1",
+        date: new Date().toISOString(),
+        description: "Max Verstappen extends championship lead with dominant performance at Monaco GP.",
+        tags: ["Red Bull Racing", "Monaco", "Grand Prix"],
+        category: "Motorsport",
+        articleCount: 7
+      },
+      {
+        id: "tag-transfer-news",
+        title: "Transfer News",
+        date: new Date().toISOString(),
+        description: "Manchester United and Chelsea battle for signature of emerging French striker.",
+        tags: ["Premier League", "Transfers", "Ligue 1"],
+        category: "Football",
+        articleCount: 9
+      }
+    ];
+    res.json(trendingTopics);
+  });
+  
   // Add sample prediction data endpoint to ensure UI can display predictions
   app.get("/api/predictions/football", (req, res) => {
     // Generate today's date for realistic start times

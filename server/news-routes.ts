@@ -794,6 +794,67 @@ export function setupNewsRoutes(app: Express) {
     }
   });
 
+  // Special topic aggregation endpoint (placed before the wildcard :id route)
+  app.get("/api/topics/trending", async (req, res) => {
+    try {
+      console.log("Fetching trending topics for UI");
+      
+      // Fixed sample trending topics for development
+      const trendingTopics = [
+        {
+          id: "team-liverpool",
+          title: "Liverpool",
+          date: new Date().toISOString(),
+          description: "Liverpool secured a dramatic win against Arsenal to maintain their title challenge.",
+          tags: ["Premier League", "Jürgen Klopp", "Title Race"],
+          category: "Football",
+          articleCount: 14
+        },
+        {
+          id: "tag-nba-playoffs",
+          title: "NBA Playoffs",
+          date: new Date().toISOString(),
+          description: "Lakers and Celtics advance to conference semifinals after thrilling game 7 victories.",
+          tags: ["Basketball", "Lakers", "Celtics"],
+          category: "Basketball",
+          articleCount: 11
+        },
+        {
+          id: "team-nigeria",
+          title: "Nigeria",
+          date: new Date().toISOString(),
+          description: "Nigeria's national team announces new coaching staff ahead of upcoming qualifiers.",
+          tags: ["African Football", "World Cup Qualifiers", "Super Eagles"],
+          category: "Football",
+          articleCount: 8
+        },
+        {
+          id: "tag-formula1",
+          title: "Formula 1",
+          date: new Date().toISOString(),
+          description: "Max Verstappen extends championship lead with dominant performance at Monaco GP.",
+          tags: ["Red Bull Racing", "Monaco", "Grand Prix"],
+          category: "Motorsport",
+          articleCount: 7
+        },
+        {
+          id: "tag-transfer-news",
+          title: "Transfer News",
+          date: new Date().toISOString(),
+          description: "Manchester United and Chelsea battle for signature of emerging French striker.",
+          tags: ["Premier League", "Transfers", "Ligue 1"],
+          category: "Football",
+          articleCount: 9
+        }
+      ];
+      
+      res.json(trendingTopics);
+    } catch (error) {
+      console.error("Error fetching trending topics:", error);
+      res.status(500).json({ message: "Failed to fetch trending topics" });
+    }
+  });
+
   // Get an article by ID - KEEP THIS LAST to avoid route conflicts
   app.get("/api/news/:id", async (req, res) => {
     try {
@@ -1341,66 +1402,8 @@ export function setupNewsRoutes(app: Express) {
   });
 
   // Trending topics endpoint - aggregates topics from recent articles
-  // New endpoint for trending topics (version 2) that avoids conflicts with other endpoints
-  app.get("/api/news/trending-topics-v2", async (req, res) => {
-    try {
-      console.log("Fetching trending topics v2");
-      
-      // Fixed sample trending topics for development
-      const trendingTopics = [
-        {
-          id: "team-liverpool",
-          title: "Liverpool",
-          date: new Date().toISOString(),
-          description: "Liverpool secured a dramatic win against Arsenal to maintain their title challenge.",
-          tags: ["Premier League", "Jürgen Klopp", "Title Race"],
-          category: "Football",
-          articleCount: 14
-        },
-        {
-          id: "tag-nba-playoffs",
-          title: "NBA Playoffs",
-          date: new Date().toISOString(),
-          description: "Lakers and Celtics advance to conference semifinals after thrilling game 7 victories.",
-          tags: ["Basketball", "Lakers", "Celtics"],
-          category: "Basketball",
-          articleCount: 11
-        },
-        {
-          id: "team-nigeria",
-          title: "Nigeria",
-          date: new Date().toISOString(),
-          description: "Nigeria's national team announces new coaching staff ahead of upcoming qualifiers.",
-          tags: ["African Football", "World Cup Qualifiers", "Super Eagles"],
-          category: "Football",
-          articleCount: 8
-        },
-        {
-          id: "tag-formula1",
-          title: "Formula 1",
-          date: new Date().toISOString(),
-          description: "Max Verstappen extends championship lead with dominant performance at Monaco GP.",
-          tags: ["Red Bull Racing", "Monaco", "Grand Prix"],
-          category: "Motorsport",
-          articleCount: 7
-        },
-        {
-          id: "tag-transfer-news",
-          title: "Transfer News",
-          date: new Date().toISOString(),
-          description: "Manchester United and Chelsea battle for signature of emerging French striker.",
-          tags: ["Premier League", "Transfers", "Ligue 1"],
-          category: "Football",
-          articleCount: 9
-        }
-      ];
-      
-      res.json(trendingTopics);
-    } catch (error) {
-      console.error("Error fetching trending topics:", error);
-      res.status(500).json({ message: "Failed to fetch trending topics" });
-    }
-  });
+  // Removing the trending-topics-v2 endpoint from here as it will be placed
+  // BEFORE the /api/news/:id route to avoid conflicts
   
   // New enhanced AI-powered recommendations endpoint
   app.get("/api/news/recommendations", async (req, res) => {
