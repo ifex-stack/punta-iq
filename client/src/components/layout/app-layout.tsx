@@ -12,15 +12,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
   
   // Determine active page for bottom navigation
   const getActivePage = () => {
-    if (location === '/') return 'predictions';
+    if (location === '/') return 'predictions_stats';
     if (location === '/stats') return 'stats';
     if (location === '/news') return 'news';
+    if (location === '/history') return 'history';
     if (location.startsWith('/fantasy')) return 'fantasy';
     if (location === '/subscription') return 'subscription';
     if (location === '/profile') return 'profile';
     if (location === '/gamification') return 'gamification';
     if (location === '/admin') return 'admin';
-    return 'predictions';
+    return 'predictions_stats';
   };
   
   return (

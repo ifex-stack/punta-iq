@@ -101,6 +101,20 @@ const TopBar = () => {
       </Link>
       
       <div className="flex items-center gap-2">
+        {/* Historical Dashboard Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="hidden md:flex items-center gap-1 border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white"
+          onClick={() => window.location.href = '/history'}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 3v18h18"></path>
+            <path d="m19 9-5 5-4-4-3 3"></path>
+          </svg>
+          <span className="ml-1">History</span>
+        </Button>
+
         <ThemeToggle variant="ghost" />
         
         {user && (
