@@ -98,155 +98,178 @@ export default function HistoricalDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedSport, setSelectedSport] = useState("all");
+  const [resultType, setResultType] = useState("all");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [filterView, setFilterView] = useState("calendar"); // calendar, range, advanced
   const [performanceTab, setPerformanceTab] = useState("overall");
-  const [resultType, setResultType] = useState("all"); // all, won, lost, pending
+  const [market, setMarket] = useState("");
+  const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
+  const [toDate, setToDate] = useState<Date | undefined>(undefined);
   
-  // State for date range and pagination
-  const [fromDate, setFromDate] = useState<string | undefined>(undefined);
-  const [toDate, setToDate] = useState<string | undefined>(undefined);
-  const [market, setMarket] = useState<string | undefined>(undefined);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(20);
-
-  // Convert single date to date range if needed
-  const effectiveFromDate = selectedDate 
-    ? selectedDate.toISOString().split('T')[0] 
-    : fromDate;
+  // Calculate effective dates for filter
+  const effectiveFromDate = fromDate ? fromDate.toISOString().split('T')[0] : undefined;
+  const effectiveToDate = toDate ? toDate.toISOString().split('T')[0] : undefined;
   
-  const effectiveToDate = selectedDate 
-    ? selectedDate.toISOString().split('T')[0] 
-    : toDate;
-
-  // Query for historical dashboard data
+  // Fetch historical dashboard data
   const { data: dashboardData, isLoading, isError } = useQuery<HistoricalDashboardResponse>({
     queryKey: [
       '/api/historical-dashboard', 
-      selectedSport, 
-      effectiveFromDate, 
-      effectiveToDate, 
-      resultType,
-      market,
-      currentPage,
-      limit
+      { 
+        sport: selectedSport !== "all" ? selectedSport : undefined,
+        resultType: resultType !== "all" ? resultType : undefined,
+        date: selectedDate ? selectedDate.toISOString().split('T')[0] : undefined,
+        market: market || undefined,
+        fromDate: effectiveFromDate,
+        toDate: effectiveToDate
+      }
     ],
-    enabled: !!user,
+    enabled: !!user
   });
   
-  // Generate some sample historical statistics
+  // Sample data for development/demo
   const historicalStats = {
     overall: {
-      totalPredictions: 2467,
-      successRate: 68.4,
-      averageOdds: 1.89,
-      roi: 24.3,
-      wonCount: 1688,
-      lostCount: 779
+      totalPredictions: 3826,
+      wonCount: 2448,
+      lostCount: 1378,
+      successRate: 64,
+      averageOdds: 1.85,
+      roi: 18.4
     },
     football: {
       totalPredictions: 1423,
-      successRate: 72.1,
-      averageOdds: 1.76,
-      roi: 27.1,
-      wonCount: 1026,
-      lostCount: 397
+      wonCount: 912,
+      lostCount: 511,
+      successRate: 64,
+      averageOdds: 1.92,
+      roi: 22.9
     },
     basketball: {
-      totalPredictions: 654,
-      successRate: 64.8,
-      averageOdds: 2.04,
-      roi: 21.6, 
-      wonCount: 424,
-      lostCount: 230
+      totalPredictions: 856,
+      wonCount: 547,
+      lostCount: 309,
+      successRate: 63,
+      averageOdds: 1.78,
+      roi: 13.2
     },
     tennis: {
-      totalPredictions: 235,
-      successRate: 59.6,
-      averageOdds: 2.21,
-      roi: 17.8,
-      wonCount: 140,
-      lostCount: 95
+      totalPredictions: 532,
+      wonCount: 351,
+      lostCount: 181,
+      successRate: 66,
+      averageOdds: 1.71,
+      roi: 12.9
     },
-    other: {
-      totalPredictions: 155,
-      successRate: 63.2,
-      averageOdds: 1.92,
-      roi: 18.9,
-      wonCount: 98,
-      lostCount: 57
+    hockey: {
+      totalPredictions: 423,
+      wonCount: 262,
+      lostCount: 161,
+      successRate: 62,
+      averageOdds: 1.90,
+      roi: 17.8
     },
+    baseball: {
+      totalPredictions: 312,
+      wonCount: 186,
+      lostCount: 126,
+      successRate: 60,
+      averageOdds: 1.98,
+      roi: 18.8
+    },
+    cricket: {
+      totalPredictions: 140,
+      wonCount: 95,
+      lostCount: 45,
+      successRate: 68,
+      averageOdds: 1.67,
+      roi: 13.6
+    },
+    americanFootball: {
+      totalPredictions: 82,
+      wonCount: 51,
+      lostCount: 31,
+      successRate: 62,
+      averageOdds: 1.86,
+      roi: 15.3
+    },
+    rugby: {
+      totalPredictions: 58,
+      wonCount: 44,
+      lostCount: 14,
+      successRate: 76,
+      averageOdds: 1.59,
+      roi: 20.8
+    }
   };
   
-  // Generate sample monthly performance data
+  // Sample monthly performance data
   const monthlyPerformance = [
-    { month: "Jan", successRate: 62.4, predictions: 184 },
-    { month: "Feb", successRate: 65.7, predictions: 192 },
-    { month: "Mar", successRate: 68.9, predictions: 212 },
-    { month: "Apr", successRate: 67.2, predictions: 195 },
-    { month: "May", successRate: 70.5, predictions: 220 },
-    { month: "Jun", successRate: 71.8, predictions: 234 },
-    { month: "Jul", successRate: 69.3, predictions: 225 },
-    { month: "Aug", successRate: 72.1, predictions: 247 },
-    { month: "Sep", successRate: 68.4, predictions: 215 },
-    { month: "Oct", successRate: 66.9, predictions: 208 },
-    { month: "Nov", successRate: 69.7, predictions: 226 },
-    { month: "Dec", successRate: 71.1, predictions: 231 }
+    { month: "Jan", year: 2023, total: 285, won: 182, successRate: 64, predictions: 285 },
+    { month: "Feb", year: 2023, total: 312, won: 196, successRate: 63, predictions: 312 },
+    { month: "Mar", year: 2023, total: 346, won: 225, successRate: 65, predictions: 346 },
+    { month: "Apr", year: 2023, total: 310, won: 192, successRate: 62, predictions: 310 },
+    { month: "May", year: 2023, total: 328, won: 210, successRate: 64, predictions: 328 },
+    { month: "Jun", year: 2023, total: 318, won: 210, successRate: 66, predictions: 318 },
+    { month: "Jul", year: 2023, total: 325, won: 221, successRate: 68, predictions: 325 },
+    { month: "Aug", year: 2023, total: 335, won: 224, successRate: 67, predictions: 335 },
+    { month: "Sep", year: 2023, total: 342, won: 212, successRate: 62, predictions: 342 },
+    { month: "Oct", year: 2023, total: 338, won: 207, successRate: 61, predictions: 338 },
+    { month: "Nov", year: 2023, total: 346, won: 230, successRate: 66, predictions: 346 },
+    { month: "Dec", year: 2023, total: 241, won: 139, successRate: 58, predictions: 241 }
   ];
   
-  // Sample historical predictions
+  // Sample predictions data
   const samplePredictions = [
     {
-      id: 1,
+      id: 1, 
       date: "2023-12-10",
       sport: "football",
       league: "Premier League",
-      match: "Arsenal vs Manchester United",
-      prediction: "Home Win",
-      odds: 1.85,
+      match: "Arsenal vs Man Utd",
+      prediction: "Arsenal Win",
+      odds: 1.75,
+      result: "won",
+      confidence: 80
+    },
+    {
+      id: 2, 
+      date: "2023-12-11",
+      sport: "basketball",
+      league: "NBA",
+      match: "Lakers vs Celtics",
+      prediction: "Over 210.5",
+      odds: 1.90,
+      result: "won",
+      confidence: 78
+    },
+    {
+      id: 3, 
+      date: "2023-12-12",
+      sport: "tennis",
+      league: "ATP",
+      match: "Djokovic vs Nadal",
+      prediction: "Djokovic -1.5 Sets",
+      odds: 2.10,
       result: "won",
       confidence: 82
     },
     {
-      id: 2,
-      date: "2023-12-10",
-      sport: "basketball",
-      league: "NBA",
-      match: "LA Lakers vs Chicago Bulls",
-      prediction: "Over 205.5",
-      odds: 1.92,
-      result: "lost",
-      confidence: 78
-    },
-    {
-      id: 3,
-      date: "2023-12-11",
-      sport: "tennis",
-      league: "ATP Tour",
-      match: "Djokovic vs Federer",
-      prediction: "Under 22.5 Games",
-      odds: 2.10,
-      result: "won",
-      confidence: 75
-    },
-    {
-      id: 4,
-      date: "2023-12-12",
-      sport: "football",
-      league: "La Liga",
-      match: "Barcelona vs Real Madrid",
-      prediction: "BTTS",
-      odds: 1.75,
-      result: "won",
-      confidence: 88
-    },
-    {
-      id: 5,
+      id: 4, 
       date: "2023-12-13",
-      sport: "basketball",
-      league: "Euroleague",
-      match: "CSKA Moscow vs Barcelona",
-      prediction: "Away +5.5",
+      sport: "hockey",
+      league: "NHL",
+      match: "Maple Leafs vs Bruins",
+      prediction: "Under 5.5 Goals",
+      odds: 1.85,
+      result: "lost",
+      confidence: 68
+    },
+    {
+      id: 5, 
+      date: "2023-12-14",
+      sport: "cricket",
+      league: "IPL",
+      match: "Mumbai vs Chennai",
+      prediction: "Mumbai Win",
       odds: 1.95,
       result: "lost",
       confidence: 72
@@ -348,11 +371,6 @@ export default function HistoricalDashboard() {
       return value >= 0 ? "text-muted-foreground" : "text-red-500";
     }
   };
-  
-  if (!user) {
-    navigate("/auth");
-    return null;
-  }
 
   return (
     <div className="container py-8 max-w-6xl">
@@ -388,14 +406,13 @@ export default function HistoricalDashboard() {
             }}
           >
             <Download className="h-4 w-4 mr-1" />
-            Export CSV
+            Export
           </Button>
         </div>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Sidebar with filters */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -405,227 +422,173 @@ export default function HistoricalDashboard() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label>Sport</Label>
-                <SportsTabs 
-                  selectedSport={selectedSport} 
-                  onSelectSport={setSelectedSport}
-                  className="mt-2"
+                <Label htmlFor="sport-filter">Sport</Label>
+                <Select value={selectedSport} onValueChange={setSelectedSport}>
+                  <SelectTrigger id="sport-filter">
+                    <SelectValue placeholder="Select sport" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Sports</SelectItem>
+                    <SelectItem value="football">Football</SelectItem>
+                    <SelectItem value="basketball">Basketball</SelectItem>
+                    <SelectItem value="tennis">Tennis</SelectItem>
+                    <SelectItem value="hockey">Hockey</SelectItem>
+                    <SelectItem value="baseball">Baseball</SelectItem>
+                    <SelectItem value="cricket">Cricket</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="result-filter">Result</Label>
+                <Select value={resultType} onValueChange={setResultType}>
+                  <SelectTrigger id="result-filter">
+                    <SelectValue placeholder="Select result" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Results</SelectItem>
+                    <SelectItem value="won">Won</SelectItem>
+                    <SelectItem value="lost">Lost</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="market-filter">Market</Label>
+                <Input 
+                  id="market-filter" 
+                  placeholder="e.g. Over 2.5, Match Result" 
+                  value={market}
+                  onChange={(e) => setMarket(e.target.value)}
                 />
               </div>
               
-              <Separator />
-              
               <div>
-                <Label>Result Type</Label>
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  <Button 
-                    variant={resultType === "all" ? "default" : "outline"} 
-                    size="sm"
-                    onClick={() => setResultType("all")}
-                  >
-                    All
-                  </Button>
-                  <Button 
-                    variant={resultType === "won" ? "default" : "outline"} 
-                    size="sm"
-                    onClick={() => setResultType("won")}
-                    className={resultType === "won" ? "bg-green-500 hover:bg-green-600" : ""}
-                  >
-                    Won
-                  </Button>
-                  <Button 
-                    variant={resultType === "lost" ? "default" : "outline"} 
-                    size="sm"
-                    onClick={() => setResultType("lost")}
-                    className={resultType === "lost" ? "bg-red-500 hover:bg-red-600" : ""}
-                  >
-                    Lost
-                  </Button>
+                <Label htmlFor="date-range">Date Range</Label>
+                <div className="grid grid-cols-2 gap-2 mt-1.5">
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      onClick={() => document.getElementById("from-date-picker")?.click()}
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {fromDate ? (
+                        fromDate.toLocaleDateString()
+                      ) : (
+                        <span className="text-muted-foreground">From date</span>
+                      )}
+                    </Button>
+                    <div className="absolute top-full mt-1 z-10">
+                      <div className="hidden">
+                        <Calendar
+                          id="from-date-picker"
+                          mode="single"
+                          selected={fromDate}
+                          onSelect={setFromDate}
+                          initialFocus
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      onClick={() => document.getElementById("to-date-picker")?.click()}
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {toDate ? (
+                        toDate.toLocaleDateString()
+                      ) : (
+                        <span className="text-muted-foreground">To date</span>
+                      )}
+                    </Button>
+                    <div className="absolute top-full mt-1 z-10">
+                      <div className="hidden">
+                        <Calendar
+                          id="to-date-picker"
+                          mode="single"
+                          selected={toDate}
+                          onSelect={setToDate}
+                          initialFocus
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
               
-              <Separator />
-              
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label>Date Selection</Label>
-                  <div className="flex gap-1">
-                    <Button 
-                      variant={filterView === "calendar" ? "default" : "outline"} 
-                      size="sm"
-                      className="h-7 w-7 p-0"
-                      onClick={() => setFilterView("calendar")}
-                    >
-                      <CalendarIcon className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant={filterView === "advanced" ? "default" : "outline"} 
-                      size="sm"
-                      className="h-7 w-7 p-0"
-                      onClick={() => setFilterView("advanced")}
-                    >
-                      <ListFilter className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                
-                {filterView === "calendar" && (
+                <Label>Select specific date</Label>
+                <div className="mt-2">
                   <Calendar
                     mode="single"
                     selected={selectedDate}
                     onSelect={setSelectedDate}
-                    className="border rounded-md p-2"
+                    className="border rounded-md p-3"
                   />
-                )}
-                
-                {filterView === "advanced" && (
-                  <div className="space-y-3 pt-2">
-                    <div>
-                      <Label htmlFor="date-from" className="text-xs">From</Label>
-                      <Input 
-                        id="date-from"
-                        type="date"
-                        className="mt-1"
-                        value={fromDate || ''}
-                        onChange={(e) => {
-                          setFromDate(e.target.value || undefined);
-                          // Clear single date selection when using date range
-                          setSelectedDate(undefined);
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="date-to" className="text-xs">To</Label>
-                      <Input 
-                        id="date-to"
-                        type="date"
-                        className="mt-1"
-                        value={toDate || ''}
-                        onChange={(e) => {
-                          setToDate(e.target.value || undefined);
-                          // Clear single date selection when using date range
-                          setSelectedDate(undefined);
-                        }}
-                      />
-                    </div>
-                    <Button 
-                      className="w-full mt-2" 
-                      size="sm"
-                      onClick={() => {
-                        // Reset page to 1 when applying new filters
-                        setCurrentPage(1);
-                      }}
-                    >
-                      Apply Filters
-                    </Button>
-                  </div>
-                )}
+                </div>
               </div>
-              
-              <Separator />
-              
-              <div>
-                <Label>League</Label>
-                <Select defaultValue="all">
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select league" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Leagues</SelectItem>
-                    <SelectItem value="premier-league">Premier League</SelectItem>
-                    <SelectItem value="la-liga">La Liga</SelectItem>
-                    <SelectItem value="serie-a">Serie A</SelectItem>
-                    <SelectItem value="bundesliga">Bundesliga</SelectItem>
-                    <SelectItem value="ligue-1">Ligue 1</SelectItem>
-                    <SelectItem value="nba">NBA</SelectItem>
-                    <SelectItem value="euroleague">Euroleague</SelectItem>
-                    <SelectItem value="atp">ATP Tour</SelectItem>
-                    <SelectItem value="wta">WTA Tour</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label>Prediction Type</Label>
-                <Select 
-                  defaultValue="all"
-                  value={market || 'all'}
-                  onValueChange={(value) => {
-                    setMarket(value !== 'all' ? value : undefined);
-                    setCurrentPage(1); // Reset to first page on filter change
-                  }}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select prediction type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="1x2">Match Result (1X2)</SelectItem>
-                    <SelectItem value="btts">Both Teams to Score</SelectItem>
-                    <SelectItem value="over-under">Over/Under</SelectItem>
-                    <SelectItem value="double-chance">Double Chance</SelectItem>
-                    <SelectItem value="handicap">Handicap</SelectItem>
-                    <SelectItem value="correct-score">Correct Score</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label>Confidence Level</Label>
-                <Select defaultValue="all">
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select confidence level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Levels</SelectItem>
-                    <SelectItem value="high">High (80%+)</SelectItem>
-                    <SelectItem value="medium">Medium (60-80%)</SelectItem>
-                    <SelectItem value="low">Low (Below 60%)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <Separator />
-              
+            </CardContent>
+            <CardFooter>
               <Button 
-                className="w-full"
                 onClick={() => {
-                  setCurrentPage(1);
-                }}
-              >
-                <Filter className="h-4 w-4 mr-2" />
-                Apply All Filters
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                className="w-full"
-                onClick={() => {
-                  // Reset all filters to default values
                   setSelectedSport("all");
                   setResultType("all");
                   setSelectedDate(undefined);
+                  setMarket("");
                   setFromDate(undefined);
                   setToDate(undefined);
-                  setMarket(undefined);
-                  setCurrentPage(1);
                 }}
+                variant="outline"
+                className="w-full"
               >
                 Reset Filters
               </Button>
+            </CardFooter>
+          </Card>
+          
+          {/* Sports summary */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center">
+                <ListFilter className="h-5 w-5 mr-2" />
+                Sports Breakdown
+              </CardTitle>
+              <CardDescription>
+                Performance by sport
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SportsTabs 
+                sports={Object.keys(historicalStats).filter(sport => sport !== "overall")}
+                selectedSport={selectedSport === "all" ? undefined : selectedSport}
+                onSelect={(sport) => setSelectedSport(sport === selectedSport ? "all" : sport)}
+                sportMetrics={Object.entries(historicalStats)
+                  .filter(([key]) => key !== "overall")
+                  .map(([key, stats]) => ({
+                    id: key,
+                    successRate: stats.successRate,
+                    predictions: stats.totalPredictions
+                  }))}
+              />
             </CardContent>
           </Card>
         </div>
         
-        {/* Main content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Performance cards */}
+          {/* Performance analytics */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center">
                 <BarChart3 className="h-5 w-5 mr-2" />
                 Performance Analytics
               </CardTitle>
+            </CardHeader>
+            <CardContent>
               <Tabs 
                 value={performanceTab} 
                 onValueChange={setPerformanceTab}
@@ -638,299 +601,243 @@ export default function HistoricalDashboard() {
                     </TabsTrigger>
                   ))}
                 </TabsList>
-              </Tabs>
-            </CardHeader>
-            <CardContent>
-              <TabsContent value="overall" className="mt-0 space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="text-sm text-muted-foreground">Success Rate</div>
-                      <div className={cn("text-2xl font-bold mt-1", getStatValueColor(historicalStats.overall.successRate))}>
-                        {historicalStats.overall.successRate}%
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="text-sm text-muted-foreground">Predictions</div>
-                      <div className="text-2xl font-bold mt-1">
-                        {historicalStats.overall.totalPredictions}
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="text-sm text-muted-foreground">Avg. Odds</div>
-                      <div className="text-2xl font-bold mt-1">
-                        {historicalStats.overall.averageOdds.toFixed(2)}
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="text-sm text-muted-foreground">ROI</div>
-                      <div className={cn("text-2xl font-bold mt-1", getStatValueColor(historicalStats.overall.roi, false))}>
-                        {historicalStats.overall.roi}%
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card>
-                    <CardHeader className="py-3">
-                      <CardTitle className="text-sm font-medium">Win/Loss Ratio</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                      <div className="flex items-center gap-2">
-                        <div className="h-10 w-full bg-muted rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-green-500" 
-                            style={{ width: `${historicalStats.overall.successRate}%` }}
-                          />
+                <TabsContent value="overall" className="mt-4 space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="text-sm text-muted-foreground">Success Rate</div>
+                        <div className={cn("text-2xl font-bold mt-1", getStatValueColor(historicalStats.overall.successRate))}>
+                          {historicalStats.overall.successRate}%
                         </div>
-                        <div className="text-sm whitespace-nowrap">{historicalStats.overall.successRate}%</div>
-                      </div>
-                      <div className="flex justify-between mt-2 text-sm">
-                        <div>
-                          <span className="text-green-500 font-medium">{historicalStats.overall.wonCount}</span> Won
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="text-sm text-muted-foreground">Predictions</div>
+                        <div className="text-2xl font-bold mt-1">
+                          {historicalStats.overall.totalPredictions}
                         </div>
-                        <div>
-                          <span className="text-red-500 font-medium">{historicalStats.overall.lostCount}</span> Lost
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="text-sm text-muted-foreground">Avg. Odds</div>
+                        <div className="text-2xl font-bold mt-1">
+                          {historicalStats.overall.averageOdds.toFixed(2)}
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="text-sm text-muted-foreground">ROI</div>
+                        <div className={cn("text-2xl font-bold mt-1", getStatValueColor(historicalStats.overall.roi, false))}>
+                          {historicalStats.overall.roi}%
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Card>
+                      <CardHeader className="py-3">
+                        <CardTitle className="text-sm font-medium">Win/Loss Ratio</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4 pt-0">
+                        <div className="flex items-center gap-2">
+                          <div className="h-10 w-full bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-green-500" 
+                              style={{ width: `${historicalStats.overall.successRate}%` }}
+                            />
+                          </div>
+                          <div className="text-sm whitespace-nowrap">{historicalStats.overall.successRate}%</div>
+                        </div>
+                        <div className="flex justify-between mt-2 text-sm">
+                          <div>
+                            <span className="text-green-500 font-medium">{historicalStats.overall.wonCount}</span> Won
+                          </div>
+                          <div>
+                            <span className="text-red-500 font-medium">{historicalStats.overall.lostCount}</span> Lost
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader className="py-3">
+                        <CardTitle className="text-sm font-medium">Best Performing Sport</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4 pt-0">
+                        <div className="flex justify-between items-center">
+                          <div className="space-y-1">
+                            <div className="font-medium">Football</div>
+                            <div className="text-sm text-muted-foreground">1,423 predictions</div>
+                          </div>
+                          <div className={cn("text-2xl font-bold", getStatValueColor(historicalStats.football.successRate))}>
+                            {historicalStats.football.successRate}%
+                          </div>
+                        </div>
+                        <Separator className="my-3" />
+                        <div className="flex justify-between text-sm">
+                          <div>Avg. Odds: <span className="font-medium">{historicalStats.football.averageOdds.toFixed(2)}</span></div>
+                          <div>ROI: <span className={cn("font-medium", getStatValueColor(historicalStats.football.roi, false))}>
+                            {historicalStats.football.roi}%
+                          </span></div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
                   
                   <Card>
                     <CardHeader className="py-3">
-                      <CardTitle className="text-sm font-medium">Best Performing Sport</CardTitle>
+                      <CardTitle className="text-sm font-medium">Monthly Performance Trend</CardTitle>
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
-                      <div className="flex justify-between items-center">
-                        <div className="space-y-1">
-                          <div className="font-medium">Football</div>
-                          <div className="text-sm text-muted-foreground">1,423 predictions</div>
+                      <div className="h-[180px] w-full">
+                        <div className="flex h-full items-end gap-2">
+                          {monthlyPerformance.map((month) => (
+                            <div key={month.month} className="flex-1 flex flex-col items-center">
+                              <div 
+                                className={cn(
+                                  "w-full rounded-t-sm", 
+                                  month.successRate >= 70 ? "bg-green-500" : 
+                                  month.successRate >= 60 ? "bg-amber-500" : "bg-red-500"
+                                )}
+                                style={{ height: `${month.successRate * 1.8}px` }}
+                              />
+                              <div className="text-xs text-muted-foreground mt-1">{month.month}</div>
+                            </div>
+                          ))}
                         </div>
-                        <div className={cn("text-2xl font-bold", getStatValueColor(historicalStats.football.successRate))}>
-                          {historicalStats.football.successRate}%
-                        </div>
-                      </div>
-                      <Separator className="my-3" />
-                      <div className="flex justify-between text-sm">
-                        <div>Avg. Odds: <span className="font-medium">{historicalStats.football.averageOdds.toFixed(2)}</span></div>
-                        <div>ROI: <span className={cn("font-medium", getStatValueColor(historicalStats.football.roi, false))}>
-                          {historicalStats.football.roi}%
-                        </span></div>
                       </div>
                     </CardContent>
                   </Card>
-                </div>
+                </TabsContent>
                 
-                <Card>
-                  <CardHeader className="py-3">
-                    <CardTitle className="text-sm font-medium">Monthly Performance Trend</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0">
-                    <div className="h-[180px] w-full">
-                      <div className="flex h-full items-end gap-2">
-                        {monthlyPerformance.map((month) => (
-                          <div key={month.month} className="flex-1 flex flex-col items-center">
+                <TabsContent value="monthly" className="mt-4 space-y-4">
+                  <div className="space-y-4">
+                    {monthlyPerformance.slice(6).map((month) => (
+                      <Card key={month.month}>
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-center">
+                            <div className="font-medium">{month.month}</div>
+                            <Badge className={cn(
+                              month.successRate >= 70 ? "bg-green-500 hover:bg-green-600" : 
+                              month.successRate >= 60 ? "bg-amber-500 hover:bg-amber-600" : "bg-red-500 hover:bg-red-600"
+                            )}>
+                              {month.successRate}%
+                            </Badge>
+                          </div>
+                          <div className="flex justify-between mt-2 text-sm text-muted-foreground">
+                            <div>{month.predictions} predictions</div>
+                            <div>ROI: <span className="font-medium">
+                              {(month.successRate / 3).toFixed(1)}%
+                            </span></div>
+                          </div>
+                          <div className="h-2 w-full bg-muted rounded-full mt-3 overflow-hidden">
                             <div 
                               className={cn(
-                                "w-full rounded-t-sm", 
+                                "h-full",
                                 month.successRate >= 70 ? "bg-green-500" : 
                                 month.successRate >= 60 ? "bg-amber-500" : "bg-red-500"
                               )}
-                              style={{ height: `${month.successRate * 1.8}px` }}
+                              style={{ width: `${month.successRate}%` }}
                             />
-                            <div className="text-xs text-muted-foreground mt-1">{month.month}</div>
                           </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="sports" className="mt-4 space-y-4">
+                  <div className="space-y-4">
+                    {Object.entries(historicalStats).filter(([key]) => key !== "overall").map(([sport, stats]) => (
+                      <Card key={sport}>
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-center">
+                            <div className="font-medium capitalize">{sport}</div>
+                            <Badge className={cn(
+                              stats.successRate >= 70 ? "bg-green-500 hover:bg-green-600" : 
+                              stats.successRate >= 60 ? "bg-amber-500 hover:bg-amber-600" : "bg-red-500 hover:bg-red-600"
+                            )}>
+                              {stats.successRate}%
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-2 mt-2 text-sm text-muted-foreground">
+                            <div>Total: <span className="font-medium">{stats.totalPredictions}</span></div>
+                            <div>Avg. Odds: <span className="font-medium">{stats.averageOdds.toFixed(2)}</span></div>
+                            <div>Won: <span className="text-green-500 font-medium">{stats.wonCount}</span></div>
+                            <div>Lost: <span className="text-red-500 font-medium">{stats.lostCount}</span></div>
+                          </div>
+                          <div className="h-2 w-full bg-muted rounded-full mt-3 overflow-hidden">
+                            <div 
+                              className={cn(
+                                "h-full",
+                                stats.successRate >= 70 ? "bg-green-500" : 
+                                stats.successRate >= 60 ? "bg-amber-500" : "bg-red-500"
+                              )}
+                              style={{ width: `${stats.successRate}%` }}
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="predictions" className="mt-4 space-y-4">
+                  {isLoading ? (
+                    <div className="flex justify-center py-8">
+                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                    </div>
+                  ) : isError ? (
+                    <div className="p-4 border border-red-300 bg-red-50 rounded-md text-red-600">
+                      <div className="flex items-center">
+                        <AlertTriangle className="h-5 w-5 mr-2" />
+                        <p className="font-medium">Failed to load prediction data</p>
+                      </div>
+                      <p className="text-sm mt-1">Please try again or contact support if the issue persists.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-3">
+                        {/* Use real API data if available, fallback to sample data for development */}
+                        {(dashboardData?.predictions || filteredPredictions).map((prediction) => (
+                          <Card key={prediction.id}>
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-center">
+                                <div className="font-medium">{prediction.match}</div>
+                                {getResultBadge(prediction.result)}
+                              </div>
+                              <div className="flex flex-wrap justify-between mt-1 text-sm text-muted-foreground">
+                                <div className="mr-4">
+                                  <span className="text-muted-foreground">Prediction:</span>{" "}
+                                  <span className="font-medium">{prediction.prediction}</span>
+                                </div>
+                                <div className="mr-4">
+                                  <span className="text-muted-foreground">Odds:</span>{" "}
+                                  <span className="font-medium">{prediction.odds.toFixed(2)}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">Confidence:</span>{" "}
+                                  <span className={cn(
+                                    "font-medium",
+                                    prediction.confidence >= 80 ? "text-green-500" : 
+                                    prediction.confidence >= 65 ? "text-amber-500" : "text-red-500"
+                                  )}>
+                                    {prediction.confidence}%
+                                  </span>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
                         ))}
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="monthly" className="mt-0 space-y-4">
-                <div className="space-y-4">
-                  {monthlyPerformance.slice(6).map((month) => (
-                    <Card key={month.month}>
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-center">
-                          <div className="font-medium">{month.month}</div>
-                          <Badge className={cn(
-                            month.successRate >= 70 ? "bg-green-500 hover:bg-green-600" : 
-                            month.successRate >= 60 ? "bg-amber-500 hover:bg-amber-600" : "bg-red-500 hover:bg-red-600"
-                          )}>
-                            {month.successRate}%
-                          </Badge>
-                        </div>
-                        <div className="flex justify-between mt-2 text-sm text-muted-foreground">
-                          <div>{month.predictions} predictions</div>
-                          <div>ROI: <span className="font-medium">
-                            {(month.successRate / 3).toFixed(1)}%
-                          </span></div>
-                        </div>
-                        <div className="h-2 w-full bg-muted rounded-full mt-3 overflow-hidden">
-                          <div 
-                            className={cn(
-                              "h-full",
-                              month.successRate >= 70 ? "bg-green-500" : 
-                              month.successRate >= 60 ? "bg-amber-500" : "bg-red-500"
-                            )}
-                            style={{ width: `${month.successRate}%` }}
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="sports" className="mt-0 space-y-4">
-                <div className="space-y-4">
-                  {Object.entries(historicalStats).filter(([key]) => key !== "overall").map(([sport, stats]) => (
-                    <Card key={sport}>
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-center">
-                          <div className="font-medium capitalize">{sport}</div>
-                          <Badge className={cn(
-                            stats.successRate >= 70 ? "bg-green-500 hover:bg-green-600" : 
-                            stats.successRate >= 60 ? "bg-amber-500 hover:bg-amber-600" : "bg-red-500 hover:bg-red-600"
-                          )}>
-                            {stats.successRate}%
-                          </Badge>
-                        </div>
-                        <div className="grid grid-cols-2 mt-2 text-sm text-muted-foreground">
-                          <div>Total: <span className="font-medium">{stats.totalPredictions}</span></div>
-                          <div>Avg. Odds: <span className="font-medium">{stats.averageOdds.toFixed(2)}</span></div>
-                          <div>Won: <span className="text-green-500 font-medium">{stats.wonCount}</span></div>
-                          <div>Lost: <span className="text-red-500 font-medium">{stats.lostCount}</span></div>
-                        </div>
-                        <div className="h-2 w-full bg-muted rounded-full mt-3 overflow-hidden">
-                          <div 
-                            className={cn(
-                              "h-full",
-                              stats.successRate >= 70 ? "bg-green-500" : 
-                              stats.successRate >= 60 ? "bg-amber-500" : "bg-red-500"
-                            )}
-                            style={{ width: `${stats.successRate}%` }}
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="predictions" className="mt-0 space-y-4">
-                {isLoading ? (
-                  <div className="flex justify-center py-8">
-                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-                  </div>
-                ) : isError ? (
-                  <div className="p-4 border border-red-300 bg-red-50 rounded-md text-red-600">
-                    <div className="flex items-center">
-                      <AlertTriangle className="h-5 w-5 mr-2" />
-                      <p className="font-medium">Failed to load prediction data</p>
-                    </div>
-                    <p className="text-sm mt-1">Please try again or contact support if the issue persists.</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="space-y-3">
-                      {/* Use real API data if available, fallback to sample data for development */}
-                      {(dashboardData?.predictions || filteredPredictions).map((prediction) => (
-                        <Card key={prediction.id}>
-                          <CardContent className="p-4">
-                            <div className="flex justify-between items-center">
-                              <div className="font-medium">{prediction.match}</div>
-                              {getResultBadge(prediction.result)}
-                            </div>
-                            <div className="flex flex-wrap justify-between mt-1 text-sm text-muted-foreground">
-                              <div>{prediction.league}</div>
-                              <div>{new Date(prediction.date).toLocaleDateString()}</div>
-                            </div>
-                            <Separator className="my-2" />
-                            <div className="flex flex-wrap justify-between text-sm">
-                              <div>
-                                <span className="text-muted-foreground">Prediction:</span>{" "}
-                                <span className="font-medium">{prediction.prediction}</span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">Odds:</span>{" "}
-                                <span className="font-medium">{prediction.odds}</span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">Confidence:</span>{" "}
-                                <span className={cn(
-                                  "font-medium",
-                                  prediction.confidence >= 80 ? "text-green-500" : 
-                                  prediction.confidence >= 60 ? "text-amber-500" : "text-red-500"
-                                )}>
-                                  {prediction.confidence}%
-                                </span>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-
-                      {/* Show empty state when no predictions match filters */}
-                      {(dashboardData?.predictions || filteredPredictions).length === 0 && (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <p className="mb-2">No predictions found with the current filters</p>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => {
-                              // Reset all filters
-                              setSelectedSport("all");
-                              setResultType("all");
-                              setSelectedDate(undefined);
-                              setFromDate(undefined);
-                              setToDate(undefined);
-                              setMarket(undefined);
-                              setCurrentPage(1);
-                            }}
-                          >
-                            Reset Filters
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Pagination controls */}
-                    <div className="flex justify-between items-center mt-4">
-                      <div className="text-sm text-muted-foreground">
-                        Showing {dashboardData?.pagination?.currentCount || (dashboardData?.predictions || filteredPredictions).length} 
-                        of {dashboardData?.pagination?.totalCount || filteredPredictions.length} predictions
-                      </div>
-                      <div className="flex space-x-1">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          disabled={currentPage <= 1 || isLoading}
-                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                        >
-                          Previous
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          disabled={!dashboardData?.pagination?.hasNextPage || isLoading}
-                          onClick={() => setCurrentPage(prev => prev + 1)}
-                        >
-                          Next
-                        </Button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </TabsContent>
+                    </>
+                  )}
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
           
