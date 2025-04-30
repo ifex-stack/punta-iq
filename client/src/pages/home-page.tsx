@@ -1,15 +1,24 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Filter, Loader2, TrendingUp, Bell, Paintbrush } from "lucide-react";
+import { 
+  ChevronRight, Filter, Loader2, TrendingUp, Bell, 
+  ChevronDown, Calculator, Trophy, 
+  Target, BarChart3, Users, Sparkles, Star, Zap, 
+  ArrowRight, BadgeCheck, PieChart,
+  CheckCircle2
+} from "lucide-react";
 import PredictionCard from "@/components/predictions/prediction-card";
 import SportsTabs from "@/components/predictions/sports-tabs";
 import AccumulatorPanel from "@/components/predictions/accumulator-panel";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotifications } from "@/components/notifications/notification-provider";
+import { PuntaIQLogo } from "@/components/ui/puntaiq-logo";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function HomePage() {
   const [_, navigate] = useLocation();
@@ -18,12 +27,38 @@ export default function HomePage() {
   const { createNotification } = useNotifications();
   const [selectedSport, setSelectedSport] = useState("all");
   
-  const { data: predictions, isLoading: isPredictionsLoading } = useQuery({
+  interface Prediction {
+    id: string;
+    sport: string;
+    league: string;
+    homeTeam: string;
+    awayTeam: string;
+    prediction: string;
+    confidence: number;
+    startTime: string;
+    odds: number;
+    [key: string]: any;
+  }
+  
+  const { data: predictions, isLoading: isPredictionsLoading } = useQuery<Prediction[]>({
     queryKey: ['/api/predictions', selectedSport],
     enabled: true, // Load predictions even for non-authenticated users (free tier)
   });
   
-  const { data: stats } = useQuery({
+  interface StatsData {
+    weekSuccessRate: number;
+    weekCorrect: number;
+    weekTotal: number;
+    monthSuccessRate: number;
+    monthCorrect: number;
+    monthTotal: number;
+    avgConfidence: number;
+    totalPredictions: number;
+    todayCount: number;
+    todaySports: number;
+  }
+  
+  const { data: stats } = useQuery<StatsData>({
     queryKey: ['/api/predictions/stats'],
     enabled: !!user, // Only load stats for authenticated users
   });
@@ -72,239 +107,347 @@ export default function HomePage() {
   };
 
   return (
-    <div className="container py-8 max-w-6xl">
-      <section className="mb-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">
-              PuntaIQ Predictions
-            </h1>
-            <p className="text-muted-foreground">
-              Daily expert predictions to help you make smarter betting decisions
-            </p>
-          </div>
-          
-          <div className="flex gap-3">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate("/stats")}
-              className="flex items-center"
-            >
-              <TrendingUp className="mr-2 h-4 w-4" />
-              Stats
-            </Button>
-            {user ? (
-              <Button onClick={() => navigate("/profile")}>
-                My Profile
-              </Button>
-            ) : (
-              <Button onClick={() => navigate("/auth")}>
-                Sign In
-              </Button>
-            )}
-            <Button 
-              variant="secondary" 
-              onClick={() => navigate("/ui-showcase")}
-              className="flex items-center"
-            >
-              <Paintbrush className="mr-2 h-4 w-4" />
-              UI Showcase
-            </Button>
-          </div>
-        </div>
-        
-        {stats && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Success Rate (7 days)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {stats.weekSuccessRate}%
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {stats.weekCorrect} correct out of {stats.weekTotal}
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Success Rate (30 days)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {stats.monthSuccessRate}%
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {stats.monthCorrect} correct out of {stats.monthTotal}
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Avg. Confidence
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {stats.avgConfidence}%
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Based on {stats.totalPredictions} predictions
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Today's Predictions
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {stats.todayCount}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Across {stats.todaySports} sports
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-      </section>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 space-y-6">
-          <div className="bg-background shadow-sm border rounded-lg p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Today's Predictions</h2>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-sm gap-1"
-                onClick={() => {}}
-              >
-                <Filter className="h-4 w-4" />
-                Filter
-              </Button>
+    <div className="animate-in fade-in duration-500">
+      {/* Hero section with gradient background */}
+      <div className="relative bg-gradient-to-b from-indigo-50 to-white dark:from-gray-900 dark:to-background">
+        <div className="container py-16 max-w-6xl">
+          <div className="flex flex-col items-center text-center mb-12">
+            <div className="mb-6">
+              <PuntaIQLogo size="lg" />
             </div>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              AI-Powered Sports Predictions
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-3xl mb-8">
+              Smart sports predictions driven by advanced AI, helping you make informed decisions with up-to-date statistics and insights.
+            </p>
             
-            <SportsTabs 
-              selectedSport={selectedSport}
-              onSelectSport={handleSportChange}
-            />
-            
-            {isLoading ? (
-              <div className="flex justify-center items-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : !predictions || predictions.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <p>No predictions available for this selection.</p>
-                <p className="text-sm mt-2">Try selecting a different sport or check back later.</p>
-              </div>
-            ) : (
-              <div className="space-y-4 mt-4">
-                {predictions.slice(0, 10).map((prediction: any) => (
-                  <PredictionCard 
-                    key={prediction.id} 
-                    prediction={prediction}
-                  />
-                ))}
-                
-                {predictions.length > 10 && (
-                  <Button 
-                    variant="outline" 
-                    className="w-full mt-4"
-                    onClick={() => navigate("/predictions")}
-                  >
-                    View All Predictions
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            )}
+            <div className="flex flex-wrap gap-4 justify-center">
+              <Button 
+                onClick={() => navigate("/predictions")} 
+                size="lg" 
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+              >
+                <Sparkles className="mr-2 h-5 w-5" />
+                Explore Predictions
+              </Button>
+              
+              {!user && (
+                <Button 
+                  onClick={() => navigate("/auth")} 
+                  variant="outline" 
+                  size="lg"
+                >
+                  Create Free Account
+                </Button>
+              )}
+            </div>
           </div>
+          
+          {/* Quick stats */}
+          {stats && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              <Card className="bg-white/90 dark:bg-gray-900/90 backdrop-blur border-0 shadow-lg">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="rounded-full p-3 bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
+                    <BadgeCheck className="h-7 w-7" />
+                  </div>
+                  <div>
+                    <div className="text-3xl font-bold">{stats.weekSuccessRate}%</div>
+                    <p className="text-xs text-muted-foreground">Success Rate (7d)</p>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-white/90 dark:bg-gray-900/90 backdrop-blur border-0 shadow-lg">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="rounded-full p-3 bg-purple-100 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400">
+                    <Calculator className="h-7 w-7" />
+                  </div>
+                  <div>
+                    <div className="text-3xl font-bold">{stats.avgConfidence}%</div>
+                    <p className="text-xs text-muted-foreground">Avg. Confidence</p>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-white/90 dark:bg-gray-900/90 backdrop-blur border-0 shadow-lg">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="rounded-full p-3 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+                    <TrendingUp className="h-7 w-7" />
+                  </div>
+                  <div>
+                    <div className="text-3xl font-bold">{stats.monthSuccessRate}%</div>
+                    <p className="text-xs text-muted-foreground">Success Rate (30d)</p>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-white/90 dark:bg-gray-900/90 backdrop-blur border-0 shadow-lg">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="rounded-full p-3 bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
+                    <Zap className="h-7 w-7" />
+                  </div>
+                  <div>
+                    <div className="text-3xl font-bold">{stats.todayCount}</div>
+                    <p className="text-xs text-muted-foreground">Today's Predictions</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
         
-        <div className="space-y-6">
-          <AccumulatorPanel />
-          
-          {user && (
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>Notifications</CardTitle>
-                <CardDescription>
-                  Test the real-time notification system
-                </CardDescription>
+        {/* Decorative elements */}
+        <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+      </div>
+      
+      {/* Main content section */}
+      <div className="container py-12 max-w-6xl">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left column - Today's Predictions */}
+          <div className="lg:col-span-2">
+            <Card className="border-0 shadow-lg overflow-hidden">
+              <CardHeader className="border-b bg-muted/30">
+                <div className="flex justify-between items-center">
+                  <CardTitle>Today's Predictions</CardTitle>
+                  <Tabs defaultValue="featured" className="w-[400px]">
+                    <TabsList className="grid w-full grid-cols-4">
+                      <TabsTrigger value="featured">Featured</TabsTrigger>
+                      <TabsTrigger value="football">Football</TabsTrigger>
+                      <TabsTrigger value="basketball">Basketball</TabsTrigger>
+                      <TabsTrigger value="tennis">Tennis</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
+                {isLoading ? (
+                  <div className="flex justify-center items-center py-16">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                  </div>
+                ) : !predictions || predictions.length === 0 ? (
+                  <div className="text-center py-16 px-4">
+                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-4">
+                      <Target className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium mb-2">No Predictions Available</h3>
+                    <p className="text-muted-foreground max-w-md mx-auto">
+                      We don't have any predictions for this selection at the moment. 
+                      Please try another category or check back later.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {predictions.slice(0, 5).map((prediction: any, index: number) => (
+                      <div 
+                        key={prediction.id}
+                        className={`p-4 hover:bg-muted/50 transition-colors ${index % 2 === 0 ? 'bg-background' : 'bg-muted/20'}`}
+                      >
+                        <PredictionCard prediction={prediction} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter className="border-t bg-muted/30 justify-between py-3">
+                <div className="text-xs text-muted-foreground">
+                  Updated every 4 hours with latest data
+                </div>
                 <Button 
-                  onClick={handleSendTestNotification}
-                  className="w-full"
-                  variant="default"
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => navigate("/predictions")}
+                  className="gap-1"
                 >
-                  <Bell className="mr-2 h-4 w-4" />
-                  Send Test Notification
+                  View All Predictions 
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </CardFooter>
+            </Card>
+            
+            {/* Features grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+              <Card className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 border-0 shadow-md">
+                <CardContent className="pt-6">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="rounded-full bg-indigo-100 dark:bg-indigo-900/50 p-3 mb-4">
+                      <BarChart3 className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <h3 className="font-semibold mb-2">Advanced Statistics</h3>
+                    <p className="text-sm text-muted-foreground">
+                      In-depth statistical analysis for all sports and leagues
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border-0 shadow-md">
+                <CardContent className="pt-6">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="rounded-full bg-emerald-100 dark:bg-emerald-900/50 p-3 mb-4">
+                      <Trophy className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <h3 className="font-semibold mb-2">Fantasy Contests</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Compete in daily fantasy contests with cash prizes
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 border-0 shadow-md">
+                <CardContent className="pt-6">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="rounded-full bg-amber-100 dark:bg-amber-900/50 p-3 mb-4">
+                      <Trophy className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <h3 className="font-semibold mb-2">Gamification</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Earn badges, climb leaderboards, and maintain streaks
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+          
+          {/* Right column - Sidebar */}
+          <div className="space-y-6">
+            {/* Subscription card */}
+            <Card className="border-0 shadow-lg overflow-hidden">
+              <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-6 text-white">
+                <h3 className="text-xl font-bold mb-2">Premium Predictions</h3>
+                <p className="text-white/80 text-sm mb-4">
+                  Get unlimited access to all premium predictions and features
+                </p>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="bg-white/20">MOST POPULAR</Badge>
+                  <Badge variant="secondary" className="bg-white/20">SAVE 50%</Badge>
+                </div>
+              </div>
+              <CardContent className="pt-6">
+                <div className="mb-6">
+                  <div className="flex items-baseline mb-2">
+                    <span className="text-3xl font-bold">$9.99</span>
+                    <span className="text-muted-foreground ml-2">/month</span>
+                  </div>
+                  <p className="text-muted-foreground text-sm">
+                    Cancel anytime. Instant access.
+                  </p>
+                </div>
+                
+                <ul className="space-y-3 mb-6">
+                  <li className="flex gap-2 items-center">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                    <span>High-accuracy premium predictions</span>
+                  </li>
+                  <li className="flex gap-2 items-center">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                    <span>Advanced statistical insights</span>
+                  </li>
+                  <li className="flex gap-2 items-center">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                    <span>Custom accumulators generator</span>
+                  </li>
+                  <li className="flex gap-2 items-center">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                    <span>Early access to new features</span>
+                  </li>
+                </ul>
+                
+                <Button 
+                  onClick={() => navigate("/subscription")} 
+                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600"
+                >
+                  Get Premium
                 </Button>
               </CardContent>
             </Card>
-          )}
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Subscription Status</CardTitle>
-              <CardDescription>
-                {user ? "Manage your prediction subscription" : "Sign up for premium predictions"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {user ? (
-                <>
-                  <div className="mb-4">
-                    <p className="font-medium mb-1">Current Plan:</p>
-                    <p className="text-primary font-semibold text-lg">
-                      {user.subscriptionTier || "Free Tier"}
-                    </p>
+            
+            {/* Accumulators panel */}
+            <Card className="border-0 shadow-lg overflow-hidden">
+              <CardHeader className="border-b bg-muted/30">
+                <div className="flex justify-between items-center">
+                  <CardTitle>Today's Accumulators</CardTitle>
+                  <Badge variant="secondary">
+                    <Star className="h-3 w-3 fill-current mr-1" />
+                    AI Picks
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="divide-y">
+                  <div className="p-4 hover:bg-muted/30 transition-colors cursor-pointer">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-semibold flex items-center">
+                        <PieChart className="h-4 w-4 mr-1.5 text-indigo-500" />
+                        Weekend Winners
+                      </h4>
+                      <Badge>5.76 odds</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">3 selections from top European leagues</p>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Confidence: 78%</span>
+                      <span className="font-medium text-indigo-600 dark:text-indigo-400">£25 → £144</span>
+                    </div>
                   </div>
-                  <Button 
-                    onClick={() => navigate("/subscription")}
-                    className="w-full"
-                  >
-                    {user.subscriptionTier ? "Manage Subscription" : "Upgrade Now"}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <p className="mb-4 text-sm text-muted-foreground">
-                    Sign up for a subscription to access premium predictions and advanced features.
-                  </p>
-                  <Button 
-                    onClick={() => navigate("/auth")}
-                    className="w-full mb-2"
-                  >
-                    Sign In
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => navigate("/subscription")}
-                    className="w-full"
-                  >
-                    View Plans
-                  </Button>
-                </>
-              )}
-            </CardContent>
-          </Card>
+                  
+                  <div className="p-4 hover:bg-muted/30 transition-colors cursor-pointer">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-semibold flex items-center">
+                        <Target className="h-4 w-4 mr-1.5 text-emerald-500" /> 
+                        BTTS Special
+                      </h4>
+                      <Badge>4.22 odds</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">4 matches with both teams scoring</p>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Confidence: 71%</span>
+                      <span className="font-medium text-indigo-600 dark:text-indigo-400">£25 → £106</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="border-t bg-muted/30 justify-center py-3">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => navigate("/accumulators")}
+                  className="gap-1"
+                >
+                  Browse All Accumulators
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </CardFooter>
+            </Card>
+            
+            {/* Community stats */}
+            <Card className="border-0 shadow-md overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center">
+                  <Users className="h-4 w-4 mr-2 text-muted-foreground" />
+                  Community Stats
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Active Users</span>
+                    <span>8,742</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Predictions Today</span>
+                    <span>384</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Win Rate (30d)</span>
+                    <span className="text-emerald-600 dark:text-emerald-400">68.3%</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
