@@ -96,11 +96,44 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
     font-family: 'Poppins', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    min-height: -webkit-fill-available;
+    overflow-x: hidden;
+    /* Fix iOS 100vh issue */
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
   }
   
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Montserrat', sans-serif;
     @apply font-bold tracking-tight;
+  }
+  
+  /* Disable zooming on input fields on iOS */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  textarea {
+    @apply text-base;
+    font-size: 16px !important;
+  }
+  
+  /* Optimize scrolling */
+  .overflow-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Custom media query for medium-sized phones */
+  @media (max-width: 390px) {
+    .text-xs-tiny {
+      font-size: 0.65rem;
+    }
+    .hidden-xs {
+      display: none;
+    }
   }
 }
 

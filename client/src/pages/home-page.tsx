@@ -115,10 +115,10 @@ export default function HomePage() {
             <div className="mb-6">
               <PuntaIQLogo size="lg" />
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
               AI-Powered Sports Predictions
             </h1>
-            <p className="text-lg text-muted-foreground max-w-3xl mb-8">
+            <p className="text-base sm:text-lg text-muted-foreground max-w-3xl mb-6 sm:mb-8 px-4 sm:px-0">
               Smart sports predictions driven by advanced AI, helping you make informed decisions with up-to-date statistics and insights.
             </p>
             
@@ -209,14 +209,14 @@ export default function HomePage() {
           <div className="lg:col-span-2">
             <Card className="border-0 shadow-lg overflow-hidden">
               <CardHeader className="border-b bg-muted/30">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                   <CardTitle>Today's Predictions</CardTitle>
-                  <Tabs defaultValue="featured" className="w-[400px]">
-                    <TabsList className="grid w-full grid-cols-4">
-                      <TabsTrigger value="featured">Featured</TabsTrigger>
-                      <TabsTrigger value="football">Football</TabsTrigger>
-                      <TabsTrigger value="basketball">Basketball</TabsTrigger>
-                      <TabsTrigger value="tennis">Tennis</TabsTrigger>
+                  <Tabs defaultValue="featured" className="w-full sm:w-[400px]">
+                    <TabsList className="h-9 grid w-full grid-cols-4">
+                      <TabsTrigger value="featured" className="text-xs sm:text-sm">Featured</TabsTrigger>
+                      <TabsTrigger value="football" className="text-xs sm:text-sm">Football</TabsTrigger>
+                      <TabsTrigger value="basketball" className="text-xs sm:text-sm">Basketball</TabsTrigger>
+                      <TabsTrigger value="tennis" className="text-xs sm:text-sm">Tennis</TabsTrigger>
                     </TabsList>
                   </Tabs>
                 </div>
@@ -321,9 +321,9 @@ export default function HomePage() {
                 <p className="text-white/80 text-sm mb-4">
                   Get unlimited access to all premium predictions and features
                 </p>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="secondary" className="bg-white/20">MOST POPULAR</Badge>
-                  <Badge variant="secondary" className="bg-white/20">SAVE 50%</Badge>
+                  <Badge variant="secondary" className="hidden-xs bg-white/20">SAVE 50%</Badge>
                 </div>
               </div>
               <CardContent className="pt-6">

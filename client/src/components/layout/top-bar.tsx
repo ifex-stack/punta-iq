@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
-import { BellIcon, Bot } from "lucide-react";
+import { BellIcon } from "lucide-react";
+import { PuntaIQLogo } from "@/components/ui/puntaiq-logo";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
@@ -93,9 +94,7 @@ const TopBar = () => {
   return (
     <header className="flex justify-between items-center px-4 py-3 bg-card shadow-md">
       <Link href="/" className="flex items-center">
-        <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
-          <Bot className="h-6 w-6 text-white" />
-        </div>
+        <PuntaIQLogo size="md" showText={false} />
         <div className="ml-3">
           <h1 className="text-lg font-bold font-sans text-foreground">PuntaIQ</h1>
         </div>
