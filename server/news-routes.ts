@@ -1341,9 +1341,10 @@ export function setupNewsRoutes(app: Express) {
   });
 
   // Trending topics endpoint - aggregates topics from recent articles
-  app.get("/api/news/trending-topics", async (req, res) => {
+  // New endpoint for trending topics (version 2) that avoids conflicts with other endpoints
+  app.get("/api/news/trending-topics-v2", async (req, res) => {
     try {
-      console.log("Fetching trending topics");
+      console.log("Fetching trending topics v2");
       
       // Fixed sample trending topics for development
       const trendingTopics = [
