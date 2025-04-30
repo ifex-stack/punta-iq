@@ -1339,10 +1339,251 @@ export function setupNewsRoutes(app: Express) {
       return res.json([]);
     }
   });
+
+  // Trending topics endpoint - aggregates topics from recent articles
+  app.get("/api/news/trending-topics", async (req, res) => {
+    try {
+      console.log("Fetching trending topics");
+      
+      // Get recent articles
+      const articlesResult = await pool.query(`
+        SELECT id, title, summary, content, tags, teams, type, sport_id, league_id, 
+               published_at, views, likes, source
+        FROM news_articles
+        WHERE published_at > NOW() - INTERVAL '7 days'
+        ORDER BY views DESC, published_at DESC
+        LIMIT 50
+      `);
+      
+      const articles = articlesResult.rows;
+      
+      if (articles.length === 0) {
+        return res.json([]);
+      }
+      
+      // Get sports and leagues for reference
+      const sportsResult = await pool.query(`SELECT id, name FROM sports`);
+      const leaguesResult = await pool.query(`SELECT id, name, sport_id FROM leagues`);
+      
+      const sports = sportsResult.rows.reduce((acc, sport) => {
+        acc[sport.id] = sport.name;
+        return acc;
+      }, {});
+      
+      const leagues = leaguesResult.rows.reduce((acc, league) => {
+        acc[league.id] = league.name;
+        return acc;
+      }, {});
+      
+      // Extract and group by tags
+      const tagFrequency = {};
+      const teamFrequency = {};
+      const topicArticles = {};
+      
+      articles.forEach(article => {
+        // Process tags
+        if (article.tags && Array.isArray(article.tags)) {
+          article.tags.forEach(tag => {
+            if (!tagFrequency[tag]) {
+              tagFrequency[tag] = 0;
+              topicArticles[tag] = [];
+            }
+            tagFrequency[tag]++;
+            topicArticles[tag].push(article);
+          });
+        }
+        
+        // Process teams
+        if (article.teams && Array.isArray(article.teams)) {
+          article.teams.forEach(team => {
+            if (!teamFrequency[team]) {
+              teamFrequency[team] = 0;
+              topicArticles[team] = [];
+            }
+            teamFrequency[team]++;
+            topicArticles[team].push(article);
+          });
+        }
+      });
+      
+      // Combine and rank topics
+      const topics = [
+        ...Object.keys(tagFrequency).map(tag => ({
+          id: `tag-${tag}`,
+          title: tag,
+          type: 'tag',
+          frequency: tagFrequency[tag],
+          articles: topicArticles[tag]
+        })),
+        ...Object.keys(teamFrequency).map(team => ({
+          id: `team-${team}`,
+          title: team,
+          type: 'team',
+          frequency: teamFrequency[team],
+          articles: topicArticles[team]
+        }))
+      ];
+      
+      // Sort by frequency and take top topics
+      const topTopics = topics
+        .sort((a, b) => b.frequency - a.frequency)
+        .slice(0, 5);
+      
+      // Format topic data for frontend
+      const formattedTopics = topTopics.map(topic => {
+        const articles = topic.articles;
+        const latestArticle = articles.sort((a, b) => 
+          new Date(b.published_at).getTime() - new Date(a.published_at).getTime()
+        )[0];
+        
+        // Determine category (sport or league name)
+        let category = 'General';
+        if (latestArticle.sport_id && sports[latestArticle.sport_id]) {
+          category = sports[latestArticle.sport_id];
+        } else if (latestArticle.league_id && leagues[latestArticle.league_id]) {
+          category = leagues[latestArticle.league_id];
+        }
+        
+        // Get common tags across articles
+        const commonTags = {};
+        articles.forEach(article => {
+          if (article.tags && Array.isArray(article.tags)) {
+            article.tags.forEach(tag => {
+              if (tag !== topic.title) { // Don't include the topic itself as a tag
+                commonTags[tag] = (commonTags[tag] || 0) + 1;
+              }
+            });
+          }
+        });
+        
+        // Get top tags
+        const topTags = Object.keys(commonTags)
+          .sort((a, b) => commonTags[b] - commonTags[a])
+          .slice(0, 3);
+        
+        return {
+          id: topic.id,
+          title: topic.title,
+          date: latestArticle.published_at,
+          description: latestArticle.summary.split('.')[0] + '.',
+          tags: topTags,
+          category,
+          articleCount: articles.length
+        };
+      });
+      
+      res.json(formattedTopics);
+    } catch (error) {
+      console.error("Error fetching trending topics:", error);
+      res.status(500).json({ message: "Failed to fetch trending topics" });
+    }
+  });
   
-  function getRecommendReason(article: any, preferences: any) {
+  // New enhanced AI-powered recommendations endpoint
+  app.get("/api/news/recommendations", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    try {
+      console.log("Fetching AI-enhanced recommendations for user:", req.user.id);
+      
+      // Get user preferences
+      const preferencesResult = await pool.query(
+        `SELECT * FROM user_news_preferences WHERE user_id = $1`,
+        [req.user.id]
+      );
+      
+      const preferences = preferencesResult.rows[0] || {};
+      
+      // Get user reading history
+      const readingHistoryResult = await pool.query(`
+        SELECT na.* 
+        FROM user_saved_news usn
+        JOIN news_articles na ON usn.article_id = na.id
+        WHERE usn.user_id = $1 AND usn.is_read = true
+        ORDER BY usn.read_at DESC
+        LIMIT 20
+      `, [req.user.id]);
+      
+      const userStats = {
+        previouslyRead: readingHistoryResult.rows
+      };
+      
+      // Get all recent articles for potential recommendations
+      const articlesResult = await pool.query(`
+        SELECT * FROM news_articles
+        WHERE published_at > NOW() - INTERVAL '2 weeks'
+        ORDER BY published_at DESC
+        LIMIT 100
+      `);
+      
+      let articles = articlesResult.rows;
+      
+      // Calculate recommendation scores for each article
+      articles = articles.map(article => {
+        const score = calculateRecommendationScore(article, preferences, userStats);
+        const recommendReason = getRecommendReason(article, preferences, userStats);
+        
+        return {
+          ...article,
+          score,
+          recommendReason
+        };
+      });
+      
+      // Sort by score and take top results
+      articles = articles
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10);
+      
+      // If OpenAI API key is available, enhance recommendations with AI insights
+      if (process.env.OPENAI_API_KEY) {
+        try {
+          const { openaiClient } = require('./openai-client');
+          
+          // Get favorite teams, sports, and leagues from preferences
+          const favoriteTeams = preferences.favorite_teams || [];
+          const favoriteSports = preferences.favorite_sports || [];
+          
+          // Create a profile for the AI to understand the user's preferences
+          const userProfile = {
+            favoriteTeams,
+            favoriteSports,
+            recentlyRead: userStats.previouslyRead.slice(0, 5).map(article => article.title)
+          };
+          
+          // We could enhance recommendation descriptions with AI here, but will
+          // keep it simple for now to avoid excessive API calls
+        } catch (aiError) {
+          console.error("Error enhancing recommendations with AI:", aiError);
+          // Continue without AI enhancement - don't block recommendations
+        }
+      }
+      
+      res.json(articles);
+    } catch (error) {
+      console.error("Error generating recommendations:", error);
+      // Fall back to trending articles if there's an error
+      try {
+        const trendingResult = await pool.query(`
+          SELECT * FROM news_articles
+          ORDER BY views DESC, published_at DESC
+          LIMIT 10
+        `);
+        
+        return res.json(trendingResult.rows);
+      } catch (fallbackError) {
+        return res.status(500).json({ 
+          message: "Failed to generate recommendations"
+        });
+      }
+    }
+  });
+  
+  function getRecommendReason(article: any, preferences: any, userStats?: any) {
     if (!preferences) {
-      return "Trending";
+      return "Trending Now";
     }
     
     // Check if article is in user's favorite sports
@@ -1377,6 +1618,88 @@ export function setupNewsRoutes(app: Express) {
       return "Content you might like";
     }
     
+    // If we have user stats, check if this is similar to content they've read
+    if (userStats && userStats.previouslyRead && userStats.previouslyRead.length > 0) {
+      // Look for related topics
+      if (article.tags && Array.isArray(article.tags)) {
+        for (const tag of article.tags) {
+          for (const prevArticle of userStats.previouslyRead) {
+            if (prevArticle.tags && Array.isArray(prevArticle.tags) && prevArticle.tags.includes(tag)) {
+              return "Similar to what you read";
+            }
+          }
+        }
+      }
+    }
+    
     return "Recommended for you";
+  }
+  
+  // Calculate a more detailed recommendation score
+  function calculateRecommendationScore(article: any, preferences: any, userStats?: any): number {
+    let score = 0.1; // Base score
+    
+    if (!preferences) {
+      // If no preferences, just use a base score
+      return Math.min(0.5 + (article.views || 0) / 1000, 0.8);
+    }
+    
+    // Boost score for matching sports preferences (0-0.3)
+    if (preferences.favorite_sports && 
+        article.sport_id && 
+        preferences.favorite_sports.includes(article.sport_id)) {
+      score += 0.3;
+    }
+    
+    // Boost score for matching league preferences (0-0.3)
+    if (preferences.favorite_leagues && 
+        article.league_id && 
+        preferences.favorite_leagues.includes(article.league_id)) {
+      score += 0.3;
+    }
+    
+    // Boost score for matching team preferences (0-0.4)
+    if (preferences.favorite_teams && article.teams) {
+      const teams = Array.isArray(article.teams) ? article.teams : [];
+      for (const team of teams) {
+        if (preferences.favorite_teams.includes(team)) {
+          score += 0.4;
+          break;
+        }
+      }
+    }
+    
+    // Boost score for matching content types (0-0.2)
+    if (preferences.preferred_content_types && 
+        article.type && 
+        preferences.preferred_content_types.includes(article.type)) {
+      score += 0.2;
+    }
+    
+    // Boost score for recency (0-0.15)
+    const publishedDate = new Date(article.published_at);
+    const now = new Date();
+    const daysSincePublished = (now.getTime() - publishedDate.getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSincePublished < 1) {
+      score += 0.15; // Very recent (less than 1 day)
+    } else if (daysSincePublished < 3) {
+      score += 0.1; // Recent (less than 3 days)
+    } else if (daysSincePublished < 7) {
+      score += 0.05; // Somewhat recent (less than a week)
+    }
+    
+    // Apply penalties for excluded tags
+    if (preferences.excluded_tags && Array.isArray(preferences.excluded_tags) && article.tags) {
+      const tags = Array.isArray(article.tags) ? article.tags : [];
+      for (const tag of tags) {
+        if (preferences.excluded_tags.includes(tag)) {
+          score -= 0.3; // Significant penalty for excluded tags
+          break;
+        }
+      }
+    }
+    
+    // Normalize score to be between 0 and 1
+    return Math.max(0, Math.min(1, score));
   }
 }
