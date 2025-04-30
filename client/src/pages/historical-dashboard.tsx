@@ -37,8 +37,34 @@ export default function HistoricalDashboard() {
   const [performanceTab, setPerformanceTab] = useState("overall");
   const [resultType, setResultType] = useState("all"); // all, won, lost, pending
   
-  const { data: historicalPredictions, isLoading } = useQuery({
-    queryKey: ['/api/historical-predictions', selectedSport, selectedDate],
+  // State for date range and pagination
+  const [fromDate, setFromDate] = useState<string | undefined>(undefined);
+  const [toDate, setToDate] = useState<string | undefined>(undefined);
+  const [market, setMarket] = useState<string | undefined>(undefined);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+
+  // Convert single date to date range if needed
+  const effectiveFromDate = selectedDate 
+    ? selectedDate.toISOString().split('T')[0] 
+    : fromDate;
+  
+  const effectiveToDate = selectedDate 
+    ? selectedDate.toISOString().split('T')[0] 
+    : toDate;
+
+  // Query for historical dashboard data
+  const { data: dashboardData, isLoading, isError } = useQuery({
+    queryKey: [
+      '/api/historical-dashboard', 
+      selectedSport, 
+      effectiveFromDate, 
+      effectiveToDate, 
+      resultType,
+      market,
+      currentPage,
+      limit
+    ],
     enabled: !!user,
   });
   
@@ -375,6 +401,12 @@ export default function HistoricalDashboard() {
                         id="date-from"
                         type="date"
                         className="mt-1"
+                        value={fromDate || ''}
+                        onChange={(e) => {
+                          setFromDate(e.target.value || undefined);
+                          // Clear single date selection when using date range
+                          setSelectedDate(undefined);
+                        }}
                       />
                     </div>
                     <div>
@@ -383,9 +415,24 @@ export default function HistoricalDashboard() {
                         id="date-to"
                         type="date"
                         className="mt-1"
+                        value={toDate || ''}
+                        onChange={(e) => {
+                          setToDate(e.target.value || undefined);
+                          // Clear single date selection when using date range
+                          setSelectedDate(undefined);
+                        }}
                       />
                     </div>
-                    <Button className="w-full mt-2" size="sm">Apply Filters</Button>
+                    <Button 
+                      className="w-full mt-2" 
+                      size="sm"
+                      onClick={() => {
+                        // Reset page to 1 when applying new filters
+                        setCurrentPage(1);
+                      }}
+                    >
+                      Apply Filters
+                    </Button>
                   </div>
                 )}
               </div>
@@ -415,7 +462,14 @@ export default function HistoricalDashboard() {
               
               <div>
                 <Label>Prediction Type</Label>
-                <Select defaultValue="all">
+                <Select 
+                  defaultValue="all"
+                  value={market || 'all'}
+                  onValueChange={(value) => {
+                    setMarket(value !== 'all' ? value : undefined);
+                    setCurrentPage(1); // Reset to first page on filter change
+                  }}
+                >
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Select prediction type" />
                   </SelectTrigger>
@@ -448,12 +502,30 @@ export default function HistoricalDashboard() {
               
               <Separator />
               
-              <Button className="w-full">
+              <Button 
+                className="w-full"
+                onClick={() => {
+                  setCurrentPage(1);
+                }}
+              >
                 <Filter className="h-4 w-4 mr-2" />
                 Apply All Filters
               </Button>
               
-              <Button variant="ghost" className="w-full">
+              <Button 
+                variant="ghost" 
+                className="w-full"
+                onClick={() => {
+                  // Reset all filters to default values
+                  setSelectedSport("all");
+                  setResultType("all");
+                  setSelectedDate(undefined);
+                  setFromDate(undefined);
+                  setToDate(undefined);
+                  setMarket(undefined);
+                  setCurrentPage(1);
+                }}
+              >
                 Reset Filters
               </Button>
             </CardContent>
