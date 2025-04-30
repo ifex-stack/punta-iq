@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth, GoogleAuthProvider, signInWithPopup, OAuthProvider } from "firebase/auth";
-import { getMessaging, getToken, onMessage } from "firebase/messaging";
+import { getMessaging, getToken as firebaseGetToken, onMessage } from "firebase/messaging";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -76,50 +76,64 @@ try {
   console.error("Firebase messaging initialization error:", error);
 }
 
+// Export config getter for checking firebase availability
+export const getFirebaseConfig = () => {
+  return firebaseConfig;
+};
+
+// Check if notifications are supported
+export const isNotificationsSupported = () => {
+  return typeof window !== 'undefined' && 
+         'Notification' in window && 
+         'serviceWorker' in navigator && 
+         'PushManager' in window;
+};
+
+// Get current notification permission
+export const getNotificationPermission = () => {
+  if (!isNotificationsSupported()) {
+    return 'unsupported';
+  }
+  return Notification.permission;
+};
+
 // Request notification permission
 export const requestNotificationPermission = async () => {
-  if (!messaging) return { success: false, error: 'Messaging not supported' };
+  if (!isNotificationsSupported()) {
+    console.warn('Push notifications are not supported in this browser');
+    return 'unsupported';
+  }
   
   try {
-    // Request permission
-    const permission = await Notification.requestPermission();
-    
-    if (permission !== 'granted') {
-      return { success: false, error: 'Notification permission denied' };
-    }
-    
-    // Get token
-    const token = await getToken(messaging, {
-      vapidKey: '' // TODO: Add your VAPID key here if needed
-    });
-    
-    // Save token to backend
-    if (token) {
-      await saveTokenToServer(token);
-      return { success: true, token };
-    } else {
-      return { success: false, error: 'No token generated' };
-    }
+    // Request permission from the user
+    return await Notification.requestPermission();
   } catch (error) {
     console.error("Error requesting notification permission:", error);
-    return { success: false, error };
+    return 'denied';
   }
 };
 
-// Save token to server
-const saveTokenToServer = async (token: string) => {
+// Get Firebase messaging token
+export const getToken = async (vapidKey?: string): Promise<string | null> => {
+  if (!messaging) {
+    console.warn('Firebase messaging is not available');
+    return null;
+  }
+  
   try {
-    const res = await fetch('/api/notifications/register-device', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token }),
-    });
-    return await res.json();
+    // Check permission first
+    const permission = Notification.permission;
+    if (permission !== 'granted') {
+      console.warn('Notification permission not granted');
+      return null;
+    }
+    
+    // Get token with optional VAPID key
+    const options = vapidKey ? { vapidKey } : {};
+    return await firebaseGetToken(messaging, options);
   } catch (error) {
-    console.error("Error saving token to server:", error);
-    throw error;
+    console.error("Error getting notification token:", error);
+    return null;
   }
 };
 
