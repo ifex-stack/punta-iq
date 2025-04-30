@@ -19,6 +19,7 @@ import { PlayerSeasonStats, PlayerMatchStats } from "@shared/player-interfaces";
 import { realTimeMatchesService } from "./real-time-matches-service";
 import { openaiClient } from "./openai-client";
 import { oddsAPIService } from "./odds-api-service";
+import { historicalDashboardRouter } from "./historical-dashboard-routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
@@ -45,6 +46,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up fixed news routes
   setupNewsRoutes(app);
+  
+  // Set up historical dashboard routes
+  app.use(historicalDashboardRouter);
   
   // Direct trending topics API endpoint
   app.get("/api/direct-trending-topics", (req, res) => {
