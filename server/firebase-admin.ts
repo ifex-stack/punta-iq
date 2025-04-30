@@ -1,4 +1,6 @@
 import * as admin from 'firebase-admin';
+import { cert } from 'firebase-admin/app';
+import { getMessaging } from 'firebase-admin/messaging';
 import { logger } from './logger';
 
 // Firebase admin service account credentials
@@ -16,18 +18,42 @@ const serviceAccount = {
   "universe_domain": "googleapis.com"
 };
 
-// Initialize Firebase Admin
-if (!admin.apps.length) {
-  try {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-      databaseURL: `https://${serviceAccount.project_id}.firebaseio.com`
-    });
-    logger.info('[FirebaseAdmin]', 'Firebase Admin initialized successfully');
-  } catch (error) {
+// Initialize Firebase Admin with more detailed error logging
+try {
+  // Use the imported cert function instead of admin.credential.cert
+  const credential = cert(serviceAccount as admin.ServiceAccount);
+  admin.initializeApp({
+    credential,
+    databaseURL: `https://${serviceAccount.project_id}.firebaseio.com`
+  });
+  logger.info('[FirebaseAdmin]', 'Firebase Admin initialized successfully');
+} catch (error) {
+  // Check if the error is because the app is already initialized
+  if (error instanceof Error && error.message.includes('already exists')) {
+    logger.info('[FirebaseAdmin]', 'Firebase Admin already initialized');
+  } else {
     logger.error('[FirebaseAdmin]', 'Firebase Admin initialization error:', error);
+    
+    // Get more detailed error info
+    if (error instanceof Error) {
+      logger.error('[FirebaseAdmin]', 'Error message:', error.message);
+      logger.error('[FirebaseAdmin]', 'Error stack:', error.stack);
+    }
+    
+    // Continue execution despite the error
+    logger.warn('[FirebaseAdmin]', 'Continuing execution with Firebase in a degraded state');
   }
 }
+
+// Get the messaging instance once
+const getMessagingInstance = () => {
+  try {
+    return getMessaging();
+  } catch (error) {
+    logger.error('[FirebaseAdmin]', 'Error getting messaging instance:', error);
+    throw error;
+  }
+};
 
 /**
  * Send push notification to a specific device
@@ -52,7 +78,8 @@ export const sendPushNotification = async (
       token,
     };
 
-    const response = await admin.messaging().send(message);
+    const messaging = getMessagingInstance();
+    const response = await messaging.send(message);
     logger.info('[FirebaseAdmin]', 'Push notification sent successfully:', response);
     return { success: true, messageId: response };
   } catch (error) {
@@ -79,16 +106,37 @@ export const sendMulticastPushNotification = async (
       return { success: false, error: 'No tokens provided' };
     }
 
-    const message = {
-      notification: {
-        title,
-        body,
-      },
-      data,
-      tokens, // Multiple tokens (max 500)
+    const messaging = getMessagingInstance();
+    
+    // Handle individual messages since we're using a safer approach
+    logger.info('[FirebaseAdmin]', 'Sending batch of individual messages');
+    const sendPromises = tokens.map(async (token) => {
+      try {
+        const message = {
+          notification: {
+            title,
+            body,
+          },
+          data,
+          token,
+        };
+        
+        return await messaging.send(message);
+      } catch (err) {
+        logger.error('[FirebaseAdmin]', 'Error sending individual message:', err);
+        return null;
+      }
+    });
+    
+    const results = await Promise.all(sendPromises);
+    
+    // Create a response object similar to multicast response
+    const response = {
+      successCount: results.filter(r => !!r).length,
+      failureCount: results.filter(r => !r).length,
+      responses: results.map(messageId => ({ success: !!messageId, messageId }))
     };
-
-    const response = await admin.messaging().sendMulticast(message);
+    
     logger.info(
       '[FirebaseAdmin]', 
       `Multicast notification sent: ${response.successCount} success, ${response.failureCount} failures`
@@ -129,7 +177,8 @@ export const sendTopicPushNotification = async (
       topic, // Topic name
     };
 
-    const response = await admin.messaging().send(message);
+    const messaging = getMessagingInstance();
+    const response = await messaging.send(message);
     logger.info('[FirebaseAdmin]', 'Topic notification sent successfully:', response);
     return { success: true, messageId: response };
   } catch (error) {
@@ -145,7 +194,8 @@ export const sendTopicPushNotification = async (
  */
 export const subscribeToTopic = async (token: string, topic: string) => {
   try {
-    const response = await admin.messaging().subscribeToTopic(token, topic);
+    const messaging = getMessagingInstance();
+    const response = await messaging.subscribeToTopic(token, topic);
     logger.info('[FirebaseAdmin]', 'Successfully subscribed to topic:', response);
     return { success: true, ...response };
   } catch (error) {
@@ -161,7 +211,8 @@ export const subscribeToTopic = async (token: string, topic: string) => {
  */
 export const unsubscribeFromTopic = async (token: string, topic: string) => {
   try {
-    const response = await admin.messaging().unsubscribeFromTopic(token, topic);
+    const messaging = getMessagingInstance();
+    const response = await messaging.unsubscribeFromTopic(token, topic);
     logger.info('[FirebaseAdmin]', 'Successfully unsubscribed from topic:', response);
     return { success: true, ...response };
   } catch (error) {

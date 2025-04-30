@@ -174,8 +174,8 @@ notificationRouter.post('/api/notifications/test', async (req, res) => {
     } else {
       // Send to admin user
       const adminTokens = await db.select()
-        .from(deviceTokens)
-        .where(eq(deviceTokens.userId, 1))
+        .from(pushTokens)
+        .where(eq(pushTokens.userId, 1))
         .limit(10);
         
       if (adminTokens.length === 0) {

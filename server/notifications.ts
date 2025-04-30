@@ -2,6 +2,12 @@ import type { Express } from "express";
 import { z } from "zod";
 import { storage } from "./storage";
 import { insertNotificationSchema, insertPushTokenSchema } from "@shared/schema";
+import { 
+  sendPushNotification, 
+  sendMulticastPushNotification, 
+  subscribeToTopic,
+  unsubscribeFromTopic
+} from "./firebase-admin";
 
 // Helper function to validate if a user is an admin
 const isAdmin = (req: any): boolean => {
@@ -229,7 +235,7 @@ export function setupNotificationRoutes(app: Express) {
     }
     
     try {
-      const { title, body, data } = req.body;
+      const { title, body, data = {} } = req.body;
       
       if (!title || !body) {
         return res.status(400).json({ message: "Title and body are required" });
@@ -252,18 +258,42 @@ export function setupNotificationRoutes(app: Express) {
         data
       });
       
-      // Use the push notification service
-      const success = await storage.sendPushNotification(
-        req.user.id,
-        title,
-        body,
-        data
-      );
+      // Get user's tokens for Firebase push notifications
+      const tokens = await storage.getUserPushTokens(req.user.id);
       
-      if (success) {
-        return res.json({ success: true, message: "Test notification sent successfully" });
+      if (tokens && tokens.length > 0) {
+        // If user has multiple tokens, send to all of them
+        if (tokens.length > 1) {
+          const tokenList = tokens.map(t => t.token);
+          const result = await sendMulticastPushNotification(tokenList, title, body, data);
+          return res.json({ 
+            success: true, 
+            message: "Test notifications sent successfully", 
+            result
+          });
+        } else {
+          // Send to single device
+          const result = await sendPushNotification(tokens[0].token, title, body, data);
+          return res.json({ 
+            success: true, 
+            message: "Test notification sent successfully", 
+            result
+          });
+        }
       } else {
-        return res.status(500).json({ success: false, message: "Failed to send test notification" });
+        // Fallback to existing push notification service if no Firebase tokens
+        const success = await storage.sendPushNotification(
+          req.user.id,
+          title,
+          body,
+          data
+        );
+        
+        if (success) {
+          return res.json({ success: true, message: "Test notification sent successfully (using legacy service)" });
+        } else {
+          return res.status(500).json({ success: false, message: "Failed to send test notification" });
+        }
       }
     } catch (error: any) {
       return res.status(500).json({ message: error.message });
@@ -277,7 +307,7 @@ export function setupNotificationRoutes(app: Express) {
     }
     
     try {
-      const { userId, title, body, type = "info", data } = req.body;
+      const { userId, title, body, type = "info", data = {} } = req.body;
       
       if (!userId || !title || !body) {
         return res.status(400).json({ 
@@ -312,8 +342,23 @@ export function setupNotificationRoutes(app: Express) {
         data
       });
       
-      // Use the push notification service
-      const success = await storage.sendPushNotification(
+      // Get user's Firebase tokens
+      const tokens = await storage.getUserPushTokens(userId);
+      let firebaseResult = null;
+      
+      if (tokens && tokens.length > 0) {
+        // If user has multiple tokens, send to all of them
+        if (tokens.length > 1) {
+          const tokenList = tokens.map(t => t.token);
+          firebaseResult = await sendMulticastPushNotification(tokenList, title, body, data);
+        } else {
+          // Send to single device
+          firebaseResult = await sendPushNotification(tokens[0].token, title, body, data);
+        }
+      }
+      
+      // Also use the existing push notification service as fallback
+      const legacySuccess = await storage.sendPushNotification(
         userId,
         title,
         body,
@@ -324,7 +369,58 @@ export function setupNotificationRoutes(app: Express) {
         success: true, 
         message: "Admin notification sent successfully", 
         notification,
-        pushDelivered: success
+        firebaseResult,
+        legacyPushDelivered: legacySuccess
+      });
+    } catch (error: any) {
+      return res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Add a new route to subscribe a device to a topic
+  app.post("/api/notifications/subscribe", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const { token, topic } = req.body;
+      
+      if (!token || !topic) {
+        return res.status(400).json({ message: "Token and topic are required" });
+      }
+      
+      const result = await subscribeToTopic(token, topic);
+      
+      return res.json({ 
+        success: result.success, 
+        message: result.success ? `Successfully subscribed to ${topic}` : "Failed to subscribe to topic",
+        result
+      });
+    } catch (error: any) {
+      return res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Add a new route to unsubscribe a device from a topic
+  app.post("/api/notifications/unsubscribe", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const { token, topic } = req.body;
+      
+      if (!token || !topic) {
+        return res.status(400).json({ message: "Token and topic are required" });
+      }
+      
+      const result = await unsubscribeFromTopic(token, topic);
+      
+      return res.json({ 
+        success: result.success, 
+        message: result.success ? `Successfully unsubscribed from ${topic}` : "Failed to unsubscribe from topic",
+        result
       });
     } catch (error: any) {
       return res.status(500).json({ message: error.message });

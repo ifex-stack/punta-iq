@@ -4,6 +4,7 @@ import { WebSocketServer } from "ws";
 import { setupAuth } from "./auth";
 import { setupPredictionRoutes } from "./predictions";
 import { setupNotificationRoutes } from "./notifications";
+import { notificationRouter } from "./notification-routes";
 // import { setupGamificationRoutes } from "./gamification";
 import { setupMockGamificationRoutes } from "./mock-gamification";
 import { setupMLRoutes } from "./ml-routes";
@@ -49,6 +50,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up historical dashboard routes
   app.use(historicalDashboardRouter);
+  
+  // Set up additional notification routes
+  app.use(notificationRouter);
   
   // Direct trending topics API endpoint
   app.get("/api/direct-trending-topics", (req, res) => {
