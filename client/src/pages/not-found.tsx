@@ -1,7 +1,7 @@
 import React from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Home } from "lucide-react";
 
 export default function NotFound() {
   const [_, navigate] = useLocation();
@@ -23,10 +23,15 @@ export default function NotFound() {
         </p>
         
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button onClick={() => navigate(-1)}>
+          <Button 
+            type="button" 
+            onClick={() => window.history.back()}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
             Go Back
           </Button>
-          <Button variant="outline" onClick={() => navigate("/")}>
+          <Button type="button" variant="outline" onClick={() => navigate("/")}>
+            <Home className="h-4 w-4 mr-2" />
             Return to Home
           </Button>
         </div>

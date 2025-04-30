@@ -917,7 +917,7 @@ export default function AdvancedAnalysisPage() {
               <SelectValue placeholder="Select sport" />
             </SelectTrigger>
             <SelectContent>
-              {sports?.map(sport => (
+              {sports?.map((sport: {key: string, title: string}) => (
                 <SelectItem key={sport.key} value={sport.key}>
                   {sport.title}
                 </SelectItem>
@@ -1029,7 +1029,7 @@ export default function AdvancedAnalysisPage() {
                   <ScrollArea className="h-64 rounded-md border">
                     <div className="p-2">
                       {filteredMatches.length > 0 ? (
-                        filteredMatches.map((match) => (
+                        filteredMatches.map((match: any) => (
                           <Button
                             key={match.id}
                             variant={selectedMatch === match.id ? "default" : "ghost"}
@@ -1097,15 +1097,59 @@ export default function AdvancedAnalysisPage() {
                     {prediction.confidence || "85"}% Confidence
                   </Badge>
                 </div>
-                <div className="flex items-center justify-between mt-2">
-                  <div className="text-sm text-muted-foreground">
-                    Prediction: <span className="font-medium text-foreground">{prediction.prediction}</span>
+                <div className="mt-3 pt-3 border-t border-border/30">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="flex flex-col items-center">
+                      <span className="text-xs text-muted-foreground mb-1">Home Win</span>
+                      <div className={`text-sm font-semibold ${prediction.prediction === 'Home Win' ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
+                        {prediction.homeOdds || "2.10"}
+                      </div>
+                      {prediction.prediction === 'Home Win' && (
+                        <Badge variant="outline" className="mt-1 text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800/60">
+                          Predicted
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="flex flex-col items-center">
+                      <span className="text-xs text-muted-foreground mb-1">Draw</span>
+                      <div className={`text-sm font-semibold ${prediction.prediction === 'Draw' ? 'text-amber-600 dark:text-amber-400' : ''}`}>
+                        {prediction.drawOdds || "3.25"}
+                      </div>
+                      {prediction.prediction === 'Draw' && (
+                        <Badge variant="outline" className="mt-1 text-[10px] bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800/60">
+                          Predicted
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="flex flex-col items-center">
+                      <span className="text-xs text-muted-foreground mb-1">Away Win</span>
+                      <div className={`text-sm font-semibold ${prediction.prediction === 'Away Win' ? 'text-blue-600 dark:text-blue-400' : ''}`}>
+                        {prediction.awayOdds || "3.50"}
+                      </div>
+                      {prediction.prediction === 'Away Win' && (
+                        <Badge variant="outline" className="mt-1 text-[10px] bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800/60">
+                          Predicted
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                  {prediction.valueBet && (
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800/60">
-                      {prediction.valueBet.value}% Value Bet
-                    </Badge>
-                  )}
+                  
+                  <div className="flex items-center justify-between mt-3">
+                    <div className="flex items-center">
+                      <TrendingUp className="h-4 w-4 text-emerald-500 mr-1.5" />
+                      <div className="text-sm">
+                        <span className="text-muted-foreground mr-1">Prediction:</span>
+                        <span className="font-medium text-foreground">{prediction.prediction}</span>
+                      </div>
+                    </div>
+                    {prediction.valueBet && (
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800/60">
+                        {prediction.valueBet.value}% Value
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               
