@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { db } from './db';
 import { logger } from './logger';
-import { deviceTokens, insertDeviceTokenSchema } from '@shared/schema';
+import { pushTokens, insertPushTokenSchema } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { 
   sendPushNotification,
@@ -36,31 +36,31 @@ notificationRouter.post('/api/notifications/register-device', async (req, res) =
 
     // Check if this token is already registered for this user
     const existingToken = await db.select()
-      .from(deviceTokens)
+      .from(pushTokens)
       .where(
-        eq(deviceTokens.token, token)
+        eq(pushTokens.token, token)
       )
       .limit(1);
 
     // If token already exists, just return success
     if (existingToken.length > 0) {
       // Update last active time
-      await db.update(deviceTokens)
-        .set({ lastActiveAt: new Date() })
-        .where(eq(deviceTokens.token, token));
+      await db.update(pushTokens)
+        .set({ lastUsedAt: new Date() })
+        .where(eq(pushTokens.token, token));
         
       return res.json({ success: true, message: 'Token already registered' });
     }
 
     // Insert the new token
-    const tokenData = insertDeviceTokenSchema.parse({
+    const tokenData = insertPushTokenSchema.parse({
       userId,
       token,
-      deviceType,
-      isActive: true,
+      platform: deviceType, // Map deviceType to platform
+      deviceName: 'Web Browser', // Default device name for web
     });
 
-    await db.insert(deviceTokens).values(tokenData);
+    await db.insert(pushTokens).values(tokenData);
     
     // Subscribe to topics based on user preferences
     if (req.user!.notificationSettings?.predictions) {
@@ -128,8 +128,8 @@ notificationRouter.post('/api/notifications/settings', async (req, res) => {
     
     // Get all tokens for this user
     const userTokens = await db.select()
-      .from(deviceTokens)
-      .where(eq(deviceTokens.userId, userId));
+      .from(pushTokens)
+      .where(eq(pushTokens.userId, userId));
       
     const tokenList = userTokens.map(t => t.token);
     

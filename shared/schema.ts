@@ -10,6 +10,7 @@ export const fantasyContestTierEnum = pgEnum('fantasy_contest_tier', ['free', 'p
 export const badgeTierEnum = pgEnum('badge_tier', ['bronze', 'silver', 'gold', 'platinum', 'diamond']);
 export const leaderboardTypeEnum = pgEnum('leaderboard_type', ['weekly', 'monthly', 'seasonal', 'all_time', 'fantasy', 'prediction_accuracy']);
 export const newsTypeEnum = pgEnum('news_type', ['article', 'analysis', 'preview', 'recap', 'interview', 'opinion']);
+export const deviceTypeEnum = pgEnum('device_type', ['android', 'ios', 'web']);
 
 // User table
 export const users = pgTable("users", {
