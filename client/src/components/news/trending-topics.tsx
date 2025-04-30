@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp, CalendarClock, Clock, ChevronRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
-interface TrendingTopic {
+export interface TrendingTopic {
   id: string;
   title: string;
   date?: string;
@@ -37,15 +37,12 @@ function TopicSkeleton() {
 }
 
 export function TrendingTopics() {
-  // Fetch trending topics aggregated from news articles
+  // Use default type for the query hook (it's inferred from the generic type)
   const { data: trendingTopics, isLoading } = useQuery<TrendingTopic[]>({
     queryKey: ["/api/news/trending-topics"],
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    // Use the TanStack Query onSuccess/onError pattern instead of direct callbacks
-    onSuccess: (data) => {
-      console.log(`Loaded ${data?.length || 0} trending topics`);
-    }
+    retry: 1
   });
 
   return (
@@ -78,7 +75,7 @@ export function TrendingTopics() {
           </>
         ) : trendingTopics && trendingTopics.length > 0 ? (
           <div className="space-y-6">
-            {trendingTopics.map((topic) => (
+            {trendingTopics.map((topic: TrendingTopic) => (
               <div key={topic.id} className="flex items-start space-x-4">
                 <div className="flex-shrink-0 rounded-full bg-primary/10 p-3 text-primary">
                   <TrendingUp className="h-6 w-6" />
@@ -103,7 +100,7 @@ export function TrendingTopics() {
                   </p>
                   <p className="text-sm mb-2">{topic.description}</p>
                   <div className="flex flex-wrap gap-2">
-                    {topic.tags.map((tag, i) => (
+                    {topic.tags.map((tag: string, i: number) => (
                       <Badge key={i} variant="outline" className="text-xs">
                         {tag}
                       </Badge>
