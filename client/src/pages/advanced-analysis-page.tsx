@@ -59,7 +59,7 @@ import {
 } from 'recharts';
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
-import { get, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 // Common market types across different sports
 export const COMMON_MARKETS = {
@@ -381,6 +381,8 @@ export default function AdvancedAnalysisPage() {
     queryKey: ['/api/odds', selectedSport],
     enabled: !!selectedSport,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    refetchOnWindowFocus: false,
+    retry: 3
   });
   
   // Derived values
@@ -439,7 +441,20 @@ export default function AdvancedAnalysisPage() {
     
     // Set loading state
     setLoading(true);
+    
+    // Log the current state for debugging
+    console.log("Advanced Analysis page initialized with sport:", selectedSport);
   }, []);
+  
+  // Log data for debugging purposes
+  useEffect(() => {
+    if (sports) {
+      console.log("Sports loaded:", sports);
+    }
+    if (matchesData) {
+      console.log("Matches data loaded:", matchesData);
+    }
+  }, [sports, matchesData]);
   
   // Function to enhance prediction with advanced analysis data
   const enhancePredictionWithAnalysis = (predictionData: Prediction) => {
