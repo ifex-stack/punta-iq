@@ -778,17 +778,40 @@ function AccumulatorCard({
               <Clock className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">Selections:</span>
             </div>
-            <span className="text-sm font-medium">{accumulator.selections.length}</span>
+            <Badge variant="outline" className="font-medium">
+              {accumulator.selections.length} matches
+            </Badge>
+          </div>
+          
+          {/* Mini preview of first two selections */}
+          <div className="bg-muted/30 rounded-md p-2 mb-2 text-xs">
+            {accumulator.selections.slice(0, 2).map((selection, index) => (
+              <div key={index} className="flex justify-between items-center py-1 border-b last:border-0 border-border/30">
+                <div className="truncate max-w-[75%]">
+                  <span className="font-medium">{selection.homeTeam}</span>
+                  <span className="text-muted-foreground mx-1">vs</span>
+                  <span className="font-medium">{selection.awayTeam}</span>
+                </div>
+                <Badge variant="secondary" className="text-[10px] px-1 py-0 h-5">
+                  {selection.prediction}
+                </Badge>
+              </div>
+            ))}
+            {accumulator.selections.length > 2 && (
+              <div className="text-center text-muted-foreground pt-1 text-[10px]">
+                +{accumulator.selections.length - 2} more
+              </div>
+            )}
           </div>
           
           <Button 
             variant="outline" 
             size="sm" 
-            className="w-full text-sm"
+            className="w-full text-sm mb-2"
             onClick={() => setSelectionDialogOpen(true)}
           >
             <ScrollText className="h-3.5 w-3.5 mr-2" />
-            View Selections
+            View All Selections
           </Button>
         </div>
         
@@ -798,16 +821,38 @@ function AccumulatorCard({
             <span className="text-sm font-medium">{accumulator.marketType}</span>
           </div>
           
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Confidence:</span>
-            <Badge variant="secondary" className={getConfidenceBadgeColor(accumulator.confidence)}>
-              {accumulator.confidence}%
-            </Badge>
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Confidence:</span>
+              <Badge variant="secondary" className={getConfidenceBadgeColor(accumulator.confidence)}>
+                {accumulator.confidence}%
+              </Badge>
+            </div>
+            <div className="w-full bg-muted rounded-full h-1.5 dark:bg-gray-700">
+              <div 
+                className={`h-1.5 rounded-full ${
+                  accumulator.confidence >= 80 ? 'bg-emerald-500' :
+                  accumulator.confidence >= 65 ? 'bg-amber-500' : 'bg-red-500'
+                }`} 
+                style={{ width: `${accumulator.confidence}%` }}>
+              </div>
+            </div>
           </div>
           
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Stake → Return:</span>
-            <span className="text-sm font-medium">£{accumulator.stake} → £{accumulator.potentialReturn}</span>
+          <div className="mt-2 pt-2 border-t border-border/30">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Potential Return:</span>
+              <div className="flex items-center">
+                <Badge variant="outline" className="mr-1 font-mono">£{accumulator.stake}</Badge>
+                <TrendingUp className="h-3.5 w-3.5 text-emerald-500 mx-1" />
+                <Badge variant="default" className="font-mono bg-emerald-500/90 hover:bg-emerald-500/90">
+                  £{accumulator.potentialReturn}
+                </Badge>
+              </div>
+            </div>
+            <div className="text-xs text-muted-foreground text-right mt-1">
+              Profit: £{(parseFloat(accumulator.potentialReturn) - accumulator.stake).toFixed(2)}
+            </div>
           </div>
         </div>
       </CardContent>
@@ -837,35 +882,93 @@ function AccumulatorCard({
       <Dialog open={selectionDialogOpen} onOpenChange={setSelectionDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Accumulator Selections</DialogTitle>
-            <DialogDescription>{accumulator.name} - {accumulator.totalOdds}x odds</DialogDescription>
+            <div className="flex items-center gap-2">
+              {accumulator.icon}
+              <DialogTitle>{accumulator.name}</DialogTitle>
+            </div>
+            <DialogDescription className="flex justify-between items-center mt-1">
+              <span>{accumulator.description}</span>
+              <Badge variant="secondary" className="font-mono">{accumulator.totalOdds}x</Badge>
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+          
+          {/* Summary card at the top */}
+          <Card className={`overflow-hidden border-2 bg-gradient-to-br ${gradientClass} mb-4`}>
+            <CardContent className="p-4">
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <div className="text-xs text-muted-foreground">SELECTIONS</div>
+                  <div className="text-xl font-bold">{accumulator.selections.length}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">CONFIDENCE</div>
+                  <div className={`text-xl font-bold ${
+                    accumulator.confidence >= 80 ? 'text-emerald-500' :
+                    accumulator.confidence >= 65 ? 'text-amber-500' : 'text-red-500'
+                  }`}>{accumulator.confidence}%</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">RETURN</div>
+                  <div className="text-xl font-bold">£{accumulator.potentialReturn}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Numbered selections list */}
+          <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
             {accumulator.selections.map((selection, index) => (
               <Card key={index} className="overflow-hidden border">
-                <CardContent className="p-3">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <div className="font-medium">{selection.homeTeam} vs {selection.awayTeam}</div>
-                      <div className="text-xs text-muted-foreground">{selection.league}, {selection.country}</div>
-                    </div>
-                    <Badge>{selection.odds}</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <div className="text-sm">
-                      <span className="text-muted-foreground mr-1">Prediction:</span>
-                      <span className="font-medium">{selection.prediction}</span>
-                    </div>
-                    <Badge variant="outline" className={getConfidenceBadgeColor(selection.confidence)}>
-                      {selection.confidence}%
+                <CardHeader className="py-2 px-3 bg-muted/50 border-b flex flex-row items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="h-6 w-6 flex items-center justify-center p-0 rounded-full">
+                      {index + 1}
                     </Badge>
+                    <div className="font-medium">{selection.homeTeam} vs {selection.awayTeam}</div>
                   </div>
+                  <Badge variant="secondary" className="font-mono">{selection.odds}</Badge>
+                </CardHeader>
+                <CardContent className="p-3">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground text-xs">League:</span>
+                      <div className="font-medium">{selection.league}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Country:</span>
+                      <div className="font-medium">{selection.country}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Prediction:</span>
+                      <div className="font-medium">{selection.prediction}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Confidence:</span>
+                      <div className="flex items-center">
+                        <Badge variant="outline" className={getConfidenceBadgeColor(selection.confidence)}>
+                          {selection.confidence}%
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  {selection.explanation && (
+                    <div className="mt-2 text-xs text-muted-foreground border-t border-border/30 pt-2">
+                      {selection.explanation}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
           </div>
-          <DialogFooter>
-            <Button onClick={() => setSelectionDialogOpen(false)}>Close</Button>
+          
+          <DialogFooter className="flex justify-between gap-2 sm:justify-between">
+            <Button variant="outline" onClick={() => setSelectionDialogOpen(false)}>
+              Close
+            </Button>
+            <Button>
+              <BookmarkIcon className="h-4 w-4 mr-1.5" />
+              Save Accumulator
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
