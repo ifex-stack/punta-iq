@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/use-auth";
+import { NotificationsProvider } from "@/hooks/use-notifications";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import HomePage from "@/pages/home-page";
@@ -136,13 +137,15 @@ function App() {
       <ThemeProvider defaultTheme="system" enableSystem={true} attribute="class">
         <TooltipProvider>
           <AuthProvider>
-            <NotificationProvider>
-              <OnboardingProvider>
-                <Toaster />
-                <NotificationToastListener />
-                <Router />
-              </OnboardingProvider>
-            </NotificationProvider>
+            <NotificationsProvider>
+              <NotificationProvider>
+                <OnboardingProvider>
+                  <Toaster />
+                  <NotificationToastListener />
+                  <Router />
+                </OnboardingProvider>
+              </NotificationProvider>
+            </NotificationsProvider>
           </AuthProvider>
         </TooltipProvider>
       </ThemeProvider>

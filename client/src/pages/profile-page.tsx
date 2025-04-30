@@ -26,6 +26,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { BadgeCollection } from "@/components/gamification/badge-collection";
 import { LeaderboardSection } from "@/components/gamification/leaderboard-section";
+import { NotificationSettings as FirebaseNotificationSettings } from "@/components/notifications/notification-settings";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -179,10 +180,7 @@ export default function ProfilePage() {
                 <CardDescription>Manage your notification preferences</CardDescription>
               </CardHeader>
               <CardContent>
-                <NotificationSettings 
-                  settings={user.notificationSettings} 
-                  userId={user.id} 
-                />
+                <FirebaseNotificationSettings />
               </CardContent>
             </Card>
             

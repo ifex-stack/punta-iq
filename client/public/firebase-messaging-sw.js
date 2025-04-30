@@ -1,10 +1,9 @@
-// Firebase Cloud Messaging Service Worker
+// Firebase messaging service worker
+// Give this service worker access to Firebase Messaging.
+importScripts('https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging-compat.js');
 
-// Scripts for firebase and firebase messaging
-importScripts('https://www.gstatic.com/firebasejs/9.19.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.19.1/firebase-messaging-compat.js');
-
-// Initialize the Firebase app in the service worker
+// Initialize the Firebase app with the credentials
 firebase.initializeApp({
   apiKey: "AIzaSyBavJfC39euBBt2ktsMI5UZC9lwCjh_T68",
   authDomain: "puntaiq.firebaseapp.com",
@@ -15,55 +14,57 @@ firebase.initializeApp({
   measurementId: "G-7WLFPR7YJB"
 });
 
-// Retrieve an instance of Firebase Messaging
+// Retrieve an instance of Firebase Messaging so that it can handle background messages.
 const messaging = firebase.messaging();
 
 // Handle background messages
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
   
+  // Customize notification here
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: '/assets/puntaiq-logo.png',
-    badge: '/assets/notification-badge.png',
-    data: payload.data,
-    // For actions in the notification
-    actions: [
-      {
-        action: 'view',
-        title: 'View',
-      }
-    ]
+    icon: '/icon-192x192.png', // Use your app icon
+    badge: '/icon-72x72.png',
+    data: payload.data
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// Handle notification click
+// Handle notification click events
 self.addEventListener('notificationclick', (event) => {
-  console.log('[firebase-messaging-sw.js] Notification clicked', event);
+  console.log('[firebase-messaging-sw.js] Notification click handled ', event);
+  
   event.notification.close();
   
-  // This looks to see if the current window is already open and focuses if it is
+  // Handle click behavior here
+  // This is where you'd handle opening specific app pages based on the notification data
+  const urlToOpen = event.notification.data && event.notification.data.url 
+    ? event.notification.data.url 
+    : '/'; // Default to home page
+  
+  // Focus if already open
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList) => {
-        // Get data from notification
-        const urlToOpen = event.notification.data?.url || '/notifications';
-        
-        // Look for an existing window to use
-        for (let i = 0; i < clientList.length; i++) {
-          const client = clientList[i];
-          if (client.url === urlToOpen && 'focus' in client) {
-            return client.focus();
-          }
+    clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true
+    })
+    .then((windowClients) => {
+      // Check if there is already a window/tab open with the target URL
+      for (let i = 0; i < windowClients.length; i++) {
+        const client = windowClients[i];
+        // If so, focus it
+        if (client.url.includes(urlToOpen) && 'focus' in client) {
+          return client.focus();
         }
-        
-        // If no existing window, open a new one
-        if (clients.openWindow) {
-          return clients.openWindow(urlToOpen);
-        }
-      })
+      }
+      
+      // If not, open a new window/tab
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
   );
 });
