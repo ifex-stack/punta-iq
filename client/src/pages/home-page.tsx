@@ -305,7 +305,7 @@ export default function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
               <Card 
                 className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 border-0 shadow-md hover:shadow-lg transition-all cursor-pointer"
-                onClick={() => navigate("/historical-dashboard")}
+                onClick={() => navigate("/history")}
               >
                 <CardContent className="pt-6">
                   <div className="flex flex-col items-center text-center">
