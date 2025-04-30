@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { useLocation, Link } from "wouter";
-import { ArrowLeft, RefreshCw, Share2, Zap, TrendingUp, BarChart4, Calendar, Activity, Info } from "lucide-react";
+import { 
+  ArrowLeft, RefreshCw, Share2, Zap, TrendingUp, BarChart4, Calendar, Activity, 
+  Info, AlertTriangle, LineChart as LineChartIcon, AreaChart as AreaChartIcon,
+  PieChart, Target, Layers, ChevronDown, Percent, Flame, Trophy, Award, PieChart as PieChartIcon
+} from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,10 +13,103 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { 
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Area, AreaChart 
+  Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Area, AreaChart,
+  PieChart as RechartsPieChart, Pie, Cell, RadarChart, PolarGrid, PolarAngleAxis, 
+  PolarRadiusAxis, Radar
 } from 'recharts';
+import { apiRequest } from "@/lib/queryClient";
+
+// Common market types across different sports
+export const COMMON_MARKETS = {
+  MATCH_WINNER: "match_winner",
+  SPREAD: "spreads",
+  TOTALS: "totals",
+  TEAM_TOTALS: "team_totals",
+  DOUBLE_CHANCE: "double_chance",
+  BOTH_TEAMS_TO_SCORE: "btts",
+  CORRECT_SCORE: "correct_score",
+  FIRST_SCORER: "first_scorer",
+  ANYTIME_SCORER: "anytime_scorer",
+  HALF_TIME_RESULT: "half_time_result",
+  DRAW_NO_BET: "draw_no_bet",
+};
+
+// Sports-specific markets
+export const SPORT_SPECIFIC_MARKETS = {
+  football: [
+    { id: "asian_handicap", name: "Asian Handicap" },
+    { id: "corners", name: "Corners" },
+    { id: "cards", name: "Cards" },
+    { id: "half_time_full_time", name: "Half Time/Full Time" },
+  ],
+  basketball: [
+    { id: "race_to_points", name: "Race to Points" },
+    { id: "player_points", name: "Player Points" },
+    { id: "player_rebounds", name: "Player Rebounds" },
+    { id: "player_assists", name: "Player Assists" },
+    { id: "quarter_winner", name: "Quarter Winner" },
+  ],
+  baseball: [
+    { id: "run_line", name: "Run Line" },
+    { id: "innings_total", name: "Innings Total" },
+    { id: "player_hits", name: "Player Hits" },
+    { id: "player_strikeouts", name: "Player Strikeouts" },
+  ],
+  american_football: [
+    { id: "td_scorer", name: "Touchdown Scorer" },
+    { id: "quarter_winner", name: "Quarter Winner" },
+    { id: "player_passing_yards", name: "Player Passing Yards" },
+    { id: "player_rushing_yards", name: "Player Rushing Yards" },
+  ],
+  tennis: [
+    { id: "set_winner", name: "Set Winner" },
+    { id: "correct_set_score", name: "Correct Set Score" },
+    { id: "player_aces", name: "Player Aces" },
+    { id: "player_games", name: "Player Games" },
+  ],
+  hockey: [
+    { id: "puck_line", name: "Puck Line" },
+    { id: "period_winner", name: "Period Winner" },
+    { id: "player_goals", name: "Player Goals" },
+    { id: "player_assists", name: "Player Assists" },
+  ],
+  cricket: [
+    { id: "batsman_runs", name: "Batsman Runs" },
+    { id: "bowler_wickets", name: "Bowler Wickets" },
+    { id: "innings_runs", name: "Innings Runs" },
+    { id: "match_winner", name: "Match Winner" },
+  ],
+  mma: [
+    { id: "method_of_victory", name: "Method of Victory" },
+    { id: "round_betting", name: "Round Betting" },
+    { id: "total_rounds", name: "Total Rounds" },
+    { id: "go_the_distance", name: "Go the Distance" },
+  ],
+  formula1: [
+    { id: "race_winner", name: "Race Winner" },
+    { id: "podium_finish", name: "Podium Finish" },
+    { id: "fastest_lap", name: "Fastest Lap" },
+    { id: "driver_matchups", name: "Driver Matchups" },
+  ],
+};
 
 // Types to match what we're getting from the API
 interface Prediction {
@@ -40,7 +137,7 @@ interface Prediction {
     odds: number;
     value: number;
   };
-  // New fields for advanced analysis
+  // Fields for advanced analysis
   h2hHistory?: Array<{
     date: string;
     homeTeam: string;
@@ -64,7 +161,166 @@ interface Prediction {
     predictedCorrect: number;
     accuracy: number;
   }>;
+  // New fields for enhanced analysis
+  keyStats?: {
+    home: {
+      [key: string]: number | string;
+    };
+    away: {
+      [key: string]: number | string;
+    };
+  };
+  trendingMarkets?: Array<{
+    market: string;
+    value: string;
+    odds: number;
+    trend: 'up' | 'down' | 'stable';
+    confidence: number;
+  }>;
+  exoticMarkets?: Array<{
+    market: string;
+    options: Array<{
+      selection: string;
+      odds: number;
+      probability: number;
+    }>;
+  }>;
+  similarMatches?: Array<{
+    id: string;
+    homeTeam: string;
+    awayTeam: string;
+    date: string;
+    result: string;
+    keyInsight: string;
+  }>;
 }
+
+// Common statistics for all sports
+const COMMON_STATS = [
+  { key: 'winRate', label: 'Win Rate' },
+  { key: 'formStreak', label: 'Form Streak' },
+  { key: 'avgScore', label: 'Avg. Score' },
+];
+
+// Sport-specific statistics
+const SPORT_STATS = {
+  football: [
+    { key: 'possession', label: 'Possession %' },
+    { key: 'shots', label: 'Shots per Game' },
+    { key: 'shotsOnTarget', label: 'Shots on Target' },
+    { key: 'corners', label: 'Corners per Game' },
+    { key: 'cards', label: 'Cards per Game' },
+    { key: 'xG', label: 'Expected Goals (xG)' },
+    { key: 'cleanSheets', label: 'Clean Sheets %' },
+  ],
+  basketball: [
+    { key: 'fgPct', label: 'FG %' },
+    { key: 'threePtPct', label: '3PT %' },
+    { key: 'rebounds', label: 'Rebounds' },
+    { key: 'assists', label: 'Assists' },
+    { key: 'steals', label: 'Steals' },
+    { key: 'blocks', label: 'Blocks' },
+    { key: 'turnovers', label: 'Turnovers' },
+  ],
+  baseball: [
+    { key: 'era', label: 'ERA' },
+    { key: 'battingAvg', label: 'Batting Avg' },
+    { key: 'obp', label: 'OBP' },
+    { key: 'slg', label: 'SLG' },
+    { key: 'whip', label: 'WHIP' },
+    { key: 'homeRuns', label: 'Home Runs' },
+    { key: 'strikeouts', label: 'Strikeouts' },
+  ],
+  american_football: [
+    { key: 'yardsPerGame', label: 'Yards/Game' },
+    { key: 'passingYards', label: 'Passing Yards' },
+    { key: 'rushingYards', label: 'Rushing Yards' },
+    { key: 'turnovers', label: 'Turnovers' },
+    { key: 'sacks', label: 'Sacks' },
+    { key: 'thirdDownPct', label: '3rd Down %' },
+    { key: 'redZonePct', label: 'Red Zone %' },
+  ],
+  tennis: [
+    { key: 'acesPct', label: 'Aces %' },
+    { key: 'firstServePct', label: '1st Serve %' },
+    { key: 'winOnFirstServe', label: 'Win on 1st Serve' },
+    { key: 'breakPointsSaved', label: 'Break Points Saved' },
+    { key: 'returnPtsWon', label: 'Return Pts Won' },
+    { key: 'doubleFaults', label: 'Double Faults' },
+  ],
+  hockey: [
+    { key: 'goalsPerGame', label: 'Goals/Game' },
+    { key: 'shotsPerGame', label: 'Shots/Game' },
+    { key: 'powerPlayPct', label: 'Power Play %' },
+    { key: 'penaltyKillPct', label: 'Penalty Kill %' },
+    { key: 'faceoffsPct', label: 'Faceoffs %' },
+    { key: 'savePct', label: 'Save %' },
+  ],
+  cricket: [
+    { key: 'battingAvg', label: 'Batting Avg' },
+    { key: 'bowlingAvg', label: 'Bowling Avg' },
+    { key: 'strikeRate', label: 'Strike Rate' },
+    { key: 'economy', label: 'Economy' },
+    { key: 'boundaries', label: 'Boundaries' },
+    { key: 'wickets', label: 'Wickets' },
+  ],
+  mma: [
+    { key: 'strikeAccuracy', label: 'Strike Accuracy' },
+    { key: 'takedownDef', label: 'Takedown Def' },
+    { key: 'submissionAvg', label: 'Submission Avg' },
+    { key: 'knockoutRate', label: 'Knockout Rate' },
+    { key: 'strikesLanded', label: 'Strikes Landed' },
+    { key: 'takedownsLanded', label: 'Takedowns' },
+  ],
+  formula1: [
+    { key: 'podiumPct', label: 'Podium %' },
+    { key: 'avgFinish', label: 'Avg Finish' },
+    { key: 'polePositions', label: 'Pole Positions' },
+    { key: 'fastestLaps', label: 'Fastest Laps' },
+    { key: 'dnfRate', label: 'DNF Rate' },
+    { key: 'pointsPerRace', label: 'Points/Race' },
+  ],
+};
+
+// Default prediction data for generating mock data
+const DEFAULT_MATCH_DATA = {
+  football: {
+    league: 'Premier League',
+    teams: { home: 'Manchester United', away: 'Arsenal' },
+  },
+  basketball: {
+    league: 'NBA',
+    teams: { home: 'Los Angeles Lakers', away: 'Boston Celtics' },
+  },
+  baseball: {
+    league: 'MLB',
+    teams: { home: 'New York Yankees', away: 'Boston Red Sox' },
+  },
+  american_football: {
+    league: 'NFL',
+    teams: { home: 'Kansas City Chiefs', away: 'San Francisco 49ers' },
+  },
+  tennis: {
+    league: 'ATP Tour',
+    teams: { home: 'Novak Djokovic', away: 'Rafael Nadal' },
+  },
+  hockey: {
+    league: 'NHL',
+    teams: { home: 'Toronto Maple Leafs', away: 'Montreal Canadiens' },
+  },
+  cricket: {
+    league: 'IPL',
+    teams: { home: 'Mumbai Indians', away: 'Chennai Super Kings' },
+  },
+  mma: {
+    league: 'UFC',
+    teams: { home: 'Jon Jones', away: 'Israel Adesanya' },
+  },
+  formula1: {
+    league: 'Formula 1',
+    teams: { home: 'Red Bull', away: 'Mercedes' },
+  },
+};
 
 export default function AdvancedAnalysisPage() {
   const [, setLocation] = useLocation();
@@ -73,6 +329,9 @@ export default function AdvancedAnalysisPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingPerformance, setLoadingPerformance] = useState(false);
+  const [selectedMarket, setSelectedMarket] = useState("match_winner");
+  const [selectedSport, setSelectedSport] = useState("football");
+  const [showAllMarkets, setShowAllMarkets] = useState(false);
   
   // On first load, check if we have prediction data in session storage
   useEffect(() => {
@@ -82,6 +341,10 @@ export default function AdvancedAnalysisPage() {
       try {
         const predictionData = JSON.parse(storedPrediction) as Prediction;
         setPrediction(predictionData);
+        
+        if (predictionData.sport) {
+          setSelectedSport(predictionData.sport);
+        }
         
         // Simulate fetching additional data for the analysis
         setTimeout(() => {
@@ -96,54 +359,380 @@ export default function AdvancedAnalysisPage() {
         });
       }
     } else {
-      // No prediction selected, redirect back
-      toast({
-        title: "No prediction selected",
-        description: "Please select a prediction to view detailed analysis",
-        variant: "destructive",
-      });
-      setLocation("/predictions");
+      // Demo mode - create a sample prediction
+      const demoData = createDemoPrediction(selectedSport);
+      setPrediction(demoData);
+      enhancePredictionWithAnalysis(demoData);
     }
   }, []);
   
+  // Function to create a demo prediction for any sport
+  const createDemoPrediction = (sport: string): Prediction => {
+    const sportData = DEFAULT_MATCH_DATA[sport as keyof typeof DEFAULT_MATCH_DATA] || 
+                      DEFAULT_MATCH_DATA.football;
+    
+    const now = new Date();
+    const matchDate = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000); // Match in 2 days
+    
+    const baseConfidence = 65 + Math.floor(Math.random() * 20);
+    const homeOdds = 1.8 + Math.random() * 1.5;
+    const drawOdds = sport === 'football' ? 3.2 + Math.random() * 0.8 : undefined;
+    const awayOdds = 2.2 + Math.random() * 1.8;
+    
+    // Dynamic prediction based on odds
+    const prediction = homeOdds < (awayOdds || 999) ? sportData.teams.home : sportData.teams.away;
+    
+    // Calculate value for our prediction
+    const impliedProb = 1 / (prediction === sportData.teams.home ? homeOdds : (awayOdds || 3));
+    const modelProb = baseConfidence / 100;
+    const valuePercent = Math.round((modelProb - impliedProb) * 100);
+    
+    return {
+      id: `demo-${Date.now()}`,
+      sport: sport,
+      league: sportData.league,
+      country: 'International',
+      homeTeam: sportData.teams.home,
+      awayTeam: sportData.teams.away,
+      startTime: matchDate.toISOString(),
+      venue: "Main Stadium",
+      homeOdds: homeOdds,
+      drawOdds: drawOdds as number,
+      awayOdds: awayOdds as number,
+      score: {
+        home: null,
+        away: null,
+      },
+      prediction: prediction,
+      confidence: baseConfidence,
+      explanation: `Our AI model predicts ${prediction} to win based on current form, head-to-head record, and key statistical indicators. The team has shown consistent performance in recent matches and has several key players in excellent form.`,
+      valueBet: {
+        market: 'match_winner',
+        selection: prediction,
+        odds: prediction === sportData.teams.home ? homeOdds : (awayOdds || 3),
+        value: valuePercent > 0 ? valuePercent : 5, // Ensure we always have value
+      }
+    };
+  };
+  
   // Function to enhance prediction with advanced analysis data
   const enhancePredictionWithAnalysis = (predictionData: Prediction) => {
-    // Simulate API call for historical performance data
+    const sport = predictionData.sport || 'football';
+    
+    // Helper for win/loss/draw sequence
+    const generateFormSequence = () => {
+      const results = ['W', 'D', 'L'];
+      return Array(5).fill(0).map(() => results[Math.floor(Math.random() * (sport === 'football' ? 3 : 2))]);
+    };
+    
+    // Generate h2h history
+    const h2hHistory = [];
+    const today = new Date();
+    
+    for (let i = 0; i < 4; i++) {
+      const matchDate = new Date(today);
+      matchDate.setMonth(today.getMonth() - i * 2 - 1); // Matches every 2 months in the past
+      
+      const isHomeAway = i % 2 === 0;
+      const homeTeam = isHomeAway ? predictionData.homeTeam : predictionData.awayTeam;
+      const awayTeam = isHomeAway ? predictionData.awayTeam : predictionData.homeTeam;
+      
+      // Create random scores appropriate for the sport
+      let homeScore, awayScore, result;
+      if (sport === 'football') {
+        homeScore = Math.floor(Math.random() * 4);
+        awayScore = Math.floor(Math.random() * 3);
+      } else if (sport === 'basketball') {
+        homeScore = 85 + Math.floor(Math.random() * 40);
+        awayScore = 85 + Math.floor(Math.random() * 40);
+      } else if (sport === 'baseball') {
+        homeScore = Math.floor(Math.random() * 8);
+        awayScore = Math.floor(Math.random() * 8);
+      } else if (sport === 'american_football') {
+        homeScore = (Math.floor(Math.random() * 5) * 7) + (Math.floor(Math.random() * 2) * 3);
+        awayScore = (Math.floor(Math.random() * 5) * 7) + (Math.floor(Math.random() * 2) * 3);
+      } else if (sport === 'hockey') {
+        homeScore = Math.floor(Math.random() * 6);
+        awayScore = Math.floor(Math.random() * 6);
+      } else if (['tennis', 'mma', 'formula1'].includes(sport)) {
+        // For individual sports, we just note winner
+        homeScore = Math.random() > 0.5 ? 1 : 0;
+        awayScore = homeScore === 1 ? 0 : 1;
+      } else {
+        homeScore = Math.floor(Math.random() * 4);
+        awayScore = Math.floor(Math.random() * 4);
+      }
+      
+      // Determine winner
+      let winner;
+      if (homeScore > awayScore) {
+        winner = homeTeam;
+      } else if (awayScore > homeScore) {
+        winner = awayTeam;
+      } else {
+        winner = "Draw";
+      }
+      
+      h2hHistory.push({
+        date: matchDate.toISOString().split('T')[0],
+        homeTeam,
+        awayTeam,
+        score: `${homeScore}-${awayScore}`,
+        winner,
+      });
+    }
+    
+    // Generate form guides
+    const homeForm = generateFormSequence();
+    const awayForm = generateFormSequence();
+    
+    // Generate injuries appropriate for the sport
+    const injuries = [];
+    if (['football', 'basketball', 'american_football', 'hockey'].includes(sport)) {
+      const positions = {
+        football: ['Striker', 'Midfielder', 'Defender', 'Goalkeeper'],
+        basketball: ['Point Guard', 'Shooting Guard', 'Small Forward', 'Power Forward', 'Center'],
+        american_football: ['Quarterback', 'Running Back', 'Wide Receiver', 'Linebacker', 'Defensive Back'],
+        hockey: ['Center', 'Left Wing', 'Right Wing', 'Defenseman', 'Goaltender'],
+      };
+      
+      const injuryTypes = ['Hamstring', 'Ankle', 'Knee', 'Shoulder', 'Concussion'];
+      const firstNames = ['John', 'James', 'David', 'Michael', 'Robert', 'Carlos', 'Kevin', 'Marcus'];
+      const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Miller', 'Davis', 'Garcia'];
+      
+      // Generate 1-3 injuries for each team
+      const homeInjuries = Math.floor(Math.random() * 2) + 1;
+      const awayInjuries = Math.floor(Math.random() * 2);
+      
+      for (let i = 0; i < homeInjuries; i++) {
+        const sportPositions = positions[sport as 'football' | 'basketball' | 'american_football' | 'hockey'] || positions.football;
+        injuries.push({
+          team: predictionData.homeTeam,
+          player: `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`,
+          status: Math.random() > 0.3 ? 'Out' : 'Doubtful',
+          impact: Math.random() > 0.5 ? 'High' : 'Medium',
+        });
+      }
+      
+      for (let i = 0; i < awayInjuries; i++) {
+        const sportPositions = positions[sport as 'football' | 'basketball' | 'american_football' | 'hockey'] || positions.football;
+        injuries.push({
+          team: predictionData.awayTeam,
+          player: `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`,
+          status: Math.random() > 0.3 ? 'Out' : 'Doubtful',
+          impact: Math.random() > 0.5 ? 'High' : 'Medium',
+        });
+      }
+    }
+    
+    // Sport-specific key stats
+    const generateKeyStats = () => {
+      const stats: {[key: string]: number | string} = {};
+      
+      // Add common stats
+      stats.winRate = Math.round(30 + Math.random() * 50);
+      stats.formStreak = Math.random() > 0.5 ? 'W3' : 'W2 L1';
+      stats.avgScore = (1 + Math.random() * 2).toFixed(1);
+      
+      // Add sport-specific stats
+      const sportStatsList = SPORT_STATS[sport as keyof typeof SPORT_STATS] || SPORT_STATS.football;
+      
+      sportStatsList.forEach(statDef => {
+        if (statDef.key.includes('Pct')) {
+          stats[statDef.key] = Math.round(30 + Math.random() * 50) + '%';
+        } else if (statDef.key.includes('Avg')) {
+          stats[statDef.key] = (Math.random() * 10).toFixed(2);
+        } else {
+          stats[statDef.key] = Math.round(Math.random() * 25);
+        }
+      });
+      
+      return stats;
+    };
+    
+    // Generate trending markets
+    const trendingMarkets = [];
+    const marketTypes = [
+      { market: COMMON_MARKETS.MATCH_WINNER, value: predictionData.homeTeam, odds: predictionData.homeOdds },
+      { market: COMMON_MARKETS.SPREAD, value: `${predictionData.homeTeam} -1.5`, odds: 2.2 + Math.random() },
+      { market: COMMON_MARKETS.TOTALS, value: 'Over 2.5', odds: 1.8 + Math.random() },
+    ];
+    
+    // Add 2-3 sport-specific markets
+    const sportMarkets = SPORT_SPECIFIC_MARKETS[sport as keyof typeof SPORT_SPECIFIC_MARKETS] || [];
+    if (sportMarkets.length > 0) {
+      for (let i = 0; i < 2; i++) {
+        const randomMarket = sportMarkets[Math.floor(Math.random() * sportMarkets.length)];
+        marketTypes.push({
+          market: randomMarket.id,
+          value: `${predictionData.homeTeam} ${randomMarket.name.toLowerCase()}`,
+          odds: 1.8 + Math.random() * 2
+        });
+      }
+    }
+    
+    // Select 3-5 trending markets
+    const numMarkets = 3 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < numMarkets; i++) {
+      if (i < marketTypes.length) {
+        trendingMarkets.push({
+          ...marketTypes[i],
+          trend: Math.random() > 0.5 ? 'up' : (Math.random() > 0.5 ? 'down' : 'stable'),
+          confidence: Math.round(55 + Math.random() * 30)
+        });
+      }
+    }
+    
+    // Generate exotic markets
+    const exoticMarkets = [];
+    const exoticTypes = [
+      { market: 'First Goal Method', options: [
+        { selection: 'Header', odds: 4.5, probability: 22 },
+        { selection: 'Inside Box', odds: 1.8, probability: 55 },
+        { selection: 'Outside Box', odds: 3.5, probability: 28 },
+        { selection: 'Free Kick', odds: 8.0, probability: 12 },
+        { selection: 'Penalty', odds: 9.0, probability: 11 },
+      ]},
+      { market: 'Time of First Goal', options: [
+        { selection: '1-10 mins', odds: 3.5, probability: 28 },
+        { selection: '11-25 mins', odds: 2.8, probability: 36 },
+        { selection: '26-45 mins', odds: 3.0, probability: 33 },
+        { selection: '46+ mins', odds: 3.2, probability: 31 },
+        { selection: 'No Goal', odds: 9.0, probability: 11 },
+      ]}
+    ];
+    
+    if (sport === 'basketball') {
+      exoticTypes.push({ market: 'First Basket Type', options: [
+        { selection: '3-pointer', odds: 3.0, probability: 33 },
+        { selection: 'Jump Shot', odds: 2.2, probability: 45 },
+        { selection: 'Layup', odds: 2.0, probability: 50 },
+        { selection: 'Dunk', odds: 3.5, probability: 28 },
+        { selection: 'Free Throw', odds: 5.0, probability: 20 },
+      ]});
+    } else if (sport === 'american_football') {
+      exoticTypes.push({ market: 'First Scoring Play', options: [
+        { selection: 'Touchdown', odds: 1.9, probability: 52 },
+        { selection: 'Field Goal', odds: 2.5, probability: 40 },
+        { selection: 'Safety', odds: 15.0, probability: 6 },
+        { selection: 'No Score', odds: 20.0, probability: 5 },
+      ]});
+    }
+    
+    for (let i = 0; i < 2; i++) {
+      if (i < exoticTypes.length) {
+        exoticMarkets.push(exoticTypes[i]);
+      }
+    }
+    
+    // Generate similar matches
+    const similarMatches = [];
+    for (let i = 0; i < 3; i++) {
+      const matchDate = new Date();
+      matchDate.setDate(matchDate.getDate() - (7 * (i + 1)));
+      
+      const randomTeams = [
+        [predictionData.homeTeam, "Liverpool"],
+        ["Bayern Munich", predictionData.awayTeam],
+        ["Real Madrid", "Barcelona"],
+      ];
+      
+      const homeTeam = randomTeams[i][0];
+      const awayTeam = randomTeams[i][1];
+      
+      const homeScore = Math.floor(Math.random() * 4);
+      const awayScore = Math.floor(Math.random() * 3);
+      
+      const insights = [
+        "Both teams scored in the first half",
+        "Late goal decided the match",
+        "Home team dominated possession",
+        "Away team efficient on counter-attacks",
+        "High pressing game with many chances",
+      ];
+      
+      similarMatches.push({
+        id: `match-${i}`,
+        homeTeam,
+        awayTeam,
+        date: matchDate.toISOString().split('T')[0],
+        result: `${homeScore}-${awayScore}`,
+        keyInsight: insights[Math.floor(Math.random() * insights.length)],
+      });
+    }
+    
+    // Generate performance chart
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+    const performanceChart = months.map(month => {
+      const predictedCorrect = 10 + Math.floor(Math.random() * 15);
+      const total = predictedCorrect + Math.floor(Math.random() * 8);
+      const accuracy = Math.round((predictedCorrect / total) * 100);
+      
+      return {
+        month,
+        predictedCorrect,
+        accuracy,
+      };
+    });
+    
+    // Compose enhanced AI analysis based on generated data
+    let aiAnalysis = `Based on our AI-powered analysis, ${predictionData.homeTeam} has shown ${
+      homeForm.filter(r => r === 'W').length
+    } wins in their last 5 games, while ${predictionData.awayTeam} has ${
+      awayForm.filter(r => r === 'W').length
+    } wins.\n\n`;
+    
+    // Add h2h analysis
+    const h2hHomeWins = h2hHistory.filter(h => h.winner === predictionData.homeTeam).length;
+    const h2hAwayWins = h2hHistory.filter(h => h.winner === predictionData.awayTeam).length;
+    const h2hDraws = h2hHistory.filter(h => h.winner === 'Draw').length;
+    
+    aiAnalysis += `In head-to-head matches, ${predictionData.homeTeam} has won ${h2hHomeWins}, ${predictionData.awayTeam} has won ${h2hAwayWins}`;
+    if (h2hDraws > 0) aiAnalysis += `, and there have been ${h2hDraws} draws`;
+    aiAnalysis += '.\n\n';
+    
+    // Add injuries analysis if applicable
+    if (injuries.length > 0) {
+      const homeInjuries = injuries.filter(i => i.team === predictionData.homeTeam);
+      const awayInjuries = injuries.filter(i => i.team === predictionData.awayTeam);
+      
+      if (homeInjuries.length > 0) {
+        aiAnalysis += `${predictionData.homeTeam} has ${homeInjuries.length} key ${homeInjuries.length === 1 ? 'player' : 'players'} ${homeInjuries.length === 1 ? 'who is' : 'who are'} injured or doubtful, which could impact their performance.\n`;
+      }
+      
+      if (awayInjuries.length > 0) {
+        aiAnalysis += `${predictionData.awayTeam} has ${awayInjuries.length} key ${awayInjuries.length === 1 ? 'player' : 'players'} ${awayInjuries.length === 1 ? 'who is' : 'who are'} injured or doubtful, which may affect their strategy.\n`;
+      }
+      
+      aiAnalysis += '\n';
+    }
+    
+    // Add value analysis
+    if (predictionData.valueBet) {
+      aiAnalysis += `Our model gives ${predictionData.prediction} a ${predictionData.confidence}% chance to win, which presents a ${predictionData.valueBet.value}% value opportunity against current market odds of ${predictionData.valueBet.odds.toFixed(2)}.\n\n`;
+    }
+    
+    // Add conclusion
+    aiAnalysis += `Taking all factors into account, including current form, head-to-head record, and ${sport}-specific performance metrics, our model predicts ${predictionData.prediction} as the most likely outcome for this match.`;
+    
+    // Build the enhanced prediction
     const enhancedPrediction: Prediction = {
       ...predictionData,
-      h2hHistory: [
-        { date: "2024-10-15", homeTeam: predictionData.homeTeam, awayTeam: predictionData.awayTeam, score: "2-1", winner: predictionData.homeTeam },
-        { date: "2024-05-22", homeTeam: predictionData.awayTeam, awayTeam: predictionData.homeTeam, score: "0-0", winner: "Draw" },
-        { date: "2023-11-30", homeTeam: predictionData.homeTeam, awayTeam: predictionData.awayTeam, score: "3-1", winner: predictionData.homeTeam },
-        { date: "2023-04-12", homeTeam: predictionData.awayTeam, awayTeam: predictionData.homeTeam, score: "2-0", winner: predictionData.awayTeam },
-      ],
+      h2hHistory,
       formGuide: {
-        home: ["W", "D", "W", "L", "W"],
-        away: ["W", "W", "D", "D", "L"],
+        home: homeForm,
+        away: awayForm,
       },
-      injuryNews: [
-        { team: predictionData.homeTeam, player: "John Smith", status: "Doubtful", impact: "Medium" },
-        { team: predictionData.awayTeam, player: "Carlos Rodriguez", status: "Out", impact: "High" },
-      ],
-      aiEnhancedAnalysis: `Based on our AI-powered analysis, ${predictionData.homeTeam} has shown strong home form recently with ${
-        predictionData.formGuide?.home.filter(result => result === "W").length || 3
-      } wins in their last 5 games. However, ${predictionData.awayTeam} has demonstrated resilience in away matches.
-      
-      The historical matchups between these teams favor ${
-        predictionData.h2hHistory?.filter(h2h => h2h.winner === predictionData.homeTeam).length || 2 > 
-        predictionData.h2hHistory?.filter(h2h => h2h.winner === predictionData.awayTeam).length || 1 ? 
-        predictionData.homeTeam : predictionData.awayTeam
-      }, but recent form and tactical changes suggest this could be a closely contested match.
-      
-      Our model gives ${predictionData.homeTeam} a ${predictionData.confidence}% chance to win, which represents value against the current market odds.`,
-      performanceChart: [
-        { month: "Nov", predictedCorrect: 12, accuracy: 75 },
-        { month: "Dec", predictedCorrect: 15, accuracy: 68 },
-        { month: "Jan", predictedCorrect: 18, accuracy: 72 },
-        { month: "Feb", predictedCorrect: 14, accuracy: 70 },
-        { month: "Mar", predictedCorrect: 16, accuracy: 73 },
-        { month: "Apr", predictedCorrect: 20, accuracy: 77 },
-      ]
+      injuryNews: injuries,
+      aiEnhancedAnalysis: aiAnalysis,
+      performanceChart,
+      keyStats: {
+        home: generateKeyStats(),
+        away: generateKeyStats(),
+      },
+      trendingMarkets,
+      exoticMarkets,
+      similarMatches,
     };
     
     setPrediction(enhancedPrediction);
@@ -185,6 +774,28 @@ export default function AdvancedAnalysisPage() {
       title: "Link Copied",
       description: "A shareable link has been copied to your clipboard",
     });
+  };
+  
+  // Function to format market name for display
+  const formatMarketName = (marketId: string) => {
+    // Replace underscores with spaces and capitalize each word
+    return marketId
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+  
+  // Function to change sport
+  const handleSportChange = (sport: string) => {
+    setSelectedSport(sport);
+    setLoading(true);
+    
+    // Create a new demo prediction for the selected sport
+    const demoData = createDemoPrediction(sport);
+    setTimeout(() => {
+      setPrediction(demoData);
+      enhancePredictionWithAnalysis(demoData);
+    }, 1000);
   };
   
   // Loading state
@@ -255,6 +866,23 @@ export default function AdvancedAnalysisPage() {
         </div>
         
         <div className="flex items-center gap-2">
+          <Select value={selectedSport} onValueChange={handleSportChange}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Select sport" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="football">Football</SelectItem>
+              <SelectItem value="basketball">Basketball</SelectItem>
+              <SelectItem value="american_football">American Football</SelectItem>
+              <SelectItem value="baseball">Baseball</SelectItem>
+              <SelectItem value="tennis">Tennis</SelectItem>
+              <SelectItem value="hockey">Hockey</SelectItem>
+              <SelectItem value="cricket">Cricket</SelectItem>
+              <SelectItem value="mma">MMA</SelectItem>
+              <SelectItem value="formula1">Formula 1</SelectItem>
+            </SelectContent>
+          </Select>
+          
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -316,9 +944,10 @@ export default function AdvancedAnalysisPage() {
         
         <CardContent>
           <Tabs defaultValue="analysis">
-            <TabsList className="grid grid-cols-3 mb-4">
+            <TabsList className="grid grid-cols-4 mb-4">
               <TabsTrigger value="analysis">AI Analysis</TabsTrigger>
               <TabsTrigger value="stats">Match Stats</TabsTrigger>
+              <TabsTrigger value="markets">Markets</TabsTrigger>
               <TabsTrigger value="performance">Performance</TabsTrigger>
             </TabsList>
             
@@ -431,11 +1060,42 @@ export default function AdvancedAnalysisPage() {
                 </Card>
               </div>
               
+              {prediction.similarMatches && prediction.similarMatches.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center">
+                      <Layers className="h-4 w-4 mr-2 text-muted-foreground" />
+                      Similar Matches
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <Table>
+                      <TableBody>
+                        {prediction.similarMatches.map((match, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="w-24">
+                              <div className="text-xs text-muted-foreground">{match.date}</div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">{match.homeTeam} vs {match.awayTeam}</div>
+                              <div className="text-xs text-muted-foreground mt-1">{match.keyInsight}</div>
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              {match.result}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              )}
+              
               {prediction.injuryNews && prediction.injuryNews.length > 0 && (
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base flex items-center">
-                      <Info className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <AlertTriangle className="h-4 w-4 mr-2 text-muted-foreground" />
                       Injury & Team News
                     </CardTitle>
                   </CardHeader>
@@ -466,95 +1126,363 @@ export default function AdvancedAnalysisPage() {
             </TabsContent>
             
             <TabsContent value="stats" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card>
-                  <CardContent className="p-4">
-                    <div className="text-center space-y-2">
-                      <p className="text-muted-foreground text-sm">Odds</p>
-                      <div className="grid grid-cols-3 gap-2 text-center">
-                        <div className="rounded-md bg-muted p-2">
-                          <p className="text-xs text-muted-foreground mb-1">1</p>
-                          <p className="font-medium">{prediction.homeOdds?.toFixed(2) || '-'}</p>
-                        </div>
-                        <div className="rounded-md bg-muted p-2">
-                          <p className="text-xs text-muted-foreground mb-1">X</p>
-                          <p className="font-medium">{prediction.drawOdds?.toFixed(2) || '-'}</p>
-                        </div>
-                        <div className="rounded-md bg-muted p-2">
-                          <p className="text-xs text-muted-foreground mb-1">2</p>
-                          <p className="font-medium">{prediction.awayOdds?.toFixed(2) || '-'}</p>
-                        </div>
-                      </div>
-                    </div>
+                  <CardHeader className="pb-0">
+                    <CardTitle className="text-base flex items-center">
+                      <BarChart4 className="h-4 w-4 mr-2 text-muted-foreground" />
+                      Key Team Statistics
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {prediction.keyStats ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Stat</TableHead>
+                            <TableHead className="text-right">{prediction.homeTeam}</TableHead>
+                            <TableHead className="text-right">{prediction.awayTeam}</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {/* Common stats like win rate, form streak, etc. */}
+                          {COMMON_STATS.map(stat => (
+                            <TableRow key={stat.key}>
+                              <TableCell className="font-medium">{stat.label}</TableCell>
+                              <TableCell className="text-right">
+                                {prediction.keyStats?.home[stat.key] || 'N/A'}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {prediction.keyStats?.away[stat.key] || 'N/A'}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          
+                          {/* Sport-specific stats */}
+                          {SPORT_STATS[selectedSport as keyof typeof SPORT_STATS]?.slice(0, 5).map(stat => (
+                            <TableRow key={stat.key}>
+                              <TableCell className="font-medium">{stat.label}</TableCell>
+                              <TableCell className="text-right">
+                                {prediction.keyStats?.home[stat.key] || 'N/A'}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {prediction.keyStats?.away[stat.key] || 'N/A'}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <p className="text-muted-foreground text-sm py-2">No statistics available</p>
+                    )}
                   </CardContent>
                 </Card>
                 
                 <Card>
-                  <CardContent className="p-4">
-                    <div className="text-center space-y-2">
-                      <p className="text-muted-foreground text-sm">Prediction</p>
-                      <div className="flex flex-col items-center">
-                        <p className="text-xl font-medium">{prediction.prediction}</p>
-                        {prediction.valueBet && (
-                          <div className="flex items-center space-x-1 text-xs text-green-600 mt-1">
-                            <Zap className="h-3 w-3" />
-                            <span>Value Bet</span>
-                          </div>
+                  <CardHeader className="pb-0">
+                    <CardTitle className="text-base flex items-center">
+                      <RadarChart className="h-4 w-4 mr-2 text-muted-foreground" />
+                      Team Comparison
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart outerRadius={90} data={[
+                          { stat: 'Attack', home: Math.floor(Math.random() * 70 + 30), away: Math.floor(Math.random() * 70 + 30) },
+                          { stat: 'Defense', home: Math.floor(Math.random() * 70 + 30), away: Math.floor(Math.random() * 70 + 30) },
+                          { stat: 'Form', home: Math.floor(Math.random() * 70 + 30), away: Math.floor(Math.random() * 70 + 30) },
+                          { stat: 'Consistency', home: Math.floor(Math.random() * 70 + 30), away: Math.floor(Math.random() * 70 + 30) },
+                          { stat: 'Home/Away', home: Math.floor(Math.random() * 70 + 30), away: Math.floor(Math.random() * 70 + 30) },
+                        ]}>
+                          <PolarGrid />
+                          <PolarAngleAxis dataKey="stat" />
+                          <PolarRadiusAxis domain={[0, 100]} />
+                          <Radar name={prediction.homeTeam} dataKey="home" stroke="#2563eb" fill="#3b82f6" fillOpacity={0.5} />
+                          <Radar name={prediction.awayTeam} dataKey="away" stroke="#dc2626" fill="#ef4444" fillOpacity={0.5} />
+                          <Legend />
+                        </RadarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <Card>
+                <CardHeader className="pb-0">
+                  <CardTitle className="text-base flex items-center">
+                    <TrendingUp className="h-4 w-4 mr-2 text-muted-foreground" />
+                    Match Analysis
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm mb-4">{prediction.explanation}</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">{prediction.homeTeam} Strengths</h4>
+                      <ul className="text-sm space-y-1 list-disc list-inside text-muted-foreground">
+                        <li>Strong home record with consistent performances</li>
+                        <li>Solid defensive organization</li>
+                        <li>Effective at set pieces</li>
+                        {selectedSport === 'football' && <li>High pressing game with quick transitions</li>}
+                        {selectedSport === 'basketball' && <li>Efficient three-point shooting</li>}
+                        {selectedSport === 'american_football' && <li>Strong passing attack</li>}
+                        {selectedSport === 'tennis' && <li>Superior first serve accuracy</li>}
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">{prediction.awayTeam} Strengths</h4>
+                      <ul className="text-sm space-y-1 list-disc list-inside text-muted-foreground">
+                        <li>Fast counter-attacking style</li>
+                        <li>Good recent away form</li>
+                        <li>Creating quality scoring chances</li>
+                        {selectedSport === 'football' && <li>Strong aerial presence at set pieces</li>}
+                        {selectedSport === 'basketball' && <li>Dominant rebounding</li>}
+                        {selectedSport === 'american_football' && <li>Strong rushing defense</li>}
+                        {selectedSport === 'tennis' && <li>Excellent return game</li>}
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {/* Add visual representation of odds */}
+              <Card>
+                <CardHeader className="pb-0">
+                  <CardTitle className="text-base flex items-center">
+                    <Percent className="h-4 w-4 mr-2 text-muted-foreground" />
+                    Implied Probabilities
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: prediction.homeTeam, value: Math.round(100 / prediction.homeOdds) },
+                            ...(prediction.drawOdds ? [{ name: 'Draw', value: Math.round(100 / prediction.drawOdds) }] : []),
+                            { name: prediction.awayTeam, value: Math.round(100 / prediction.awayOdds) },
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        >
+                          <Cell fill="#3b82f6" />
+                          {prediction.drawOdds && <Cell fill="#a3a3a3" />}
+                          <Cell fill="#ef4444" />
+                        </Pie>
+                        <Tooltip formatter={(value) => `${value}%`} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center mt-2">
+                    Implied probabilities based on current market odds
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="markets" className="space-y-6">
+              {/* Market selection section */}
+              <div className="grid grid-cols-1 mb-6">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center">
+                      <Target className="h-4 w-4 mr-2 text-muted-foreground" />
+                      Market Selection
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-4">
+                      <h3 className="text-sm font-medium mb-2">Common Markets</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.values(COMMON_MARKETS).slice(0, showAllMarkets ? undefined : 5).map(market => (
+                          <Badge
+                            key={market}
+                            variant={selectedMarket === market ? "default" : "outline"}
+                            className="cursor-pointer"
+                            onClick={() => setSelectedMarket(market)}
+                          >
+                            {formatMarketName(market)}
+                          </Badge>
+                        ))}
+                        
+                        {!showAllMarkets && Object.values(COMMON_MARKETS).length > 5 && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-xs"
+                            onClick={() => setShowAllMarkets(true)}
+                          >
+                            <ChevronDown className="h-3 w-3 mr-1" />
+                            More
+                          </Button>
                         )}
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="text-center space-y-2">
-                      <div className="flex items-center justify-center space-x-1">
-                        <p className="text-muted-foreground text-sm">Confidence</p>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="text-xs max-w-xs">
-                                Confidence score reflects our AI model's certainty in this prediction, 
-                                based on statistical analysis, historical data, and current form.
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                      <div className="space-y-2">
-                        <Progress value={prediction.confidence} className="h-2" />
-                        <p className="font-medium">{prediction.confidence}%</p>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium mb-2">{selectedSport.charAt(0).toUpperCase() + selectedSport.slice(1).replace('_', ' ')} Specific Markets</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {SPORT_SPECIFIC_MARKETS[selectedSport as keyof typeof SPORT_SPECIFIC_MARKETS]?.map(market => (
+                          <Badge
+                            key={market.id}
+                            variant={selectedMarket === market.id ? "default" : "outline"}
+                            className="cursor-pointer"
+                            onClick={() => setSelectedMarket(market.id)}
+                          >
+                            {market.name}
+                          </Badge>
+                        ))}
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               </div>
               
+              {/* Trending markets */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center">
+                    <Flame className="h-4 w-4 mr-2 text-muted-foreground" />
+                    Trending Market Opportunities
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {prediction.trendingMarkets?.map((market, index) => (
+                      <Card key={index} className={market.trend === 'up' ? 'border-green-200 dark:border-green-900/60' : market.trend === 'down' ? 'border-red-200 dark:border-red-900/60' : ''}>
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="text-sm font-medium">{formatMarketName(market.market)}</h3>
+                              <p className="text-xs text-muted-foreground">{market.value}</p>
+                            </div>
+                            <Badge 
+                              variant="outline" 
+                              className={
+                                market.trend === 'up' ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800/60' :
+                                market.trend === 'down' ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800/60' :
+                                'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800/60'
+                              }
+                            >
+                              {market.trend === 'up' ? 'Value ↑' : market.trend === 'down' ? 'Avoid ↓' : 'Neutral'}
+                            </Badge>
+                          </div>
+                          <div className="mt-3 grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <p className="text-xs text-muted-foreground">Odds</p>
+                              <p className="font-medium">{market.odds.toFixed(2)}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-xs text-muted-foreground">Confidence</p>
+                              <p className="font-medium">{market.confidence}%</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {/* Exotic markets */}
+              {prediction.exoticMarkets && prediction.exoticMarkets.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center">
+                      <Award className="h-4 w-4 mr-2 text-muted-foreground" />
+                      Exotic Markets
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <Tabs defaultValue={prediction.exoticMarkets[0].market.replace(/\s+/g, '-').toLowerCase()}>
+                      <TabsList className="mb-4">
+                        {prediction.exoticMarkets.map((market, index) => (
+                          <TabsTrigger 
+                            key={index} 
+                            value={market.market.replace(/\s+/g, '-').toLowerCase()}
+                          >
+                            {market.market}
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                      
+                      {prediction.exoticMarkets.map((market, marketIndex) => (
+                        <TabsContent 
+                          key={marketIndex} 
+                          value={market.market.replace(/\s+/g, '-').toLowerCase()}
+                        >
+                          <div className="space-y-4">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Selection</TableHead>
+                                  <TableHead className="text-right">Odds</TableHead>
+                                  <TableHead className="text-right">Probability</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {market.options.map((option, optionIndex) => (
+                                  <TableRow key={optionIndex}>
+                                    <TableCell className="font-medium">{option.selection}</TableCell>
+                                    <TableCell className="text-right">{option.odds.toFixed(2)}</TableCell>
+                                    <TableCell className="text-right">{option.probability}%</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                            
+                            <div className="h-56">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={market.options}>
+                                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                  <XAxis dataKey="selection" />
+                                  <YAxis domain={[0, 100]} />
+                                  <RechartsTooltip
+                                    formatter={(value) => [`${value}%`, 'Probability']}
+                                  />
+                                  <Bar 
+                                    dataKey="probability" 
+                                    fill="#3b82f6" 
+                                    radius={[4, 4, 0, 0]}
+                                    name="Probability"
+                                  />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </div>
+                        </TabsContent>
+                      ))}
+                    </Tabs>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Value bet details */}
               {prediction.valueBet && (
-                <Card className="border-green-200 dark:border-green-900/60">
-                  <CardHeader className="pb-2 bg-green-50 dark:bg-green-950/30">
-                    <CardTitle className="text-base flex items-center text-green-700 dark:text-green-400">
-                      <Zap className="h-4 w-4 mr-2" />
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center">
+                      <LineChartIcon className="h-4 w-4 mr-2 text-muted-foreground" />
                       Value Bet Analysis
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <CardContent className="pt-0">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                       <div className="space-y-1">
                         <p className="text-xs text-muted-foreground">Market</p>
-                        <p className="font-medium">{prediction.valueBet.market}</p>
+                        <p className="font-medium">{formatMarketName(prediction.valueBet.market)}</p>
                       </div>
                       <div className="space-y-1">
                         <p className="text-xs text-muted-foreground">Selection</p>
                         <p className="font-medium">{prediction.valueBet.selection}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Odds</p>
-                        <p className="font-medium">{prediction.valueBet.odds.toFixed(2)}</p>
                       </div>
                       <div className="space-y-1">
                         <p className="text-xs text-muted-foreground">Value Rating</p>
@@ -570,37 +1498,6 @@ export default function AdvancedAnalysisPage() {
                   </CardContent>
                 </Card>
               )}
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center">
-                    <BarChart4 className="h-4 w-4 mr-2 text-muted-foreground" />
-                    Match Analysis
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <p className="text-sm mb-4">{prediction.explanation}</p>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">{prediction.homeTeam} Strengths</h4>
-                      <ul className="text-sm space-y-1 list-disc list-inside text-muted-foreground">
-                        <li>Strong home record with consistent performances</li>
-                        <li>Solid defensive organization</li>
-                        <li>Effective at set pieces</li>
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">{prediction.awayTeam} Strengths</h4>
-                      <ul className="text-sm space-y-1 list-disc list-inside text-muted-foreground">
-                        <li>Fast counter-attacking style</li>
-                        <li>Good recent away form</li>
-                        <li>Creating quality scoring chances</li>
-                      </ul>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </TabsContent>
             
             <TabsContent value="performance" className="space-y-6">
@@ -632,20 +1529,21 @@ export default function AdvancedAnalysisPage() {
                           <defs>
                             <linearGradient id="colorAccuracy" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1} />
+                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                             </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} />
                           <XAxis dataKey="month" />
-                          <YAxis domain={[40, 100]} />
+                          <YAxis domain={[0, 100]} />
                           <RechartsTooltip
-                            formatter={(value, name) => {
-                              if (name === 'accuracy') return [`${value}%`, 'Accuracy'];
-                              return [value, 'Predictions'];
-                            }}
+                            formatter={(value, name) => [
+                              `${value}${name === 'accuracy' ? '%' : ''}`,
+                              name === 'accuracy' ? 'Success Rate' : 'Predictions'
+                            ]}
                           />
                           <Area
                             type="monotone"
+                            name="accuracy"
                             dataKey="accuracy"
                             stroke="#3b82f6"
                             fillOpacity={1}
@@ -656,13 +1554,8 @@ export default function AdvancedAnalysisPage() {
                       </ResponsiveContainer>
                     </div>
                   ) : (
-                    <div className="text-center py-6">
-                      <p className="text-muted-foreground">No performance data available</p>
-                      <Button 
-                        variant="outline"
-                        className="mt-4"
-                        onClick={handleLoadPerformanceHistory}
-                      >
+                    <div className="h-72 flex items-center justify-center">
+                      <Button onClick={handleLoadPerformanceHistory}>
                         Load Performance History
                       </Button>
                     </div>
@@ -670,30 +1563,39 @@ export default function AdvancedAnalysisPage() {
                 </CardContent>
               </Card>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Success Rate by Market</CardTitle>
+                    <CardTitle className="text-base flex items-center">
+                      <Trophy className="h-4 w-4 mr-2 text-muted-foreground" />
+                      Success Rate by Sport
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
                     <div className="h-60">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart
                           data={[
-                            { name: 'Match Result', rate: 72 },
-                            { name: 'Over/Under', rate: 68 },
-                            { name: 'Both Teams', rate: 75 },
-                            { name: 'Double Chance', rate: 82 },
+                            { sport: 'Football', rate: 76 },
+                            { sport: 'Basketball', rate: 73 },
+                            { sport: 'Tennis', rate: 68 },
+                            { sport: 'Hockey', rate: 65 },
+                            { sport: 'Baseball', rate: 71 },
                           ]}
                           margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
                         >
                           <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                          <XAxis dataKey="name" />
+                          <XAxis dataKey="sport" />
                           <YAxis domain={[0, 100]} />
                           <RechartsTooltip
                             formatter={(value) => [`${value}%`, 'Success Rate']}
                           />
-                          <Bar dataKey="rate" fill="#3b82f6" />
+                          <Bar 
+                            dataKey="rate" 
+                            fill="#3b82f6" 
+                            radius={[4, 4, 0, 0]}
+                            name="Success Rate"
+                          />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -702,7 +1604,10 @@ export default function AdvancedAnalysisPage() {
                 
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Success Rate by Confidence</CardTitle>
+                    <CardTitle className="text-base flex items-center">
+                      <PieChartIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                      Success Rate by Confidence
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
                     <div className="h-60">
