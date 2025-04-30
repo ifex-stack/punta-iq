@@ -577,28 +577,28 @@ export default function NewPredictionsAndStatsPage() {
             </div>
           )}
           
-          {/* Link to accumulators page instead of showing them directly */}
-          {!isLoadingOdds && hasPredictions && (
-            <div className="mb-8">
+          {/* Accumulators banner at the top */}
+          {!isLoadingOdds && (
+            <div className="mb-6">
               <div className="flex flex-col gap-4">
-                <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 border-indigo-200 dark:border-indigo-800/50">
-                  <CardContent className="p-6">
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                <Card className="border-0 shadow-md bg-gradient-to-r from-indigo-500/90 to-purple-500/90 dark:from-indigo-600/90 dark:to-purple-600/90 text-white">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-3">
                       <div className="flex items-start space-x-4">
-                        <div className="bg-indigo-100 dark:bg-indigo-900/40 p-3 rounded-full">
-                          <Activity className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                        <div className="bg-white/20 p-3 rounded-full">
+                          <Activity className="h-6 w-6 text-white" />
                         </div>
                         <div>
-                          <h3 className="text-xl font-bold mb-1">AI-Generated Accumulators</h3>
-                          <p className="text-muted-foreground max-w-md">
-                            View our AI-optimized accumulator predictions with potential returns up to 50x your stake
+                          <h3 className="text-xl font-bold mb-1 text-white">Today's AI Accumulators</h3>
+                          <p className="text-white/90 max-w-md">
+                            Ready-made AI selections with up to 50x potential returns
                           </p>
                         </div>
                       </div>
                       <Button 
                         size="lg" 
                         onClick={() => setLocation('/accumulators')}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white dark:bg-indigo-700 dark:hover:bg-indigo-600"
+                        className="bg-white hover:bg-white/90 text-indigo-700 border-0"
                       >
                         View Accumulators
                         <ArrowUpRight className="ml-2 h-4 w-4" />

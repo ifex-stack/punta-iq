@@ -6,9 +6,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { 
   ChevronRight, Filter, Loader2, TrendingUp, Bell, 
-  ChevronDown, Calculator, Trophy, 
+  ChevronDown, Calculator, Trophy, Activity,
   Target, BarChart3, Users, Sparkles, Star, Zap, 
-  ArrowRight, BadgeCheck, PieChart,
+  ArrowRight, BadgeCheck, PieChart, ArrowUpRight,
   CheckCircle2
 } from "lucide-react";
 import PredictionCard from "@/components/predictions/prediction-card";
@@ -204,6 +204,35 @@ export default function HomePage() {
       
       {/* Main content section */}
       <div className="container py-12 max-w-6xl">
+        {/* Top Accumulators Banner */}
+        <div className="mb-8">
+          <Card className="border-0 shadow-md bg-gradient-to-r from-indigo-500/90 to-purple-500/90 dark:from-indigo-600/90 dark:to-purple-600/90 text-white overflow-hidden">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-3">
+                <div className="flex items-start space-x-4">
+                  <div className="bg-white/20 p-3 rounded-full">
+                    <Activity className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold mb-1 text-white">Today's AI Accumulators</h3>
+                    <p className="text-white/90 max-w-md">
+                      Ready-made AI selections with up to 50x potential returns
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  size="lg" 
+                  onClick={() => navigate("/accumulators")}
+                  className="bg-white hover:bg-white/90 text-indigo-700 border-0"
+                >
+                  View Accumulators
+                  <ArrowUpRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left column - Today's Predictions */}
           <div className="lg:col-span-2">
@@ -365,14 +394,14 @@ export default function HomePage() {
               </CardContent>
             </Card>
             
-            {/* Accumulators panel */}
+            {/* News Panel */}
             <Card className="border-0 shadow-lg overflow-hidden">
-              <CardHeader className="border-b bg-muted/30">
+              <CardHeader className="py-3 border-b bg-muted/30">
                 <div className="flex justify-between items-center">
-                  <CardTitle>Today's Accumulators</CardTitle>
+                  <CardTitle>Latest News</CardTitle>
                   <Badge variant="secondary">
                     <Star className="h-3 w-3 fill-current mr-1" />
-                    AI Picks
+                    Top Stories
                   </Badge>
                 </div>
               </CardHeader>
@@ -380,31 +409,27 @@ export default function HomePage() {
                 <div className="divide-y">
                   <div className="p-4 hover:bg-muted/30 transition-colors cursor-pointer">
                     <div className="flex justify-between items-center mb-2">
-                      <h4 className="font-semibold flex items-center">
-                        <PieChart className="h-4 w-4 mr-1.5 text-indigo-500" />
-                        Weekend Winners
+                      <h4 className="font-semibold">
+                        Premier League Update
                       </h4>
-                      <Badge>5.76 odds</Badge>
+                      <Badge variant="outline">Football</Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">3 selections from top European leagues</p>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Confidence: 78%</span>
-                      <span className="font-medium text-indigo-600 dark:text-indigo-400">£25 → £144</span>
+                    <p className="text-sm text-muted-foreground mb-2">Manchester City extends lead with 3-0 victory over Arsenal</p>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-muted-foreground">2 hours ago</span>
                     </div>
                   </div>
                   
                   <div className="p-4 hover:bg-muted/30 transition-colors cursor-pointer">
                     <div className="flex justify-between items-center mb-2">
-                      <h4 className="font-semibold flex items-center">
-                        <Target className="h-4 w-4 mr-1.5 text-emerald-500" /> 
-                        BTTS Special
+                      <h4 className="font-semibold">
+                        NBA Playoffs
                       </h4>
-                      <Badge>4.22 odds</Badge>
+                      <Badge variant="outline">Basketball</Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">4 matches with both teams scoring</p>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Confidence: 71%</span>
-                      <span className="font-medium text-indigo-600 dark:text-indigo-400">£25 → £106</span>
+                    <p className="text-sm text-muted-foreground mb-2">Lakers advance to conference finals after game 7 thriller</p>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-muted-foreground">5 hours ago</span>
                     </div>
                   </div>
                 </div>
@@ -413,10 +438,10 @@ export default function HomePage() {
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={() => navigate("/accumulators")}
+                  onClick={() => navigate("/news")}
                   className="gap-1"
                 >
-                  Browse All Accumulators
+                  Browse All News
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
               </CardFooter>
