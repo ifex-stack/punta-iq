@@ -145,6 +145,34 @@ notificationRouter.post('/api/notifications/settings', async (req, res) => {
   }
 });
 
+// Public endpoint for sending a test notification to a topic
+notificationRouter.post('/api/notifications/send-test', async (req, res) => {
+  try {
+    const schema = z.object({
+      title: z.string().default('Test Notification'),
+      body: z.string().default('This is a test notification from PuntaIQ'),
+      topic: z.string().default('all_users'),
+      data: z.record(z.string()).optional(),
+    });
+
+    const parseResult = schema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({ error: parseResult.error.message });
+    }
+
+    const { title, body, topic, data = {} } = parseResult.data;
+    
+    // Send to the specified topic
+    const result = await sendTopicPushNotification(topic, title, body, data);
+    logger.info('[NotificationRoutes]', 'Test notification sent to topic:', topic);
+    
+    return res.json({ success: true, message: `Test notification sent to topic: ${topic}`, result });
+  } catch (error) {
+    logger.error('[NotificationRoutes]', 'Error sending test topic notification:', error);
+    res.status(500).json({ error: 'Failed to send test notification to topic' });
+  }
+});
+
 // Send test notification (admin only)
 notificationRouter.post('/api/notifications/test', async (req, res) => {
   try {
