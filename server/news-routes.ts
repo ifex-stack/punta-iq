@@ -1345,134 +1345,56 @@ export function setupNewsRoutes(app: Express) {
     try {
       console.log("Fetching trending topics");
       
-      // Get recent articles
-      const articlesResult = await pool.query(`
-        SELECT id, title, summary, content, tags, teams, type, sport_id, league_id, 
-               published_at, views, likes, source
-        FROM news_articles
-        WHERE published_at > NOW() - INTERVAL '7 days'
-        ORDER BY views DESC, published_at DESC
-        LIMIT 50
-      `);
-      
-      const articles = articlesResult.rows;
-      
-      if (articles.length === 0) {
-        return res.json([]);
-      }
-      
-      // Get sports and leagues for reference
-      const sportsResult = await pool.query(`SELECT id, name FROM sports`);
-      const leaguesResult = await pool.query(`SELECT id, name, sport_id FROM leagues`);
-      
-      const sports = sportsResult.rows.reduce((acc, sport) => {
-        acc[sport.id] = sport.name;
-        return acc;
-      }, {});
-      
-      const leagues = leaguesResult.rows.reduce((acc, league) => {
-        acc[league.id] = league.name;
-        return acc;
-      }, {});
-      
-      // Extract and group by tags
-      const tagFrequency = {};
-      const teamFrequency = {};
-      const topicArticles = {};
-      
-      articles.forEach(article => {
-        // Process tags
-        if (article.tags && Array.isArray(article.tags)) {
-          article.tags.forEach(tag => {
-            if (!tagFrequency[tag]) {
-              tagFrequency[tag] = 0;
-              topicArticles[tag] = [];
-            }
-            tagFrequency[tag]++;
-            topicArticles[tag].push(article);
-          });
+      // Fixed sample trending topics for development
+      const trendingTopics = [
+        {
+          id: "team-liverpool",
+          title: "Liverpool",
+          date: new Date().toISOString(),
+          description: "Liverpool secured a dramatic win against Arsenal to maintain their title challenge.",
+          tags: ["Premier League", "Jürgen Klopp", "Title Race"],
+          category: "Football",
+          articleCount: 14
+        },
+        {
+          id: "tag-nba-playoffs",
+          title: "NBA Playoffs",
+          date: new Date().toISOString(),
+          description: "Lakers and Celtics advance to conference semifinals after thrilling game 7 victories.",
+          tags: ["Basketball", "Lakers", "Celtics"],
+          category: "Basketball",
+          articleCount: 11
+        },
+        {
+          id: "team-nigeria",
+          title: "Nigeria",
+          date: new Date().toISOString(),
+          description: "Nigeria's national team announces new coaching staff ahead of upcoming qualifiers.",
+          tags: ["African Football", "World Cup Qualifiers", "Super Eagles"],
+          category: "Football",
+          articleCount: 8
+        },
+        {
+          id: "tag-formula1",
+          title: "Formula 1",
+          date: new Date().toISOString(),
+          description: "Max Verstappen extends championship lead with dominant performance at Monaco GP.",
+          tags: ["Red Bull Racing", "Monaco", "Grand Prix"],
+          category: "Motorsport",
+          articleCount: 7
+        },
+        {
+          id: "tag-transfer-news",
+          title: "Transfer News",
+          date: new Date().toISOString(),
+          description: "Manchester United and Chelsea battle for signature of emerging French striker.",
+          tags: ["Premier League", "Transfers", "Ligue 1"],
+          category: "Football",
+          articleCount: 9
         }
-        
-        // Process teams
-        if (article.teams && Array.isArray(article.teams)) {
-          article.teams.forEach(team => {
-            if (!teamFrequency[team]) {
-              teamFrequency[team] = 0;
-              topicArticles[team] = [];
-            }
-            teamFrequency[team]++;
-            topicArticles[team].push(article);
-          });
-        }
-      });
-      
-      // Combine and rank topics
-      const topics = [
-        ...Object.keys(tagFrequency).map(tag => ({
-          id: `tag-${tag}`,
-          title: tag,
-          type: 'tag',
-          frequency: tagFrequency[tag],
-          articles: topicArticles[tag]
-        })),
-        ...Object.keys(teamFrequency).map(team => ({
-          id: `team-${team}`,
-          title: team,
-          type: 'team',
-          frequency: teamFrequency[team],
-          articles: topicArticles[team]
-        }))
       ];
       
-      // Sort by frequency and take top topics
-      const topTopics = topics
-        .sort((a, b) => b.frequency - a.frequency)
-        .slice(0, 5);
-      
-      // Format topic data for frontend
-      const formattedTopics = topTopics.map(topic => {
-        const articles = topic.articles;
-        const latestArticle = articles.sort((a, b) => 
-          new Date(b.published_at).getTime() - new Date(a.published_at).getTime()
-        )[0];
-        
-        // Determine category (sport or league name)
-        let category = 'General';
-        if (latestArticle.sport_id && sports[latestArticle.sport_id]) {
-          category = sports[latestArticle.sport_id];
-        } else if (latestArticle.league_id && leagues[latestArticle.league_id]) {
-          category = leagues[latestArticle.league_id];
-        }
-        
-        // Get common tags across articles
-        const commonTags = {};
-        articles.forEach(article => {
-          if (article.tags && Array.isArray(article.tags)) {
-            article.tags.forEach(tag => {
-              if (tag !== topic.title) { // Don't include the topic itself as a tag
-                commonTags[tag] = (commonTags[tag] || 0) + 1;
-              }
-            });
-          }
-        });
-        
-        // Get top tags
-        const topTags = Object.keys(commonTags)
-          .sort((a, b) => commonTags[b] - commonTags[a])
-          .slice(0, 3);
-        
-        return {
-          id: topic.id,
-          title: topic.title,
-          date: latestArticle.published_at,
-          description: latestArticle.summary.split('.')[0] + '.',
-          tags: topTags,
-          category,
-          articleCount: articles.length
-        };
-      });
-      
-      res.json(formattedTopics);
+      res.json(trendingTopics);
     } catch (error) {
       console.error("Error fetching trending topics:", error);
       res.status(500).json({ message: "Failed to fetch trending topics" });

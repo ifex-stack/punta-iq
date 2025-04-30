@@ -19,6 +19,7 @@ import { useNotifications } from "@/components/notifications/notification-provid
 import { PuntaIQLogo } from "@/components/ui/puntaiq-logo";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TrendingTopics } from "@/components/news/trending-topics";
 
 export default function HomePage() {
   const [_, navigate] = useLocation();
@@ -231,6 +232,11 @@ export default function HomePage() {
               </div>
             </CardContent>
           </Card>
+        </div>
+        
+        {/* Trending Topics in Sports */}
+        <div className="mb-8">
+          <TrendingTopics />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
