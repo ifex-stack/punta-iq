@@ -1,109 +1,55 @@
-import React, { useEffect } from 'react';
-import { useNotifications } from './notification-provider';
-import { useToast } from '@/hooks/use-toast';
-import { Bell } from 'lucide-react';
+import { useEffect } from "react";
+import { useNotifications } from "@/hooks/use-notifications";
+import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
+import { ToastAction } from "@/components/ui/toast";
 
-/**
- * Component that listens for WebSocket notifications and displays them as toasts
- * This should be mounted once in the app layout
- */
-export function NotificationToastListener() {
-  // Safe usage of useNotifications with error handling
-  let notificationContext;
-  try {
-    notificationContext = useNotifications();
-  } catch (error) {
-    console.error("Failed to load notification context for toast listener:", error);
-    // Return null if notifications can't be loaded - this component doesn't render anything visible anyway
-    return null;
-  }
-  
-  const { socket, socketConnected } = notificationContext;
-  const { toast } = useToast();
-
-  useEffect(() => {
-    if (!socket || !socketConnected) return;
-
-    const handleMessage = (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        // Only handle push notification type messages
-        if (data.type === 'push_notification') {
-          toast({
-            title: data.title,
-            description: data.body,
-            variant: 'default',
-            // Using a custom icon is not supported in the Toast component
-          });
-        }
-      } catch (error) {
-        console.error('Error handling WebSocket notification:', error);
-      }
-    };
-
-    // Add event listener for messages
-    socket.addEventListener('message', handleMessage);
-
-    // Clean up the event listener on unmount
-    return () => {
-      socket.removeEventListener('message', handleMessage);
-    };
-  }, [socket, socketConnected, toast]);
-
-  // This component doesn't render anything visible
-  return null;
+interface NotificationMessage {
+  id: string;
+  title: string;
+  body: string;
+  read: boolean;
+  actionUrl?: string;
+  toastShown?: boolean;
 }
 
-/**
- * Component that displays a test notification button (for development only)
- */
-export function NotificationTestButton() {
+export function NotificationToastListener() {
   const { toast } = useToast();
-  
-  const handleTestNotification = async () => {
-    try {
-      const response = await fetch('/api/notifications/test', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: 'Test Notification',
-          body: 'This is a test notification from the client!',
-          data: {
-            testId: Date.now(),
-          },
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to send test notification');
+  const { messages, markAsRead } = useNotifications();
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    // Listen for new messages and display them as toasts
+    if (messages && messages.length > 0) {
+      // Only show the latest message that has not been shown yet
+      const latestMessage = messages.find((msg: NotificationMessage) => !msg.toastShown);
+      if (latestMessage) {
+        toast({
+          title: latestMessage.title,
+          description: latestMessage.body,
+          action: latestMessage.actionUrl ? (
+            <ToastAction 
+              altText="View" 
+              onClick={() => {
+                if (latestMessage.actionUrl) {
+                  navigate(latestMessage.actionUrl);
+                  markAsRead(latestMessage.id);
+                }
+              }}
+            >
+              View
+            </ToastAction>
+          ) : undefined,
+          onDismiss: () => {
+            markAsRead(latestMessage.id);
+          }
+        });
+        
+        // Mark this message as having been shown as a toast
+        markAsRead(latestMessage.id);
       }
-      
-      const result = await response.json();
-      
-      toast({
-        title: 'Test Sent',
-        description: result.message,
-        variant: 'default',
-      });
-    } catch (error) {
-      console.error('Error sending test notification:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to send test notification',
-        variant: 'destructive',
-      });
     }
-  };
-  
-  return (
-    <button
-      onClick={handleTestNotification}
-      className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
-    >
-      Test Notification
-    </button>
-  );
+  }, [messages, toast, navigate, markAsRead]);
+
+  return null;
 }

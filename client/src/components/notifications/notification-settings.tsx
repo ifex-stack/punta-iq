@@ -1,114 +1,216 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { toast } from "@/hooks/use-toast";
+import { useEffect, useState } from "react";
 import { useNotifications } from "@/hooks/use-notifications";
-import { Bell, BellOff, Info } from "lucide-react";
-import { isNotificationsSupported } from "@/lib/firebase";
+import { useAuth } from "@/hooks/use-auth";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Bell, BellOff, Check, Info } from "lucide-react";
 
-export function NotificationSettings() {
-  const { hasPermission, isLoading, requestPermission } = useNotifications();
+interface NotificationSettingsProps {
+  className?: string;
+}
+
+interface NotificationPreferences {
+  predictions: boolean;
+  results: boolean;
+  promotions: boolean;
+}
+
+export function NotificationSettings({ className }: NotificationSettingsProps) {
+  const { user } = useAuth();
+  const { hasPermission, requestPermission, isLoading } = useNotifications();
+  const { toast } = useToast();
+  const [preferences, setPreferences] = useState<NotificationPreferences>({
+    predictions: false,
+    results: false,
+    promotions: false,
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Load user notification preferences
+  useEffect(() => {
+    if (user?.notificationSettings) {
+      setPreferences({
+        predictions: user.notificationSettings.predictions || false,
+        results: user.notificationSettings.results || false,
+        promotions: user.notificationSettings.promotions || false,
+      });
+    }
+  }, [user]);
 
   const handleRequestPermission = async () => {
-    if (!isNotificationsSupported()) {
+    try {
+      await requestPermission();
       toast({
-        title: "Notifications not supported",
-        description: "Your browser doesn't support notifications. Please try using a different browser.",
+        title: "Notifications enabled",
+        description: "You will now receive notifications from PuntaIQ",
+      });
+    } catch (error) {
+      toast({
+        title: "Permission denied",
+        description: "Please enable notifications in your browser settings",
         variant: "destructive",
       });
-      return;
     }
-
-    await requestPermission();
   };
 
+  const handleTogglePreference = async (category: keyof NotificationPreferences) => {
+    const newPreferences = {
+      ...preferences,
+      [category]: !preferences[category],
+    };
+    
+    setPreferences(newPreferences);
+    
+    try {
+      setIsSaving(true);
+      await apiRequest("PATCH", "/api/user/notification-settings", {
+        settings: newPreferences,
+      });
+      
+      toast({
+        title: "Settings saved",
+        description: "Your notification preferences have been updated",
+      });
+    } catch (error) {
+      // Revert to previous state if save fails
+      setPreferences(preferences);
+      toast({
+        title: "Failed to save settings",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle>Notification Settings</CardTitle>
+          <CardDescription>
+            Choose what notifications you would like to receive
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center py-6">
+          <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!hasPermission) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle>Enable Notifications</CardTitle>
+          <CardDescription>
+            Get timely updates about predictions, match results, and more
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center gap-4 py-4">
+            <BellOff className="h-12 w-12 text-muted-foreground" />
+            <p className="text-center text-sm text-muted-foreground max-w-md">
+              Notifications are currently disabled. Enable notifications to stay updated
+              with the latest predictions, match results, and special offers.
+            </p>
+            <Button onClick={handleRequestPermission} className="mt-2">
+              Enable Notifications
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card className="w-full">
+    <Card className={className}>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-xl font-bold">Notification Preferences</CardTitle>
-          {hasPermission ? (
-            <Bell className="h-5 w-5 text-primary" />
-          ) : (
-            <BellOff className="h-5 w-5 text-muted-foreground" />
-          )}
+          <div>
+            <CardTitle>Notification Settings</CardTitle>
+            <CardDescription>
+              Choose what notifications you would like to receive
+            </CardDescription>
+          </div>
+          <Bell className="h-5 w-5 text-primary" />
         </div>
-        <CardDescription>
-          Choose what type of notifications you want to receive and how you receive them.
-        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <div className="font-medium">Push Notifications</div>
-            <div className="text-sm text-muted-foreground">
-              {hasPermission
-                ? "Notifications are enabled for this device"
-                : "Notifications are currently disabled"}
+      <CardContent>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between space-x-2">
+            <div className="space-y-0.5">
+              <Label htmlFor="predictions" className="text-base">
+                Predictions
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Receive notifications when new predictions are available
+              </p>
             </div>
+            <Switch
+              id="predictions"
+              checked={preferences.predictions}
+              onCheckedChange={() => handleTogglePreference("predictions")}
+              disabled={isSaving}
+            />
           </div>
-          <Button
-            variant={hasPermission ? "outline" : "default"}
-            size="sm"
-            onClick={handleRequestPermission}
-            disabled={isLoading}
-          >
-            {hasPermission ? "Enabled" : "Enable Notifications"}
-          </Button>
-        </div>
-
-        {hasPermission && (
-          <>
-            <div className="pt-2 border-t">
-              <h3 className="font-medium mb-3">Notification Categories</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium">Prediction Alerts</div>
-                    <div className="text-sm text-muted-foreground">Get notified when new predictions are available</div>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium">Match Reminders</div>
-                    <div className="text-sm text-muted-foreground">Receive reminders before matches start</div>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium">Results & Updates</div>
-                    <div className="text-sm text-muted-foreground">Get notifications about match results and prediction outcomes</div>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium">News & Promotions</div>
-                    <div className="text-sm text-muted-foreground">Receive updates about app features and special offers</div>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-              </div>
+          
+          <div className="flex items-center justify-between space-x-2">
+            <div className="space-y-0.5">
+              <Label htmlFor="results" className="text-base">
+                Match Results
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Get notified about the outcomes of your tracked matches
+              </p>
             </div>
-          </>
+            <Switch
+              id="results"
+              checked={preferences.results}
+              onCheckedChange={() => handleTogglePreference("results")}
+              disabled={isSaving}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between space-x-2">
+            <div className="space-y-0.5">
+              <Label htmlFor="promotions" className="text-base">
+                Promotions & Updates
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Offers, new features, and other promotional content
+              </p>
+            </div>
+            <Switch
+              id="promotions"
+              checked={preferences.promotions}
+              onCheckedChange={() => handleTogglePreference("promotions")}
+              disabled={isSaving}
+            />
+          </div>
+        </div>
+        
+        {isSaving && (
+          <div className="mt-4 flex items-center justify-center text-sm text-muted-foreground">
+            <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
+            Saving preferences...
+          </div>
         )}
+        
+        <div className="mt-6 flex items-start p-4 border rounded-lg bg-muted/30">
+          <Info className="h-5 w-5 text-muted-foreground mr-3 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-muted-foreground">
+            You can also disable notifications completely in your browser settings.
+            If you're having trouble with notifications, try refreshing the page.
+          </p>
+        </div>
       </CardContent>
-      <CardFooter className="flex justify-between items-center border-t pt-4">
-        <div className="flex items-center text-sm text-muted-foreground">
-          <Info className="h-4 w-4 mr-1" />
-          Your settings are automatically saved
-        </div>
-        {!isNotificationsSupported() && (
-          <div className="text-sm text-yellow-600 dark:text-yellow-400">
-            Your browser doesn't fully support notifications
-          </div>
-        )}
-      </CardFooter>
     </Card>
   );
 }

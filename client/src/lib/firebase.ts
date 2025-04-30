@@ -1,7 +1,6 @@
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-import { getAuth, GoogleAuthProvider, signInWithPopup, OAuthProvider } from "firebase/auth";
-import { getMessaging, getToken as firebaseGetToken, onMessage } from "firebase/messaging";
+import { getAuth, signInWithPopup, GoogleAuthProvider, OAuthProvider } from "firebase/auth";
+import { getMessaging, getToken as getFirebaseToken, onMessage, isSupported } from "firebase/messaging";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -14,145 +13,121 @@ const firebaseConfig = {
   measurementId: "G-7WLFPR7YJB"
 };
 
-// Initialize Firebase
+// Initialize Firebase app
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const analytics = getAnalytics(app);
 
-// Google Auth Provider
-const googleProvider = new GoogleAuthProvider();
-googleProvider.addScope('email');
-googleProvider.addScope('profile');
-
-// Apple Auth Provider
-const appleProvider = new OAuthProvider('apple.com');
-appleProvider.addScope('email');
-appleProvider.addScope('name');
-
-// Sign in with Google
+// Authentication methods
 export const signInWithGoogle = async () => {
+  const provider = new GoogleAuthProvider();
   try {
-    const result = await signInWithPopup(auth, googleProvider);
-    return {
-      success: true,
-      user: result.user,
-      credential: GoogleAuthProvider.credentialFromResult(result),
-    };
+    const result = await signInWithPopup(auth, provider);
+    return result.user;
   } catch (error) {
     console.error("Google sign-in error:", error);
-    return {
-      success: false,
-      error,
-    };
+    throw error;
   }
 };
 
-// Sign in with Apple
 export const signInWithApple = async () => {
+  const provider = new OAuthProvider('apple.com');
   try {
-    const result = await signInWithPopup(auth, appleProvider);
-    return {
-      success: true,
-      user: result.user,
-      credential: OAuthProvider.credentialFromResult(result),
-    };
+    const result = await signInWithPopup(auth, provider);
+    return result.user;
   } catch (error) {
     console.error("Apple sign-in error:", error);
-    return {
-      success: false,
-      error,
-    };
+    throw error;
   }
 };
 
-// Messaging setup
-let messaging: any;
-try {
-  // Only initialize messaging if browser supports it
-  if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-    messaging = getMessaging(app);
-  }
-} catch (error) {
-  console.error("Firebase messaging initialization error:", error);
-}
-
-// Export config getter for checking firebase availability
 export const getFirebaseConfig = () => {
   return firebaseConfig;
 };
 
-// Check if notifications are supported
-export const isNotificationsSupported = () => {
-  return typeof window !== 'undefined' && 
-         'Notification' in window && 
-         'serviceWorker' in navigator && 
-         'PushManager' in window;
+// Check if notifications are supported in this browser/environment
+export const isNotificationsSupported = async (): Promise<boolean> => {
+  if (typeof window === 'undefined') return false;
+  
+  try {
+    return await isSupported();
+  } catch {
+    return false;
+  }
 };
 
-// Get current notification permission
-export const getNotificationPermission = () => {
-  if (!isNotificationsSupported()) {
-    return 'unsupported';
+// Get notification permission status
+export const getNotificationPermission = async (): Promise<NotificationPermission> => {
+  if (!('Notification' in window)) {
+    return 'denied';
   }
+  
   return Notification.permission;
 };
 
 // Request notification permission
-export const requestNotificationPermission = async () => {
-  if (!isNotificationsSupported()) {
-    console.warn('Push notifications are not supported in this browser');
-    return 'unsupported';
+export const requestNotificationPermission = async (): Promise<NotificationPermission> => {
+  if (!('Notification' in window)) {
+    throw new Error('Notifications not supported in this browser');
   }
   
-  try {
-    // Request permission from the user
-    return await Notification.requestPermission();
-  } catch (error) {
-    console.error("Error requesting notification permission:", error);
-    return 'denied';
-  }
+  return await Notification.requestPermission();
 };
 
-// Get Firebase messaging token
+// Get Firebase messaging token for push notifications
 export const getToken = async (vapidKey?: string): Promise<string | null> => {
-  if (!messaging) {
-    console.warn('Firebase messaging is not available');
-    return null;
-  }
-  
   try {
-    // Check permission first
-    const permission = Notification.permission;
+    // Check if notifications are supported first
+    if (!await isNotificationsSupported()) {
+      console.warn('Firebase messaging is not supported in this browser/environment');
+      return null;
+    }
+    
+    // Make sure permission is granted
+    const permission = await getNotificationPermission();
     if (permission !== 'granted') {
       console.warn('Notification permission not granted');
       return null;
     }
     
-    // Get token with optional VAPID key
-    const options = vapidKey ? { vapidKey } : {};
-    return await firebaseGetToken(messaging, options);
+    const messaging = getMessaging(app);
+    const currentToken = await getFirebaseToken(messaging, {
+      vapidKey: vapidKey || 'BOX9XCgq5sqpGjG2jJYWxKhzQ3yEBGdxXOsVVS5Dxx19nxYvRXNE0Y2t3LiFONwgXUVU7jLlQn6O8R-NwAZ_LAY',
+    });
+    
+    if (currentToken) {
+      return currentToken;
+    } else {
+      console.warn('No FCM token obtained');
+      return null;
+    }
   } catch (error) {
-    console.error("Error getting notification token:", error);
+    console.error('Error getting FCM token:', error);
     return null;
   }
 };
 
-// Handle foreground messages
-export const setupMessageListener = () => {
-  if (!messaging) return;
-  
-  onMessage(messaging, (payload) => {
-    console.log('Message received in foreground:', payload);
-    
-    // Display custom notification UI if app is open
-    const { notification } = payload;
-    if (notification) {
-      // Here you could trigger a custom notification UI component
-      // For example, using a toast notification system
-      console.log('Notification title:', notification.title);
-      console.log('Notification body:', notification.body);
+// Set up Firebase messaging foreground handler
+export const setupMessageListener = (callback: (payload: any) => void) => {
+  try {
+    const supported = isNotificationsSupported();
+    if (!supported) {
+      console.warn('Firebase messaging is not supported in this browser/environment');
+      return;
     }
-  });
+    
+    const messaging = getMessaging(app);
+    
+    // Handle foreground messages
+    return onMessage(messaging, (payload) => {
+      console.log('Received foreground message:', payload);
+      callback(payload);
+    });
+  } catch (error) {
+    console.error('Error setting up message listener:', error);
+  }
 };
 
-export { app, auth, analytics, messaging };
+// Utility function to determine if in development mode
+export const isDevelopmentMode = (): boolean => {
+  return import.meta.env.MODE === 'development';
+};

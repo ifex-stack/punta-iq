@@ -1,189 +1,181 @@
-import { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
+import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { 
-  isNotificationsSupported, 
-  requestNotificationPermission,
-  getNotificationPermission
-} from "@/lib/firebase";
-import * as firebaseMessaging from "@/lib/firebase";
+  getToken, 
+  requestNotificationPermission, 
+  getNotificationPermission, 
+  isNotificationsSupported,
+  setupMessageListener
+} from '@/lib/firebase';
+import { useAuth } from '@/hooks/use-auth';
+import { useNotificationContext } from '@/components/notifications/notification-provider';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
-type NotificationsContextType = {
-  hasPermission: boolean | null;
+interface NotificationsContextType {
+  hasPermission: boolean;
   isLoading: boolean;
-  requestPermission: () => Promise<boolean>;
-  notifications: Notification[];
-  markAsRead: (id: number) => void;
+  requestPermission: () => Promise<void>;
+  token: string | null;
+  messages: any[];
+  hasUnread: boolean;
+  markAsRead: (id: string, options?: any) => void;
   markAllAsRead: () => void;
-  deleteNotification: (id: number) => void;
-};
-
-export type Notification = {
-  id: number;
-  title: string;
-  message: string;
-  isRead: boolean;
-  createdAt: string;
-};
+  deleteNotification: (id: string) => void;
+  deleteAllNotifications: () => void;
+}
 
 const NotificationsContext = createContext<NotificationsContextType | null>(null);
 
-export function NotificationsProvider({ children }: { children: ReactNode }) {
-  const { toast } = useToast();
+export const NotificationsProvider = ({ children }: { children: ReactNode }) => {
+  const [permission, setPermission] = useState<boolean>(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [tokenRegistered, setTokenRegistered] = useState(false);
+  const { toast } = useToast();
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    deleteAllNotifications,
+    refetchNotifications
+  } = useNotificationContext();
 
-  // Get notification permission status
+  // Check for notification permission
   useEffect(() => {
     const checkPermission = async () => {
-      try {
-        // Check if notifications are supported
-        if (!isNotificationsSupported()) {
-          console.warn('Notifications not supported in this browser');
-          return;
-        }
-
-        // Check notification permission status
-        const permission = getNotificationPermission();
-        setHasPermission(permission === 'granted');
-      } catch (error) {
-        console.error('Error checking notification permission:', error);
+      // Skip if not supported
+      if (!isNotificationsSupported()) {
+        setPermission(false);
+        setIsLoading(false);
+        return;
       }
+
+      const permissionState = await getNotificationPermission();
+      setPermission(permissionState === 'granted');
+      setIsLoading(false);
     };
 
     checkPermission();
   }, []);
 
-  // Register token when user is authenticated and permission is granted
+  // Register token with backend when user is authenticated
   useEffect(() => {
     const registerToken = async () => {
-      if (!user || !hasPermission || tokenRegistered) {
-        return;
-      }
+      if (!user || !permission) return;
 
       try {
-        // Get device token
-        const token = await firebaseMessaging.getToken();
-        if (!token) {
-          console.error('No registration token available');
-          return;
+        setIsLoading(true);
+        const fcmToken = await getToken();
+        
+        if (fcmToken) {
+          setToken(fcmToken);
+          
+          // Register token with backend
+          await apiRequest('POST', '/api/notifications/register-token', {
+            token: fcmToken,
+            userId: user.id
+          });
+          
+          // Set up listener for foreground messages
+          setupMessageListener((payload) => {
+            toast({
+              title: payload.notification?.title || 'New notification',
+              description: payload.notification?.body || '',
+            });
+            
+            // Refresh notifications after receiving a new one
+            refetchNotifications();
+          });
         }
-
-        // Register token with backend
-        await apiRequest('POST', '/api/notifications/register-device', { token });
-        setTokenRegistered(true);
-        console.log('Push notification token registered successfully');
       } catch (error) {
         console.error('Error registering notification token:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    registerToken();
-  }, [user, hasPermission, tokenRegistered]);
+    if (user && permission) {
+      registerToken();
+    }
+  }, [user, permission, toast, refetchNotifications]);
 
-  // Fetch notifications
-  const { data: notifications = [], isLoading } = useQuery<Notification[]>({
-    queryKey: ['/api/notifications'],
-    queryFn: () => apiRequest('GET', '/api/notifications').then(res => res.json()),
-    enabled: !!user,
-  });
+  // Subscribe to relevant notification topics
+  useEffect(() => {
+    const subscribeToTopics = async () => {
+      if (!user || !token) return;
 
-  // Mark notification as read
-  const markAsReadMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await apiRequest('PUT', `/api/notifications/${id}/read`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
-    },
-  });
+      try {
+        // Subscribe to relevant topics based on user subscription tier
+        await apiRequest('POST', '/api/notifications/subscribe', {
+          token,
+          topics: [
+            'all_users',
+            `tier_${user.subscriptionTier.toLowerCase()}`,
+          ]
+        });
+      } catch (error) {
+        console.error('Error subscribing to topics:', error);
+      }
+    };
 
-  // Mark all notifications as read
-  const markAllAsReadMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest('PUT', '/api/notifications/read-all');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
-    },
-  });
+    if (user && token) {
+      subscribeToTopics();
+    }
+  }, [user, token]);
 
-  // Delete notification
-  const deleteNotificationMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await apiRequest('DELETE', `/api/notifications/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
-    },
-  });
+  const requestPermissionHandler = async () => {
+    if (!isNotificationsSupported()) {
+      throw new Error('Notifications not supported in this browser');
+    }
 
-  // Request notification permission
-  const requestPermission = async () => {
     try {
-      const permission = await requestNotificationPermission();
-      const granted = permission === 'granted';
-      setHasPermission(granted);
+      setIsLoading(true);
+      const permissionResult = await requestNotificationPermission();
+      setPermission(permissionResult === 'granted');
       
-      if (granted) {
-        toast({
-          title: "Notifications enabled",
-          description: "You'll now receive updates on predictions and results.",
-        });
-        
-        // If user is logged in, register token immediately
-        if (user && !tokenRegistered) {
-          const token = await firebaseMessaging.getToken();
-          if (token) {
-            await apiRequest('POST', '/api/notifications/register-device', { token });
-            setTokenRegistered(true);
-          }
-        }
-      } else {
-        toast({
-          title: "Permission denied",
-          description: "Please enable notifications in your browser settings to receive updates.",
-          variant: "destructive",
-        });
+      if (permissionResult === 'granted') {
+        // Get token after permission is granted
+        const fcmToken = await getToken();
+        setToken(fcmToken);
       }
       
-      return granted;
+      return permissionResult;
     } catch (error) {
-      console.error('Error requesting permission:', error);
-      toast({
-        title: "Error",
-        description: "Failed to request notification permission. Please try again.",
-        variant: "destructive",
-      });
-      return false;
+      console.error('Error requesting notification permission:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <NotificationsContext.Provider
       value={{
-        hasPermission,
+        hasPermission: permission,
         isLoading,
-        requestPermission,
-        notifications,
-        markAsRead: (id) => markAsReadMutation.mutate(id),
-        markAllAsRead: () => markAllAsReadMutation.mutate(),
-        deleteNotification: (id) => deleteNotificationMutation.mutate(id),
+        requestPermission: requestPermissionHandler,
+        token,
+        messages: notifications || [],
+        hasUnread: unreadCount > 0,
+        markAsRead,
+        markAllAsRead,
+        deleteNotification,
+        deleteAllNotifications
       }}
     >
       {children}
     </NotificationsContext.Provider>
   );
-}
+};
 
-export function useNotifications() {
+export const useNotifications = () => {
   const context = useContext(NotificationsContext);
+
   if (!context) {
-    throw new Error("useNotifications must be used within a NotificationsProvider");
+    throw new Error('useNotifications must be used within NotificationsProvider');
   }
+
   return context;
-}
+};
