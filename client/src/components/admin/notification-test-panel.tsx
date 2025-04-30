@@ -1,200 +1,181 @@
-import { useEffect, useState } from 'react';
+import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import { useFeatureFlags } from '@/lib/feature-flags';
-import { useAuth } from '@/hooks/use-auth';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { BellRing, Check, Send } from "lucide-react";
 
 export function NotificationTestPanel() {
-  const { toast } = useToast();
   const { user } = useAuth();
-  const { flags } = useFeatureFlags();
-  const [title, setTitle] = useState('Test Notification');
-  const [body, setBody] = useState('This is a test notification message');
-  const [type, setType] = useState('info');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [targetUserId, setTargetUserId] = useState<number | undefined>(undefined);
-  
-  useEffect(() => {
-    // For simplicity, consider user ID 1 as admin
-    if (user?.id === 1) {
-      setIsAdmin(true);
-      setTargetUserId(1); // Default to self
-    }
-  }, [user]);
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState({
+    title: 'Test Notification',
+    body: 'This is a test notification from the admin panel',
+    sport: 'football',
+    type: 'system',
+  });
 
-  const sendTestNotification = async () => {
-    if (!title || !body) {
-      toast({
-        title: 'Missing fields',
-        description: 'Title and body are required',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    setIsLoading(true);
-    
-    try {
-      // If admin and sending to another user
-      if (isAdmin && targetUserId && targetUserId !== user?.id) {
-        const response = await apiRequest('POST', '/api/admin/send-notification', {
-          userId: targetUserId,
-          title,
-          body,
-          type,
-          data: { 
-            source: 'test-panel',
-            timestamp: new Date().toISOString()
-          }
-        });
-        
-        const data = await response.json();
-        
-        toast({
-          title: 'Admin notification sent',
-          description: `Sent to user ${targetUserId}: ${data.message}`,
-          variant: 'success',
-        });
-      } else {
-        // Regular notification to self
-        const response = await apiRequest('POST', '/api/notifications/test', {
-          title,
-          body,
-          data: { 
-            source: 'test-panel',
-            timestamp: new Date().toISOString()
-          }
-        });
-        
-        const data = await response.json();
-        
-        toast({
-          title: 'Notification sent',
-          description: data.message,
-          variant: 'success',
-        });
-      }
-      
-      // Invalidate notifications query to refresh the list
-      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
-    } catch (error: any) {
-      toast({
-        title: 'Failed to send notification',
-        description: error.message || 'An error occurred',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // If notifications are disabled in feature flags, don't show the panel
-  if (!flags.notifications) {
+  // Only admin users should access this component
+  if (!user || user.id !== 1) {
     return null;
   }
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setNotification((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setNotification((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const sendTestNotification = async () => {
+    try {
+      setLoading(true);
+      const response = await apiRequest("POST", "/api/notifications/test", {
+        title: notification.title,
+        body: notification.body,
+        data: {
+          type: notification.type,
+          sport: notification.sport,
+        }
+      });
+
+      toast({
+        title: "Notification Sent",
+        description: "Test notification has been sent successfully",
+        action: <Check className="h-4 w-4 text-green-500" />,
+      });
+    } catch (error) {
+      console.error("Failed to send test notification:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send test notification",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sportOptions = [
+    { label: "Football", value: "football" },
+    { label: "Basketball", value: "basketball" },
+    { label: "Tennis", value: "tennis" },
+    { label: "Baseball", value: "baseball" },
+    { label: "Hockey", value: "hockey" },
+    { label: "Cricket", value: "cricket" },
+    { label: "Formula 1", value: "formula1" },
+    { label: "MMA", value: "mma" },
+    { label: "Volleyball", value: "volleyball" },
+    { label: "Other", value: "other" },
+  ];
+
+  const typeOptions = [
+    { label: "Prediction", value: "prediction" },
+    { label: "Result", value: "result" },
+    { label: "Promotion", value: "promotion" },
+    { label: "System", value: "system" },
+  ];
+
   return (
-    <Card className="w-full max-w-xl mx-auto">
+    <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Test Notifications</CardTitle>
-          {isAdmin && (
-            <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20">
-              Admin Mode
-            </Badge>
-          )}
-        </div>
+        <CardTitle className="flex items-center gap-2">
+          <BellRing className="h-5 w-5" /> Test Notifications
+        </CardTitle>
         <CardDescription>
-          Send test notifications to try out the notification system
+          Send test notifications to verify functionality
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {isAdmin && (
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Target User ID</label>
-            <Input
-              type="number"
-              value={targetUserId || ''}
-              onChange={(e) => setTargetUserId(parseInt(e.target.value) || undefined)}
-              placeholder="Enter user ID"
-              min={1}
-            />
-            <p className="text-xs text-muted-foreground">
-              Leave as your own ID to send to yourself
-            </p>
-          </div>
-        )}
-        
         <div className="space-y-2">
-          <label className="text-sm font-medium">Notification Title</label>
+          <Label htmlFor="title">Title</Label>
           <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Enter notification title"
+            id="title"
+            name="title"
+            value={notification.title}
+            onChange={handleInputChange}
+            placeholder="Notification title"
           />
         </div>
         
         <div className="space-y-2">
-          <label className="text-sm font-medium">Notification Body</label>
+          <Label htmlFor="body">Body</Label>
           <Textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="Enter notification message"
+            id="body"
+            name="body"
+            value={notification.body}
+            onChange={handleInputChange}
+            placeholder="Notification body text"
             rows={3}
           />
         </div>
         
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Notification Type</label>
-          <Select
-            value={type}
-            onValueChange={setType}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="info">Info</SelectItem>
-              <SelectItem value="success">Success</SelectItem>
-              <SelectItem value="warning">Warning</SelectItem>
-              <SelectItem value="error">Error</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="sport">Sport</Label>
+            <Select 
+              value={notification.sport} 
+              onValueChange={(value) => handleSelectChange("sport", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select sport" />
+              </SelectTrigger>
+              <SelectContent>
+                {sportOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="type">Type</Label>
+            <Select 
+              value={notification.type} 
+              onValueChange={(value) => handleSelectChange("type", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                {typeOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      </CardContent>
-      <CardFooter>
+        
         <Button 
-          onClick={sendTestNotification} 
-          disabled={isLoading || !title || !body}
-          className="w-full"
+          className="w-full mt-4" 
+          onClick={sendTestNotification}
+          disabled={loading}
         >
-          {isLoading ? 'Sending...' : 'Send Test Notification'}
+          {loading ? (
+            <span className="flex items-center">
+              <div className="animate-spin mr-2 h-4 w-4 border-2 border-background border-t-transparent rounded-full" />
+              Sending...
+            </span>
+          ) : (
+            <span className="flex items-center">
+              <Send className="mr-2 h-4 w-4" />
+              Send Test Notification
+            </span>
+          )}
         </Button>
-      </CardFooter>
+      </CardContent>
     </Card>
   );
 }

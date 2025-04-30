@@ -47,6 +47,11 @@ export default function AdminPage() {
               <NotificationTestPanel />
             </div>
           </div>
+          
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Notification Metrics</h2>
+            <NotificationMetricsPanel />
+          </div>
         </TabsContent>
         
         <TabsContent value="features" className="space-y-8">
@@ -67,15 +72,18 @@ export default function AdminPage() {
         
         <TabsContent value="analytics">
           <div className="space-y-8">
-            <div>
-              <h2 className="text-xl font-semibold mb-4">Notification Metrics</h2>
-              <NotificationMetricsPanel />
-            </div>
-            
             <div className="rounded-lg border p-8 text-center">
               <h3 className="text-lg font-medium">App Usage Analytics</h3>
               <p className="text-muted-foreground mt-2">
-                Additional analytics features will be implemented here
+                App usage analytics will be implemented here, including active users, session length, 
+                feature usage, and conversion metrics
+              </p>
+            </div>
+            
+            <div className="rounded-lg border p-8 text-center">
+              <h3 className="text-lg font-medium">Prediction Analytics</h3>
+              <p className="text-muted-foreground mt-2">
+                Prediction accuracy analytics and user engagement metrics will be displayed here
               </p>
             </div>
           </div>

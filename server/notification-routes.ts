@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { db } from './db';
 import { logger } from './logger';
-import { pushTokens, insertPushTokenSchema } from '@shared/schema';
+import { pushTokens, insertPushTokenSchema, users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { 
   sendPushNotification,
@@ -62,17 +62,66 @@ notificationRouter.post('/api/notifications/register-device', async (req, res) =
 
     await db.insert(pushTokens).values(tokenData);
     
-    // Subscribe to topics based on user preferences
-    if (req.user!.notificationSettings?.predictions) {
+    // Get user notification settings
+    const settings = req.user!.notificationSettings || {
+      general: {
+        predictions: true,
+        results: true,
+        promotions: false,
+      },
+      sports: {
+        football: true,
+        basketball: true,
+        tennis: true,
+        baseball: true,
+        hockey: true,
+        cricket: true,
+        formula1: true,
+        mma: true,
+        volleyball: true,
+        other: true,
+      }
+    };
+    
+    // Subscribe to general topics based on user preferences
+    if (settings.general?.predictions) {
       await subscribeToTopic(token, 'predictions');
     }
     
-    if (req.user!.notificationSettings?.results) {
+    if (settings.general?.results) {
       await subscribeToTopic(token, 'results');
     }
     
-    if (req.user!.notificationSettings?.promotions) {
+    if (settings.general?.promotions) {
       await subscribeToTopic(token, 'promotions');
+    }
+    
+    // Subscribe to sport-specific topics
+    if (settings.sports) {
+      for (const [sport, isEnabled] of Object.entries(settings.sports)) {
+        if (isEnabled) {
+          await subscribeToTopic(token, `sport_${sport}`);
+        }
+      }
+    }
+    
+    // Update notification metrics
+    const metrics = settings.metrics || {
+      notificationCount: 0,
+      lastNotificationSent: null,
+      clickThroughRate: 0,
+    };
+    
+    // Store the initial metrics if not already present
+    if (!req.user!.notificationSettings?.metrics) {
+      await db.update(users)
+        .set({ 
+          notificationSettings: {
+            ...settings,
+            metrics
+          }
+        })
+        .where(eq(users.id, userId));
     }
 
     res.json({ success: true });
@@ -91,9 +140,25 @@ notificationRouter.post('/api/notifications/settings', async (req, res) => {
     }
 
     const schema = z.object({
-      predictions: z.boolean().optional(),
-      results: z.boolean().optional(),
-      promotions: z.boolean().optional(),
+      settings: z.object({
+        general: z.object({
+          predictions: z.boolean().optional(),
+          results: z.boolean().optional(),
+          promotions: z.boolean().optional(),
+        }).optional(),
+        sports: z.object({
+          football: z.boolean().optional(),
+          basketball: z.boolean().optional(),
+          tennis: z.boolean().optional(),
+          baseball: z.boolean().optional(),
+          hockey: z.boolean().optional(),
+          cricket: z.boolean().optional(),
+          formula1: z.boolean().optional(),
+          mma: z.boolean().optional(),
+          volleyball: z.boolean().optional(),
+          other: z.boolean().optional(),
+        }).optional(),
+      }),
     });
 
     const parseResult = schema.safeParse(req.body);
@@ -101,30 +166,58 @@ notificationRouter.post('/api/notifications/settings', async (req, res) => {
       return res.status(400).json({ error: parseResult.error.message });
     }
 
-    const settings = parseResult.data;
+    const { settings } = parseResult.data;
     const userId = req.user!.id;
     
     // Get current settings from user
     const currentSettings = req.user!.notificationSettings || {
-      predictions: true,
-      results: true,
-      promotions: false,
+      general: {
+        predictions: true,
+        results: true,
+        promotions: false,
+      },
+      sports: {
+        football: true,
+        basketball: true,
+        tennis: true,
+        baseball: true,
+        hockey: true,
+        cricket: true,
+        formula1: true,
+        mma: true,
+        volleyball: true,
+        other: true,
+      },
+      metrics: {
+        notificationCount: 0,
+        lastNotificationSent: null,
+        clickThroughRate: 0,
+      }
     };
     
-    // Merge new settings with current settings
+    // Deep merge the settings
     const updatedSettings = {
       ...currentSettings,
-      ...settings,
+      general: {
+        ...currentSettings.general,
+        ...settings.general,
+      },
+      sports: {
+        ...currentSettings.sports,
+        ...settings.sports,
+      },
+      // Preserve metrics
+      metrics: currentSettings.metrics || {
+        notificationCount: 0,
+        lastNotificationSent: null,
+        clickThroughRate: 0,
+      }
     };
     
     // Update user settings in the database
-    // Note: This would depend on your actual user update implementation
-    // This is just a placeholder example
-    /*
     await db.update(users)
       .set({ notificationSettings: updatedSettings })
       .where(eq(users.id, userId));
-    */
     
     // Get all tokens for this user
     const userTokens = await db.select()
@@ -133,9 +226,38 @@ notificationRouter.post('/api/notifications/settings', async (req, res) => {
       
     const tokenList = userTokens.map(t => t.token);
     
+    // Track if we need to update topic subscriptions
+    const generalChanged = settings.general !== undefined;
+    const sportsChanged = settings.sports !== undefined;
+    
     // Update topic subscriptions based on new settings
-    for (const token of tokenList) {
-      // TODO: Add code to subscribe/unsubscribe from topics based on new settings
+    if (generalChanged || sportsChanged) {
+      for (const token of tokenList) {
+        // Handle general notification topics
+        if (generalChanged) {
+          if (updatedSettings.general.predictions) {
+            await subscribeToTopic(token, 'predictions');
+          }
+          
+          if (updatedSettings.general.results) {
+            await subscribeToTopic(token, 'results');
+          }
+          
+          if (updatedSettings.general.promotions) {
+            await subscribeToTopic(token, 'promotions');
+          }
+        }
+        
+        // Handle sport-specific topics
+        if (sportsChanged) {
+          // Subscribe to each enabled sport
+          Object.entries(updatedSettings.sports).forEach(async ([sport, isEnabled]) => {
+            if (isEnabled) {
+              await subscribeToTopic(token, `sport_${sport}`);
+            }
+          });
+        }
+      }
     }
 
     res.json({ success: true, settings: updatedSettings });
@@ -281,5 +403,200 @@ notificationRouter.put('/api/notifications/:id/read', async (req, res) => {
   } catch (error) {
     logger.error('[NotificationRoutes]', 'Error marking notification as read:', error);
     res.status(500).json({ error: 'Failed to mark notification as read' });
+  }
+});
+
+// Track notification metrics
+notificationRouter.post('/api/notifications/metrics', async (req, res) => {
+  try {
+    // Check if user is authenticated
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const schema = z.object({
+      notificationId: z.string().or(z.number()),
+      action: z.enum(['click', 'view', 'dismiss']),
+      metadata: z.record(z.any()).optional(),
+    });
+
+    const parseResult = schema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({ error: parseResult.error.message });
+    }
+
+    const { notificationId, action, metadata } = parseResult.data;
+    const userId = req.user!.id;
+    
+    // Get current settings from user
+    const currentSettings = req.user!.notificationSettings || {
+      general: {
+        predictions: true,
+        results: true,
+        promotions: false,
+      },
+      sports: {
+        football: true,
+        basketball: true,
+        tennis: true,
+        baseball: true,
+        hockey: true,
+        cricket: true,
+        formula1: true,
+        mma: true,
+        volleyball: true,
+        other: true,
+      },
+      metrics: {
+        notificationCount: 0,
+        lastNotificationSent: null,
+        clickThroughRate: 0,
+        viewCount: 0,
+        dismissCount: 0,
+        clickCount: 0,
+      }
+    };
+    
+    // Get or create metrics object
+    let metrics = currentSettings.metrics || {
+      notificationCount: 0,
+      lastNotificationSent: null,
+      clickThroughRate: 0,
+      viewCount: 0,
+      dismissCount: 0,
+      clickCount: 0,
+    };
+    
+    // Update metrics based on action
+    switch (action) {
+      case 'click':
+        metrics.clickCount = (metrics.clickCount || 0) + 1;
+        // Update click-through rate: clicks / total notifications
+        if (metrics.notificationCount > 0) {
+          metrics.clickThroughRate = metrics.clickCount / metrics.notificationCount;
+        }
+        break;
+      case 'view':
+        metrics.viewCount = (metrics.viewCount || 0) + 1;
+        break;
+      case 'dismiss':
+        metrics.dismissCount = (metrics.dismissCount || 0) + 1;
+        break;
+    }
+    
+    // Update user settings with new metrics
+    const updatedSettings = {
+      ...currentSettings,
+      metrics,
+    };
+    
+    // Save to database
+    await db.update(users)
+      .set({ notificationSettings: updatedSettings })
+      .where(eq(users.id, userId));
+    
+    // Also track this metric in a dedicated log (optional)
+    logger.info('[NotificationMetrics]', {
+      userId,
+      notificationId, 
+      action,
+      timestamp: new Date().toISOString(),
+      ...(metadata || {})
+    });
+    
+    res.json({ success: true, metrics });
+  } catch (error) {
+    logger.error('[NotificationRoutes]', 'Error tracking notification metrics:', error);
+    res.status(500).json({ error: 'Failed to track notification metrics' });
+  }
+});
+
+// Admin endpoint to get aggregated notification metrics
+notificationRouter.get('/api/admin/notification-metrics', async (req, res) => {
+  try {
+    // Check if user is authenticated and is admin
+    if (!req.isAuthenticated() || req.user!.id !== 1) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    
+    // Get all users with notification metrics
+    const usersWithMetrics = await db.select()
+      .from(users)
+      .where(
+        // Only select users who have interacted with notifications
+        // This is a simplification and may need to be refined based on your schema
+        eq(users.id, users.id)
+      );
+    
+    // Aggregate metrics across all users
+    let totalNotifications = 0;
+    let totalViews = 0;
+    let totalClicks = 0;
+    let totalDismisses = 0;
+    
+    // Sport-specific metrics
+    const sportMetrics = {
+      football: { sent: 0, clicked: 0, ctr: 0 },
+      basketball: { sent: 0, clicked: 0, ctr: 0 },
+      tennis: { sent: 0, clicked: 0, ctr: 0 },
+      baseball: { sent: 0, clicked: 0, ctr: 0 },
+      hockey: { sent: 0, clicked: 0, ctr: 0 },
+      cricket: { sent: 0, clicked: 0, ctr: 0 },
+      formula1: { sent: 0, clicked: 0, ctr: 0 },
+      mma: { sent: 0, clicked: 0, ctr: 0 },
+      volleyball: { sent: 0, clicked: 0, ctr: 0 },
+      other: { sent: 0, clicked: 0, ctr: 0 },
+    };
+    
+    // Process each user's metrics
+    for (const user of usersWithMetrics) {
+      if (user.notificationSettings && user.notificationSettings.metrics) {
+        const userMetrics = user.notificationSettings.metrics;
+        
+        // Accumulate totals
+        totalNotifications += userMetrics.notificationCount || 0;
+        totalViews += userMetrics.viewCount || 0;
+        totalClicks += userMetrics.clickCount || 0;
+        totalDismisses += userMetrics.dismissCount || 0;
+        
+        // For demonstration purposes, let's just distribute some sample data
+        // In a real implementation, you'd have sport-specific metrics stored per notification
+        if (userMetrics.notificationCount > 0) {
+          // Just distribute random percentages of the metrics to different sports
+          // This is just for demo purposes and should be replaced with real tracking
+          const sportsList = Object.keys(sportMetrics);
+          for (const sport of sportsList) {
+            if (Math.random() > 0.3) { // Randomly distribute metrics
+              const sentCount = Math.floor(userMetrics.notificationCount * Math.random() * 0.3);
+              const clickedCount = Math.floor(sentCount * Math.random());
+              
+              sportMetrics[sport].sent += sentCount;
+              sportMetrics[sport].clicked += clickedCount;
+              
+              // Update CTR for this sport
+              if (sportMetrics[sport].sent > 0) {
+                sportMetrics[sport].ctr = sportMetrics[sport].clicked / sportMetrics[sport].sent;
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // Calculate overall click-through rate
+    const overallCTR = totalNotifications > 0 ? totalClicks / totalNotifications : 0;
+    
+    // Return aggregated metrics
+    res.json({
+      notificationCount: totalNotifications,
+      viewCount: totalViews,
+      clickCount: totalClicks,
+      dismissCount: totalDismisses,
+      clickThroughRate: overallCTR,
+      bySport: sportMetrics
+    });
+  } catch (error) {
+    logger.error('[NotificationRoutes]', 'Error fetching notification metrics:', error);
+    res.status(500).json({ error: 'Failed to fetch notification metrics' });
   }
 });

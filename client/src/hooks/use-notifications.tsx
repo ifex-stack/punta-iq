@@ -7,7 +7,6 @@ import {
   setupMessageListener
 } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
-import { useNotificationContext } from '@/components/notifications/notification-provider';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -30,17 +29,24 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
   const [permission, setPermission] = useState<boolean>(false);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [hasUnread, setHasUnread] = useState<boolean>(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const {
-    notifications,
-    unreadCount,
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
-    deleteAllNotifications,
-    refetchNotifications
-  } = useNotificationContext();
+  
+  // Fetch notifications from API
+  const fetchNotifications = async () => {
+    if (!user) return;
+    
+    try {
+      const response = await apiRequest('GET', '/api/notifications');
+      const data = await response.json();
+      setMessages(data);
+      setHasUnread(data.some((notification: any) => !notification.read));
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
 
   // Check for notification permission
   useEffect(() => {
@@ -59,6 +65,17 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
 
     checkPermission();
   }, []);
+  
+  // Fetch notifications when user changes
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+      
+      // Poll for new notifications every 30 seconds
+      const intervalId = setInterval(fetchNotifications, 30000);
+      return () => clearInterval(intervalId);
+    }
+  }, [user]);
 
   // Register token with backend when user is authenticated
   useEffect(() => {
@@ -86,7 +103,7 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
             });
             
             // Refresh notifications after receiving a new one
-            refetchNotifications();
+            fetchNotifications();
           });
         }
       } catch (error) {
@@ -99,7 +116,7 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
     if (user && permission) {
       registerToken();
     }
-  }, [user, permission, toast, refetchNotifications]);
+  }, [user, permission, toast]);
 
   // Subscribe to relevant notification topics
   useEffect(() => {
@@ -112,7 +129,7 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
           token,
           topics: [
             'all_users',
-            `tier_${user.subscriptionTier.toLowerCase()}`,
+            `tier_${user.subscriptionTier?.toLowerCase() || 'free'}`,
           ]
         });
       } catch (error) {
@@ -149,6 +166,64 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
       setIsLoading(false);
     }
   };
+  
+  // Mark notification as read
+  const markAsRead = async (id: string) => {
+    try {
+      await apiRequest('PATCH', `/api/notifications/${id}/read`);
+      setMessages(prev => 
+        prev.map(notification => 
+          notification.id === id 
+            ? { ...notification, read: true, toastShown: true } 
+            : notification
+        )
+      );
+      // Update unread state
+      const updatedMessages = messages.map(msg => 
+        msg.id === id ? { ...msg, read: true } : msg
+      );
+      setHasUnread(updatedMessages.some(msg => !msg.read));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+  
+  // Mark all notifications as read
+  const markAllAsRead = async () => {
+    try {
+      await apiRequest('PATCH', '/api/notifications/read-all');
+      setMessages(prev => 
+        prev.map(notification => ({ ...notification, read: true }))
+      );
+      setHasUnread(false);
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  };
+  
+  // Delete a notification
+  const deleteNotification = async (id: string) => {
+    try {
+      await apiRequest('DELETE', `/api/notifications/${id}`);
+      setMessages(prev => prev.filter(notification => notification.id !== id));
+      // Update unread state
+      const remainingMessages = messages.filter(msg => msg.id !== id);
+      setHasUnread(remainingMessages.some(msg => !msg.read));
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+    }
+  };
+  
+  // Delete all notifications
+  const deleteAllNotifications = async () => {
+    try {
+      await apiRequest('DELETE', '/api/notifications');
+      setMessages([]);
+      setHasUnread(false);
+    } catch (error) {
+      console.error('Error deleting all notifications:', error);
+    }
+  };
 
   return (
     <NotificationsContext.Provider
@@ -157,8 +232,8 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
         isLoading,
         requestPermission: requestPermissionHandler,
         token,
-        messages: notifications || [],
-        hasUnread: unreadCount > 0,
+        messages,
+        hasUnread,
         markAsRead,
         markAllAsRead,
         deleteNotification,

@@ -29,9 +29,31 @@ export const users = pgTable("users", {
   stripeSubscriptionId: text("stripe_subscription_id"),
   subscriptionTier: text("subscription_tier").default("free"),
   notificationSettings: json("notification_settings").default({
-    predictions: true,
-    results: true,
-    promotions: true,
+    general: {
+      predictions: true,
+      results: true,
+      promotions: true,
+    },
+    sports: {
+      football: true,
+      basketball: true,
+      tennis: true,
+      baseball: true,
+      hockey: true,
+      cricket: true,
+      formula1: true,
+      mma: true,
+      volleyball: true,
+      other: true,
+    },
+    metrics: {
+      notificationCount: 0,
+      lastNotificationSent: null,
+      clickThroughRate: 0,
+      viewCount: 0,
+      clickCount: 0,
+      dismissCount: 0,
+    }
   }),
   // Gamification properties
   fantasyPoints: integer("fantasy_points").default(0).notNull(),
