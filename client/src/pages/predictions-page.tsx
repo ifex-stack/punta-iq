@@ -356,8 +356,8 @@ export default function PredictionsPage() {
             </Button>
             
             <Button 
-              variant="link" 
-              className="pl-0 text-indigo-600 dark:text-indigo-400 flex items-center gap-2"
+              variant="default" 
+              className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
               onClick={() => window.location.href = '/history'}
             >
               <span>Historical Dashboard</span>
