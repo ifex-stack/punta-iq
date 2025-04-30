@@ -2563,6 +2563,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/odds/:sportKey", async (req, res) => {
+    try {
+      const { sportKey } = req.params;
+      const days = parseInt(req.query.days as string) || 7;
+      console.log(`OddsAPI: Events request received for sport: ${sportKey}, days: ${days}`);
+      
+      const events = await oddsAPIService.getUpcomingEvents(sportKey, days);
+      
+      // Group events by league
+      const eventsByLeague = events.reduce((acc, event) => {
+        const league = event.league;
+        if (!acc[league]) {
+          acc[league] = [];
+        }
+        acc[league].push(event);
+        return acc;
+      }, {} as Record<string, any[]>);
+      
+      // Group by country
+      const eventsByCountry: Record<string, Record<string, any[]>> = {};
+      
+      Object.entries(eventsByLeague).forEach(([league, leagueEvents]) => {
+        const country = leagueEvents[0]?.country || 'International';
+        if (!eventsByCountry[country]) {
+          eventsByCountry[country] = {};
+        }
+        eventsByCountry[country][league] = leagueEvents;
+      });
+      
+      // Add basic prediction data
+      const enhancedEvents = events.map(event => {
+        // Calculate basic prediction confidence based on odds
+        const homeOdds = event.homeOdds || 0;
+        const drawOdds = event.drawOdds || 0;
+        const awayOdds = event.awayOdds || 0;
+        
+        // Generate prediction - simple algorithm based on odds
+        let prediction = '';
+        let confidence = 0;
+        
+        if (homeOdds > 0 && homeOdds <= drawOdds && homeOdds <= awayOdds) {
+          prediction = 'Home Win';
+          confidence = Math.round(100 * (1 / homeOdds) / (1/homeOdds + 1/drawOdds + 1/awayOdds));
+        } else if (drawOdds > 0 && drawOdds <= homeOdds && drawOdds <= awayOdds) {
+          prediction = 'Draw';
+          confidence = Math.round(100 * (1 / drawOdds) / (1/homeOdds + 1/drawOdds + 1/awayOdds));
+        } else if (awayOdds > 0 && awayOdds <= homeOdds && awayOdds <= drawOdds) {
+          prediction = 'Away Win';
+          confidence = Math.round(100 * (1 / awayOdds) / (1/homeOdds + 1/drawOdds + 1/awayOdds));
+        }
+        
+        return {
+          ...event,
+          prediction,
+          confidence,
+          explanation: `Based on current odds analysis, our model predicts a ${prediction.toLowerCase()} with ${confidence}% confidence.`
+        };
+      });
+      
+      res.json({
+        events: enhancedEvents,
+        byCountry: eventsByCountry,
+        byLeague: eventsByLeague
+      });
+    } catch (error: any) {
+      console.error(`OddsAPI: Error getting events for ${req.params.sportKey}:`, error.message);
+      res.status(500).json({ error: "Failed to fetch odds data" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Create WebSocket server for real-time notifications

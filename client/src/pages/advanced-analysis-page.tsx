@@ -3,7 +3,8 @@ import { useLocation, Link } from "wouter";
 import { 
   ArrowLeft, RefreshCw, Share2, Zap, TrendingUp, BarChart4, Calendar, Activity, 
   Info, AlertTriangle, LineChart as LineChartIcon, AreaChart as AreaChartIcon,
-  PieChart, Target, Layers, ChevronDown, Percent, Flame, Trophy, Award, PieChart as PieChartIcon
+  PieChart, Target, Layers, ChevronDown, Percent, Flame, Trophy, Award, PieChart as PieChartIcon,
+  Filter, Search, ListFilter, Check, Globe, Map
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
   Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Area, AreaChart,
@@ -36,6 +58,8 @@ import {
   PolarRadiusAxis, Radar
 } from 'recharts';
 import { apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+import { get, useQuery } from "@tanstack/react-query";
 
 // Common market types across different sports
 export const COMMON_MARKETS = {
@@ -112,7 +136,7 @@ export const SPORT_SPECIFIC_MARKETS = {
 };
 
 // Types to match what we're getting from the API
-interface Prediction {
+interface StandardizedMatch {
   id: string;
   sport: string;
   league: string;
@@ -121,16 +145,20 @@ interface Prediction {
   awayTeam: string;
   startTime: string;
   venue: string | null;
-  homeOdds: number;
-  drawOdds: number;
-  awayOdds: number;
-  score: {
+  homeOdds?: number;
+  drawOdds?: number;
+  awayOdds?: number;
+  status?: string;
+  score?: {
     home: number | null;
     away: number | null;
   };
-  prediction: string;
-  confidence: number;
-  explanation: string;
+  prediction?: string;
+  confidence?: number;
+  explanation?: string;
+}
+
+interface Prediction extends StandardizedMatch {
   valueBet?: {
     market: string;
     selection: string;
@@ -193,6 +221,21 @@ interface Prediction {
     result: string;
     keyInsight: string;
   }>;
+}
+
+interface OddsAPISport {
+  key: string;
+  group: string;
+  title: string;
+  description: string;
+  active: boolean;
+  has_outrights: boolean;
+}
+
+interface MatchesResponse {
+  events: Prediction[];
+  byCountry: Record<string, Record<string, Prediction[]>>;
+  byLeague: Record<string, Prediction[]>;
 }
 
 // Common statistics for all sports
@@ -282,44 +325,29 @@ const SPORT_STATS = {
   ],
 };
 
-// Default prediction data for generating mock data
-const DEFAULT_MATCH_DATA = {
-  football: {
-    league: 'Premier League',
-    teams: { home: 'Manchester United', away: 'Arsenal' },
-  },
-  basketball: {
-    league: 'NBA',
-    teams: { home: 'Los Angeles Lakers', away: 'Boston Celtics' },
-  },
-  baseball: {
-    league: 'MLB',
-    teams: { home: 'New York Yankees', away: 'Boston Red Sox' },
-  },
-  american_football: {
-    league: 'NFL',
-    teams: { home: 'Kansas City Chiefs', away: 'San Francisco 49ers' },
-  },
-  tennis: {
-    league: 'ATP Tour',
-    teams: { home: 'Novak Djokovic', away: 'Rafael Nadal' },
-  },
-  hockey: {
-    league: 'NHL',
-    teams: { home: 'Toronto Maple Leafs', away: 'Montreal Canadiens' },
-  },
-  cricket: {
-    league: 'IPL',
-    teams: { home: 'Mumbai Indians', away: 'Chennai Super Kings' },
-  },
-  mma: {
-    league: 'UFC',
-    teams: { home: 'Jon Jones', away: 'Israel Adesanya' },
-  },
-  formula1: {
-    league: 'Formula 1',
-    teams: { home: 'Red Bull', away: 'Mercedes' },
-  },
+// Sport key mapping for API
+const SPORT_KEY_MAPPING: Record<string, string> = {
+  'football': 'soccer',
+  'american_football': 'americanfootball_nfl',
+  'basketball': 'basketball_nba',
+  'baseball': 'baseball_mlb',
+  'hockey': 'icehockey_nhl',
+  'tennis': 'tennis_atp',
+  'cricket': 'cricket_test_match',
+  'mma': 'mma_mixed_martial_arts',
+  'formula1': 'motorsport_f1'
+};
+
+const REVERSE_SPORT_KEY_MAPPING: Record<string, string> = {
+  'soccer': 'football',
+  'americanfootball_nfl': 'american_football',
+  'basketball_nba': 'basketball',
+  'baseball_mlb': 'baseball',
+  'icehockey_nhl': 'hockey',
+  'tennis_atp': 'tennis',
+  'cricket_test_match': 'cricket',
+  'mma_mixed_martial_arts': 'mma',
+  'motorsport_f1': 'formula1'
 };
 
 export default function AdvancedAnalysisPage() {
@@ -330,90 +358,88 @@ export default function AdvancedAnalysisPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadingPerformance, setLoadingPerformance] = useState(false);
   const [selectedMarket, setSelectedMarket] = useState("match_winner");
-  const [selectedSport, setSelectedSport] = useState("football");
+  const [selectedSport, setSelectedSport] = useState("soccer");
+  const [selectedStandardSport, setSelectedStandardSport] = useState("football");
   const [showAllMarkets, setShowAllMarkets] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [selectedLeague, setSelectedLeague] = useState<string | null>(null);
+  const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   
-  // On first load, check if we have prediction data in session storage
-  useEffect(() => {
-    const storedPrediction = sessionStorage.getItem('selectedPrediction');
+  // Fetch available sports
+  const { data: sports, isLoading: loadingSports } = useQuery<OddsAPISport[]>({
+    queryKey: ['/api/odds/sports'],
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour
+  });
+  
+  // Fetch matches for selected sport
+  const { 
+    data: matchesData, 
+    isLoading: loadingMatches,
+    refetch: refetchMatches
+  } = useQuery<MatchesResponse>({
+    queryKey: ['/api/odds', selectedSport],
+    enabled: !!selectedSport,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
+  
+  // Derived values
+  const countries = matchesData?.byCountry ? Object.keys(matchesData.byCountry) : [];
+  const leagues = selectedCountry && matchesData?.byCountry?.[selectedCountry] 
+    ? Object.keys(matchesData.byCountry[selectedCountry]) 
+    : [];
+  const matches = selectedLeague && selectedCountry && matchesData?.byCountry?.[selectedCountry]?.[selectedLeague]
+    ? matchesData.byCountry[selectedCountry][selectedLeague]
+    : [];
+  
+  const filteredMatches = searchQuery 
+    ? matches.filter(match => 
+        match.homeTeam.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        match.awayTeam.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : matches;
     
-    if (storedPrediction) {
-      try {
-        const predictionData = JSON.parse(storedPrediction) as Prediction;
-        setPrediction(predictionData);
-        
-        if (predictionData.sport) {
-          setSelectedSport(predictionData.sport);
-        }
+  // Effect to initialize selected values when data loads
+  useEffect(() => {
+    if (matchesData && !loadingMatches) {
+      // Set first country if none selected
+      if (countries.length > 0 && !selectedCountry) {
+        setSelectedCountry(countries[0]);
+      }
+      
+      // Set first league if none selected
+      if (selectedCountry && leagues.length > 0 && !selectedLeague) {
+        setSelectedLeague(leagues[0]);
+      }
+      
+      // Set first match if none selected
+      if (filteredMatches.length > 0 && !selectedMatch) {
+        setSelectedMatch(filteredMatches[0].id);
+        setPrediction(filteredMatches[0]);
         
         // Simulate fetching additional data for the analysis
         setTimeout(() => {
-          enhancePredictionWithAnalysis(predictionData);
+          enhancePredictionWithAnalysis(filteredMatches[0]);
         }, 1000);
-      } catch (error) {
-        console.error('Failed to parse prediction data', error);
-        toast({
-          title: "Error",
-          description: "Failed to load prediction data",
-          variant: "destructive",
-        });
       }
-    } else {
-      // Demo mode - create a sample prediction
-      const demoData = createDemoPrediction(selectedSport);
-      setPrediction(demoData);
-      enhancePredictionWithAnalysis(demoData);
     }
-  }, []);
+  }, [matchesData, selectedCountry, selectedLeague, loadingMatches]);
   
-  // Function to create a demo prediction for any sport
-  const createDemoPrediction = (sport: string): Prediction => {
-    const sportData = DEFAULT_MATCH_DATA[sport as keyof typeof DEFAULT_MATCH_DATA] || 
-                      DEFAULT_MATCH_DATA.football;
+  // On first load, check the sport parameter or set a default
+  useEffect(() => {
+    const storedSport = sessionStorage.getItem('selectedSport');
+    if (storedSport) {
+      setSelectedSport(storedSport);
+      setSelectedStandardSport(REVERSE_SPORT_KEY_MAPPING[storedSport] || 'football');
+    } else {
+      // Default to soccer/football
+      setSelectedSport('soccer');
+      setSelectedStandardSport('football');
+    }
     
-    const now = new Date();
-    const matchDate = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000); // Match in 2 days
-    
-    const baseConfidence = 65 + Math.floor(Math.random() * 20);
-    const homeOdds = 1.8 + Math.random() * 1.5;
-    const drawOdds = sport === 'football' ? 3.2 + Math.random() * 0.8 : undefined;
-    const awayOdds = 2.2 + Math.random() * 1.8;
-    
-    // Dynamic prediction based on odds
-    const prediction = homeOdds < (awayOdds || 999) ? sportData.teams.home : sportData.teams.away;
-    
-    // Calculate value for our prediction
-    const impliedProb = 1 / (prediction === sportData.teams.home ? homeOdds : (awayOdds || 3));
-    const modelProb = baseConfidence / 100;
-    const valuePercent = Math.round((modelProb - impliedProb) * 100);
-    
-    return {
-      id: `demo-${Date.now()}`,
-      sport: sport,
-      league: sportData.league,
-      country: 'International',
-      homeTeam: sportData.teams.home,
-      awayTeam: sportData.teams.away,
-      startTime: matchDate.toISOString(),
-      venue: "Main Stadium",
-      homeOdds: homeOdds,
-      drawOdds: drawOdds as number,
-      awayOdds: awayOdds as number,
-      score: {
-        home: null,
-        away: null,
-      },
-      prediction: prediction,
-      confidence: baseConfidence,
-      explanation: `Our AI model predicts ${prediction} to win based on current form, head-to-head record, and key statistical indicators. The team has shown consistent performance in recent matches and has several key players in excellent form.`,
-      valueBet: {
-        market: 'match_winner',
-        selection: prediction,
-        odds: prediction === sportData.teams.home ? homeOdds : (awayOdds || 3),
-        value: valuePercent > 0 ? valuePercent : 5, // Ensure we always have value
-      }
-    };
-  };
+    // Set loading state
+    setLoading(true);
+  }, []);
   
   // Function to enhance prediction with advanced analysis data
   const enhancePredictionWithAnalysis = (predictionData: Prediction) => {
@@ -553,7 +579,7 @@ export default function AdvancedAnalysisPage() {
     // Generate trending markets
     const trendingMarkets = [];
     const marketTypes = [
-      { market: COMMON_MARKETS.MATCH_WINNER, value: predictionData.homeTeam, odds: predictionData.homeOdds },
+      { market: COMMON_MARKETS.MATCH_WINNER, value: predictionData.homeTeam, odds: predictionData.homeOdds || 0 },
       { market: COMMON_MARKETS.SPREAD, value: `${predictionData.homeTeam} -1.5`, odds: 2.2 + Math.random() },
       { market: COMMON_MARKETS.TOTALS, value: 'Over 2.5', odds: 1.8 + Math.random() },
     ];
@@ -577,7 +603,7 @@ export default function AdvancedAnalysisPage() {
       if (i < marketTypes.length) {
         trendingMarkets.push({
           ...marketTypes[i],
-          trend: Math.random() > 0.5 ? 'up' : (Math.random() > 0.5 ? 'down' : 'stable'),
+          trend: Math.random() > 0.5 ? 'up' as const : (Math.random() > 0.5 ? 'down' as const : 'stable' as const),
           confidence: Math.round(55 + Math.random() * 30)
         });
       }
@@ -708,8 +734,9 @@ export default function AdvancedAnalysisPage() {
     }
     
     // Add value analysis
-    if (predictionData.valueBet) {
-      aiAnalysis += `Our model gives ${predictionData.prediction} a ${predictionData.confidence}% chance to win, which presents a ${predictionData.valueBet.value}% value opportunity against current market odds of ${predictionData.valueBet.odds.toFixed(2)}.\n\n`;
+    if (predictionData.confidence) {
+      const valuePct = predictionData.valueBet?.value || Math.round(Math.random() * 15) + 5;
+      aiAnalysis += `Our model gives ${predictionData.prediction} a ${predictionData.confidence}% chance to win, which presents a ${valuePct}% value opportunity against current market odds.\n\n`;
     }
     
     // Add conclusion
@@ -733,6 +760,16 @@ export default function AdvancedAnalysisPage() {
       trendingMarkets,
       exoticMarkets,
       similarMatches,
+      valueBet: {
+        market: 'match_winner',
+        selection: predictionData.prediction || predictionData.homeTeam,
+        odds: predictionData.prediction === 'Home Win' 
+          ? (predictionData.homeOdds || 2.0) 
+          : predictionData.prediction === 'Away Win' 
+          ? (predictionData.awayOdds || 3.0)
+          : (predictionData.drawOdds || 3.25),
+        value: Math.round(Math.random() * 15) + 5
+      }
     };
     
     setPrediction(enhancedPrediction);
@@ -743,8 +780,8 @@ export default function AdvancedAnalysisPage() {
   const handleRefreshAnalysis = () => {
     setRefreshing(true);
     
-    // Simulate refreshing data
-    setTimeout(() => {
+    // Refresh predictions
+    refetchMatches().then(() => {
       if (prediction) {
         enhancePredictionWithAnalysis(prediction);
         toast({
@@ -753,7 +790,7 @@ export default function AdvancedAnalysisPage() {
         });
       }
       setRefreshing(false);
-    }, 1500);
+    });
   };
   
   // Function to load performance history
@@ -787,19 +824,31 @@ export default function AdvancedAnalysisPage() {
   
   // Function to change sport
   const handleSportChange = (sport: string) => {
+    // Store selected sport
+    sessionStorage.setItem('selectedSport', sport);
+    
     setSelectedSport(sport);
+    setSelectedStandardSport(REVERSE_SPORT_KEY_MAPPING[sport] || 'football');
+    setSelectedCountry(null);
+    setSelectedLeague(null);
+    setSelectedMatch(null);
+    setLoading(true);
+  };
+  
+  // Function to select a match
+  const handleSelectMatch = (match: Prediction) => {
+    setSelectedMatch(match.id);
+    setPrediction(match);
     setLoading(true);
     
-    // Create a new demo prediction for the selected sport
-    const demoData = createDemoPrediction(sport);
+    // Simulate fetching additional data for the analysis
     setTimeout(() => {
-      setPrediction(demoData);
-      enhancePredictionWithAnalysis(demoData);
+      enhancePredictionWithAnalysis(match);
     }, 1000);
   };
   
-  // Loading state
-  if (loading) {
+  // Global loading state while fetching initial data
+  if (loadingSports || (loadingMatches && !matchesData)) {
     return (
       <div className="container mx-auto py-6 max-w-5xl">
         <div className="flex items-center mb-6">
@@ -832,30 +881,9 @@ export default function AdvancedAnalysisPage() {
     );
   }
   
-  // If somehow we have no prediction data
-  if (!prediction) {
-    return (
-      <div className="container mx-auto py-6">
-        <Card>
-          <CardContent className="py-10">
-            <div className="text-center space-y-4">
-              <Info className="h-12 w-12 mx-auto text-muted-foreground" />
-              <h2 className="text-xl font-semibold">No Prediction Selected</h2>
-              <p className="text-muted-foreground max-w-md mx-auto">
-                Please select a prediction from the predictions page to view detailed analysis.
-              </p>
-              <Button onClick={() => setLocation("/predictions")}>
-                Go to Predictions
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-  
+  // Main layout with selection interface and analysis
   return (
-    <div className="container mx-auto py-6 max-w-5xl animate-in fade-in duration-300">
+    <div className="container mx-auto py-6 px-4 max-w-6xl animate-in fade-in duration-300">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
         <div className="flex items-center">
           <Button variant="ghost" size="sm" className="mr-2" onClick={() => setLocation("/predictions")}>
@@ -871,38 +899,20 @@ export default function AdvancedAnalysisPage() {
               <SelectValue placeholder="Select sport" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="football">Football</SelectItem>
-              <SelectItem value="basketball">Basketball</SelectItem>
-              <SelectItem value="american_football">American Football</SelectItem>
-              <SelectItem value="baseball">Baseball</SelectItem>
-              <SelectItem value="tennis">Tennis</SelectItem>
-              <SelectItem value="hockey">Hockey</SelectItem>
-              <SelectItem value="cricket">Cricket</SelectItem>
-              <SelectItem value="mma">MMA</SelectItem>
-              <SelectItem value="formula1">Formula 1</SelectItem>
+              {sports?.map(sport => (
+                <SelectItem key={sport.key} value={sport.key}>
+                  {sport.title}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" onClick={handleShareAnalysis}>
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Share this analysis with others</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
                 <Button variant="outline" size="sm" onClick={handleRefreshAnalysis} disabled={refreshing}>
                   <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                  {refreshing ? 'Refreshing...' : 'Refresh Analysis'}
+                  {refreshing ? 'Refreshing...' : 'Refresh'}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -913,739 +923,881 @@ export default function AdvancedAnalysisPage() {
         </div>
       </div>
       
-      <Card className="mb-6">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-xl">{prediction.homeTeam} vs {prediction.awayTeam}</CardTitle>
-              <CardDescription>{prediction.league} • {new Date(prediction.startTime).toLocaleString()}</CardDescription>
-            </div>
-            <Badge 
-              className={
-                prediction.confidence >= 75 ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100" :
-                prediction.confidence >= 60 ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100" :
-                "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100"
-              }
-            >
-              {prediction.confidence}% Confidence
-            </Badge>
-          </div>
-          <div className="flex items-center justify-between mt-2">
-            <div className="text-sm text-muted-foreground">
-              Prediction: <span className="font-medium text-foreground">{prediction.prediction}</span>
-            </div>
-            {prediction.valueBet && (
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800/60">
-                {prediction.valueBet.value}% Value Bet
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-        
-        <CardContent>
-          <Tabs defaultValue="analysis">
-            <TabsList className="grid grid-cols-4 mb-4">
-              <TabsTrigger value="analysis">AI Analysis</TabsTrigger>
-              <TabsTrigger value="stats">Match Stats</TabsTrigger>
-              <TabsTrigger value="markets">Markets</TabsTrigger>
-              <TabsTrigger value="performance">Performance</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="analysis" className="space-y-6">
-              <Card className="border-blue-200 dark:border-blue-900/60">
-                <CardHeader className="pb-2 bg-blue-50 dark:bg-blue-950/30">
-                  <CardTitle className="text-base flex items-center text-blue-700 dark:text-blue-400">
-                    <Zap className="h-4 w-4 mr-2" />
-                    AI-Enhanced Analysis
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <p className="text-sm whitespace-pre-line">{prediction.aiEnhancedAnalysis}</p>
-                </CardContent>
-              </Card>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center">
-                      <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                      Head-to-Head History
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    {prediction.h2hHistory && prediction.h2hHistory.length > 0 ? (
-                      <ul className="space-y-2">
-                        {prediction.h2hHistory.map((match, index) => (
-                          <li key={index} className="text-sm p-2 border-b border-border/40 last:border-b-0">
-                            <div className="flex justify-between">
-                              <span>{new Date(match.date).toLocaleDateString()}</span>
-                              <span 
-                                className={
-                                  match.winner === prediction.homeTeam ? "text-green-600 dark:text-green-400" :
-                                  match.winner === prediction.awayTeam ? "text-red-600 dark:text-red-400" :
-                                  "text-blue-600 dark:text-blue-400"
-                                }
-                              >
-                                {match.score}
-                              </span>
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {match.homeTeam} vs {match.awayTeam}
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-muted-foreground text-sm py-2">No historical data available</p>
-                    )}
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center">
-                      <Activity className="h-4 w-4 mr-2 text-muted-foreground" />
-                      Recent Form Guide
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    {prediction.formGuide ? (
-                      <div className="space-y-4">
-                        <div>
-                          <div className="flex justify-between mb-1">
-                            <span className="text-sm font-medium">{prediction.homeTeam}</span>
-                            <span className="text-xs text-muted-foreground">Last 5 matches</span>
-                          </div>
-                          <div className="flex space-x-1">
-                            {prediction.formGuide.home.map((result, index) => (
-                              <div 
-                                key={index}
-                                className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium ${
-                                  result === 'W' ? 'bg-green-500 dark:bg-green-600' :
-                                  result === 'D' ? 'bg-blue-500 dark:bg-blue-600' :
-                                  'bg-red-500 dark:bg-red-600'
-                                }`}
-                              >
-                                {result}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <div className="flex justify-between mb-1">
-                            <span className="text-sm font-medium">{prediction.awayTeam}</span>
-                            <span className="text-xs text-muted-foreground">Last 5 matches</span>
-                          </div>
-                          <div className="flex space-x-1">
-                            {prediction.formGuide.away.map((result, index) => (
-                              <div 
-                                key={index}
-                                className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium ${
-                                  result === 'W' ? 'bg-green-500 dark:bg-green-600' :
-                                  result === 'D' ? 'bg-blue-500 dark:bg-blue-600' :
-                                  'bg-red-500 dark:bg-red-600'
-                                }`}
-                              >
-                                {result}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground text-sm py-2">No form data available</p>
-                    )}
-                  </CardContent>
-                </Card>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Selection Panel */}
+        <div className="md:col-span-1">
+          <Card className="mb-6">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center">
+                <Map className="h-4 w-4 mr-2 text-muted-foreground" />
+                Match Selection
+              </CardTitle>
+              <CardDescription>
+                Select a country, league, and match
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Search Input */}
+              <div className="relative">
+                <Search className="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search teams..."
+                  className="pl-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
               
-              {prediction.similarMatches && prediction.similarMatches.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center">
-                      <Layers className="h-4 w-4 mr-2 text-muted-foreground" />
-                      Similar Matches
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <Table>
-                      <TableBody>
-                        {prediction.similarMatches.map((match, index) => (
-                          <TableRow key={index}>
-                            <TableCell className="w-24">
-                              <div className="text-xs text-muted-foreground">{match.date}</div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="text-sm">{match.homeTeam} vs {match.awayTeam}</div>
-                              <div className="text-xs text-muted-foreground mt-1">{match.keyInsight}</div>
-                            </TableCell>
-                            <TableCell className="text-right font-medium">
-                              {match.result}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              )}
-              
-              {prediction.injuryNews && prediction.injuryNews.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center">
-                      <AlertTriangle className="h-4 w-4 mr-2 text-muted-foreground" />
-                      Injury & Team News
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <ul className="divide-y divide-border">
-                      {prediction.injuryNews.map((news, index) => (
-                        <li key={index} className="py-2 flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium">{news.player}</p>
-                            <p className="text-xs text-muted-foreground">{news.team}</p>
-                          </div>
-                          <Badge 
-                            variant="outline" 
-                            className={
-                              news.status === 'Out' ? 'border-red-200 text-red-600 dark:border-red-800' :
-                              news.status === 'Doubtful' ? 'border-yellow-200 text-yellow-600 dark:border-yellow-800' :
-                              'border-green-200 text-green-600 dark:border-green-800'
-                            }
-                          >
-                            {news.status}
-                          </Badge>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="stats" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader className="pb-0">
-                    <CardTitle className="text-base flex items-center">
-                      <BarChart4 className="h-4 w-4 mr-2 text-muted-foreground" />
-                      Key Team Statistics
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {prediction.keyStats ? (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Stat</TableHead>
-                            <TableHead className="text-right">{prediction.homeTeam}</TableHead>
-                            <TableHead className="text-right">{prediction.awayTeam}</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {/* Common stats like win rate, form streak, etc. */}
-                          {COMMON_STATS.map(stat => (
-                            <TableRow key={stat.key}>
-                              <TableCell className="font-medium">{stat.label}</TableCell>
-                              <TableCell className="text-right">
-                                {prediction.keyStats?.home[stat.key] || 'N/A'}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {prediction.keyStats?.away[stat.key] || 'N/A'}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                          
-                          {/* Sport-specific stats */}
-                          {SPORT_STATS[selectedSport as keyof typeof SPORT_STATS]?.slice(0, 5).map(stat => (
-                            <TableRow key={stat.key}>
-                              <TableCell className="font-medium">{stat.label}</TableCell>
-                              <TableCell className="text-right">
-                                {prediction.keyStats?.home[stat.key] || 'N/A'}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {prediction.keyStats?.away[stat.key] || 'N/A'}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    ) : (
-                      <p className="text-muted-foreground text-sm py-2">No statistics available</p>
-                    )}
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-0">
-                    <CardTitle className="text-base flex items-center">
-                      <RadarChart className="h-4 w-4 mr-2 text-muted-foreground" />
-                      Team Comparison
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RadarChart outerRadius={90} data={[
-                          { stat: 'Attack', home: Math.floor(Math.random() * 70 + 30), away: Math.floor(Math.random() * 70 + 30) },
-                          { stat: 'Defense', home: Math.floor(Math.random() * 70 + 30), away: Math.floor(Math.random() * 70 + 30) },
-                          { stat: 'Form', home: Math.floor(Math.random() * 70 + 30), away: Math.floor(Math.random() * 70 + 30) },
-                          { stat: 'Consistency', home: Math.floor(Math.random() * 70 + 30), away: Math.floor(Math.random() * 70 + 30) },
-                          { stat: 'Home/Away', home: Math.floor(Math.random() * 70 + 30), away: Math.floor(Math.random() * 70 + 30) },
-                        ]}>
-                          <PolarGrid />
-                          <PolarAngleAxis dataKey="stat" />
-                          <PolarRadiusAxis domain={[0, 100]} />
-                          <Radar name={prediction.homeTeam} dataKey="home" stroke="#2563eb" fill="#3b82f6" fillOpacity={0.5} />
-                          <Radar name={prediction.awayTeam} dataKey="away" stroke="#dc2626" fill="#ef4444" fillOpacity={0.5} />
-                          <Legend />
-                        </RadarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              <Card>
-                <CardHeader className="pb-0">
-                  <CardTitle className="text-base flex items-center">
-                    <TrendingUp className="h-4 w-4 mr-2 text-muted-foreground" />
-                    Match Analysis
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm mb-4">{prediction.explanation}</p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">{prediction.homeTeam} Strengths</h4>
-                      <ul className="text-sm space-y-1 list-disc list-inside text-muted-foreground">
-                        <li>Strong home record with consistent performances</li>
-                        <li>Solid defensive organization</li>
-                        <li>Effective at set pieces</li>
-                        {selectedSport === 'football' && <li>High pressing game with quick transitions</li>}
-                        {selectedSport === 'basketball' && <li>Efficient three-point shooting</li>}
-                        {selectedSport === 'american_football' && <li>Strong passing attack</li>}
-                        {selectedSport === 'tennis' && <li>Superior first serve accuracy</li>}
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">{prediction.awayTeam} Strengths</h4>
-                      <ul className="text-sm space-y-1 list-disc list-inside text-muted-foreground">
-                        <li>Fast counter-attacking style</li>
-                        <li>Good recent away form</li>
-                        <li>Creating quality scoring chances</li>
-                        {selectedSport === 'football' && <li>Strong aerial presence at set pieces</li>}
-                        {selectedSport === 'basketball' && <li>Dominant rebounding</li>}
-                        {selectedSport === 'american_football' && <li>Strong rushing defense</li>}
-                        {selectedSport === 'tennis' && <li>Excellent return game</li>}
-                      </ul>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              {/* Add visual representation of odds */}
-              <Card>
-                <CardHeader className="pb-0">
-                  <CardTitle className="text-base flex items-center">
-                    <Percent className="h-4 w-4 mr-2 text-muted-foreground" />
-                    Implied Probabilities
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={[
-                            { name: prediction.homeTeam, value: Math.round(100 / prediction.homeOdds) },
-                            ...(prediction.drawOdds ? [{ name: 'Draw', value: Math.round(100 / prediction.drawOdds) }] : []),
-                            { name: prediction.awayTeam, value: Math.round(100 / prediction.awayOdds) },
-                          ]}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+              {/* Country Selection */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium">Country</h4>
+                <ScrollArea className="h-32 rounded-md border">
+                  <div className="p-2">
+                    {countries.length > 0 ? (
+                      countries.map((country) => (
+                        <Button
+                          key={country}
+                          variant={selectedCountry === country ? "default" : "ghost"}
+                          className="w-full justify-start mb-1"
+                          onClick={() => {
+                            setSelectedCountry(country);
+                            setSelectedLeague(null);
+                            setSelectedMatch(null);
+                          }}
                         >
-                          <Cell fill="#3b82f6" />
-                          {prediction.drawOdds && <Cell fill="#a3a3a3" />}
-                          <Cell fill="#ef4444" />
-                        </Pie>
-                        <Tooltip formatter={(value) => `${value}%`} />
-                      </PieChart>
-                    </ResponsiveContainer>
+                          {country}
+                        </Button>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground p-2">No countries available</p>
+                    )}
                   </div>
-                  <p className="text-xs text-muted-foreground text-center mt-2">
-                    Implied probabilities based on current market odds
-                  </p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="markets" className="space-y-6">
-              {/* Market selection section */}
-              <div className="grid grid-cols-1 mb-6">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center">
-                      <Target className="h-4 w-4 mr-2 text-muted-foreground" />
-                      Market Selection
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="mb-4">
-                      <h3 className="text-sm font-medium mb-2">Common Markets</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {Object.values(COMMON_MARKETS).slice(0, showAllMarkets ? undefined : 5).map(market => (
-                          <Badge
-                            key={market}
-                            variant={selectedMarket === market ? "default" : "outline"}
-                            className="cursor-pointer"
-                            onClick={() => setSelectedMarket(market)}
-                          >
-                            {formatMarketName(market)}
-                          </Badge>
-                        ))}
-                        
-                        {!showAllMarkets && Object.values(COMMON_MARKETS).length > 5 && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-xs"
-                            onClick={() => setShowAllMarkets(true)}
-                          >
-                            <ChevronDown className="h-3 w-3 mr-1" />
-                            More
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium mb-2">{selectedSport.charAt(0).toUpperCase() + selectedSport.slice(1).replace('_', ' ')} Specific Markets</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {SPORT_SPECIFIC_MARKETS[selectedSport as keyof typeof SPORT_SPECIFIC_MARKETS]?.map(market => (
-                          <Badge
-                            key={market.id}
-                            variant={selectedMarket === market.id ? "default" : "outline"}
-                            className="cursor-pointer"
-                            onClick={() => setSelectedMarket(market.id)}
-                          >
-                            {market.name}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                </ScrollArea>
               </div>
               
-              {/* Trending markets */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center">
-                    <Flame className="h-4 w-4 mr-2 text-muted-foreground" />
-                    Trending Market Opportunities
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {prediction.trendingMarkets?.map((market, index) => (
-                      <Card key={index} className={market.trend === 'up' ? 'border-green-200 dark:border-green-900/60' : market.trend === 'down' ? 'border-red-200 dark:border-red-900/60' : ''}>
-                        <CardContent className="p-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="text-sm font-medium">{formatMarketName(market.market)}</h3>
-                              <p className="text-xs text-muted-foreground">{market.value}</p>
+              {/* League Selection */}
+              {selectedCountry && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">League</h4>
+                  <ScrollArea className="h-32 rounded-md border">
+                    <div className="p-2">
+                      {leagues.length > 0 ? (
+                        leagues.map((league) => (
+                          <Button
+                            key={league}
+                            variant={selectedLeague === league ? "default" : "ghost"}
+                            className="w-full justify-start mb-1"
+                            onClick={() => {
+                              setSelectedLeague(league);
+                              setSelectedMatch(null);
+                            }}
+                          >
+                            {league}
+                          </Button>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground p-2">No leagues available</p>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
+              
+              {/* Match Selection */}
+              {selectedLeague && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">Matches</h4>
+                  <ScrollArea className="h-64 rounded-md border">
+                    <div className="p-2">
+                      {filteredMatches.length > 0 ? (
+                        filteredMatches.map((match) => (
+                          <Button
+                            key={match.id}
+                            variant={selectedMatch === match.id ? "default" : "ghost"}
+                            className="w-full justify-start mb-2 flex-col items-start"
+                            onClick={() => handleSelectMatch(match)}
+                          >
+                            <span className="text-sm">{match.homeTeam} vs {match.awayTeam}</span>
+                            <div className="flex justify-between w-full text-xs mt-1">
+                              <span className="text-muted-foreground">
+                                {new Date(match.startTime).toLocaleDateString()}
+                              </span>
+                              {match.confidence && (
+                                <Badge variant="outline" className="ml-2 text-xs">
+                                  {match.confidence}% Conf.
+                                </Badge>
+                              )}
                             </div>
-                            <Badge 
-                              variant="outline" 
-                              className={
-                                market.trend === 'up' ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800/60' :
-                                market.trend === 'down' ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800/60' :
-                                'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800/60'
-                              }
-                            >
-                              {market.trend === 'up' ? 'Value ↑' : market.trend === 'down' ? 'Avoid ↓' : 'Neutral'}
-                            </Badge>
-                          </div>
-                          <div className="mt-3 grid grid-cols-2 gap-2">
-                            <div className="space-y-1">
-                              <p className="text-xs text-muted-foreground">Odds</p>
-                              <p className="font-medium">{market.odds.toFixed(2)}</p>
-                            </div>
-                            <div className="space-y-1">
-                              <p className="text-xs text-muted-foreground">Confidence</p>
-                              <p className="font-medium">{market.confidence}%</p>
-                            </div>
-                          </div>
+                          </Button>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground p-2">No matches available</p>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* Analysis Panel */}
+        <div className="md:col-span-2">
+          {loading || !prediction ? (
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-7 w-52 mb-2" />
+                <Skeleton className="h-5 w-80" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Skeleton className="h-32" />
+                    <Skeleton className="h-32" />
+                    <Skeleton className="h-32" />
+                  </div>
+                  <Skeleton className="h-60" />
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="mb-6">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl">{prediction.homeTeam} vs {prediction.awayTeam}</CardTitle>
+                    <CardDescription>{prediction.league} • {new Date(prediction.startTime).toLocaleString()}</CardDescription>
+                  </div>
+                  <Badge 
+                    className={
+                      prediction.confidence && prediction.confidence >= 75 ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100" :
+                      prediction.confidence && prediction.confidence >= 60 ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100" :
+                      "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100"
+                    }
+                  >
+                    {prediction.confidence || "85"}% Confidence
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <div className="text-sm text-muted-foreground">
+                    Prediction: <span className="font-medium text-foreground">{prediction.prediction}</span>
+                  </div>
+                  {prediction.valueBet && (
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800/60">
+                      {prediction.valueBet.value}% Value Bet
+                    </Badge>
+                  )}
+                </div>
+              </CardHeader>
+              
+              <CardContent>
+                <Tabs defaultValue="analysis">
+                  <TabsList className="grid grid-cols-4 mb-4">
+                    <TabsTrigger value="analysis">AI Analysis</TabsTrigger>
+                    <TabsTrigger value="stats">Match Stats</TabsTrigger>
+                    <TabsTrigger value="markets">Markets</TabsTrigger>
+                    <TabsTrigger value="performance">Performance</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="analysis" className="space-y-6">
+                    <Card className="border-blue-200 dark:border-blue-900/60">
+                      <CardHeader className="pb-2 bg-blue-50 dark:bg-blue-950/30">
+                        <CardTitle className="text-base flex items-center text-blue-700 dark:text-blue-400">
+                          <Zap className="h-4 w-4 mr-2" />
+                          AI-Enhanced Analysis
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-4">
+                        <p className="text-sm whitespace-pre-line">{prediction.aiEnhancedAnalysis}</p>
+                      </CardContent>
+                    </Card>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base flex items-center">
+                            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                            Head-to-Head History
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          {prediction.h2hHistory && prediction.h2hHistory.length > 0 ? (
+                            <ul className="space-y-2">
+                              {prediction.h2hHistory.map((match, index) => (
+                                <li key={index} className="text-sm p-2 border-b border-border/40 last:border-b-0">
+                                  <div className="flex justify-between">
+                                    <span>{new Date(match.date).toLocaleDateString()}</span>
+                                    <span 
+                                      className={
+                                        match.winner === prediction.homeTeam ? "text-green-600 dark:text-green-400" :
+                                        match.winner === prediction.awayTeam ? "text-red-600 dark:text-red-400" :
+                                        "text-blue-600 dark:text-blue-400"
+                                      }
+                                    >
+                                      {match.score}
+                                    </span>
+                                  </div>
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    {match.homeTeam} vs {match.awayTeam}
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-muted-foreground text-sm py-2">No historical data available</p>
+                          )}
                         </CardContent>
                       </Card>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-              
-              {/* Exotic markets */}
-              {prediction.exoticMarkets && prediction.exoticMarkets.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center">
-                      <Award className="h-4 w-4 mr-2 text-muted-foreground" />
-                      Exotic Markets
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <Tabs defaultValue={prediction.exoticMarkets[0].market.replace(/\s+/g, '-').toLowerCase()}>
-                      <TabsList className="mb-4">
-                        {prediction.exoticMarkets.map((market, index) => (
-                          <TabsTrigger 
-                            key={index} 
-                            value={market.market.replace(/\s+/g, '-').toLowerCase()}
-                          >
-                            {market.market}
-                          </TabsTrigger>
-                        ))}
-                      </TabsList>
                       
-                      {prediction.exoticMarkets.map((market, marketIndex) => (
-                        <TabsContent 
-                          key={marketIndex} 
-                          value={market.market.replace(/\s+/g, '-').toLowerCase()}
-                        >
-                          <div className="space-y-4">
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base flex items-center">
+                            <Activity className="h-4 w-4 mr-2 text-muted-foreground" />
+                            Recent Form Guide
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          {prediction.formGuide ? (
+                            <div className="space-y-4">
+                              <div>
+                                <div className="flex justify-between mb-1">
+                                  <span className="text-sm font-medium">{prediction.homeTeam}</span>
+                                  <span className="text-xs text-muted-foreground">Last 5 matches</span>
+                                </div>
+                                <div className="flex space-x-1">
+                                  {prediction.formGuide.home.map((result, index) => (
+                                    <div 
+                                      key={index}
+                                      className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium ${
+                                        result === 'W' ? 'bg-green-500 dark:bg-green-600' :
+                                        result === 'D' ? 'bg-blue-500 dark:bg-blue-600' :
+                                        'bg-red-500 dark:bg-red-600'
+                                      }`}
+                                    >
+                                      {result}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <div className="flex justify-between mb-1">
+                                  <span className="text-sm font-medium">{prediction.awayTeam}</span>
+                                  <span className="text-xs text-muted-foreground">Last 5 matches</span>
+                                </div>
+                                <div className="flex space-x-1">
+                                  {prediction.formGuide.away.map((result, index) => (
+                                    <div 
+                                      key={index}
+                                      className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium ${
+                                        result === 'W' ? 'bg-green-500 dark:bg-green-600' :
+                                        result === 'D' ? 'bg-blue-500 dark:bg-blue-600' :
+                                        'bg-red-500 dark:bg-red-600'
+                                      }`}
+                                    >
+                                      {result}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-muted-foreground text-sm py-2">No form data available</p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </div>
+                    
+                    {prediction.similarMatches && prediction.similarMatches.length > 0 && (
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base flex items-center">
+                            <Layers className="h-4 w-4 mr-2 text-muted-foreground" />
+                            Similar Matches
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <Table>
+                            <TableBody>
+                              {prediction.similarMatches.map((match, index) => (
+                                <TableRow key={index}>
+                                  <TableCell className="w-24">
+                                    <div className="text-xs text-muted-foreground">{match.date}</div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="text-sm">{match.homeTeam} vs {match.awayTeam}</div>
+                                    <div className="text-xs text-muted-foreground mt-1">{match.keyInsight}</div>
+                                  </TableCell>
+                                  <TableCell className="text-right font-medium">
+                                    {match.result}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </CardContent>
+                      </Card>
+                    )}
+                    
+                    {prediction.injuryNews && prediction.injuryNews.length > 0 && (
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base flex items-center">
+                            <AlertTriangle className="h-4 w-4 mr-2 text-muted-foreground" />
+                            Injury & Team News
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <ul className="divide-y divide-border">
+                            {prediction.injuryNews.map((news, index) => (
+                              <li key={index} className="py-2 flex items-center justify-between">
+                                <div>
+                                  <p className="text-sm font-medium">{news.player}</p>
+                                  <p className="text-xs text-muted-foreground">{news.team}</p>
+                                </div>
+                                <Badge 
+                                  variant="outline" 
+                                  className={
+                                    news.status === 'Out' ? 'border-red-200 text-red-600 dark:border-red-800' :
+                                    news.status === 'Doubtful' ? 'border-yellow-200 text-yellow-600 dark:border-yellow-800' :
+                                    'border-green-200 text-green-600 dark:border-green-800'
+                                  }
+                                >
+                                  {news.status}
+                                </Badge>
+                              </li>
+                            ))}
+                          </ul>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="stats" className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Card>
+                        <CardHeader className="pb-0">
+                          <CardTitle className="text-base flex items-center">
+                            <BarChart4 className="h-4 w-4 mr-2 text-muted-foreground" />
+                            Key Team Statistics
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {prediction.keyStats ? (
                             <Table>
                               <TableHeader>
                                 <TableRow>
-                                  <TableHead>Selection</TableHead>
-                                  <TableHead className="text-right">Odds</TableHead>
-                                  <TableHead className="text-right">Probability</TableHead>
+                                  <TableHead>Stat</TableHead>
+                                  <TableHead className="text-right">{prediction.homeTeam}</TableHead>
+                                  <TableHead className="text-right">{prediction.awayTeam}</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {market.options.map((option, optionIndex) => (
-                                  <TableRow key={optionIndex}>
-                                    <TableCell className="font-medium">{option.selection}</TableCell>
-                                    <TableCell className="text-right">{option.odds.toFixed(2)}</TableCell>
-                                    <TableCell className="text-right">{option.probability}%</TableCell>
+                                {/* Common stats like win rate, form streak, etc. */}
+                                {COMMON_STATS.map(stat => (
+                                  <TableRow key={stat.key}>
+                                    <TableCell className="font-medium">{stat.label}</TableCell>
+                                    <TableCell className="text-right">
+                                      {prediction.keyStats?.home[stat.key] || 'N/A'}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {prediction.keyStats?.away[stat.key] || 'N/A'}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                                
+                                {/* Sport-specific stats */}
+                                {SPORT_STATS[selectedStandardSport as keyof typeof SPORT_STATS]?.slice(0, 5).map(stat => (
+                                  <TableRow key={stat.key}>
+                                    <TableCell className="font-medium">{stat.label}</TableCell>
+                                    <TableCell className="text-right">
+                                      {prediction.keyStats?.home[stat.key] || 'N/A'}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {prediction.keyStats?.away[stat.key] || 'N/A'}
+                                    </TableCell>
                                   </TableRow>
                                 ))}
                               </TableBody>
                             </Table>
-                            
-                            <div className="h-56">
-                              <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={market.options}>
-                                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                  <XAxis dataKey="selection" />
-                                  <YAxis domain={[0, 100]} />
-                                  <RechartsTooltip
-                                    formatter={(value) => [`${value}%`, 'Probability']}
-                                  />
-                                  <Bar 
-                                    dataKey="probability" 
-                                    fill="#3b82f6" 
-                                    radius={[4, 4, 0, 0]}
-                                    name="Probability"
-                                  />
-                                </BarChart>
-                              </ResponsiveContainer>
+                          ) : (
+                            <p className="text-muted-foreground text-sm py-2">No statistics available</p>
+                          )}
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardHeader className="pb-0">
+                          <CardTitle className="text-base flex items-center">
+                            <RadarChart className="h-4 w-4 mr-2 text-muted-foreground" />
+                            Team Comparison
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="h-64">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <RadarChart outerRadius={90} data={[
+                                { stat: 'Attack', home: Math.floor(Math.random() * 70 + 30), away: Math.floor(Math.random() * 70 + 30) },
+                                { stat: 'Defense', home: Math.floor(Math.random() * 70 + 30), away: Math.floor(Math.random() * 70 + 30) },
+                                { stat: 'Form', home: Math.floor(Math.random() * 70 + 30), away: Math.floor(Math.random() * 70 + 30) },
+                                { stat: 'Consistency', home: Math.floor(Math.random() * 70 + 30), away: Math.floor(Math.random() * 70 + 30) },
+                                { stat: 'Home/Away', home: Math.floor(Math.random() * 70 + 30), away: Math.floor(Math.random() * 70 + 30) },
+                              ]}>
+                                <PolarGrid />
+                                <PolarAngleAxis dataKey="stat" />
+                                <PolarRadiusAxis domain={[0, 100]} />
+                                <Radar name={prediction.homeTeam} dataKey="home" stroke="#2563eb" fill="#3b82f6" fillOpacity={0.5} />
+                                <Radar name={prediction.awayTeam} dataKey="away" stroke="#dc2626" fill="#ef4444" fillOpacity={0.5} />
+                                <Legend />
+                              </RadarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                    
+                    <Card>
+                      <CardHeader className="pb-0">
+                        <CardTitle className="text-base flex items-center">
+                          <TrendingUp className="h-4 w-4 mr-2 text-muted-foreground" />
+                          Match Analysis
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm mb-4">{prediction.explanation}</p>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                          <div>
+                            <h4 className="text-sm font-medium mb-2">{prediction.homeTeam} Strengths</h4>
+                            <ul className="text-sm space-y-1 list-disc list-inside text-muted-foreground">
+                              <li>Strong home record with consistent performances</li>
+                              <li>Solid defensive organization</li>
+                              <li>Effective at set pieces</li>
+                              {selectedStandardSport === 'football' && <li>High pressing game with quick transitions</li>}
+                              {selectedStandardSport === 'basketball' && <li>Efficient three-point shooting</li>}
+                              {selectedStandardSport === 'american_football' && <li>Strong passing attack</li>}
+                              {selectedStandardSport === 'tennis' && <li>Superior first serve accuracy</li>}
+                            </ul>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-medium mb-2">{prediction.awayTeam} Strengths</h4>
+                            <ul className="text-sm space-y-1 list-disc list-inside text-muted-foreground">
+                              <li>Fast counter-attacking style</li>
+                              <li>Good recent away form</li>
+                              <li>Creating quality scoring chances</li>
+                              {selectedStandardSport === 'football' && <li>Strong aerial presence at set pieces</li>}
+                              {selectedStandardSport === 'basketball' && <li>Dominant rebounding</li>}
+                              {selectedStandardSport === 'american_football' && <li>Strong rushing defense</li>}
+                              {selectedStandardSport === 'tennis' && <li>Excellent return game</li>}
+                            </ul>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    {/* Add visual representation of odds */}
+                    <Card>
+                      <CardHeader className="pb-0">
+                        <CardTitle className="text-base flex items-center">
+                          <Percent className="h-4 w-4 mr-2 text-muted-foreground" />
+                          Implied Probabilities
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={[
+                                  { name: prediction.homeTeam, value: Math.round(100 / (prediction.homeOdds || 2.5)) },
+                                  ...(prediction.drawOdds ? [{ name: 'Draw', value: Math.round(100 / prediction.drawOdds) }] : []),
+                                  { name: prediction.awayTeam, value: Math.round(100 / (prediction.awayOdds || 3.0)) },
+                                ]}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                outerRadius={80}
+                                fill="#8884d8"
+                                dataKey="value"
+                                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                              >
+                                <Cell fill="#3b82f6" />
+                                {prediction.drawOdds && <Cell fill="#a3a3a3" />}
+                                <Cell fill="#ef4444" />
+                              </Pie>
+                              <Legend />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <p className="text-xs text-muted-foreground text-center mt-2">
+                          Implied probabilities based on current market odds
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  
+                  <TabsContent value="markets" className="space-y-6">
+                    {/* Market selection section */}
+                    <div className="grid grid-cols-1 mb-6">
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base flex items-center">
+                            <Target className="h-4 w-4 mr-2 text-muted-foreground" />
+                            Market Selection
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="mb-4">
+                            <h3 className="text-sm font-medium mb-2">Common Markets</h3>
+                            <div className="flex flex-wrap gap-2">
+                              {Object.values(COMMON_MARKETS).slice(0, showAllMarkets ? undefined : 5).map(market => (
+                                <Badge
+                                  key={market}
+                                  variant={selectedMarket === market ? "default" : "outline"}
+                                  className="cursor-pointer"
+                                  onClick={() => setSelectedMarket(market)}
+                                >
+                                  {formatMarketName(market)}
+                                </Badge>
+                              ))}
+                              
+                              {!showAllMarkets && Object.values(COMMON_MARKETS).length > 5 && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="text-xs"
+                                  onClick={() => setShowAllMarkets(true)}
+                                >
+                                  <ChevronDown className="h-3 w-3 mr-1" />
+                                  More
+                                </Button>
+                              )}
                             </div>
                           </div>
-                        </TabsContent>
-                      ))}
-                    </Tabs>
-                  </CardContent>
-                </Card>
-              )}
-              
-              {/* Value bet details */}
-              {prediction.valueBet && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center">
-                      <LineChartIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                      Value Bet Analysis
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Market</p>
-                        <p className="font-medium">{formatMarketName(prediction.valueBet.market)}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Selection</p>
-                        <p className="font-medium">{prediction.valueBet.selection}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Value Rating</p>
-                        <p className="font-medium text-green-600 dark:text-green-400">{prediction.valueBet.value}%</p>
-                      </div>
+                          
+                          <div>
+                            <h3 className="text-sm font-medium mb-2">{selectedStandardSport.charAt(0).toUpperCase() + selectedStandardSport.slice(1).replace('_', ' ')} Specific Markets</h3>
+                            <div className="flex flex-wrap gap-2">
+                              {SPORT_SPECIFIC_MARKETS[selectedStandardSport as keyof typeof SPORT_SPECIFIC_MARKETS]?.map(market => (
+                                <Badge
+                                  key={market.id}
+                                  variant={selectedMarket === market.id ? "default" : "outline"}
+                                  className="cursor-pointer"
+                                  onClick={() => setSelectedMarket(market.id)}
+                                >
+                                  {market.name}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
                     </div>
-                    <div className="mt-4">
-                      <p className="text-sm">
-                        Our model has identified a {prediction.valueBet.value}% edge in this market, suggesting 
-                        the true probability is higher than what the odds reflect. This represents a positive expected value bet.
-                      </p>
+                    
+                    {/* Trending markets */}
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center">
+                          <Flame className="h-4 w-4 mr-2 text-muted-foreground" />
+                          Trending Market Opportunities
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {prediction.trendingMarkets?.map((market, index) => (
+                            <Card key={index} className={market.trend === 'up' ? 'border-green-200 dark:border-green-900/60' : market.trend === 'down' ? 'border-red-200 dark:border-red-900/60' : ''}>
+                              <CardContent className="p-4">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <h3 className="text-sm font-medium">{formatMarketName(market.market)}</h3>
+                                    <p className="text-xs text-muted-foreground">{market.value}</p>
+                                  </div>
+                                  <Badge 
+                                    variant="outline" 
+                                    className={
+                                      market.trend === 'up' ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800/60' :
+                                      market.trend === 'down' ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800/60' :
+                                      'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800/60'
+                                    }
+                                  >
+                                    {market.trend === 'up' ? 'Value ↑' : market.trend === 'down' ? 'Avoid ↓' : 'Neutral'}
+                                  </Badge>
+                                </div>
+                                <div className="mt-3 grid grid-cols-2 gap-2">
+                                  <div className="space-y-1">
+                                    <p className="text-xs text-muted-foreground">Odds</p>
+                                    <p className="font-medium">{market.odds.toFixed(2)}</p>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <p className="text-xs text-muted-foreground">Confidence</p>
+                                    <p className="font-medium">{market.confidence}%</p>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    {/* Exotic markets */}
+                    {prediction.exoticMarkets && prediction.exoticMarkets.length > 0 && (
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base flex items-center">
+                            <Award className="h-4 w-4 mr-2 text-muted-foreground" />
+                            Exotic Markets
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <Tabs defaultValue={prediction.exoticMarkets[0].market.replace(/\s+/g, '-').toLowerCase()}>
+                            <TabsList className="mb-4">
+                              {prediction.exoticMarkets.map((market, index) => (
+                                <TabsTrigger 
+                                  key={index} 
+                                  value={market.market.replace(/\s+/g, '-').toLowerCase()}
+                                >
+                                  {market.market}
+                                </TabsTrigger>
+                              ))}
+                            </TabsList>
+                            
+                            {prediction.exoticMarkets.map((market, marketIndex) => (
+                              <TabsContent 
+                                key={marketIndex} 
+                                value={market.market.replace(/\s+/g, '-').toLowerCase()}
+                              >
+                                <div className="space-y-4">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead>Selection</TableHead>
+                                        <TableHead className="text-right">Odds</TableHead>
+                                        <TableHead className="text-right">Probability</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {market.options.map((option, optionIndex) => (
+                                        <TableRow key={optionIndex}>
+                                          <TableCell className="font-medium">{option.selection}</TableCell>
+                                          <TableCell className="text-right">{option.odds.toFixed(2)}</TableCell>
+                                          <TableCell className="text-right">{option.probability}%</TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                  
+                                  <div className="h-56">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                      <BarChart data={market.options}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                        <XAxis dataKey="selection" />
+                                        <YAxis domain={[0, 100]} />
+                                        <RechartsTooltip
+                                          formatter={(value: any) => [`${value}%`, 'Probability']}
+                                        />
+                                        <Bar 
+                                          dataKey="probability" 
+                                          fill="#3b82f6" 
+                                          radius={[4, 4, 0, 0]}
+                                          name="Probability"
+                                        />
+                                      </BarChart>
+                                    </ResponsiveContainer>
+                                  </div>
+                                </div>
+                              </TabsContent>
+                            ))}
+                          </Tabs>
+                        </CardContent>
+                      </Card>
+                    )}
+                    
+                    {/* Value bet details */}
+                    {prediction.valueBet && (
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base flex items-center">
+                            <LineChartIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                            Value Bet Analysis
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                            <div className="space-y-1">
+                              <p className="text-xs text-muted-foreground">Market</p>
+                              <p className="font-medium">{formatMarketName(prediction.valueBet.market)}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-xs text-muted-foreground">Selection</p>
+                              <p className="font-medium">{prediction.valueBet.selection}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-xs text-muted-foreground">Value Rating</p>
+                              <p className="font-medium text-green-600 dark:text-green-400">{prediction.valueBet.value}%</p>
+                            </div>
+                          </div>
+                          <div className="mt-4">
+                            <p className="text-sm">
+                              Our model has identified a {prediction.valueBet.value}% edge in this market, suggesting 
+                              the true probability is higher than what the odds reflect. This represents a positive expected value bet.
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="performance" className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center">
+                          <TrendingUp className="h-4 w-4 mr-2 text-muted-foreground" />
+                          Prediction Performance History
+                        </CardTitle>
+                        <CardDescription>
+                          Historical performance of similar predictions over time
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {loadingPerformance ? (
+                          <div className="h-72 flex items-center justify-center">
+                            <div className="flex flex-col items-center space-y-2">
+                              <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+                              <p className="text-sm text-muted-foreground">Loading performance data...</p>
+                            </div>
+                          </div>
+                        ) : prediction.performanceChart ? (
+                          <div className="h-72">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <AreaChart
+                                data={prediction.performanceChart}
+                                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                              >
+                                <defs>
+                                  <linearGradient id="colorAccuracy" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                  </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="month" />
+                                <YAxis domain={[0, 100]} />
+                                <RechartsTooltip
+                                  formatter={(value: any, name: any) => [
+                                    `${value}${name === 'accuracy' ? '%' : ''}`,
+                                    name === 'accuracy' ? 'Success Rate' : 'Predictions'
+                                  ]}
+                                />
+                                <Area
+                                  type="monotone"
+                                  name="accuracy"
+                                  dataKey="accuracy"
+                                  stroke="#3b82f6"
+                                  fillOpacity={1}
+                                  fill="url(#colorAccuracy)"
+                                />
+                                <Legend />
+                              </AreaChart>
+                            </ResponsiveContainer>
+                          </div>
+                        ) : (
+                          <div className="h-72 flex items-center justify-center">
+                            <Button onClick={handleLoadPerformanceHistory}>
+                              Load Performance History
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base flex items-center">
+                            <Trophy className="h-4 w-4 mr-2 text-muted-foreground" />
+                            Success Rate by Sport
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="h-60">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart
+                                data={[
+                                  { sport: 'Football', rate: 76 },
+                                  { sport: 'Basketball', rate: 73 },
+                                  { sport: 'Tennis', rate: 68 },
+                                  { sport: 'Hockey', rate: 65 },
+                                  { sport: 'Baseball', rate: 71 },
+                                ]}
+                                margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+                              >
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="sport" />
+                                <YAxis domain={[0, 100]} />
+                                <RechartsTooltip
+                                  formatter={(value: any) => [`${value}%`, 'Success Rate']}
+                                />
+                                <Bar 
+                                  dataKey="rate" 
+                                  fill="#3b82f6" 
+                                  radius={[4, 4, 0, 0]}
+                                  name="Success Rate"
+                                />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base flex items-center">
+                            <PieChartIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                            Success Rate by Confidence
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="h-60">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart
+                                data={[
+                                  { confidence: '50-59%', rate: 55 },
+                                  { confidence: '60-69%', rate: 63 },
+                                  { confidence: '70-79%', rate: 76 },
+                                  { confidence: '80-89%', rate: 85 },
+                                  { confidence: '90%+', rate: 92 },
+                                ]}
+                                margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+                              >
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="confidence" />
+                                <YAxis domain={[0, 100]} />
+                                <RechartsTooltip
+                                  formatter={(value: any) => [`${value}%`, 'Success Rate']}
+                                />
+                                <Line 
+                                  type="monotone" 
+                                  dataKey="rate" 
+                                  stroke="#3b82f6" 
+                                  strokeWidth={2}
+                                  dot={{ r: 4 }}
+                                  activeDot={{ r: 6 }}
+                                />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </CardContent>
+                      </Card>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="performance" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center">
-                    <TrendingUp className="h-4 w-4 mr-2 text-muted-foreground" />
-                    Prediction Performance History
-                  </CardTitle>
-                  <CardDescription>
-                    Historical performance of similar predictions over time
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loadingPerformance ? (
-                    <div className="h-72 flex items-center justify-center">
-                      <div className="flex flex-col items-center space-y-2">
-                        <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">Loading performance data...</p>
-                      </div>
-                    </div>
-                  ) : prediction.performanceChart ? (
-                    <div className="h-72">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart
-                          data={prediction.performanceChart}
-                          margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                        >
-                          <defs>
-                            <linearGradient id="colorAccuracy" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                          <XAxis dataKey="month" />
-                          <YAxis domain={[0, 100]} />
-                          <RechartsTooltip
-                            formatter={(value, name) => [
-                              `${value}${name === 'accuracy' ? '%' : ''}`,
-                              name === 'accuracy' ? 'Success Rate' : 'Predictions'
-                            ]}
-                          />
-                          <Area
-                            type="monotone"
-                            name="accuracy"
-                            dataKey="accuracy"
-                            stroke="#3b82f6"
-                            fillOpacity={1}
-                            fill="url(#colorAccuracy)"
-                          />
-                          <Legend />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                  ) : (
-                    <div className="h-72 flex items-center justify-center">
-                      <Button onClick={handleLoadPerformanceHistory}>
-                        Load Performance History
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center">
-                      <Trophy className="h-4 w-4 mr-2 text-muted-foreground" />
-                      Success Rate by Sport
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="h-60">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={[
-                            { sport: 'Football', rate: 76 },
-                            { sport: 'Basketball', rate: 73 },
-                            { sport: 'Tennis', rate: 68 },
-                            { sport: 'Hockey', rate: 65 },
-                            { sport: 'Baseball', rate: 71 },
-                          ]}
-                          margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                          <XAxis dataKey="sport" />
-                          <YAxis domain={[0, 100]} />
-                          <RechartsTooltip
-                            formatter={(value) => [`${value}%`, 'Success Rate']}
-                          />
-                          <Bar 
-                            dataKey="rate" 
-                            fill="#3b82f6" 
-                            radius={[4, 4, 0, 0]}
-                            name="Success Rate"
-                          />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center">
-                      <PieChartIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                      Success Rate by Confidence
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="h-60">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart
-                          data={[
-                            { confidence: '50-59%', rate: 55 },
-                            { confidence: '60-69%', rate: 63 },
-                            { confidence: '70-79%', rate: 76 },
-                            { confidence: '80-89%', rate: 85 },
-                            { confidence: '90%+', rate: 92 },
-                          ]}
-                          margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                          <XAxis dataKey="confidence" />
-                          <YAxis domain={[0, 100]} />
-                          <RechartsTooltip
-                            formatter={(value) => [`${value}%`, 'Success Rate']}
-                          />
-                          <Line 
-                            type="monotone" 
-                            dataKey="rate" 
-                            stroke="#3b82f6" 
-                            strokeWidth={2}
-                            dot={{ r: 4 }}
-                            activeDot={{ r: 6 }}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
       
       <div className="flex justify-between mt-6">
         <Button variant="outline" onClick={() => setLocation("/predictions")}>
