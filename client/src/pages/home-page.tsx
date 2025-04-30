@@ -302,7 +302,25 @@ export default function HomePage() {
             </Card>
             
             {/* Features grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
+              <Card 
+                className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 border-0 shadow-md hover:shadow-lg transition-all cursor-pointer"
+                onClick={() => navigate("/historical-dashboard")}
+              >
+                <CardContent className="pt-6">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="rounded-full bg-indigo-100 dark:bg-indigo-900/50 p-3 mb-4">
+                      <TrendingUp className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <h3 className="font-semibold mb-2">Historical Dashboard</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Track your prediction history and analyze performance
+                    </p>
+                    <Badge className="mt-2 bg-indigo-500">New</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+              
               <Card className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 border-0 shadow-md">
                 <CardContent className="pt-6">
                   <div className="flex flex-col items-center text-center">
