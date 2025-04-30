@@ -27,6 +27,72 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import SportsTabs from "@/components/predictions/sports-tabs";
 
+// Define types for historical dashboard API response
+interface Prediction {
+  id: number;
+  match?: string;
+  homeTeam?: string;
+  awayTeam?: string;
+  date: string;
+  sport: string;
+  league: string;
+  prediction: string;
+  odds: number;
+  result?: string;
+  isCorrect?: boolean | null;
+  confidence: number;
+  market?: string;
+  createdAt: string;
+}
+
+interface Pagination {
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  currentCount: number;
+  hasNextPage: boolean;
+}
+
+interface Metrics {
+  totalPredictions: number;
+  wonCount: number;
+  lostCount: number;
+  pendingCount: number;
+  successRate: number;
+  averageOdds: number;
+  roi: number;
+}
+
+interface MonthlyData {
+  month: string;
+  year: number;
+  total: number;
+  won: number;
+  successRate: number;
+}
+
+interface SportPerformance {
+  totalPredictions: number;
+  successRate: number;
+  averageOdds: number;
+  roi: number;
+  wonCount: number;
+  lostCount: number;
+}
+
+interface SportPerformanceData {
+  [key: string]: SportPerformance;
+  overall: SportPerformance;
+}
+
+interface HistoricalDashboardResponse {
+  metrics: Metrics;
+  predictions: Prediction[];
+  pagination: Pagination;
+  monthlyPerformance: MonthlyData[];
+  sportPerformance: SportPerformanceData;
+}
+
 export default function HistoricalDashboard() {
   const [_, navigate] = useLocation();
   const { user } = useAuth();
@@ -54,7 +120,7 @@ export default function HistoricalDashboard() {
     : toDate;
 
   // Query for historical dashboard data
-  const { data: dashboardData, isLoading, isError } = useQuery({
+  const { data: dashboardData, isLoading, isError } = useQuery<HistoricalDashboardResponse>({
     queryKey: [
       '/api/historical-dashboard', 
       selectedSport, 
@@ -249,8 +315,12 @@ export default function HistoricalDashboard() {
     return Math.round((wins / predictions.length) * 100);
   };
   
-  const getResultBadge = (result: string) => {
-    switch(result) {
+  const getResultBadge = (result?: string | null) => {
+    if (!result) {
+      return <Badge variant="outline" className="text-amber-500 border-amber-500"><AlertTriangle className="h-3 w-3 mr-1" /> Pending</Badge>;
+    }
+    
+    switch(result.toLowerCase()) {
       case "won":
         return <Badge className="bg-green-500 hover:bg-green-600"><Check className="h-3 w-3 mr-1" /> Won</Badge>;
       case "lost":
@@ -301,9 +371,24 @@ export default function HistoricalDashboard() {
         </div>
         
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              // Create query parameters
+              const params = new URLSearchParams();
+              if (selectedSport !== "all") params.append("sport", selectedSport);
+              if (effectiveFromDate) params.append("fromDate", effectiveFromDate);
+              if (effectiveToDate) params.append("toDate", effectiveToDate);
+              if (resultType !== "all") params.append("resultType", resultType);
+              if (market) params.append("market", market);
+              
+              // Navigate to export endpoint with parameters
+              window.open(`/api/historical-dashboard/export?${params.toString()}`, '_blank');
+            }}
+          >
             <Download className="h-4 w-4 mr-1" />
-            Export
+            Export CSV
           </Button>
         </div>
       </div>
@@ -742,43 +827,109 @@ export default function HistoricalDashboard() {
               </TabsContent>
               
               <TabsContent value="predictions" className="mt-0 space-y-4">
-                <div className="space-y-3">
-                  {filteredPredictions.map((prediction) => (
-                    <Card key={prediction.id}>
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-center">
-                          <div className="font-medium">{prediction.match}</div>
-                          {getResultBadge(prediction.result)}
+                {isLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                  </div>
+                ) : isError ? (
+                  <div className="p-4 border border-red-300 bg-red-50 rounded-md text-red-600">
+                    <div className="flex items-center">
+                      <AlertTriangle className="h-5 w-5 mr-2" />
+                      <p className="font-medium">Failed to load prediction data</p>
+                    </div>
+                    <p className="text-sm mt-1">Please try again or contact support if the issue persists.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-3">
+                      {/* Use real API data if available, fallback to sample data for development */}
+                      {(dashboardData?.predictions || filteredPredictions).map((prediction) => (
+                        <Card key={prediction.id}>
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-center">
+                              <div className="font-medium">{prediction.match}</div>
+                              {getResultBadge(prediction.result)}
+                            </div>
+                            <div className="flex flex-wrap justify-between mt-1 text-sm text-muted-foreground">
+                              <div>{prediction.league}</div>
+                              <div>{new Date(prediction.date).toLocaleDateString()}</div>
+                            </div>
+                            <Separator className="my-2" />
+                            <div className="flex flex-wrap justify-between text-sm">
+                              <div>
+                                <span className="text-muted-foreground">Prediction:</span>{" "}
+                                <span className="font-medium">{prediction.prediction}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Odds:</span>{" "}
+                                <span className="font-medium">{prediction.odds}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Confidence:</span>{" "}
+                                <span className={cn(
+                                  "font-medium",
+                                  prediction.confidence >= 80 ? "text-green-500" : 
+                                  prediction.confidence >= 60 ? "text-amber-500" : "text-red-500"
+                                )}>
+                                  {prediction.confidence}%
+                                </span>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+
+                      {/* Show empty state when no predictions match filters */}
+                      {(dashboardData?.predictions || filteredPredictions).length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <p className="mb-2">No predictions found with the current filters</p>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              // Reset all filters
+                              setSelectedSport("all");
+                              setResultType("all");
+                              setSelectedDate(undefined);
+                              setFromDate(undefined);
+                              setToDate(undefined);
+                              setMarket(undefined);
+                              setCurrentPage(1);
+                            }}
+                          >
+                            Reset Filters
+                          </Button>
                         </div>
-                        <div className="flex flex-wrap justify-between mt-1 text-sm text-muted-foreground">
-                          <div>{prediction.league}</div>
-                          <div>{new Date(prediction.date).toLocaleDateString()}</div>
-                        </div>
-                        <Separator className="my-2" />
-                        <div className="flex flex-wrap justify-between text-sm">
-                          <div>
-                            <span className="text-muted-foreground">Prediction:</span>{" "}
-                            <span className="font-medium">{prediction.prediction}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Odds:</span>{" "}
-                            <span className="font-medium">{prediction.odds}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Confidence:</span>{" "}
-                            <span className={cn(
-                              "font-medium",
-                              prediction.confidence >= 80 ? "text-green-500" : 
-                              prediction.confidence >= 60 ? "text-amber-500" : "text-red-500"
-                            )}>
-                              {prediction.confidence}%
-                            </span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                      )}
+                    </div>
+                    
+                    {/* Pagination controls */}
+                    <div className="flex justify-between items-center mt-4">
+                      <div className="text-sm text-muted-foreground">
+                        Showing {dashboardData?.pagination?.currentCount || (dashboardData?.predictions || filteredPredictions).length} 
+                        of {dashboardData?.pagination?.totalCount || filteredPredictions.length} predictions
+                      </div>
+                      <div className="flex space-x-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          disabled={currentPage <= 1 || isLoading}
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        >
+                          Previous
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          disabled={!dashboardData?.pagination?.hasNextPage || isLoading}
+                          onClick={() => setCurrentPage(prev => prev + 1)}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </TabsContent>
             </CardContent>
           </Card>
@@ -791,17 +942,23 @@ export default function HistoricalDashboard() {
                   {selectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                 </CardTitle>
                 <Badge>
-                  {getWinPercentage(filteredPredictions)}% Success
+                  {dashboardData?.metrics?.successRate || getWinPercentage(filteredPredictions)}% Success
                 </Badge>
               </CardHeader>
               <CardContent className="space-y-3">
-                {filteredPredictions.length > 0 ? (
-                  filteredPredictions.map((prediction) => (
+                {isLoading ? (
+                  <div className="flex justify-center py-6">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                  </div>
+                ) : (dashboardData?.predictions || filteredPredictions).length > 0 ? (
+                  (dashboardData?.predictions || filteredPredictions).map((prediction) => (
                     <Card key={prediction.id} className="bg-muted/50 border">
                       <CardContent className="p-3">
                         <div className="flex justify-between items-center">
-                          <div className="font-medium">{prediction.match}</div>
-                          {getResultBadge(prediction.result)}
+                          <div className="font-medium">
+                            {prediction.homeTeam ? `${prediction.homeTeam} vs ${prediction.awayTeam}` : prediction.match}
+                          </div>
+                          {getResultBadge(prediction.result || (prediction.isCorrect === true ? 'won' : prediction.isCorrect === false ? 'lost' : 'pending'))}
                         </div>
                         <div className="flex justify-between mt-1 text-sm text-muted-foreground">
                           <div>{prediction.prediction}</div>
@@ -831,38 +988,81 @@ export default function HistoricalDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <div className="text-sm text-muted-foreground">All-time predictions</div>
-                  <div className="text-xl font-bold mt-1">
-                    {historicalStats.overall.totalPredictions}
+              {isLoading ? (
+                <div className="flex justify-center py-6">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <div className="text-sm text-muted-foreground">All-time predictions</div>
+                    <div className="text-xl font-bold mt-1">
+                      {dashboardData?.metrics?.totalPredictions || historicalStats.overall.totalPredictions}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">All-time win rate</div>
+                    <div className={cn(
+                      "text-xl font-bold mt-1", 
+                      getStatValueColor(dashboardData?.metrics?.successRate || historicalStats.overall.successRate)
+                    )}>
+                      {dashboardData?.metrics?.successRate || historicalStats.overall.successRate}%
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Best month</div>
+                    <div className="text-xl font-bold mt-1">
+                      {dashboardData?.monthlyPerformance ? 
+                        dashboardData.monthlyPerformance.reduce((max, m) => 
+                          m.successRate > max.successRate ? m : max
+                        ).month : 
+                        monthlyPerformance.reduce((max, m) => 
+                          m.successRate > max.successRate ? m : max
+                        ).month
+                      }{" "}
+                      <span className="text-sm font-normal">
+                        ({dashboardData?.monthlyPerformance ? 
+                          dashboardData.monthlyPerformance.reduce((max, m) => 
+                            m.successRate > max.successRate ? m : max
+                          ).successRate : 
+                          monthlyPerformance.reduce((max, m) => 
+                            m.successRate > max.successRate ? m : max
+                          ).successRate
+                        }%)
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Best sport</div>
+                    <div className="text-xl font-bold mt-1 capitalize">
+                      {dashboardData?.sportPerformance ? 
+                        Object.entries(dashboardData.sportPerformance)
+                          .filter(([key, _]) => key !== 'overall')
+                          .reduce((best, [key, data]) => 
+                            data.successRate > best.performance.successRate 
+                              ? {sport: key, performance: data} 
+                              : best, 
+                            {sport: 'none', performance: {successRate: 0}}
+                          ).sport :
+                        'Football'
+                      }{" "}
+                      <span className="text-sm font-normal">
+                        ({dashboardData?.sportPerformance ? 
+                          Object.entries(dashboardData.sportPerformance)
+                            .filter(([key, _]) => key !== 'overall')
+                            .reduce((best, [key, data]) => 
+                              data.successRate > best.performance.successRate 
+                                ? {sport: key, performance: data} 
+                                : best, 
+                              {sport: 'none', performance: {successRate: 0}}
+                            ).performance.successRate :
+                          historicalStats.football.successRate
+                        }%)
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">All-time win rate</div>
-                  <div className={cn("text-xl font-bold mt-1", getStatValueColor(historicalStats.overall.successRate))}>
-                    {historicalStats.overall.successRate}%
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">Best month</div>
-                  <div className="text-xl font-bold mt-1">
-                    {monthlyPerformance.reduce((max, m) => m.successRate > max.successRate ? m : max).month}{" "}
-                    <span className="text-sm font-normal">
-                      ({monthlyPerformance.reduce((max, m) => m.successRate > max.successRate ? m : max).successRate}%)
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">Best sport</div>
-                  <div className="text-xl font-bold mt-1 capitalize">
-                    Football{" "}
-                    <span className="text-sm font-normal">
-                      ({historicalStats.football.successRate}%)
-                    </span>
-                  </div>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
