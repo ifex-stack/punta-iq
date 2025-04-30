@@ -164,6 +164,20 @@ export const predictions = pgTable("predictions", {
   additionalPredictions: json("additional_predictions"), // e.g., { btts: true, overUnder: "over2.5" }
   createdAt: timestamp("created_at").defaultNow().notNull(),
   isCorrect: boolean("is_correct"),
+  
+  // Enhanced fields for historical dashboard
+  sport: text("sport"), // e.g., "football", "basketball"
+  league: text("league"), // e.g., "Premier League", "NBA"
+  country: text("country"), // e.g., "England", "USA"
+  homeTeam: text("home_team"),
+  awayTeam: text("away_team"),
+  startTime: timestamp("start_time"),
+  prediction: text("prediction"), // Human-readable prediction
+  market: text("market"), // e.g., "1X2", "BTTS", "Over/Under"
+  odds: doublePrecision("odds"), // Odds for the predicted outcome
+  result: text("result"), // Actual result
+  valueRating: integer("value_rating"), // 1-10 rating for value
+  explanation: text("explanation"), // Explanation of the prediction
 });
 
 export const insertPredictionSchema = createInsertSchema(predictions).pick({
@@ -172,6 +186,18 @@ export const insertPredictionSchema = createInsertSchema(predictions).pick({
   confidence: true,
   isPremium: true,
   additionalPredictions: true,
+  sport: true,
+  league: true,
+  country: true,
+  homeTeam: true, 
+  awayTeam: true,
+  startTime: true,
+  prediction: true,
+  market: true,
+  odds: true,
+  result: true,
+  valueRating: true,
+  explanation: true,
 });
 
 // User Predictions (tracking which predictions a user has viewed/saved)
