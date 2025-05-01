@@ -18,6 +18,13 @@ import { db, pool } from "./db";
 import { setupNewsRoutes } from "./news-routes";
 import { PlayerSeasonStats, PlayerMatchStats } from "@shared/player-interfaces";
 import { realTimeMatchesService } from "./real-time-matches-service";
+import { oddsAPIService } from "./odds-api-service";
+import { 
+  predictionTypesService, 
+  AccumulatorType, 
+  RiskLevel, 
+  PredictionType 
+} from "./prediction-types-service";
 import { openaiClient } from "./openai-client";
 import { oddsAPIService } from "./odds-api-service";
 import { historicalDashboardRouter } from "./historical-dashboard-routes";
