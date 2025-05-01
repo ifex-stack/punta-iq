@@ -167,7 +167,12 @@ export function PersonalizedOnboarding() {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [isOpen, setIsOpen] = useState(false);
+  const { 
+    isPersonalizedOnboardingVisible: isOpen,
+    openPersonalizedOnboarding: openOnboarding,
+    closePersonalizedOnboarding: closeOnboarding,
+    markPersonalizedOnboardingCompleted
+  } = useOnboarding();
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
   
@@ -301,7 +306,8 @@ export function PersonalizedOnboarding() {
       setCurrentStep(prev => prev + 1);
     } else {
       // Onboarding complete
-      setIsOpen(false);
+      markPersonalizedOnboardingCompleted();
+      closeOnboarding();
     }
   };
   
@@ -330,15 +336,8 @@ export function PersonalizedOnboarding() {
     }
   };
   
-  // Open onboarding flow
-  const openOnboarding = () => {
-    setIsOpen(true);
-  };
-  
-  // Close onboarding flow
-  const closeOnboarding = () => {
-    setIsOpen(false);
-  };
+  // The openOnboarding and closeOnboarding functions are now provided by the OnboardingProvider
+  // via the useOnboarding hook so we don't need local implementations anymore
   
   // Toggle sport selection
   const toggleSport = (sportId: string) => {
@@ -766,7 +765,7 @@ export function PersonalizedOnboarding() {
   
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Dialog open={isOpen} onOpenChange={closeOnboarding}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-0">
           <DialogHeader className="p-6 pb-2 sticky top-0 bg-background z-10 border-b">
             <div className="absolute right-4 top-4">

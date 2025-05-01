@@ -41,6 +41,7 @@ import { setNavigationState } from "./lib/error-handler";
 import { OnboardingProvider } from "@/components/onboarding/onboarding-provider";
 import { GuidedTour } from "@/components/onboarding/guided-tour";
 import { GettingStartedGuide } from "@/components/onboarding/getting-started-guide";
+import { PersonalizedOnboarding } from "@/components/onboarding/personalized-onboarding"; 
 import { NotificationProvider } from "@/components/notifications/notification-provider";
 import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
 import { NotificationToastListener } from "@/components/notifications/notification-toast";
@@ -120,6 +121,7 @@ const Router: React.FC = () => {
         {/* Onboarding components (only shown when triggered) */}
         <GuidedTour />
         <GettingStartedGuide />
+        <PersonalizedOnboarding />
       </div>
     </div>
   );

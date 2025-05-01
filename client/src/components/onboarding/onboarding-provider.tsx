@@ -97,6 +97,7 @@ type OnboardingProviderProps = {
 export function OnboardingProvider({ children }: OnboardingProviderProps) {
   const [isTourVisible, setIsTourVisible] = useState(false);
   const [isGuideVisible, setIsGuideVisible] = useState(false);
+  const [isPersonalizedOnboardingVisible, setIsPersonalizedOnboardingVisible] = useState(false);
   const [currentTourStep, setCurrentTourStep] = useState(0);
   const [tourSteps, setTourSteps] = useState<TourStep[]>(DEFAULT_TOUR_STEPS);
   const [hasCompletedTour, setHasCompletedTour] = useState(() => {
@@ -107,17 +108,56 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
     const stored = localStorage.getItem('puntaiq_guide_completed');
     return stored ? JSON.parse(stored) : false;
   });
+  const [hasCompletedPersonalizedOnboarding, setHasCompletedPersonalizedOnboarding] = useState(() => {
+    const stored = localStorage.getItem('puntaiq_personalized_onboarding_completed');
+    return stored ? JSON.parse(stored) : false;
+  });
   
   // Feature flags
   const onboardingEnabled = useFeatureFlag('onboarding');
   const gettingStartedGuideEnabled = useFeatureFlag('gettingStartedGuide');
+  const personalizedOnboardingEnabled = useFeatureFlag('onboarding');
   
   // Auth context
   const { user } = useAuth();
   
+  // Check if user has already completed personalized onboarding through the API
+  const [hasApiCheckedOnboarding, setHasApiCheckedOnboarding] = useState(false);
+
+  useEffect(() => {
+    if (personalizedOnboardingEnabled && user && !hasApiCheckedOnboarding) {
+      // Check the API for onboarding status
+      fetch('/api/user/preferences')
+        .then(res => res.json())
+        .then(data => {
+          if (data.onboardingCompleted) {
+            setHasCompletedPersonalizedOnboarding(true);
+            localStorage.setItem('puntaiq_personalized_onboarding_completed', JSON.stringify(true));
+          }
+          setHasApiCheckedOnboarding(true);
+        })
+        .catch(() => {
+          // If there's an error, we'll just use the localStorage value
+          setHasApiCheckedOnboarding(true);
+        });
+    }
+  }, [personalizedOnboardingEnabled, user, hasApiCheckedOnboarding]);
+  
+  // Auto-start personalized onboarding for new users after checking API status
+  useEffect(() => {
+    if (personalizedOnboardingEnabled && user && hasApiCheckedOnboarding && !hasCompletedPersonalizedOnboarding && !isTourVisible && !isGuideVisible) {
+      // Small delay to ensure the UI is fully rendered
+      const timer = setTimeout(() => {
+        openPersonalizedOnboarding();
+      }, 1500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [personalizedOnboardingEnabled, user, hasApiCheckedOnboarding, hasCompletedPersonalizedOnboarding, isTourVisible, isGuideVisible]);
+  
   // Auto-start the tour for new users if enabled
   useEffect(() => {
-    if (onboardingEnabled && user && !hasCompletedTour) {
+    if (onboardingEnabled && user && hasCompletedPersonalizedOnboarding && !hasCompletedTour) {
       // Small delay to ensure the UI is fully rendered
       const timer = setTimeout(() => {
         startTour();
@@ -125,11 +165,11 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
       
       return () => clearTimeout(timer);
     }
-  }, [onboardingEnabled, user, hasCompletedTour]);
+  }, [onboardingEnabled, user, hasCompletedPersonalizedOnboarding, hasCompletedTour]);
   
   // Auto-open the getting started guide after tour completion
   useEffect(() => {
-    if (gettingStartedGuideEnabled && hasCompletedTour && !hasCompletedGuide && !isTourVisible) {
+    if (gettingStartedGuideEnabled && hasCompletedTour && !hasCompletedGuide && !isTourVisible && !isPersonalizedOnboardingVisible) {
       // Small delay after tour completion
       const timer = setTimeout(() => {
         openGuide();
@@ -137,12 +177,13 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
       
       return () => clearTimeout(timer);
     }
-  }, [gettingStartedGuideEnabled, hasCompletedTour, hasCompletedGuide, isTourVisible]);
+  }, [gettingStartedGuideEnabled, hasCompletedTour, hasCompletedGuide, isTourVisible, isPersonalizedOnboardingVisible]);
   
   const startTour = () => {
     setCurrentTourStep(0);
     setIsTourVisible(true);
     setIsGuideVisible(false);
+    setIsPersonalizedOnboardingVisible(false);
   };
   
   const endTour = () => {
@@ -185,10 +226,21 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
   const openGuide = () => {
     setIsGuideVisible(true);
     setIsTourVisible(false);
+    setIsPersonalizedOnboardingVisible(false);
   };
   
   const closeGuide = () => {
     setIsGuideVisible(false);
+  };
+  
+  const openPersonalizedOnboarding = () => {
+    setIsPersonalizedOnboardingVisible(true);
+    setIsGuideVisible(false);
+    setIsTourVisible(false);
+  };
+  
+  const closePersonalizedOnboarding = () => {
+    setIsPersonalizedOnboardingVisible(false);
   };
   
   const markTourCompleted = () => {
@@ -201,13 +253,20 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
     localStorage.setItem('puntaiq_guide_completed', JSON.stringify(true));
   };
   
+  const markPersonalizedOnboardingCompleted = () => {
+    setHasCompletedPersonalizedOnboarding(true);
+    localStorage.setItem('puntaiq_personalized_onboarding_completed', JSON.stringify(true));
+  };
+  
   const value = {
     isTourVisible,
     isGuideVisible,
+    isPersonalizedOnboardingVisible,
     currentTourStep,
     tourSteps,
     hasCompletedTour,
     hasCompletedGuide,
+    hasCompletedPersonalizedOnboarding,
     startTour,
     endTour,
     nextTourStep,
@@ -215,8 +274,11 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
     goToTourStep,
     openGuide,
     closeGuide,
+    openPersonalizedOnboarding,
+    closePersonalizedOnboarding,
     markTourCompleted,
     markGuideCompleted,
+    markPersonalizedOnboardingCompleted,
   };
   
   return (
