@@ -43,6 +43,17 @@ export interface OddsAPIEvent {
   home_team: string;
   away_team: string;
   bookmakers: OddsAPIBookmaker[];
+  scores?: {
+    home: number;
+    away: number;
+  };
+  status?: string;  // For live status (e.g., "in_play", "not_started", "ended")
+  time?: {
+    minutes?: number;
+    seconds?: number;
+    extraMinutes?: number;
+    period?: number; // For basketball quarters, football halves, etc.
+  };
 }
 
 /**
@@ -487,6 +498,147 @@ export class OddsAPIService {
     }
   }
   
+  /**
+   * Fetch live in-play events (matches currently in progress)
+   * @param sportKey The sport key to fetch live events for, or 'all' for all sports
+   * @param region The region for odds, defaults to 'uk'
+   */
+  async fetchLiveEvents(sportKey: string = 'all', region: string = 'uk'): Promise<OddsAPIEvent[]> {
+    try {
+      // Map region to API parameters
+      const regions = this.mapRegionToApiParameter(region);
+      
+      // Get all sports if 'all' is specified
+      let sportsToFetch: string[] = [];
+      
+      if (sportKey === 'all') {
+        // Fetch all available sports first
+        const allSports = await this.getSupportedSports();
+        sportsToFetch = allSports.filter(sport => sport.active).map(sport => sport.key);
+      } else {
+        sportsToFetch = [sportKey];
+      }
+      
+      // For each sport, fetch the live events
+      let allLiveEvents: OddsAPIEvent[] = [];
+      
+      for (const sport of sportsToFetch) {
+        try {
+          // Construct the API URL - with the 'in_play=true' parameter
+          const url = `${this.config.baseUrl}/sports/${sport}/scores`;
+          logger.info('OddsAPIService', `Fetching live scores from ${url} for ${sport}`);
+          
+          const response = await axios.get(url, {
+            params: {
+              apiKey: this.config.apiKey,
+              daysFrom: 0,
+              dateFormat: 'iso'
+            }
+          });
+          
+          const events = response.data as OddsAPIEvent[];
+          // Filter to only include events that are in progress
+          const liveEvents = events.filter(event => event.status === 'in_play');
+          logger.info('OddsAPIService', `Fetched ${liveEvents.length} live events for ${sport}`);
+          
+          allLiveEvents = [...allLiveEvents, ...liveEvents];
+        } catch (error: any) {
+          logger.error('OddsAPIService', `Error fetching live events for ${sport}: ${error.message}`);
+          // Continue with other sports even if one fails
+        }
+      }
+      
+      return allLiveEvents;
+    } catch (error: any) {
+      logger.error('OddsAPIService', `Error fetching live events: ${error.message}`);
+      if (error.response) {
+        logger.error('OddsAPIService', `Status: ${error.response.status}, Data: ${JSON.stringify(error.response.data)}`);
+      }
+      return [];
+    }
+  }
+  
+  /**
+   * Get live match scores for all in-progress events
+   * @param sportKey The sport key to fetch live scores for, or 'all' for all sports
+   */
+  async getLiveScores(sportKey: string = 'all'): Promise<StandardizedMatch[]> {
+    try {
+      // Fetch live events
+      const liveEvents = await this.fetchLiveEvents(sportKey);
+      
+      // Convert live events to StandardizedMatch format
+      const standardizedMatches = liveEvents.map(event => {
+        const sport = this.mapSportKey(event.sport_key);
+        const country = this.extractCountryFromTitle(event.sport_title);
+        const league = this.extractLeagueFromTitle(event.sport_title);
+        
+        return {
+          id: `${sport}-${event.id}`,
+          sport,
+          league,
+          country,
+          homeTeam: event.home_team,
+          awayTeam: event.away_team,
+          startTime: new Date(event.commence_time),
+          venue: null,
+          homeOdds: undefined,
+          drawOdds: undefined,
+          awayOdds: undefined,
+          score: {
+            home: event.scores?.home ?? null,
+            away: event.scores?.away ?? null
+          },
+          status: event.status || 'in_play',
+          time: event.time ? {
+            minutes: event.time.minutes,
+            seconds: event.time.seconds,
+            period: event.time.period
+          } : undefined
+        };
+      });
+      
+      logger.info('OddsAPIService', `Converted ${standardizedMatches.length} live events to standardized format`);
+      return standardizedMatches;
+    } catch (error: any) {
+      logger.error('OddsAPIService', `Error getting live scores: ${error.message}`);
+      return [];
+    }
+  }
+  
+  /**
+   * Map region string to API parameter format
+   * @param region Region name (can be user-friendly format like 'UK' or 'United States')
+   */
+  private mapRegionToApiParameter(region: string): string {
+    // Check if it's already in the right format (lowercase)
+    if (['uk', 'us', 'eu', 'au'].includes(region.toLowerCase())) {
+      return region.toLowerCase();
+    }
+    
+    // Check if we have a mapping for this region
+    if (this.regionMappings[region]) {
+      return this.regionMappings[region];
+    }
+    
+    // Default to UK odds format
+    return 'uk';
+  }
+  
+  /**
+   * Get the standardized sport key format required by the API
+   */
+  private getStandardizedSportKey(sportKey: string): string {
+    // Convert standardized sport name to API sport key if needed
+    const reverseMapping: {[key: string]: string} = {
+      'football': 'soccer',
+      'american_football': 'americanfootball',
+      'hockey': 'icehockey'
+    };
+    
+    return reverseMapping[sportKey] || sportKey;
+  }
+
   /**
    * Search for events matching a specific team
    * @param teamName The team name to search for

@@ -81,6 +81,11 @@ export interface StandardizedMatch {
     home: number | null;
     away: number | null;
   };
+  time?: {
+    minutes?: number;
+    seconds?: number;
+    period?: number;
+  };
 }
 
 /**
