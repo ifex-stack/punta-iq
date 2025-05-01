@@ -68,18 +68,24 @@ export const users = pgTable("users", {
 // Referral Tiers enum
 export const referralTierEnum = pgEnum('referral_tier', ['bronze', 'silver', 'gold', 'platinum', 'diamond']);
 
+// Referral status enum
+export const referralStatusEnum = pgEnum('referral_status', ['pending', 'completed', 'rewarded', 'failed']);
+
 // Referrals table
 export const referrals = pgTable("referrals", {
   id: serial("id").primaryKey(),
   referrerId: integer("referrer_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   referredId: integer("referred_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  status: text("status").default("pending").notNull(), // pending, completed, rewarded
+  status: text("status").default("pending").notNull(), // pending, completed, rewarded, failed
   createdAt: timestamp("created_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
   rewardAmount: integer("reward_amount"),
   rewardDate: timestamp("reward_date"),
   channel: text("channel"), // The channel through which this referral came (e.g., 'whatsapp', 'email', 'twitter')
   utmParameters: json("utm_parameters"), // Track UTM parameters for attribution
+  deviceInfo: json("device_info"), // Information about the device used for referral
+  conversionTime: integer("conversion_time"), // Time in minutes from creation to completion
+  firstActionDate: timestamp("first_action_date"), // When the referred user first performed a significant action
 });
 
 // User relations
