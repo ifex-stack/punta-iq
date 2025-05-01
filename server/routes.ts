@@ -1975,19 +1975,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get next match data if requested and available
       let upcomingMatch = null;
       if (includeMatchContext) {
-        // In a real implementation, you would fetch the player's next match
-        // For now, we'll use mock data or leave it as null
-        // This could include opponent strength, home/away, etc.
-        // upcomingMatch = await storage.getPlayerUpcomingMatch(playerId);
+        try {
+          // First try to get from storage if available (uncomment when method is implemented)
+          // upcomingMatch = await storage.getPlayerUpcomingMatch(playerId);
+          
+          // If not available in storage, try to get from sports API using the player's team
+          // Extract team ID from team name if needed for API
+          const teamIdMatch = player.team?.match(/\[(\d+)\]$/);
+          const teamId = teamIdMatch ? parseInt(teamIdMatch[1]) : null;
+          
+          if (!upcomingMatch && teamId) {
+            const teamFixtures = await sportsApiService.getTeamUpcomingFixtures(teamId, 1);
+            
+            if (teamFixtures && teamFixtures.length > 0) {
+              const nextFixture = teamFixtures[0];
+              
+              // Fetch additional team data for opponent
+              const isHomeTeam = player.team === nextFixture.homeTeam;
+              const opponentTeam = isHomeTeam ? nextFixture.awayTeam : nextFixture.homeTeam;
+              
+              // Build enhanced match context object
+              upcomingMatch = {
+                id: nextFixture.id,
+                date: nextFixture.startTime,
+                venue: nextFixture.venue || 'Unknown Venue',
+                isHomeGame: isHomeTeam,
+                competition: {
+                  name: nextFixture.league,
+                  country: nextFixture.country
+                },
+                homeTeam: {
+                  name: nextFixture.homeTeam,
+                  id: isHomeTeam ? teamId : null
+                },
+                awayTeam: {
+                  name: nextFixture.awayTeam,
+                  id: !isHomeTeam ? teamId : null
+                },
+                opponent: {
+                  name: opponentTeam
+                },
+                context: {
+                  odds: {
+                    home: nextFixture.homeOdds,
+                    draw: nextFixture.drawOdds,
+                    away: nextFixture.awayOdds
+                  }
+                }
+              };
+            }
+          }
+        } catch (matchError) {
+          console.warn('Error fetching upcoming match data:', matchError);
+          // Continue even if upcoming match data couldn't be fetched
+        }
       }
       
-      // Combine player data for the OpenAI client
+      // Combine player data for the OpenAI client with enhanced details
       const playerData = {
         id: player.id,
         name: player.name,
         position: player.position,
         team: player.team,
-        league: player.league,
+        league: player.league || '',
+        // Include additional attributes if available from player object
         seasonStats
       };
       
@@ -1998,6 +2049,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         upcomingMatch
       );
       
+      // Prepare match summary for the response if available
+      let matchSummary = null;
+      if (upcomingMatch) {
+        matchSummary = {
+          opponent: upcomingMatch.opponent?.name || (upcomingMatch.isHomeGame ? upcomingMatch.awayTeam.name : upcomingMatch.homeTeam.name),
+          venue: upcomingMatch.venue,
+          date: upcomingMatch.date,
+          competition: upcomingMatch.competition?.name || 'Unknown Competition',
+          isHomeGame: upcomingMatch.isHomeGame
+        };
+      }
+      
       res.json({
         player: {
           id: player.id,
@@ -2007,7 +2070,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         performanceHints,
         hasRecentMatches: recentMatches.length > 0,
-        hasUpcomingMatch: !!upcomingMatch
+        hasUpcomingMatch: !!upcomingMatch,
+        upcomingMatch: matchSummary
       });
       
     } catch (error: any) {
