@@ -47,6 +47,8 @@ interface PerformanceHints {
   fantasyOutlook: string;
   keyStats: string[];
   matchupInsight?: string;
+  contextualFactors?: string[];
+  historicalPatterns?: string;
   confidenceRating: number;
 }
 
@@ -156,20 +158,39 @@ export function PlayerPerformanceHints({
         <CardContent className="pb-3">
           <p className="text-sm">{hints.formSummary}</p>
           
-          <div className="flex items-center justify-between mt-3">
-            <Badge 
-              variant={hints.confidenceRating >= 7 ? "default" : "outline"} 
-              className={cn(
-                "flex items-center gap-1",
-                hints.confidenceRating >= 7 ? "bg-green-100 text-green-800 hover:bg-green-200" : ""
-              )}
-            >
-              <Target className="h-3 w-3" />
-              Confidence: {hints.confidenceRating}/10
-            </Badge>
-            <span className="text-xs text-muted-foreground">
-              {hints.strengths.length} strengths • {hints.weaknesses.length} concerns
-            </span>
+          <div className="flex flex-col gap-2 mt-3">
+            <div className="flex items-center justify-between">
+              <Badge 
+                variant={hints.confidenceRating >= 7 ? "default" : "outline"} 
+                className={cn(
+                  "flex items-center gap-1",
+                  hints.confidenceRating >= 7 ? "bg-green-100 text-green-800 hover:bg-green-200" : ""
+                )}
+              >
+                <Target className="h-3 w-3" />
+                Confidence: {hints.confidenceRating}/10
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                {hints.strengths.length} strengths • {hints.weaknesses.length} concerns
+              </span>
+            </div>
+            
+            {(hints.contextualFactors?.length > 0 || hints.historicalPatterns) && (
+              <div className="flex items-center justify-between">
+                <Badge 
+                  variant="outline"
+                  className="flex items-center gap-1 bg-purple-50 text-purple-800 hover:bg-purple-100 border-purple-200"
+                >
+                  <Sparkles className="h-3 w-3" />
+                  Contextual Insights Available
+                </Badge>
+                <span className="text-xs text-muted-foreground italic cursor-help"
+                  title={hints.historicalPatterns ? hints.historicalPatterns.substring(0, 100) + "..." : ""}
+                >
+                  See full analysis
+                </span>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -271,6 +292,33 @@ export function PlayerPerformanceHints({
               Next Match Insight
             </h4>
             <p className="text-sm">{hints.matchupInsight}</p>
+          </div>
+        )}
+        
+        {hints.contextualFactors && hints.contextualFactors.length > 0 && (
+          <div>
+            <h4 className="font-medium text-sm mb-2 flex items-center gap-1">
+              <Target className="h-4 w-4 text-purple-500" />
+              Contextual Factors
+            </h4>
+            <ul className="space-y-1">
+              {hints.contextualFactors.map((factor, i) => (
+                <li key={i} className="text-sm flex items-start gap-2">
+                  <span className="text-purple-500 mt-0.5">•</span>
+                  <span>{factor}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        
+        {hints.historicalPatterns && (
+          <div>
+            <h4 className="font-medium text-sm mb-1 flex items-center gap-1">
+              <TrendingUp className="h-4 w-4 text-indigo-500" />
+              Historical Patterns
+            </h4>
+            <p className="text-sm">{hints.historicalPatterns}</p>
           </div>
         )}
         

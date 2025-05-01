@@ -229,6 +229,7 @@ export class OpenAIClient {
       const systemMessage = `You are a professional football analyst and statistics expert specializing in player performance analysis. 
         You provide concise, data-driven insights about player performance based on their statistics, recent form, and contextual factors.
         Focus on actionable insights that would help someone decide whether to select this player for fantasy football or make a prediction about their performance.
+        Include highly specific contextual insights that consider playing conditions, opponent quality, and historical performance patterns.
         
         Respond with JSON in this format:
         {
@@ -238,6 +239,8 @@ export class OpenAIClient {
           "fantasyOutlook": "1-2 sentence fantasy football recommendation",
           "keyStats": ["2-3 most impressive stats with context"],
           "matchupInsight": "If upcoming match data provided, specific insight about this matchup",
+          "contextualFactors": ["2-3 contextual factors that might affect performance (weather, stadium, opponent style, etc.)"],
+          "historicalPatterns": "Identified patterns from historical data (e.g., performs better at home, excels against certain types of opponents)",
           "confidenceRating": "A number from 1-10 representing confidence in good performance"
         }`;
 
@@ -245,25 +248,53 @@ export class OpenAIClient {
       let positionSpecificGuidance = "";
       switch (playerPosition.toLowerCase()) {
         case "goalkeeper":
-          positionSpecificGuidance = "For goalkeepers, focus on clean sheets, saves, goals conceded, and distribution stats.";
+          positionSpecificGuidance = `For goalkeepers, focus on:
+            - Clean sheets, saves, goals conceded, and distribution stats
+            - Performance variation between home and away matches
+            - Track record against high-scoring teams
+            - Performance in different weather conditions (if data available)
+            - Consistency metrics across the season`;
           break;
         case "defender":
-          positionSpecificGuidance = "For defenders, focus on clean sheets, tackles, interceptions, blocks, aerial duels, and attacking contributions.";
+          positionSpecificGuidance = `For defenders, focus on:
+            - Clean sheets, tackles, interceptions, blocks, aerial duels, and attacking contributions
+            - Performance against different types of attackers (fast vs. physical)
+            - Set-piece threat and involvement
+            - Distribution and build-up play contributions
+            - Recovery speed and positional awareness indicators`;
           break;
         case "midfielder":
-          positionSpecificGuidance = "For midfielders, focus on passing stats, key passes, assists, chances created, defensive contributions, and goal threat.";
+          positionSpecificGuidance = `For midfielders, focus on:
+            - Passing stats, key passes, assists, chances created, defensive contributions, and goal threat
+            - Performance against high-pressing vs. low-block teams
+            - Distance covered and heat map patterns
+            - Creativity metrics in different game states (winning/losing/drawing)
+            - Set-piece responsibilities and effectiveness`;
           break;
         case "forward":
         case "attacker":
-          positionSpecificGuidance = "For forwards, focus on goals, shots, conversion rate, expected goals (xG), assists, and overall attacking threat.";
+          positionSpecificGuidance = `For forwards, focus on:
+            - Goals, shots, conversion rate, expected goals (xG), assists, and overall attacking threat
+            - Performance against different defensive systems
+            - Goal-scoring patterns (headers, long-range, tap-ins)
+            - Performance when paired with different strike partners or systems
+            - Big chance conversion rate in high-pressure situations`;
           break;
       }
 
+      // Enhanced match context with more specific factors
       const upcomingMatchContext = upcomingMatch ? 
-        `The player has an upcoming match: ${JSON.stringify(upcomingMatch, null, 2)}` : 
+        `The player has an upcoming match: ${JSON.stringify(upcomingMatch, null, 2)}
+        
+        Consider these additional contextual factors:
+        - The venue (home/away) and its impact on this player's historical performance
+        - Weather forecast and pitch conditions if available
+        - Opponent's defensive/offensive strengths that might affect this player
+        - Teammate availability that might impact this player's role
+        - Tactical matchups that could favor or disadvantage this player` : 
         "No upcoming match data provided.";
 
-      const prompt = `Analyze this football player's performance data:
+      const prompt = `Perform a comprehensive analysis of this football player's performance data with special attention to contextual factors:
         Player Profile: ${JSON.stringify(playerData, null, 2)}
         Season Statistics: ${JSON.stringify(playerData.seasonStats || {}, null, 2)}
         Recent Matches: ${JSON.stringify(recentMatches, null, 2)}
@@ -271,7 +302,14 @@ export class OpenAIClient {
         
         ${positionSpecificGuidance}
         
-        Provide concise, relevant performance insights that would help fantasy managers and bettors.`;
+        Look for patterns such as:
+        - Performance variations between home/away matches
+        - Performance against different types of opponents (top teams vs. lower-ranked teams)
+        - Performance trends under different playing conditions
+        - Historical performance in similar contexts to upcoming matches
+        - Recent form trajectory (improving, declining, or stable)
+        
+        Provide highly specific, contextual performance insights that would help fantasy managers and bettors make informed decisions.`;
 
       const result = await this.generateCompletion(prompt, {
         systemMessage,
