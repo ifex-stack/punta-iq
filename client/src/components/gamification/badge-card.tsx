@@ -14,8 +14,8 @@ interface BadgeCardProps {
 
 export const BadgeCard: FC<BadgeCardProps> = ({ badge, userBadge, onMarkViewed }) => {
   const { toast } = useToast();
-  const isEarned = !!userBadge;
-  const isNew = isEarned && userBadge.isNew;
+  const isEarned = userBadge?.achieved || false;
+  const isNew = userBadge?.isNew || false;
   
   const badgeTierColors = {
     bronze: "bg-amber-700",
@@ -25,7 +25,17 @@ export const BadgeCard: FC<BadgeCardProps> = ({ badge, userBadge, onMarkViewed }
     diamond: "bg-purple-400"
   };
   
-  const tierColor = isEarned ? badgeTierColors[badge.tier as keyof typeof badgeTierColors] : "bg-gray-200";
+  // Set default values if properties don't exist
+  const defaultBadge = {
+    name: badge.name || "Badge",
+    description: badge.description || "Complete this challenge to earn a badge",
+    tier: badge.tier || "bronze",
+    icon: badge.icon || "🏆",
+    pointsAwarded: badge.pointsAwarded || 0,
+    criteria: badge.criteria || "Complete the challenge"
+  };
+  
+  const tierColor = isEarned ? badgeTierColors[defaultBadge.tier as keyof typeof badgeTierColors] : "bg-gray-200";
   
   const handleMarkAsViewed = async () => {
     if (isNew && userBadge) {
@@ -57,70 +67,39 @@ export const BadgeCard: FC<BadgeCardProps> = ({ badge, userBadge, onMarkViewed }
       
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-lg">{badge.name}</CardTitle>
+          <CardTitle className="text-lg">{defaultBadge.name}</CardTitle>
           {isEarned && (
             <UIBadge className={`${tierColor} capitalize`}>
-              {badge.tier}
+              {defaultBadge.tier}
             </UIBadge>
           )}
         </div>
-        <CardDescription>{badge.description}</CardDescription>
+        <CardDescription>{defaultBadge.description}</CardDescription>
       </CardHeader>
       
       <CardContent>
         <div className="flex justify-center items-center p-4">
           <div className={`w-16 h-16 rounded-full ${tierColor} flex items-center justify-center`}>
-            <span className="text-2xl">{badge.icon || '🏆'}</span>
+            <span className="text-2xl">{defaultBadge.icon}</span>
           </div>
         </div>
         
-        {isEarned && userBadge.progress && (
+        {userBadge && typeof userBadge.progress === 'number' && (
           <div className="mt-2">
             <div className="flex justify-between text-xs mb-1">
               <span>Progress</span>
-              <span>
-                {(() => {
-                  // Type narrowing for userBadge.progress
-                  type ProgressType = { current: number; target: number };
-                  try {
-                    const progressData = userBadge.progress as unknown as ProgressType;
-                    if (progressData && typeof progressData === 'object' && 
-                        'current' in progressData && 'target' in progressData) {
-                      return `${progressData.current}/${progressData.target}`;
-                    }
-                    return 'In progress';
-                  } catch (e) {
-                    return 'In progress';
-                  }
-                })()}
-              </span>
+              <span>{userBadge.progress}%</span>
             </div>
-            {(() => {
-              // Type narrowing for progress bar
-              type ProgressType = { current: number; target: number };
-              try {
-                const progressData = userBadge.progress as unknown as ProgressType;
-                if (progressData && typeof progressData === 'object' && 
-                    'current' in progressData && 'target' in progressData &&
-                    typeof progressData.current === 'number' && 
-                    typeof progressData.target === 'number' && 
-                    progressData.target > 0) {
-                  return <Progress value={(progressData.current / progressData.target) * 100} />;
-                }
-                return null;
-              } catch (e) {
-                return null;
-              }
-            })()}
+            <Progress value={userBadge.progress} />
           </div>
         )}
       </CardContent>
       
       <CardFooter className="pt-1">
         <p className="text-xs text-muted-foreground">
-          {isEarned 
+          {isEarned && userBadge?.earnedAt 
             ? `Earned on ${new Date(userBadge.earnedAt).toLocaleDateString()}`
-            : "Complete the challenge to earn this badge"}
+            : defaultBadge.criteria}
         </p>
       </CardFooter>
     </Card>
