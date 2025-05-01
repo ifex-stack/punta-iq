@@ -8,6 +8,7 @@ import { getSystemHealthMonitor } from './monitors/system-health-monitor';
 export class AutomationManager {
   private static instance: AutomationManager;
   private initialized = false;
+  private running = false;
   
   // Scheduler and monitor instances
   private predictionScheduler: ReturnType<typeof getPredictionScheduler>;
@@ -70,6 +71,7 @@ export class AutomationManager {
       // Start system health monitor
       this.systemHealthMonitor.start();
       
+      this.running = true;
       logger.info('[AutomationManager]', 'All automated processes started successfully');
     } catch (error) {
       logger.error('[AutomationManager]', 'Error starting automated processes', { error });
@@ -95,6 +97,7 @@ export class AutomationManager {
       // Stop system health monitor
       this.systemHealthMonitor.stop();
       
+      this.running = false;
       logger.info('[AutomationManager]', 'All automated processes stopped successfully');
     } catch (error) {
       logger.error('[AutomationManager]', 'Error stopping automated processes', { error });

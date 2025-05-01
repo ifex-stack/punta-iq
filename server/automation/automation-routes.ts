@@ -6,6 +6,32 @@ import { logger } from '../logger';
  * Setup routes for managing automation
  */
 export function setupAutomationRoutes(app: Express): void {
+  // Public endpoint to get automation status
+  app.get('/api/automation/status', async (req, res) => {
+    try {
+      const isRunning = automationManager.isRunning();
+      const lastPredictionsGenerated = automationManager.getPredictionScheduler().getLastGenerationTime();
+      const nextPredictionsScheduled = automationManager.getPredictionScheduler().getNextScheduledTime();
+      
+      res.json({
+        success: true,
+        status: {
+          isRunning,
+          lastPredictionsGenerated,
+          nextPredictionsScheduled,
+          automationEnabled: process.env.NODE_ENV === 'production',
+          sports: automationManager.getPredictionScheduler().getSupportedSports(),
+          totalPredictionsInLast24Hours: automationManager.getPredictionScheduler().getPredictionsCount24h() || 0,
+        }
+      });
+    } catch (error) {
+      logger.error('[AutomationRoutes]', 'Error getting automation status', { error });
+      res.status(500).json({ 
+        success: false, 
+        message: 'Error retrieving automation status' 
+      });
+    }
+  });
   // Get system health status
   app.get('/api/admin/system-health', async (req, res) => {
     try {
