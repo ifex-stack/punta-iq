@@ -126,6 +126,40 @@ interface Accumulator {
   isRecommended?: boolean;
 }
 
+// Helper function to calculate confidence based on odds
+const calculateSelectionConfidence = (odds: number): number => {
+  // Using implicit probability: 1/odds as base confidence
+  const baseConfidence = (1 / odds) * 100;
+  return Math.min(Math.round(baseConfidence), 95); // Cap at 95%
+};
+
+// Calculate overall accumulator confidence
+const calculateConfidence = (totalOdds: number, riskLevel: string): number => {
+  // Base confidence factoring in total odds and risk level
+  let baseConfidence = Math.max(95 - (totalOdds * 5), 10);
+  
+  // Adjust based on risk level
+  switch (riskLevel) {
+    case 'safe':
+      baseConfidence = Math.min(baseConfidence + 15, 92);
+      break;
+    case 'balanced':
+      baseConfidence = Math.min(baseConfidence + 5, 82);
+      break;
+    case 'risky':
+      baseConfidence = Math.max(baseConfidence - 10, 35);
+      break;
+    case 'high-risk':
+      baseConfidence = Math.max(baseConfidence - 20, 30);
+      break;
+    case 'ultra':
+      baseConfidence = Math.max(baseConfidence - 30, 25);
+      break;
+  }
+  
+  return Math.round(baseConfidence);
+};
+
 export default function AccumulatorsPage() {
   const [_, navigate] = useLocation();
   const { toast } = useToast();
@@ -165,9 +199,23 @@ export default function AccumulatorsPage() {
     // Get all events for sport filtering
     const allEvents = [
       ...((matchesData?.events || [])
-        .map((event: any) => ({ ...event, sportType: 'football' }))),
+        .map((event: any) => ({ 
+          ...event, 
+          sportType: 'football',
+          // Ensure all required properties are present
+          homeOdds: event.homeOdds || 2.0,
+          awayOdds: event.awayOdds || 3.0,
+          drawOdds: event.drawOdds || 3.5
+        }))),
       ...((basketballData?.events || [])
-        .map((event: any) => ({ ...event, sportType: 'basketball' })))
+        .map((event: any) => ({ 
+          ...event, 
+          sportType: 'basketball',
+          // Basketball doesn't have draws
+          homeOdds: event.homeOdds || 1.9,
+          awayOdds: event.awayOdds || 1.9,
+          drawOdds: null
+        })))
     ];
     
     // Filter by sport
@@ -427,27 +475,7 @@ export default function AccumulatorsPage() {
     return generateAccumulators();
   }, [matchesData, basketballData, riskLevel, filterSport]);
   
-  // Helper function to calculate confidence based on odds and risk level
-  const calculateSelectionConfidence = (odds: number): number => {
-    // Using implicit probability: 1/odds as base confidence
-    const baseConfidence = (1 / odds) * 100;
-    return Math.min(Math.round(baseConfidence), 95); // Cap at 95%
-  };
-  
-  // Helper function to calculate overall accumulator confidence
-  const calculateConfidence = (totalOdds: number, riskLevel: string): number => {
-    const baseProbability = (1 / totalOdds) * 100;
-    
-    // Adjust based on risk level (more aggressive adjustment for safer accumulators)
-    switch (riskLevel) {
-      case 'safe': return Math.min(Math.round(baseProbability * 1.25), 90);
-      case 'balanced': return Math.min(Math.round(baseProbability * 1.15), 80);
-      case 'risky': return Math.min(Math.round(baseProbability * 1.1), 70);
-      case 'high-risk': return Math.min(Math.round(baseProbability * 1.05), 60);
-      case 'ultra': return Math.min(Math.round(baseProbability), 40);
-      default: return Math.round(baseProbability);
-    }
-  };
+  // Using the helper functions defined at the top of the file
   
   // Is accumulator data loading?
   const isLoading = loadingMatches || (filterSport === 'all' || filterSport === 'basketball') && loadingBasketball;
