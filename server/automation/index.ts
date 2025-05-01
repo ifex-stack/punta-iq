@@ -157,6 +157,14 @@ export class AutomationManager {
       details: this.systemHealthMonitor.getHealthStatus(),
     };
   }
+  
+  /**
+   * Check if automation is running
+   * @returns Current running state
+   */
+  public isRunning(): boolean {
+    return this.initialized && this.running;
+  }
 }
 
 // Export singleton instance

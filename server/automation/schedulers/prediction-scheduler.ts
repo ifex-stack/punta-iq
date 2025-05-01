@@ -41,6 +41,11 @@ export class PredictionScheduler {
   private notificationJob: any; // Daily notification for new predictions
   private accumulatorJob: any; // Daily accumulator generation
   
+  // Prediction generation tracking
+  private lastGenerationTime: Date | null = null;
+  private nextScheduledTime: Date | null = null;
+  private predictionsCount24h: number = 0;
+  
   constructor() {
     this.mlServiceClient = new MLServiceClient();
     this.oddsService = oddsAPIService;
@@ -86,6 +91,18 @@ export class PredictionScheduler {
     try {
       logger.info('[PredictionScheduler]', 'Starting daily prediction generation');
       
+      // Update tracking info
+      this.lastGenerationTime = new Date();
+      
+      // Calculate next scheduled time based on the cron expression "0 1 * * *" (1 AM UTC)
+      const nextScheduled = new Date();
+      if (nextScheduled.getHours() >= 1) {
+        // If it's already past 1 AM, schedule for tomorrow
+        nextScheduled.setDate(nextScheduled.getDate() + 1);
+      }
+      nextScheduled.setHours(1, 0, 0, 0);
+      this.nextScheduledTime = nextScheduled;
+      
       // Generate predictions using ML service
       const options = {
         daysAhead: 3, // Generate predictions for next 3 days
@@ -104,6 +121,9 @@ export class PredictionScheduler {
         
         // Store generation stats
         await this.storePredictionGenerationStats(result);
+        
+        // Update prediction count for the last 24 hours
+        await this.updatePredictionCount();
       } else {
         logger.error('[PredictionScheduler]', 'Failed to generate daily predictions', { error: result.error });
       }
@@ -439,8 +459,71 @@ export class PredictionScheduler {
    */
   async triggerPredictionGeneration() {
     logger.info('[PredictionScheduler]', 'Manually triggering prediction generation');
+    this.lastGenerationTime = new Date();
+    
+    // Calculate next scheduled time based on the cron expression "0 1 * * *" (1 AM UTC)
+    const nextScheduled = new Date();
+    if (nextScheduled.getHours() >= 1) {
+      // If it's already past 1 AM, schedule for tomorrow
+      nextScheduled.setDate(nextScheduled.getDate() + 1);
+    }
+    nextScheduled.setHours(1, 0, 0, 0);
+    this.nextScheduledTime = nextScheduled;
+    
     await this.generateDailyPredictions();
     await this.generateDailyAccumulators();
+    
+    // Update prediction count for the last 24 hours
+    this.updatePredictionCount();
+  }
+  
+  /**
+   * Update the count of predictions generated in the last 24 hours
+   */
+  private async updatePredictionCount() {
+    try {
+      // Calculate date 24 hours ago
+      const oneDayAgo = new Date();
+      oneDayAgo.setHours(oneDayAgo.getHours() - 24);
+      
+      // Count predictions created in the last 24 hours
+      const recentPredictions = await db.select()
+        .from(predictions)
+        .where(gte(predictions.createdAt, oneDayAgo));
+      
+      this.predictionsCount24h = recentPredictions.length;
+      logger.debug('[PredictionScheduler]', `Updated 24h prediction count: ${this.predictionsCount24h}`);
+    } catch (error) {
+      logger.error('[PredictionScheduler]', 'Error updating prediction count', { error });
+    }
+  }
+  
+  /**
+   * Get the timestamp of the last prediction generation
+   */
+  public getLastGenerationTime(): Date | null {
+    return this.lastGenerationTime;
+  }
+  
+  /**
+   * Get the timestamp of the next scheduled prediction generation
+   */
+  public getNextScheduledTime(): Date | null {
+    return this.nextScheduledTime;
+  }
+  
+  /**
+   * Get the count of predictions generated in the last 24 hours
+   */
+  public getPredictionsCount24h(): number {
+    return this.predictionsCount24h;
+  }
+  
+  /**
+   * Get the list of supported sports
+   */
+  public getSupportedSports(): string[] {
+    return SUPPORTED_SPORTS;
   }
 }
 
