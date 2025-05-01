@@ -513,7 +513,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/odds/sports", async (req, res) => {
     try {
       const sports = await oddsAPIService.getSupportedSports();
-      res.json(sports);
+      
+      // Add soccer leagues as separate options for granular selection
+      const soccerLeagues = await oddsAPIService.getAllSoccerLeagues();
+      const soccerLeagueDetails = soccerLeagues.map(league => {
+        const leagueName = league.replace('soccer_', '').replace(/_/g, ' ');
+        return {
+          key: league,
+          group: 'soccer',
+          title: leagueName.charAt(0).toUpperCase() + leagueName.slice(1),
+          description: `Soccer matches from ${leagueName}`,
+          active: true,
+          has_outrights: false
+        };
+      });
+      
+      // Add special soccer_all option for comprehensive soccer coverage
+      const allSports = [
+        {
+          key: 'soccer_all',
+          group: 'soccer',
+          title: 'All Soccer Leagues',
+          description: 'Comprehensive coverage of all soccer leagues worldwide',
+          active: true,
+          has_outrights: false
+        },
+        ...sports,
+        ...soccerLeagueDetails
+      ];
+      
+      res.json(allSports);
     } catch (error: any) {
       console.error('Error fetching sports:', error.message);
       res.status(500).json({ error: "Failed to fetch sports data" });
@@ -522,7 +551,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/odds/soccer", async (req, res) => {
     try {
-      let matches = await oddsAPIService.getUpcomingEvents("soccer", 3);
+      // Parse query parameters
+      const days = req.query.days ? parseInt(req.query.days as string) : 3;
+      const dateStr = req.query.date as string;
+      const startDate = dateStr ? new Date(dateStr) : undefined;
+      const region = req.query.region as string || 'eu,uk,us';
+      const leagueKey = req.query.league as string || 'soccer_all';
+      
+      // Use the appropriate league key or use all leagues
+      let matches = await oddsAPIService.getUpcomingEvents(leagueKey, days, startDate, region);
       
       // Enhance matches with predictions
       if (matches.length > 0) {
@@ -559,13 +596,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         }));
         
-        res.json({ events: enhancedMatches });
+        // Sort matches by start time
+        const sortedMatches = enhancedMatches.sort((a, b) => {
+          return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+        });
+        
+        // Group matches by league if requested
+        let responseData;
+        if (req.query.groupByLeague === 'true') {
+          const matchesByLeague: Record<string, any[]> = {};
+          
+          sortedMatches.forEach(match => {
+            const league = match.league || 'Unknown League';
+            if (!matchesByLeague[league]) {
+              matchesByLeague[league] = [];
+            }
+            matchesByLeague[league].push(match);
+          });
+          
+          responseData = { 
+            eventsByLeague: matchesByLeague,
+            count: sortedMatches.length,
+            leagueCount: Object.keys(matchesByLeague).length,
+            searchParams: { days, date: startDate?.toISOString() || 'today', region, league: leagueKey }
+          };
+        } else {
+          responseData = { 
+            events: sortedMatches,
+            count: sortedMatches.length,
+            searchParams: { days, date: startDate?.toISOString() || 'today', region, league: leagueKey }
+          };
+        }
+        
+        res.json(responseData);
       } else {
-        res.json({ events: [] });
+        res.json({ 
+          events: [],
+          count: 0,
+          searchParams: { days, date: startDate?.toISOString() || 'today', region, league: leagueKey }
+        });
       }
     } catch (error: any) {
       console.error('Error fetching soccer events:', error.message);
-      res.status(500).json({ error: "Failed to fetch soccer data" });
+      res.status(500).json({ error: "Failed to fetch soccer data", message: error.message });
     }
   });
 

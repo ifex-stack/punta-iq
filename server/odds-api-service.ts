@@ -51,6 +51,19 @@ export interface OddsAPIEvent {
 export class OddsAPIService {
   private config: OddsAPIConfig;
   private supportedSports: Map<string, OddsAPISport> = new Map();
+  private regionMappings: {[region: string]: string} = {
+    'UK': 'uk',
+    'United Kingdom': 'uk',
+    'US': 'us',
+    'United States': 'us',
+    'EU': 'eu',
+    'Europe': 'eu',
+    'Africa': 'uk', // Most African markets use UK odds
+    'Nigeria': 'uk',
+    'Australia': 'au',
+    'World': 'eu,uk,us', // For global events, check multiple markets
+    'International': 'eu,uk,us'
+  };
   
   constructor() {
     this.config = {
@@ -158,6 +171,98 @@ export class OddsAPIService {
   }
   
   /**
+   * Extract country/region information from sports title
+   * @param sportTitle The sport title from the API
+   */
+  private extractCountryFromTitle(sportTitle: string): string {
+    // Extract country or region from title if possible
+    const parts = sportTitle.split(' - ');
+    if (parts.length >= 2) {
+      return parts[1].trim();
+    }
+    
+    // Check if it contains a known country or region name
+    const knownCountries = [
+      'England', 'Spain', 'Italy', 'Germany', 'France', 'Netherlands', 
+      'Portugal', 'Brazil', 'Argentina', 'Mexico', 'USA', 'Nigeria',
+      'South Africa', 'Egypt', 'China', 'Japan', 'Australia'
+    ];
+    
+    for (const country of knownCountries) {
+      if (sportTitle.includes(country)) {
+        return country;
+      }
+    }
+    
+    // Special cases for tournaments
+    if (sportTitle.includes('Champions League') || sportTitle.includes('Europa')) {
+      return 'Europe';
+    }
+    
+    if (sportTitle.includes('World Cup') || sportTitle.includes('International')) {
+      return 'International';
+    }
+    
+    if (sportTitle.includes('AFCON') || sportTitle.includes('African Cup')) {
+      return 'Africa';
+    }
+    
+    return 'International';
+  }
+
+  /**
+   * Extract league information from sports title
+   * @param sportTitle The sport title from the API
+   */
+  private extractLeagueFromTitle(sportTitle: string): string {
+    // Some APIs include both the league and country in format "League - Country"
+    const parts = sportTitle.split(' - ');
+    if (parts.length >= 2) {
+      return parts[0].trim();
+    }
+    
+    // Try to extract league information from common patterns
+    if (sportTitle.includes('Premier League')) {
+      return 'Premier League';
+    }
+    
+    if (sportTitle.includes('La Liga')) {
+      return 'La Liga';
+    }
+    
+    if (sportTitle.includes('Serie A')) {
+      return 'Serie A';
+    }
+    
+    if (sportTitle.includes('Bundesliga')) {
+      return 'Bundesliga';
+    }
+    
+    if (sportTitle.includes('Ligue 1')) {
+      return 'Ligue 1';
+    }
+    
+    if (sportTitle.includes('MLS')) {
+      return 'MLS';
+    }
+    
+    if (sportTitle.includes('Champions League')) {
+      return 'Champions League';
+    }
+    
+    if (sportTitle.includes('Europa League')) {
+      return 'Europa League';
+    }
+    
+    if (sportTitle.includes('World Cup')) {
+      return 'World Cup';
+    }
+    
+    // If we can't extract a specific league, return the full title
+    return sportTitle;
+  }
+
+  /**
    * Convert OddsAPI events to StandardizedMatch format
    * @param events OddsAPI events
    * @param sportKey The sport key
@@ -166,29 +271,55 @@ export class OddsAPIService {
     const standardizedSport = this.mapSportKey(sportKey);
     
     return events.map(event => {
-      // Extract odds from the first bookmaker that has the market we want
-      let homeOdds, drawOdds, awayOdds;
+      // Extract odds from all available bookmakers and average them for more accurate pricing
+      let homeOddsTotal = 0;
+      let drawOddsTotal = 0;
+      let awayOddsTotal = 0;
+      let homeOddsCount = 0;
+      let drawOddsCount = 0;
+      let awayOddsCount = 0;
       
       if (event.bookmakers && event.bookmakers.length > 0) {
-        const bookmaker = event.bookmakers[0];
-        const h2hMarket = bookmaker.markets.find(market => market.key === 'h2h');
-        
-        if (h2hMarket) {
-          const homeOutcome = h2hMarket.outcomes.find(outcome => outcome.name === event.home_team);
-          const awayOutcome = h2hMarket.outcomes.find(outcome => outcome.name === event.away_team);
-          const drawOutcome = h2hMarket.outcomes.find(outcome => outcome.name === 'Draw');
+        event.bookmakers.forEach(bookmaker => {
+          const h2hMarket = bookmaker.markets.find(market => market.key === 'h2h');
           
-          homeOdds = homeOutcome ? homeOutcome.price : undefined;
-          awayOdds = awayOutcome ? awayOutcome.price : undefined;
-          drawOdds = drawOutcome ? drawOutcome.price : undefined;
-        }
+          if (h2hMarket) {
+            const homeOutcome = h2hMarket.outcomes.find(outcome => outcome.name === event.home_team);
+            const awayOutcome = h2hMarket.outcomes.find(outcome => outcome.name === event.away_team);
+            const drawOutcome = h2hMarket.outcomes.find(outcome => outcome.name === 'Draw');
+            
+            if (homeOutcome) {
+              homeOddsTotal += homeOutcome.price;
+              homeOddsCount++;
+            }
+            
+            if (awayOutcome) {
+              awayOddsTotal += awayOutcome.price;
+              awayOddsCount++;
+            }
+            
+            if (drawOutcome) {
+              drawOddsTotal += drawOutcome.price;
+              drawOddsCount++;
+            }
+          }
+        });
       }
+      
+      // Calculate average odds
+      const homeOdds = homeOddsCount > 0 ? homeOddsTotal / homeOddsCount : undefined;
+      const awayOdds = awayOddsCount > 0 ? awayOddsTotal / awayOddsCount : undefined;
+      const drawOdds = drawOddsCount > 0 ? drawOddsTotal / drawOddsCount : undefined;
+      
+      // Extract country and league information
+      const country = this.extractCountryFromTitle(event.sport_title);
+      const league = this.extractLeagueFromTitle(event.sport_title);
       
       return {
         id: `${standardizedSport}-${event.id}`,
         sport: standardizedSport,
-        league: event.sport_title,
-        country: 'International', // OddsAPI doesn't provide country info
+        league: league,
+        country: country,
         homeTeam: event.home_team,
         awayTeam: event.away_team,
         startTime: new Date(event.commence_time),
@@ -236,28 +367,117 @@ export class OddsAPIService {
   }
   
   /**
-   * Get upcoming events for a specific sport
+   * Get all supported soccer leagues
+   * This includes both major and minor leagues across the world
+   */
+  async getAllSoccerLeagues(): Promise<string[]> {
+    // Soccer has multiple specific leagues available in the API
+    return [
+      'soccer_epl',                  // English Premier League
+      'soccer_spain_la_liga',        // Spanish La Liga
+      'soccer_germany_bundesliga',   // German Bundesliga
+      'soccer_italy_serie_a',        // Italian Serie A
+      'soccer_france_ligue_one',     // French Ligue 1
+      'soccer_netherlands_eredivisie', // Dutch Eredivisie
+      'soccer_portugal_primeira_liga', // Portuguese Primeira Liga
+      'soccer_uefa_champions_league',  // UEFA Champions League
+      'soccer_uefa_europa_league',     // UEFA Europa League
+      'soccer_england_league1',        // English League One
+      'soccer_england_league2',        // English League Two
+      'soccer_england_efl_champ',      // English Championship
+      'soccer_mexico_ligamx',          // Liga MX
+      'soccer_africa_cup_of_nations',  // Africa Cup of Nations
+      'soccer_brazil_campeonato',      // Brazilian Serie A
+      'soccer_argentina_primera_division', // Argentinian Primera División
+      'soccer_belgium_first_div',      // Belgian First Division
+      'soccer_fifa_world_cup',         // FIFA World Cup
+      'soccer_denmark_superliga',      // Danish Superliga
+      'soccer_turkey_super_league',    // Turkish Super Lig
+      'soccer_norway_eliteserien',     // Norwegian Eliteserien
+      'soccer_saudi_proleague',        // Saudi Pro League
+      'soccer_usa_mls',                // Major League Soccer (USA)
+      'soccer_china_superleague',      // Chinese Super League
+      'soccer_japan_j_league',         // Japanese J League
+    ];
+  }
+
+  /**
+   * Get upcoming events for a specific sport with more flexibility
    * @param sportKey The sport key
    * @param days Number of days to look ahead
+   * @param startDate Optional specific start date
+   * @param regions Optional regions to fetch odds for
    */
-  async getUpcomingEvents(sportKey: string, days: number = 7): Promise<StandardizedMatch[]> {
+  async getUpcomingEvents(
+    sportKey: string, 
+    days: number = 7, 
+    startDate?: Date,
+    regions?: string
+  ): Promise<StandardizedMatch[]> {
     try {
-      // Get all upcoming events
-      const events = await this.fetchEvents(sportKey);
+      // If sportKey is 'soccer_all', fetch data from all soccer leagues
+      if (sportKey === 'soccer_all') {
+        const soccerLeagues = await this.getAllSoccerLeagues();
+        let allMatches: StandardizedMatch[] = [];
+        
+        // For each soccer league, get matches and combine results
+        for (const league of soccerLeagues) {
+          try {
+            const leagueMatches = await this.getUpcomingEventsSingle(
+              league, days, startDate, regions || 'eu,uk,us'
+            );
+            
+            if (leagueMatches.length > 0) {
+              allMatches = [...allMatches, ...leagueMatches];
+              
+              // Respect API rate limits with delay between requests
+              await new Promise(resolve => setTimeout(resolve, 300));
+            }
+          } catch (error) {
+            logger.warn('OddsAPIService', `Error fetching ${league}, continuing with other leagues: ${error.message}`);
+          }
+        }
+        
+        logger.info('OddsAPIService', `Found ${allMatches.length} total soccer events across all leagues`);
+        return allMatches;
+      }
       
-      // Filter for events within the specified days
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      // Regular single league/sport fetch
+      return this.getUpcomingEventsSingle(sportKey, days, startDate, regions);
+    } catch (error: any) {
+      logger.error('OddsAPIService', `Error getting upcoming events for ${sportKey}: ${error.message}`);
+      return [];
+    }
+  }
+  
+  /**
+   * Internal method to get upcoming events for a single sport/league
+   */
+  private async getUpcomingEventsSingle(
+    sportKey: string, 
+    days: number = 7, 
+    startDate?: Date,
+    regions?: string
+  ): Promise<StandardizedMatch[]> {
+    try {
+      // Get all upcoming events with specified regions
+      const events = await this.fetchEvents(sportKey, regions || 'us');
       
-      const futureDate = new Date(today);
-      futureDate.setDate(futureDate.getDate() + days);
+      // Calculate date range
+      const start = startDate || new Date();
+      if (!startDate) {
+        start.setHours(0, 0, 0, 0);
+      }
+      
+      const end = new Date(start);
+      end.setDate(end.getDate() + days);
       
       const upcomingEvents = events.filter(event => {
         const eventDate = new Date(event.commence_time);
-        return eventDate >= today && eventDate < futureDate;
+        return eventDate >= start && eventDate < end;
       });
       
-      logger.info('OddsAPIService', `Found ${upcomingEvents.length} upcoming events for ${sportKey} within ${days} days`);
+      logger.info('OddsAPIService', `Found ${upcomingEvents.length} upcoming events for ${sportKey} within specified date range`);
       
       // Convert to standardized format
       return this.convertToStandardizedMatches(upcomingEvents, sportKey);
