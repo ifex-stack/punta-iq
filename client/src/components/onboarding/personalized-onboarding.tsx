@@ -308,6 +308,18 @@ export function PersonalizedOnboarding() {
       // Onboarding complete
       markPersonalizedOnboardingCompleted();
       closeOnboarding();
+      
+      // Show a success notification with a summary of selections
+      toast({
+        title: 'Personalized Onboarding Complete',
+        description: 'Your preferences have been saved. You can view and edit them in your profile settings.',
+        variant: 'default',
+        duration: 5000,
+      });
+      
+      // Invalidate queries to ensure latest preferences are loaded
+      queryClient.invalidateQueries({ queryKey: ['/api/user/preferences'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
     }
   };
   
@@ -605,46 +617,61 @@ export function PersonalizedOnboarding() {
                 This helps us customize the language and depth of our analyses
               </p>
               
-              <div className="grid grid-cols-1 gap-4 pt-2">
-                {EXPERIENCE_LEVEL_OPTIONS.map(option => {
-                  const isSelected = experienceLevel === option.id;
-                  
-                  return (
-                    <Card 
-                      key={option.id}
-                      className={`border cursor-pointer transition-all ${
-                        isSelected ? "bg-primary/5 border-primary" : "hover:bg-accent"
-                      }`}
-                      onClick={() => setExperienceLevel(option.id)}
-                    >
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex gap-3 items-center">
-                          <RadioGroupItem 
-                            className="mt-0" 
-                            checked={isSelected}
-                            id={`exp-${option.id}`}
-                            value={option.id}
-                          />
-                          <div>
-                            <Label htmlFor={`exp-${option.id}`} className="font-medium">
-                              {option.label}
-                            </Label>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {option.id === 'beginner' && "I'm new to sports betting"}
-                              {option.id === 'intermediate' && "I bet occasionally and understand the basics"}
-                              {option.id === 'expert' && "I'm experienced with advanced betting concepts"}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        {option.id === 'beginner' && <Zap className="h-5 w-5 text-yellow-500" />}
-                        {option.id === 'intermediate' && <Crown className="h-5 w-5 text-primary" />}
-                        {option.id === 'expert' && <Trophy className="h-5 w-5 text-amber-500" />}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
+              <RadioGroup 
+                value={experienceLevel || ''} 
+                onValueChange={setExperienceLevel}
+                className="space-y-0"
+              >
+                <div className="grid grid-cols-1 gap-4 pt-2">
+                  {EXPERIENCE_LEVEL_OPTIONS.map(option => {
+                    const isSelected = experienceLevel === option.id;
+                    
+                    return (
+                      <div key={option.id} className="relative">
+                        <RadioGroupItem 
+                          value={option.id} 
+                          id={`exp-${option.id}`}
+                          className="absolute opacity-0"
+                        />
+                        <Label 
+                          htmlFor={`exp-${option.id}`}
+                          className="w-full cursor-pointer"
+                        >
+                          <Card 
+                            className={`border transition-all ${
+                              isSelected ? "bg-primary/5 border-primary" : "hover:bg-accent"
+                            }`}
+                          >
+                            <CardContent className="p-4 flex items-center justify-between">
+                              <div className="flex gap-3 items-center">
+                                <div className={`rounded-full h-4 w-4 border flex items-center justify-center ${
+                                  isSelected ? "border-2 border-primary" : "border-muted-foreground"
+                                }`}>
+                                  {isSelected && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                </div>
+                                <div>
+                                  <div className="font-medium">
+                                    {option.label}
+                                  </div>
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    {option.id === 'beginner' && "I'm new to sports betting"}
+                                    {option.id === 'intermediate' && "I bet occasionally and understand the basics"}
+                                    {option.id === 'expert' && "I'm experienced with advanced betting concepts"}
+                                  </p>
+                                </div>
+                              </div>
+                              
+                              {option.id === 'beginner' && <Zap className="h-5 w-5 text-yellow-500" />}
+                              {option.id === 'intermediate' && <Crown className="h-5 w-5 text-primary" />}
+                              {option.id === 'expert' && <Trophy className="h-5 w-5 text-amber-500" />}
+                            </CardContent>
+                          </Card>
+                        </Label>
+                      </div>
+                    );
+                  })}
+                </div>
+              </RadioGroup>
             </div>
           </div>
         );
