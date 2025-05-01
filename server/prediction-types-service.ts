@@ -771,6 +771,153 @@ export class PredictionTypesService {
     
     return 'Mixed';
   }
+  
+  /**
+   * Select matches for Weekend Banker accumulator
+   */
+  private selectWeekendBankers(matches: StandardizedMatch[], risk: RiskLevel): StandardizedMatch[] {
+    // Weekend bankers focus on home favorites with very low odds (safer bets)
+    return matches
+      .filter(match => {
+        // Only include matches on weekend
+        const matchDate = typeof match.startTime === 'string' 
+          ? new Date(match.startTime) 
+          : match.startTime;
+        const day = matchDate.getDay();
+        const isWeekend = day === 0 || day === 5 || day === 6; // Friday, Saturday, Sunday
+        
+        // Must have low home odds (strong favorites)
+        const hasLowHomeOdds = match.homeOdds !== undefined && match.homeOdds < 1.6;
+        
+        return isWeekend && hasLowHomeOdds;
+      })
+      .sort((a, b) => {
+        // Sort by lowest home odds (safest picks first)
+        if (!a.homeOdds || !b.homeOdds) return 0;
+        return a.homeOdds - b.homeOdds;
+      });
+  }
+  
+  /**
+   * Select matches for Longshot Hero accumulator
+   */
+  private selectLongshotMatches(matches: StandardizedMatch[], risk: RiskLevel): StandardizedMatch[] {
+    // Longshots focus on high potential away wins or underdogs
+    return matches
+      .filter(match => {
+        // Look for high away odds (underdogs)
+        const hasHighAwayOdds = match.awayOdds !== undefined && match.awayOdds > 3.0;
+        // But not too high to be completely unrealistic
+        const notImpossible = !match.awayOdds || match.awayOdds < 7.0;
+        
+        return hasHighAwayOdds && notImpossible;
+      })
+      .sort((a, b) => {
+        // For longshots, higher risk levels mean we're looking for higher odds
+        if (risk === RiskLevel.RISKY && a.awayOdds && b.awayOdds) {
+          return b.awayOdds - a.awayOdds; // Higher odds first for risky
+        }
+        
+        // For safer risk levels, still look for value but more moderate
+        if (!a.awayOdds || !b.awayOdds) return 0;
+        return a.awayOdds - b.awayOdds; // Lower odds first for safer
+      });
+  }
+  
+  /**
+   * Select matches for Global Explorer accumulator
+   */
+  private selectGlobalMatches(matches: StandardizedMatch[], risk: RiskLevel): StandardizedMatch[] {
+    // Get a diverse set of leagues/countries
+    const uniqueLeagues = new Set<string>();
+    const result: StandardizedMatch[] = [];
+    
+    // First, identify all available leagues
+    matches.forEach(match => {
+      uniqueLeagues.add(match.league);
+    });
+    
+    // Then pick best match from each league
+    uniqueLeagues.forEach(league => {
+      const leagueMatches = matches.filter(m => m.league === league);
+      
+      if (leagueMatches.length > 0) {
+        // Sort by value
+        leagueMatches.sort((a, b) => {
+          const aValue = this.calculateMatchValue(a);
+          const bValue = this.calculateMatchValue(b);
+          return bValue - aValue; // Higher value first
+        });
+        
+        // Add the best value match from this league
+        result.push(leagueMatches[0]);
+      }
+    });
+    
+    return result;
+  }
+  
+  /**
+   * Select matches for Draw Specialist accumulator
+   */
+  private selectDrawMatches(matches: StandardizedMatch[], risk: RiskLevel): StandardizedMatch[] {
+    // Focus on matches with lowest draw odds
+    return matches
+      .filter(match => match.drawOdds !== undefined)
+      .sort((a, b) => {
+        if (!a.drawOdds || !b.drawOdds) return 0;
+        return a.drawOdds - b.drawOdds; // Lower draw odds first
+      });
+  }
+  
+  /**
+   * Select matches for Clean Sheet Kings accumulator
+   */
+  private selectCleanSheetMatches(matches: StandardizedMatch[], risk: RiskLevel): StandardizedMatch[] {
+    // Focus on matches where strong favorites are playing weaker teams
+    return matches
+      .filter(match => {
+        const hasLowHomeOdds = match.homeOdds !== undefined && match.homeOdds < 1.5;
+        const hasHighAwayOdds = match.awayOdds !== undefined && match.awayOdds > 3.0;
+        
+        // Either home team is strong favorite or away team is strong favorite
+        return hasLowHomeOdds || hasHighAwayOdds;
+      })
+      .sort((a, b) => {
+        // Calculate odds gap - bigger gap suggests stronger team vs weaker team
+        const aGap = (a.awayOdds || 0) - (a.homeOdds || 0);
+        const bGap = (b.awayOdds || 0) - (b.homeOdds || 0);
+        
+        return bGap - aGap; // Larger gap first
+      });
+  }
+  
+  /**
+   * Calculate match value (estimated value ratio)
+   */
+  private calculateMatchValue(match: StandardizedMatch): number {
+    // Calculate value based on odds and estimated probabilities
+    
+    if (!match.homeOdds && !match.awayOdds) return 0;
+    
+    const homeOdds = match.homeOdds || 2.0;
+    const awayOdds = match.awayOdds || 3.0;
+    
+    // Estimate probabilities from odds
+    const homeImpliedProb = 1 / homeOdds;
+    const awayImpliedProb = 1 / awayOdds;
+    
+    // Use simple elo-based estimates (simplified for illustration)
+    const homeEstimatedProb = 0.45 + (1.5 - homeOdds) * 0.1;
+    const awayEstimatedProb = 0.35 + (2.5 - awayOdds) * 0.1;
+    
+    // Calculate value ratios
+    const homeValueRatio = homeEstimatedProb / homeImpliedProb;
+    const awayValueRatio = awayEstimatedProb / awayImpliedProb;
+    
+    // Return the better value
+    return Math.max(homeValueRatio, awayValueRatio);
+  }
 }
 
 // Export a singleton instance
