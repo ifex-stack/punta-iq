@@ -1,26 +1,10 @@
 import { logger } from "./logger";
 
-// Define StandardizedMatch interface here to avoid import issues
-export interface StandardizedMatch {
-  id: string;
-  sport: string;
-  league: string;
-  country: string;
-  homeTeam: string;
-  awayTeam: string;
-  startTime: string | Date;
-  venue: string | null;
-  homeOdds?: number;
-  drawOdds?: number;
-  awayOdds?: number;
-  score: {
-    home: number | null;
-    away: number | null;
-  };
-  prediction?: string;
-  confidence?: number;
-  explanation?: string;
-}
+// Import StandardizedMatch from sports-api-service to ensure consistency
+import { StandardizedMatch as BaseStandardizedMatch } from './sports-api-service';
+
+// Use the imported type to maintain consistency across services
+export type StandardizedMatch = BaseStandardizedMatch;
 
 /**
  * Types of predictions supported by the platform
@@ -50,6 +34,11 @@ export enum AccumulatorType {
   UPSET_SPECIAL = "upset_special", // Accumulator of potential upsets
   GOALS_GALORE = "goals_galore", // Accumulator of BTTS
   GOALS_FIESTA = "goals_fiesta", // Accumulator of over 2.5 goals
+  WEEKEND_BANKER = "weekend_banker", // Safest weekend picks
+  LONGSHOT_HERO = "longshot_hero", // High-odds selections
+  GLOBAL_EXPLORER = "global_explorer", // Picks from different leagues around the world
+  DRAW_SPECIALIST = "draw_specialist", // Matches likely to end in draws
+  CLEAN_SHEET_KINGS = "clean_sheet_kings", // Teams likely to keep clean sheets
 }
 
 /**

@@ -60,6 +60,7 @@ export interface ApiSportsMatch {
 }
 
 // Interface for our standardized match data format
+// Note: When making changes to this interface, also update related interfaces in prediction-types-service.ts
 export interface StandardizedMatch {
   id: string;
   sport: string;
@@ -67,13 +68,16 @@ export interface StandardizedMatch {
   country: string;
   homeTeam: string;
   awayTeam: string;
-  startTime: Date;
+  startTime: string | Date;
   venue: string | null;
   homeOdds?: number;
   drawOdds?: number;
   awayOdds?: number;
   status?: string;
-  score?: {
+  prediction?: string;
+  confidence?: number;
+  explanation?: string;
+  score: {
     home: number | null;
     away: number | null;
   };
