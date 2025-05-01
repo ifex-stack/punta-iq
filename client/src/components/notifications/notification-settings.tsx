@@ -61,28 +61,55 @@ export function NotificationSettings({ className }: NotificationSettingsProps) {
   const [activeTab, setActiveTab] = useState<"general" | "sports">("general");
 
   // Load user notification preferences
+  // Initialize from user notification settings
   useEffect(() => {
     if (user?.notificationSettings) {
       const settings = user.notificationSettings;
-      setPreferences({
-        general: {
-          predictions: settings.general?.predictions ?? true,
-          results: settings.general?.results ?? true,
-          promotions: settings.general?.promotions ?? true,
-        },
-        sports: {
-          football: settings.sports?.football ?? true,
-          basketball: settings.sports?.basketball ?? true,
-          tennis: settings.sports?.tennis ?? true,
-          baseball: settings.sports?.baseball ?? true,
-          hockey: settings.sports?.hockey ?? true,
-          cricket: settings.sports?.cricket ?? true,
-          formula1: settings.sports?.formula1 ?? true,
-          mma: settings.sports?.mma ?? true,
-          volleyball: settings.sports?.volleyball ?? true,
-          other: settings.sports?.other ?? true,
-        }
-      });
+      
+      // Handle the case where the user has legacy notification settings format
+      if (typeof settings.predictions === 'boolean') {
+        // This is the old format where notificationSettings are just { predictions, results, promotions }
+        setPreferences({
+          general: {
+            predictions: settings.predictions ?? false,
+            results: settings.results ?? false,
+            promotions: settings.promotions ?? false,
+          },
+          sports: {
+            football: true,
+            basketball: true,
+            tennis: true,
+            baseball: true,
+            hockey: true,
+            cricket: true,
+            formula1: true,
+            mma: true,
+            volleyball: true,
+            other: true,
+          }
+        });
+      } else {
+        // This is the new format with general and sports categories
+        setPreferences({
+          general: {
+            predictions: settings.general?.predictions ?? false,
+            results: settings.general?.results ?? false,
+            promotions: settings.general?.promotions ?? false,
+          },
+          sports: {
+            football: settings.sports?.football ?? false,
+            basketball: settings.sports?.basketball ?? false,
+            tennis: settings.sports?.tennis ?? false,
+            baseball: settings.sports?.baseball ?? false,
+            hockey: settings.sports?.hockey ?? false,
+            cricket: settings.sports?.cricket ?? false,
+            formula1: settings.sports?.formula1 ?? false,
+            mma: settings.sports?.mma ?? false,
+            volleyball: settings.sports?.volleyball ?? false,
+            other: settings.sports?.other ?? false,
+          }
+        });
+      }
     }
   }, [user]);
 
@@ -111,13 +138,47 @@ export function NotificationSettings({ className }: NotificationSettingsProps) {
       }
     };
     
+    // First update local state for immediate feedback
     setPreferences(newPreferences);
     
     try {
       setIsSaving(true);
-      await apiRequest("POST", "/api/notifications/settings", {
+      const response = await apiRequest("POST", "/api/notifications/settings", {
         settings: newPreferences,
       });
+      
+      // If successful, make sure the user object is also updated with the latest settings
+      if (response.ok) {
+        // Get fresh user data to ensure the notification settings are up to date
+        const userResponse = await apiRequest("GET", "/api/user");
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          // Update the Auth context with the latest user data
+          // This ensures the user object has the latest notification settings
+          if (userData.notificationSettings) {
+            // We're manually updating the preferences state based on the server response
+            setPreferences({
+              general: {
+                predictions: userData.notificationSettings.general?.predictions ?? false,
+                results: userData.notificationSettings.general?.results ?? false, 
+                promotions: userData.notificationSettings.general?.promotions ?? false
+              },
+              sports: {
+                football: userData.notificationSettings.sports?.football ?? false,
+                basketball: userData.notificationSettings.sports?.basketball ?? false,
+                tennis: userData.notificationSettings.sports?.tennis ?? false,
+                baseball: userData.notificationSettings.sports?.baseball ?? false,
+                hockey: userData.notificationSettings.sports?.hockey ?? false,
+                cricket: userData.notificationSettings.sports?.cricket ?? false,
+                formula1: userData.notificationSettings.sports?.formula1 ?? false,
+                mma: userData.notificationSettings.sports?.mma ?? false,
+                volleyball: userData.notificationSettings.sports?.volleyball ?? false,
+                other: userData.notificationSettings.sports?.other ?? false
+              }
+            });
+          }
+        }
+      }
       
       toast({
         title: "Settings saved",
@@ -145,13 +206,47 @@ export function NotificationSettings({ className }: NotificationSettingsProps) {
       }
     };
     
+    // First update local state for immediate feedback
     setPreferences(newPreferences);
     
     try {
       setIsSaving(true);
-      await apiRequest("POST", "/api/notifications/settings", {
+      const response = await apiRequest("POST", "/api/notifications/settings", {
         settings: newPreferences,
       });
+      
+      // If successful, make sure the user object is also updated with the latest settings
+      if (response.ok) {
+        // Get fresh user data to ensure the notification settings are up to date
+        const userResponse = await apiRequest("GET", "/api/user");
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          // Update the Auth context with the latest user data
+          // This ensures the user object has the latest notification settings
+          if (userData.notificationSettings) {
+            // We're manually updating the preferences state based on the server response
+            setPreferences({
+              general: {
+                predictions: userData.notificationSettings.general?.predictions ?? false,
+                results: userData.notificationSettings.general?.results ?? false, 
+                promotions: userData.notificationSettings.general?.promotions ?? false
+              },
+              sports: {
+                football: userData.notificationSettings.sports?.football ?? false,
+                basketball: userData.notificationSettings.sports?.basketball ?? false,
+                tennis: userData.notificationSettings.sports?.tennis ?? false,
+                baseball: userData.notificationSettings.sports?.baseball ?? false,
+                hockey: userData.notificationSettings.sports?.hockey ?? false,
+                cricket: userData.notificationSettings.sports?.cricket ?? false,
+                formula1: userData.notificationSettings.sports?.formula1 ?? false,
+                mma: userData.notificationSettings.sports?.mma ?? false,
+                volleyball: userData.notificationSettings.sports?.volleyball ?? false,
+                other: userData.notificationSettings.sports?.other ?? false
+              }
+            });
+          }
+        }
+      }
       
       toast({
         title: "Settings saved",
