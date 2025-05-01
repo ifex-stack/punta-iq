@@ -77,6 +77,7 @@ export interface StandardizedMatch {
   prediction?: string;
   confidence?: number;
   explanation?: string;
+  isPopular?: boolean;
   score: {
     home: number | null;
     away: number | null;

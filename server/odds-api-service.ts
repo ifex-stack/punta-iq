@@ -567,6 +567,17 @@ export class OddsAPIService {
       // Fetch live events
       const liveEvents = await this.fetchLiveEvents(sportKey);
       
+      // Check if we got any events back or if there's a potential API quota issue
+      if (liveEvents.length === 0) {
+        // If we didn't get any live events, check if it's because of the API quota
+        logger.warn('OddsAPIService', 'No live events found. This might be due to API quota limitations or no matches currently in play.');
+        
+        // Return sample data with clear indication that it's due to API limitations
+        if (this.shouldProvideFallbackData()) {
+          return this.getFallbackLiveScores(sportKey);
+        }
+      }
+      
       // Convert live events to StandardizedMatch format
       const standardizedMatches = liveEvents.map(event => {
         const sport = this.mapSportKey(event.sport_key);
@@ -602,8 +613,86 @@ export class OddsAPIService {
       return standardizedMatches;
     } catch (error: any) {
       logger.error('OddsAPIService', `Error getting live scores: ${error.message}`);
+      
+      // If there's a quota or authentication error, provide fallback data
+      if (error.response && (error.response.status === 401 || error.response.status === 429)) {
+        if (this.shouldProvideFallbackData()) {
+          return this.getFallbackLiveScores(sportKey);
+        }
+      }
+      
       return [];
     }
+  }
+  
+  /**
+   * Determines if we should provide fallback data
+   * Based on configuration and environment
+   */
+  private shouldProvideFallbackData(): boolean {
+    // In production, we would want to configure this based on environment variables
+    // For now, we'll return true to ensure the UI has data to display during development
+    return true;
+  }
+  
+  /**
+   * Get fallback live scores data when API quota is reached
+   * This provides a clear indication to users that data is limited due to API constraints
+   */
+  private getFallbackLiveScores(sportKey: string = 'all'): StandardizedMatch[] {
+    logger.info('OddsAPIService', 'Providing fallback live scores due to API limitations');
+    
+    // Create a standardized message about API quota for all scores
+    const apiLimitationMessage = "API quota reached";
+    
+    // Different sports to include in fallback data
+    const sports = sportKey === 'all' 
+      ? ['football', 'basketball', 'baseball'] 
+      : [this.mapSportKey(sportKey)];
+    
+    const fallbackMatches: StandardizedMatch[] = [];
+    
+    // Generate fallback data for requested sports
+    for (const sport of sports) {
+      // Add a few matches per sport with appropriate status indicators
+      if (sport === 'football' || sportKey === 'all') {
+        fallbackMatches.push({
+          id: `football-fallback-1`,
+          sport: 'football',
+          league: 'API Quota Exceeded',
+          country: 'Worldwide',
+          homeTeam: 'Home Team',
+          awayTeam: 'Away Team',
+          startTime: new Date(),
+          status: 'quota_limited',
+          score: {
+            home: null,
+            away: null
+          },
+          isPopular: true
+        });
+      }
+      
+      if (sport === 'basketball' || sportKey === 'all') {
+        fallbackMatches.push({
+          id: `basketball-fallback-1`,
+          sport: 'basketball',
+          league: 'API Quota Exceeded',
+          country: 'Worldwide',
+          homeTeam: 'Home Team',
+          awayTeam: 'Away Team',
+          startTime: new Date(),
+          status: 'quota_limited',
+          score: {
+            home: null,
+            away: null
+          },
+          isPopular: true
+        });
+      }
+    }
+    
+    return fallbackMatches;
   }
   
   /**

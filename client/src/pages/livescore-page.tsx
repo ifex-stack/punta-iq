@@ -89,6 +89,11 @@ const getSportIcon = (sport: string) => {
 
 // Format time display for live matches
 const formatMatchTime = (match: StandardizedMatch) => {
+  // Handle API quota limitation display
+  if (match.status === 'quota_limited') {
+    return 'API LIMIT';
+  }
+  
   if (!match.time) return 'LIVE';
   
   const { minutes, seconds, period } = match.time;
@@ -116,6 +121,16 @@ const formatMatchTime = (match: StandardizedMatch) => {
 
 // Single match score card component
 const LiveMatchCard = ({ match }: { match: StandardizedMatch }) => {
+  // Special styling for API quota limited matches
+  const isQuotaLimited = match.status === 'quota_limited';
+  
+  // Determine border color based on match status
+  const getBorderColor = () => {
+    if (isQuotaLimited) return '#f97316'; // Orange for API limit
+    if (match.status === 'in_play') return '#22c55e'; // Green for live
+    return '#64748b'; // Gray for other statuses
+  };
+  
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -123,7 +138,7 @@ const LiveMatchCard = ({ match }: { match: StandardizedMatch }) => {
       transition={{ duration: 0.3 }}
     >
       <Card className="mb-4 overflow-hidden border-l-4" 
-        style={{ borderLeftColor: match.status === 'in_play' ? '#22c55e' : '#64748b' }}>
+        style={{ borderLeftColor: getBorderColor() }}>
         <CardHeader className="pb-2">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
@@ -132,10 +147,10 @@ const LiveMatchCard = ({ match }: { match: StandardizedMatch }) => {
             </div>
             <div className="flex items-center">
               <Badge 
-                variant={match.status === 'in_play' ? "success" : "secondary"}
-                className="animate-pulse"
+                variant={isQuotaLimited ? "warning" : match.status === 'in_play' ? "success" : "secondary"}
+                className={isQuotaLimited ? "" : "animate-pulse"}
               >
-                {match.status === 'in_play' ? formatMatchTime(match) : match.status}
+                {formatMatchTime(match)}
               </Badge>
             </div>
           </div>
@@ -150,9 +165,15 @@ const LiveMatchCard = ({ match }: { match: StandardizedMatch }) => {
             {/* Score */}
             <div className="col-span-2 flex justify-center items-center">
               <div className="text-center bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-md font-bold">
-                {match.score.home !== null ? match.score.home : '-'}
-                <span className="px-1">:</span>
-                {match.score.away !== null ? match.score.away : '-'}
+                {isQuotaLimited ? (
+                  <span className="text-amber-500 text-xs">API LIMIT</span>
+                ) : (
+                  <>
+                    {match.score.home !== null ? match.score.home : '-'}
+                    <span className="px-1">:</span>
+                    {match.score.away !== null ? match.score.away : '-'}
+                  </>
+                )}
               </div>
             </div>
             
@@ -163,8 +184,14 @@ const LiveMatchCard = ({ match }: { match: StandardizedMatch }) => {
           </div>
         </CardContent>
         <CardFooter className="pt-0 text-xs text-muted-foreground">
-          {new Date(match.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-          {' • '}{match.country}
+          {isQuotaLimited ? (
+            <>API quota reached. Unable to fetch real-time data.</>
+          ) : (
+            <>
+              {new Date(match.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+              {' • '}{match.country}
+            </>
+          )}
         </CardFooter>
       </Card>
     </motion.div>
