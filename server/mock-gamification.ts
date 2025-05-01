@@ -277,6 +277,106 @@ export function setupMockGamificationRoutes(app: Express) {
     }
   });
   
+  // Get specific leaderboard with entries
+  app.get("/api/leaderboards/:id", (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      let leaderboard;
+      let entries = [];
+      
+      // Find which leaderboard is requested and return the appropriate data
+      if (id === 1) {
+        leaderboard = {
+          id: 1,
+          name: "Weekly Competition",
+          description: "This week's prediction performance",
+          type: "weekly",
+          period: new Date().toISOString().slice(0, 7) + "-W" + Math.ceil(new Date().getDate() / 7),
+          startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+          endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        
+        entries = [
+          { id: 1, userId: 1, leaderboardId: 1, points: 240, rank: 1 },
+          { id: 2, userId: 2, leaderboardId: 1, points: 218, rank: 2 },
+          { id: 3, userId: 3, leaderboardId: 1, points: 205, rank: 3 },
+          { id: 4, userId: 4, leaderboardId: 1, points: 192, rank: 4 },
+          { id: 5, userId: 5, leaderboardId: 1, points: 187, rank: 5 },
+          { id: 6, userId: 6, leaderboardId: 1, points: 176, rank: 6 },
+          { id: 7, userId: 7, leaderboardId: 1, points: 164, rank: 7 },
+          { id: 8, userId: 8, leaderboardId: 1, points: 158, rank: 8 },
+          { id: 9, userId: 9, leaderboardId: 1, points: 145, rank: 9 },
+          { id: 10, userId: 10, leaderboardId: 1, points: 132, rank: 10 }
+        ];
+      } else if (id === 2) {
+        leaderboard = {
+          id: 2,
+          name: "Monthly Masters",
+          description: "This month's prediction champions",
+          type: "monthly",
+          period: new Date().toISOString().slice(0, 7),
+          startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        
+        entries = [
+          { id: 11, userId: 2, leaderboardId: 2, points: 876, rank: 1 },
+          { id: 12, userId: 1, leaderboardId: 2, points: 845, rank: 2 },
+          { id: 13, userId: 5, leaderboardId: 2, points: 792, rank: 3 },
+          { id: 14, userId: 3, leaderboardId: 2, points: 764, rank: 4 },
+          { id: 15, userId: 8, leaderboardId: 2, points: 722, rank: 5 },
+          { id: 16, userId: 4, leaderboardId: 2, points: 705, rank: 6 },
+          { id: 17, userId: 6, leaderboardId: 2, points: 684, rank: 7 },
+          { id: 18, userId: 7, leaderboardId: 2, points: 658, rank: 8 },
+          { id: 19, userId: 9, leaderboardId: 2, points: 625, rank: 9 },
+          { id: 20, userId: 10, leaderboardId: 2, points: 601, rank: 10 }
+        ];
+      } else if (id === 3) {
+        leaderboard = {
+          id: 3,
+          name: "All-Time Champions",
+          description: "The best predictors of all time",
+          type: "general",
+          period: "all-time",
+          startDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000),
+          endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        
+        entries = [
+          { id: 21, userId: 5, leaderboardId: 3, points: 5642, rank: 1 },
+          { id: 22, userId: 2, leaderboardId: 3, points: 5420, rank: 2 },
+          { id: 23, userId: 1, leaderboardId: 3, points: 5216, rank: 3 },
+          { id: 24, userId: 7, leaderboardId: 3, points: 4957, rank: 4 },
+          { id: 25, userId: 3, leaderboardId: 3, points: 4820, rank: 5 },
+          { id: 26, userId: 8, leaderboardId: 3, points: 4762, rank: 6 },
+          { id: 27, userId: 6, leaderboardId: 3, points: 4685, rank: 7 },
+          { id: 28, userId: 4, leaderboardId: 3, points: 4521, rank: 8 },
+          { id: 29, userId: 10, leaderboardId: 3, points: 4350, rank: 9 },
+          { id: 30, userId: 9, leaderboardId: 3, points: 4215, rank: 10 }
+        ];
+      } else {
+        return res.status(404).json({ message: "Leaderboard not found" });
+      }
+      
+      res.json({
+        leaderboard,
+        entries
+      });
+    } catch (error: any) {
+      console.error(`Error getting leaderboard with ID ${req.params.id}:`, error);
+      res.status(500).json({ message: "Failed to get leaderboard data" });
+    }
+  });
+  
   // Generic leaderboard endpoint that serves all three types
   app.get("/api/leaderboard", (req, res) => {
     try {

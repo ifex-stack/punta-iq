@@ -15,24 +15,30 @@ export const BadgeCollection: FC<BadgeCollectionProps> = ({ title = "Your Badges
   const queryClient = useQueryClient();
   
   const {
-    data: badges,
+    data: badgesResponse,
     isLoading: isLoadingBadges,
     error: badgesError
-  } = useQuery<Badge[]>({
+  } = useQuery<Record<string, Badge>>({
     queryKey: ["/api/badges"],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!user,
   });
   
+  // Convert object to array if needed
+  const badges = badgesResponse ? Object.values(badgesResponse) : [];
+  
   const {
-    data: userBadges,
+    data: userBadgesResponse,
     isLoading: isLoadingUserBadges,
     error: userBadgesError
-  } = useQuery<UserBadge[]>({
+  } = useQuery<Record<string, UserBadge>>({
     queryKey: ["/api/users", user?.id, "badges"],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!user,
   });
+  
+  // Convert object to array if needed
+  const userBadges = userBadgesResponse ? Object.values(userBadgesResponse) : [];
   
   // Function to handle marking a badge as viewed
   const handleMarkViewed = () => {

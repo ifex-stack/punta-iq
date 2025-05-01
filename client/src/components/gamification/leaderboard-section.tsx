@@ -17,13 +17,16 @@ export const LeaderboardSection: FC<LeaderboardSectionProps> = ({
   const { user } = useAuth();
   
   const {
-    data: leaderboards,
+    data: leaderboardsResponse,
     isLoading,
     error
-  } = useQuery<Leaderboard[]>({
+  } = useQuery<Record<string, Leaderboard>>({
     queryKey: ["/api/leaderboards"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
+  
+  // Convert object to array if needed
+  const leaderboards = leaderboardsResponse ? Object.values(leaderboardsResponse) : [];
   
   if (isLoading) {
     return (
