@@ -32,7 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { BadgeCollection } from "@/components/gamification/badge-collection";
 import { LeaderboardSection } from "@/components/gamification/leaderboard-section";
 import { UserPreferences } from "@/components/profile/user-preferences";
-import { NotificationSettings as FirebaseNotificationSettings } from "@/components/notifications/notification-settings";
+import { ProfileNotificationSettings } from "@/components/notifications/profile-notification-settings";
 import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -194,7 +194,7 @@ export default function ProfilePage() {
                 <CardDescription>Manage your notification preferences</CardDescription>
               </CardHeader>
               <CardContent>
-                <FirebaseNotificationSettings />
+                <ProfileNotificationSettings />
               </CardContent>
             </Card>
             
@@ -254,101 +254,4 @@ export default function ProfilePage() {
   );
 }
 
-interface NotificationSettingsProps {
-  settings: any;
-  userId: number;
-}
-
-function NotificationSettings({ settings, userId }: NotificationSettingsProps) {
-  const { toast } = useToast();
-  const [isSaving, setIsSaving] = useState(false);
-  const [notificationSettings, setNotificationSettings] = useState(settings || {
-    predictions: true,
-    results: true,
-    promotions: true
-  });
-  
-  const handleToggleSetting = (key: string) => {
-    setNotificationSettings((prev: Record<string, boolean>) => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
-  };
-  
-  const saveSettings = async () => {
-    setIsSaving(true);
-    try {
-      await apiRequest("PATCH", "/api/user/notification-settings", notificationSettings);
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      toast({
-        title: "Settings updated",
-        description: "Your notification preferences have been saved",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Could not save notification settings",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-  
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between border-b pb-3">
-        <div>
-          <h3 className="font-medium">Prediction Alerts</h3>
-          <p className="text-sm text-muted-foreground">Get notified about new predictions</p>
-        </div>
-        <div>
-          <Button 
-            variant={notificationSettings.predictions ? "default" : "outline"}
-            onClick={() => handleToggleSetting('predictions')}
-          >
-            {notificationSettings.predictions ? "On" : "Off"}
-          </Button>
-        </div>
-      </div>
-      
-      <div className="flex items-center justify-between border-b pb-3">
-        <div>
-          <h3 className="font-medium">Results Notifications</h3>
-          <p className="text-sm text-muted-foreground">Get notified when your predictions are settled</p>
-        </div>
-        <div>
-          <Button 
-            variant={notificationSettings.results ? "default" : "outline"}
-            onClick={() => handleToggleSetting('results')}
-          >
-            {notificationSettings.results ? "On" : "Off"}
-          </Button>
-        </div>
-      </div>
-      
-      <div className="flex items-center justify-between pb-3">
-        <div>
-          <h3 className="font-medium">Promotions & News</h3>
-          <p className="text-sm text-muted-foreground">Stay updated on new features and offers</p>
-        </div>
-        <div>
-          <Button 
-            variant={notificationSettings.promotions ? "default" : "outline"}
-            onClick={() => handleToggleSetting('promotions')}
-          >
-            {notificationSettings.promotions ? "On" : "Off"}
-          </Button>
-        </div>
-      </div>
-      
-      <Button 
-        className="w-full mt-4" 
-        onClick={saveSettings}
-        disabled={isSaving}
-      >
-        {isSaving ? "Saving..." : "Save Settings"}
-      </Button>
-    </div>
-  );
-}
+// Removed old NotificationSettings component in favor of ProfileNotificationSettings
