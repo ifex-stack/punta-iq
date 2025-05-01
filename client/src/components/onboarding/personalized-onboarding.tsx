@@ -30,12 +30,12 @@ import {
   Trophy,
   LineChart,
   DollarSign,
-  Football,
-  Basketball,
-  TennisBall,
-  Baseball,
-  Hockey,
-  Cricket,
+  Dribbble,
+  Activity,
+  Racquet,
+  Rat,
+  FlaskConical,
+  Bike,
   Crown,
   X,
   Check,
@@ -45,12 +45,12 @@ import {
 
 // Sports list for selection
 const SPORTS_OPTIONS = [
-  { id: 'football', name: 'Football', icon: Football },
-  { id: 'basketball', name: 'Basketball', icon: Basketball },
-  { id: 'tennis', name: 'Tennis', icon: TennisBall },
-  { id: 'baseball', name: 'Baseball', icon: Baseball },
-  { id: 'hockey', name: 'Hockey', icon: Hockey },
-  { id: 'cricket', name: 'Cricket', icon: Cricket },
+  { id: 'football', name: 'Football', icon: Dribbble },
+  { id: 'basketball', name: 'Basketball', icon: Activity },
+  { id: 'tennis', name: 'Tennis', icon: Racquet },
+  { id: 'baseball', name: 'Baseball', icon: Rat },
+  { id: 'hockey', name: 'Hockey', icon: FlaskConical },
+  { id: 'cricket', name: 'Cricket', icon: Bike },
 ];
 
 // Betting frequency options

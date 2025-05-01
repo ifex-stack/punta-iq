@@ -98,6 +98,8 @@ export interface IStorage {
   updateUserSubscription(userId: number, tier: string): Promise<User>;
   updateUserStripeInfo(userId: number, info: { stripeCustomerId?: string, stripeSubscriptionId?: string }): Promise<User>;
   updateUserNotificationSettings(userId: number, settings: any): Promise<User>;
+  updateUserPreferences(userId: number, preferences: any): Promise<User>;
+  updateUserOnboardingStatus(userId: number, status: string, lastStep: number): Promise<User>;
   
   // Football Player methods
   getAllFootballPlayers(limit?: number, offset?: number, filters?: any): Promise<FootballPlayer[]>;
@@ -532,6 +534,31 @@ export class MemStorage implements IStorage {
     const updatedUser = { 
       ...user, 
       notificationSettings: settings
+    };
+    this.usersMap.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
+  async updateUserPreferences(userId: number, preferences: any): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    const updatedUser = { 
+      ...user, 
+      userPreferences: preferences
+    };
+    this.usersMap.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
+  async updateUserOnboardingStatus(userId: number, status: string, lastStep: number): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    const updatedUser = { 
+      ...user, 
+      onboardingStatus: status,
+      lastOnboardingStep: lastStep
     };
     this.usersMap.set(userId, updatedUser);
     return updatedUser;
@@ -3963,6 +3990,33 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({
         notificationSettings: settings
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (!user) throw new Error("User not found");
+    return user;
+  }
+  
+  async updateUserPreferences(userId: number, preferences: any): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        userPreferences: preferences
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (!user) throw new Error("User not found");
+    return user;
+  }
+  
+  async updateUserOnboardingStatus(userId: number, status: string, lastStep: number): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        onboardingStatus: status,
+        lastOnboardingStep: lastStep
       })
       .where(eq(users.id, userId))
       .returning();
