@@ -63,7 +63,7 @@ if (process.env.NODE_ENV === 'production' && process.env.FIREBASE_SERVICE_ACCOUN
 }
 
 // Get the messaging instance once, with mock if Firebase is not initialized
-const getMessagingInstance = () => {
+export const getMessagingInstance = () => {
   try {
     if (!firebaseInitialized) {
       // Return a mock messaging implementation for development

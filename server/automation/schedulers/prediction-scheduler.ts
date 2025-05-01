@@ -7,8 +7,8 @@ import { predictions } from '@shared/schema';
 import { eq, and, lte, gte } from 'drizzle-orm';
 import { logger } from '../../logger';
 import { storage } from '../../storage';
-import { OddsAPIService } from '../../odds-api-service';
-import { SportsApiService } from '../../sports-api-service';
+import { oddsAPIService } from '../../odds-api-service';
+import { sportsApiService } from '../../sports-api-service';
 
 // Define supported sports
 const SUPPORTED_SPORTS = [
@@ -34,8 +34,8 @@ const SUPPORTED_SPORTS = [
  */
 export class PredictionScheduler {
   private mlServiceClient: MLServiceClient;
-  private oddsService: OddsAPIService;
-  private sportsApiService: SportsApiService;
+  private oddsService: any;
+  private sportsApiService;
   private dailyPredictionJob: any; // Daily prediction generation
   private accuracyUpdateJob: any; // Weekly accuracy update
   private notificationJob: any; // Daily notification for new predictions
@@ -43,8 +43,8 @@ export class PredictionScheduler {
   
   constructor() {
     this.mlServiceClient = new MLServiceClient();
-    this.oddsService = OddsAPIService.getInstance();
-    this.sportsApiService = new SportsApiService();
+    this.oddsService = oddsAPIService;
+    this.sportsApiService = sportsApiService;
     
     // Initialize all scheduled jobs
     this.setupJobs();

@@ -4,6 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { logger, createContextLogger } from "./logger";
 import { initializeFantasyData } from "./fantasy-data-init";
 import { initializeDatabase } from "./db-init";
+import { automationManager } from "./automation";
 
 const app = express();
 app.use(express.json());
@@ -186,6 +187,21 @@ app.use((req, res, next) => {
       await initializeFantasyData();
     } catch (error) {
       appLogger.error('Failed to initialize fantasy data', { error });
+    }
+    
+    // Initialize and start the automation system
+    try {
+      appLogger.info('Initializing PuntaIQ automation system');
+      await automationManager.initialize();
+      
+      if (process.env.NODE_ENV === 'production') {
+        await automationManager.startAll();
+        appLogger.info('PuntaIQ automation system started successfully');
+      } else {
+        appLogger.info('PuntaIQ automation system initialized but not started in development mode');
+      }
+    } catch (error) {
+      appLogger.error('Failed to initialize PuntaIQ automation system', { error });
     }
   });
 })();
