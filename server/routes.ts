@@ -2777,6 +2777,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Referral analytics
+  app.get("/api/referrals/analytics", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const { timeRange = 'month' } = req.query;
+      
+      // Get user's referrals with analytics data
+      const allReferrals = await storage.getUserReferrals(req.user.id);
+      
+      // Filter based on time range
+      const filteredReferrals = filterReferralsByTimeRange(allReferrals, timeRange as string);
+      
+      // Calculate analytics
+      const totalReferrals = filteredReferrals.length;
+      const completedReferrals = filteredReferrals.filter(r => 
+        r.status === 'completed' || r.status === 'rewarded'
+      ).length;
+      
+      // Group by channel
+      const channelData = getChannelAnalytics(filteredReferrals);
+      
+      // Calculate trend data (by week)
+      const trendData = getTrendAnalytics(filteredReferrals);
+      
+      // Calculate conversion rate and other metrics
+      const conversionRate = totalReferrals > 0 
+        ? Math.round((completedReferrals / totalReferrals) * 100) 
+        : 0;
+        
+      // Calculate average conversion time
+      const avgConversionTime = calculateAvgConversionTime(filteredReferrals);
+      
+      // Get comparison data for showing changes
+      const comparisonData = await getComparisonData(req.user.id, timeRange as string);
+      
+      res.json({
+        totalReferrals,
+        completedReferrals,
+        pendingReferrals: totalReferrals - completedReferrals,
+        channelData,
+        trendData,
+        conversionRate,
+        avgConversionTime,
+        topChannel: channelData.length > 0 ? channelData[0].channel : 'Direct',
+        conversionRateChange: comparisonData.conversionRateChange,
+        conversionRateTrend: comparisonData.conversionRateChange > 0 ? 'up' : 'down',
+        conversionTimeChange: comparisonData.conversionTimeChange,
+        conversionTimeTrend: comparisonData.conversionTimeChange > 0 ? 'up' : 'down'
+      });
+    } catch (error: any) {
+      console.error("Error getting referral analytics:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
   // Referral leaderboard
   app.get("/api/referrals/leaderboard", async (req, res) => {
     try {
@@ -3239,6 +3297,205 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch odds data" });
     }
   });
+
+  // Referral Analytics Helper Functions
+  function filterReferralsByTimeRange(referrals: any[], timeRange: string): any[] {
+    const now = new Date();
+    const startDate = new Date();
+    
+    switch (timeRange) {
+      case 'week':
+        startDate.setDate(now.getDate() - 7);
+        break;
+      case 'month':
+        startDate.setMonth(now.getMonth() - 1);
+        break;
+      case 'year':
+        startDate.setFullYear(now.getFullYear() - 1);
+        break;
+      default: // all time
+        startDate.setFullYear(1970, 0, 1);
+    }
+    
+    return referrals.filter(referral => {
+      const referralDate = new Date(referral.createdAt);
+      return referralDate >= startDate && referralDate <= now;
+    });
+  }
+
+  function getChannelAnalytics(referrals: any[]): any[] {
+    // Group by channel
+    const channelCounts: Record<string, number> = {};
+    
+    referrals.forEach(referral => {
+      const channel = referral.channel || 'Direct';
+      if (!channelCounts[channel]) {
+        channelCounts[channel] = 0;
+      }
+      channelCounts[channel]++;
+    });
+    
+    // Convert to array and calculate percentages
+    const totalCount = referrals.length;
+    const channelData = Object.entries(channelCounts).map(([channel, count]) => ({
+      channel,
+      count,
+      percentage: totalCount > 0 ? Math.round((count / totalCount) * 100) : 0
+    }));
+    
+    // Sort by count (descending)
+    return channelData.sort((a, b) => b.count - a.count);
+  }
+
+  function getTrendAnalytics(referrals: any[]): any[] {
+    if (referrals.length === 0) return [];
+    
+    // Group by week
+    const weekCounts: Record<string, number> = {};
+    
+    // Get the earliest date
+    const dates = referrals.map(r => new Date(r.createdAt));
+    const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+    
+    // Start from the beginning of that week
+    const startDate = new Date(minDate);
+    startDate.setDate(minDate.getDate() - minDate.getDay());
+    
+    // Generate weekly buckets until now
+    const now = new Date();
+    let currentDate = new Date(startDate);
+    
+    while (currentDate <= now) {
+      const weekKey = currentDate.toISOString().split('T')[0]; // Use ISO date as key
+      weekCounts[weekKey] = 0;
+      
+      // Move to next week
+      currentDate.setDate(currentDate.getDate() + 7);
+    }
+    
+    // Count referrals by week
+    referrals.forEach(referral => {
+      const referralDate = new Date(referral.createdAt);
+      
+      // Find the start of the week for this referral
+      const weekStart = new Date(referralDate);
+      weekStart.setDate(referralDate.getDate() - referralDate.getDay());
+      
+      const weekKey = weekStart.toISOString().split('T')[0];
+      
+      if (weekCounts[weekKey] !== undefined) {
+        weekCounts[weekKey]++;
+      }
+    });
+    
+    // Convert to array for the response
+    return Object.entries(weekCounts).map(([date, count]) => ({
+      date,
+      count
+    })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }
+
+  function calculateAvgConversionTime(referrals: any[]): number {
+    // Only include completed referrals that have both createdAt and completedAt
+    const completedReferrals = referrals.filter(r => 
+      (r.status === 'completed' || r.status === 'rewarded') && 
+      r.createdAt && 
+      r.completedAt
+    );
+    
+    if (completedReferrals.length === 0) return 0;
+    
+    // Calculate average time in hours
+    const totalTimeInHours = completedReferrals.reduce((sum, referral) => {
+      const created = new Date(referral.createdAt).getTime();
+      const completed = new Date(referral.completedAt).getTime();
+      const diffInHours = (completed - created) / (1000 * 60 * 60);
+      return sum + diffInHours;
+    }, 0);
+    
+    return Math.round(totalTimeInHours / completedReferrals.length);
+  }
+
+  async function getComparisonData(userId: number, timeRange: string): Promise<any> {
+    try {
+      // Get all user referrals
+      const allReferrals = await storage.getUserReferrals(userId);
+      
+      // Current period
+      const currentReferrals = filterReferralsByTimeRange(allReferrals, timeRange);
+      
+      // Get start date for current period
+      const now = new Date();
+      const currentStartDate = new Date();
+      let daysDiff = 30; // Default for month
+      
+      switch (timeRange) {
+        case 'week':
+          currentStartDate.setDate(now.getDate() - 7);
+          daysDiff = 7;
+          break;
+        case 'month':
+          currentStartDate.setMonth(now.getMonth() - 1);
+          daysDiff = 30;
+          break;
+        case 'year':
+          currentStartDate.setFullYear(now.getFullYear() - 1);
+          daysDiff = 365;
+          break;
+        default:
+          currentStartDate.setMonth(now.getMonth() - 1); // Default to month
+      }
+      
+      // Previous period (same duration)
+      const previousStartDate = new Date(currentStartDate);
+      previousStartDate.setDate(previousStartDate.getDate() - daysDiff);
+      
+      const previousReferrals = allReferrals.filter(referral => {
+        const referralDate = new Date(referral.createdAt);
+        return referralDate >= previousStartDate && referralDate < currentStartDate;
+      });
+      
+      // Calculate metrics for current period
+      const currentTotal = currentReferrals.length;
+      const currentCompleted = currentReferrals.filter(r => 
+        r.status === 'completed' || r.status === 'rewarded'
+      ).length;
+      const currentConversionRate = currentTotal > 0 
+        ? Math.round((currentCompleted / currentTotal) * 100) 
+        : 0;
+      const currentAvgTime = calculateAvgConversionTime(currentReferrals);
+      
+      // Calculate metrics for previous period
+      const previousTotal = previousReferrals.length;
+      const previousCompleted = previousReferrals.filter(r => 
+        r.status === 'completed' || r.status === 'rewarded'
+      ).length;
+      const previousConversionRate = previousTotal > 0 
+        ? Math.round((previousCompleted / previousTotal) * 100) 
+        : 0;
+      const previousAvgTime = calculateAvgConversionTime(previousReferrals);
+      
+      // Calculate changes
+      const conversionRateChange = previousConversionRate > 0 
+        ? Math.round(((currentConversionRate - previousConversionRate) / previousConversionRate) * 100)
+        : 0;
+        
+      const conversionTimeChange = previousAvgTime > 0 
+        ? Math.round(((currentAvgTime - previousAvgTime) / previousAvgTime) * 100)
+        : 0;
+      
+      return {
+        conversionRateChange: conversionRateChange || 0,
+        conversionTimeChange: conversionTimeChange || 0
+      };
+    } catch (error) {
+      console.error("Error calculating comparison data:", error);
+      return {
+        conversionRateChange: 0,
+        conversionTimeChange: 0
+      };
+    }
+  }
 
   const httpServer = createServer(app);
   
