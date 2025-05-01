@@ -255,7 +255,7 @@ export default function AccumulatorsPage() {
           sport: acc.sport || 'Soccer',
           icon: sportIcons[acc.sport as keyof typeof sportIcons] || sportIcons.Mixed,
           colorTheme: colorThemes[riskLevel as keyof typeof colorThemes],
-          isRecommended: type === 'value_finder' || type === 'home_win_special'
+          isRecommended: type === 'valueFinder' || type === 'homeWinSpecial' || type === 'weekendBanker' || type === 'longshotHero' || type === 'globalExplorer'
         });
       });
     }
