@@ -27,7 +27,7 @@ import GamificationPage from "@/pages/gamification-page";
 import AdminPage from "@/pages/admin-page";
 import FeedbackPage from "@/pages/feedback";
 import AdvancedAnalysisPage from "@/pages/advanced-analysis-page";
-import AccumulatorsPage from "@/pages/accumulators-page";
+import AccumulatorsPage from "@/pages/updated-accumulators-page"; // Using updated version
 import LiveScorePage from "@/pages/livescore-page";
 import PrivacyPolicyPage from "@/pages/legal/privacy-policy";
 import TermsConditionsPage from "@/pages/legal/terms-conditions";

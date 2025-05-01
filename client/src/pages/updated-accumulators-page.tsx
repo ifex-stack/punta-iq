@@ -1,0 +1,1101 @@
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
+} from '@/components/ui/card';
+import {
+  Tabs, TabsContent, TabsList, TabsTrigger,
+} from '@/components/ui/tabs';
+import {
+  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
+} from '@/components/ui/accordion';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { 
+  Dialog, DialogContent, DialogDescription, 
+  DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
+} from '@/components/ui/dialog';
+import { 
+  ScrollText, Search,
+  Activity, AlertCircle, ArrowUpRight, ArrowLeft,
+  BookmarkIcon, Clock, Filter, ChevronDown, Sparkles,
+  ChevronRight, RefreshCw, Zap, Trophy, TrendingUp,
+  Rocket, Flame, Target, BarChart4, 
+  CheckCircle2, XCircle, Percent, 
+  Menu, PlusCircle, BellRing, ExternalLink,
+  Calendar, ChevronLeft
+} from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { format, addDays, startOfDay, endOfDay, isToday, isPast, isFuture } from 'date-fns';
+import { PuntaIQLogo } from '@/components/ui/puntaiq-logo';
+
+// Custom icons for sports (since some might not be in Lucide)
+interface IconProps {
+  className?: string;
+}
+
+const FootballIcon: React.FC<IconProps> = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 2a10 10 0 1 0 10 10H12V2z" />
+    <path d="M12 12 2.5 7.5" />
+    <path d="m12 12 7.5 3" />
+    <path d="m12 12 7.5-7.5" />
+    <path d="m12 12-5 7.5" />
+  </svg>
+);
+
+const BasketballIcon: React.FC<IconProps> = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="12" cy="12" r="10" />
+    <path d="M4.9 4.9a19 19 0 0 1 14.2 14.2" />
+    <path d="M19.1 19.1a19 19 0 0 1-14.2-14.2" />
+    <path d="M12 2v20" />
+    <path d="M2 12h20" />
+  </svg>
+);
+
+const TennisIcon: React.FC<IconProps> = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="12" cy="12" r="10" />
+    <path d="M18.2 7.2a10 10 0 0 0-14.4 0" />
+    <path d="M18.2 16.8a10 10 0 0 1-14.4 0" />
+    <path d="M2 12h20" />
+  </svg>
+);
+
+const VolleyballIcon: React.FC<IconProps> = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 10a5 5 0 0 0 5 2" />
+    <path d="M7 10a5 5 0 0 1 5-2" />
+    <path d="M12 14a5 5 0 0 1-5 2" />
+    <path d="M17 14a5 5 0 0 0-5 2" />
+  </svg>
+);
+
+interface Prediction {
+  id: string;
+  sport: string;
+  league: string;
+  country: string;
+  homeTeam: string;
+  awayTeam: string;
+  startTime: string;
+  prediction: string;
+  confidence: number;
+  odds: number;
+  explanation: string;
+  status: 'pending' | 'won' | 'lost' | 'void';
+  homeOdds?: number;
+  drawOdds?: number;
+  awayOdds?: number;
+  valueBet?: {
+    market: string;
+    selection: string;
+    odds: number;
+    value: number;
+  };
+}
+
+interface Accumulator {
+  id: string;
+  name: string;
+  description: string;
+  selections: Prediction[];
+  totalOdds: string;
+  potentialReturn: string;
+  confidence: number;
+  stake: number;
+  marketType: string;
+  sport: string;
+  icon: React.ReactNode;
+  colorTheme: string;
+  isRecommended?: boolean;
+}
+
+// Custom accumulator builder component
+interface CustomSelection {
+  id: string;
+  homeTeam: string;
+  awayTeam: string;
+  market: string;
+  selection: string;
+  odds: number;
+}
+
+interface CustomAccumulatorBuilderProps {
+  onCancel: () => void;
+  onCreateAccumulator: (selections: CustomSelection[], stake: number, riskLevel: string, sport: string) => void;
+  sportFilters: Array<{
+    value: string;
+    label: string;
+    icon: React.ReactNode;
+  }>;
+  riskLevels: Array<{
+    value: string;
+    label: string;
+    description: string;
+  }>;
+}
+
+function CustomAccumulatorBuilder({
+  onCancel,
+  onCreateAccumulator,
+  sportFilters,
+  riskLevels,
+}: CustomAccumulatorBuilderProps) {
+  const [selections, setSelections] = useState<CustomSelection[]>([
+    {
+      id: '1',
+      homeTeam: 'Manchester United',
+      awayTeam: 'Chelsea',
+      market: 'match_winner',
+      selection: 'home',
+      odds: 1.65
+    },
+    {
+      id: '2',
+      homeTeam: 'Liverpool',
+      awayTeam: 'Arsenal',
+      market: 'over_under',
+      selection: 'over',
+      odds: 1.90
+    }
+  ]);
+  const [stake, setStake] = useState(10);
+  const [riskLevel, setRiskLevel] = useState('balanced');
+  const [sport, setSport] = useState('football');
+
+  // Calculate total odds and potential return
+  const totalOdds = selections.reduce((total, selection) => total * selection.odds, 1);
+  const potentialReturn = totalOdds * stake;
+
+  // Add a new selection
+  const addSelection = () => {
+    const newId = (selections.length + 1).toString();
+    setSelections([...selections, {
+      id: newId,
+      homeTeam: '',
+      awayTeam: '',
+      market: 'match_winner',
+      selection: 'home',
+      odds: 1.50
+    }]);
+  };
+
+  // Remove a selection
+  const removeSelection = (id: string) => {
+    const filtered = selections.filter(s => s.id !== id);
+    if (filtered.length > 0) {
+      setSelections(filtered);
+    }
+  };
+
+  // Update a selection field
+  const updateSelection = (index: number, field: keyof CustomSelection, value: string | number) => {
+    const newSelections = [...selections];
+    newSelections[index] = {
+      ...selections[index],
+      [field]: value
+    };
+    setSelections(newSelections);
+  };
+
+  // Update market and reset selection based on market type
+  const updateMarket = (index: number, market: string) => {
+    const newSelections = [...selections];
+    newSelections[index] = {
+      ...selections[index],
+      market,
+      selection: market === 'match_winner' ? 'home' : 
+                market === 'over_under' ? 'over' : 
+                market === 'both_teams_to_score' ? 'yes' : 'home'
+    };
+    setSelections(newSelections);
+  };
+
+  return (
+    <Card className="border border-muted-50">
+      <CardHeader>
+        <CardTitle className="text-center">Build Your Accumulator</CardTitle>
+        <CardDescription className="text-center">
+          Create your own custom accumulator by selecting markets
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-col gap-2">
+          <h3 className="text-sm font-medium">Risk Level</h3>
+          <Select 
+            value={riskLevel}
+            onValueChange={setRiskLevel}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a risk level" />
+            </SelectTrigger>
+            <SelectContent>
+              {riskLevels.map(level => (
+                <SelectItem key={level.value} value={level.value}>
+                  {level.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="flex flex-col gap-2">
+          <h3 className="text-sm font-medium">Sport</h3>
+          <Select 
+            value={sport}
+            onValueChange={setSport}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select sport" />
+            </SelectTrigger>
+            <SelectContent>
+              {sportFilters.map(sport => (
+                <SelectItem key={sport.value} value={sport.value}>
+                  <div className="flex items-center gap-2">
+                    {sport.icon}
+                    {sport.label}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="flex flex-col gap-2">
+          <div className="flex justify-between items-center">
+            <h3 className="text-sm font-medium">Selections</h3>
+            <Button variant="outline" size="sm" onClick={addSelection}>
+              <PlusCircle className="h-3.5 w-3.5 mr-1" />
+              Add Selection
+            </Button>
+          </div>
+          
+          <div className="border rounded-md p-4 space-y-4">
+            {selections.map((selection, index) => (
+              <div key={selection.id} className={`flex flex-col gap-3 ${index < selections.length - 1 ? 'pb-3 border-b' : ''}`}>
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium">Selection {index + 1}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6"
+                    onClick={() => removeSelection(selection.id)}
+                    disabled={selections.length <= 1}
+                  >
+                    <XCircle className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs mb-1 block">Home Team</label>
+                    <Input 
+                      placeholder="Home Team" 
+                      value={selection.homeTeam}
+                      onChange={e => updateSelection(index, 'homeTeam', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs mb-1 block">Away Team</label>
+                    <Input 
+                      placeholder="Away Team" 
+                      value={selection.awayTeam}
+                      onChange={e => updateSelection(index, 'awayTeam', e.target.value)}
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs mb-1 block">Market</label>
+                    <Select 
+                      value={selection.market}
+                      onValueChange={value => updateMarket(index, value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select market" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="match_winner">Match Winner</SelectItem>
+                        <SelectItem value="double_chance">Double Chance</SelectItem>
+                        <SelectItem value="both_teams_to_score">Both Teams to Score</SelectItem>
+                        <SelectItem value="over_under">Over/Under Goals</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-xs mb-1 block">Selection</label>
+                    <Select 
+                      value={selection.selection}
+                      onValueChange={value => updateSelection(index, 'selection', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select prediction" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selection.market === 'match_winner' && (
+                          <>
+                            <SelectItem value="home">Home Win</SelectItem>
+                            <SelectItem value="draw">Draw</SelectItem>
+                            <SelectItem value="away">Away Win</SelectItem>
+                          </>
+                        )}
+                        {selection.market === 'double_chance' && (
+                          <>
+                            <SelectItem value="home_draw">Home or Draw</SelectItem>
+                            <SelectItem value="home_away">Home or Away</SelectItem>
+                            <SelectItem value="draw_away">Draw or Away</SelectItem>
+                          </>
+                        )}
+                        {selection.market === 'both_teams_to_score' && (
+                          <>
+                            <SelectItem value="yes">Yes</SelectItem>
+                            <SelectItem value="no">No</SelectItem>
+                          </>
+                        )}
+                        {selection.market === 'over_under' && (
+                          <>
+                            <SelectItem value="over">Over 2.5 Goals</SelectItem>
+                            <SelectItem value="under">Under 2.5 Goals</SelectItem>
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="text-xs mb-1 block">Odds</label>
+                  <Input 
+                    type="number" 
+                    min="1.01" 
+                    step="0.01" 
+                    value={selection.odds} 
+                    onChange={e => updateSelection(index, 'odds', parseFloat(e.target.value) || 1.01)}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium">Stake Amount ($)</label>
+          <Input 
+            type="number" 
+            min="1" 
+            step="1" 
+            value={stake} 
+            onChange={e => setStake(Number(e.target.value) || 1)}
+          />
+        </div>
+        
+        <div className="bg-muted/40 p-4 rounded-md">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm">Total Odds:</span>
+            <span className="font-medium">{totalOdds.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm">Potential Return:</span>
+            <span className="font-medium text-green-600 dark:text-green-400">${potentialReturn.toFixed(2)}</span>
+          </div>
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button 
+          variant="outline" 
+          onClick={onCancel}
+        >
+          Cancel
+        </Button>
+        <Button onClick={() => onCreateAccumulator(selections, stake, riskLevel, sport)}>
+          Create Accumulator
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
+// Error state component
+interface ApiErrorStateProps {
+  message?: string;
+  onRetry: () => Promise<any>;
+  onCreateCustom: () => void;
+}
+
+function ApiErrorState({ 
+  message = "We're experiencing an issue with retrieving data from the sports API. This could be due to API quota limits or temporary service disruption.",
+  onRetry,
+  onCreateCustom
+}: ApiErrorStateProps) {
+  return (
+    <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
+      <div className="rounded-full bg-red-100 dark:bg-red-900/30 p-3 mb-4">
+        <AlertCircle className="h-6 w-6 text-red-500 dark:text-red-400" />
+      </div>
+      <h3 className="text-lg font-medium mb-2">Unable to Load Accumulators</h3>
+      <p className="text-muted-foreground max-w-md mb-6">
+        {message}
+      </p>
+      
+      <div className="flex flex-col gap-4 w-full max-w-md">
+        <Button 
+          onClick={onCreateCustom}
+        >
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Create Custom Accumulator
+        </Button>
+        
+        <Button variant="outline" onClick={() => onRetry()}>
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Retry Loading Accumulators
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// Empty state component
+interface EmptyStateProps {
+  message?: string;
+  date?: string;
+  onCreateCustom: () => void;
+}
+
+function EmptyState({ 
+  message = "We don't have any accumulator predictions matching your criteria.",
+  date,
+  onCreateCustom
+}: EmptyStateProps) {
+  return (
+    <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
+      <div className="rounded-full bg-muted p-3 mb-4">
+        <AlertCircle className="h-6 w-6 text-muted-foreground" />
+      </div>
+      <h3 className="text-lg font-medium mb-2">No Accumulators Available</h3>
+      <p className="text-muted-foreground max-w-md mb-6">
+        {message}
+        {date && ` for ${date}.`}
+        {!date && '.'}
+        <br />
+        Try changing the date, risk level, or sport filter.
+      </p>
+      
+      <Button onClick={onCreateCustom}>
+        <PlusCircle className="mr-2 h-4 w-4" />
+        Create Custom Accumulator
+      </Button>
+    </div>
+  );
+}
+
+// Accumulator card component
+interface AccumulatorCardProps {
+  accumulator: Accumulator;
+  onBookmark: () => void;
+}
+
+function AccumulatorCard({ accumulator, onBookmark }: AccumulatorCardProps) {
+  const {
+    id, name, description, selections, totalOdds, potentialReturn, confidence, icon,
+    colorTheme, marketType, sport
+  } = accumulator;
+  
+  const [expanded, setExpanded] = useState(false);
+  
+  // Format market type for display
+  const formatMarketType = (type: string): string => {
+    switch (type) {
+      case 'match_winner': return 'Match Winner';
+      case 'btts': return 'Both Teams To Score';
+      case 'over_under': return 'Over/Under Goals';
+      case 'mixed': return 'Mixed Markets';
+      default: return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+  };
+  
+  // Format prediction for display
+  const formatPrediction = (prediction: string, market: string): string => {
+    switch (prediction) {
+      case 'home': return 'Home Win';
+      case 'away': return 'Away Win';
+      case 'draw': return 'Draw';
+      case 'yes': return 'Yes';
+      case 'no': return 'No';
+      case 'over': return market === 'over_under' ? 'Over 2.5 Goals' : 'Over';
+      case 'under': return market === 'over_under' ? 'Under 2.5 Goals' : 'Under';
+      default: return prediction.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+  };
+  
+  return (
+    <Card className={`overflow-hidden border ${colorTheme}`}>
+      <CardHeader className="pb-2">
+        <div className="flex justify-between">
+          <div className="flex items-center gap-2">
+            {icon}
+            <h3 className="text-base font-semibold">{name}</h3>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onBookmark}>
+            <BookmarkIcon className="h-4 w-4" />
+          </Button>
+        </div>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="mb-4">
+          <div className="flex justify-between items-center mb-2">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">
+                {formatMarketType(marketType)}
+              </Badge>
+              <Badge variant="outline" className="text-xs uppercase">
+                {sport}
+              </Badge>
+            </div>
+            <Badge 
+              className={`
+                ${confidence >= 80 ? 'bg-green-100 text-green-800' : 
+                  confidence >= 60 ? 'bg-blue-100 text-blue-800' : 
+                  confidence >= 40 ? 'bg-orange-100 text-orange-800' : 
+                  'bg-red-100 text-red-800'}
+              `}
+            >
+              {confidence}% Confidence
+            </Badge>
+          </div>
+          
+          <Accordion
+            type="single"
+            collapsible
+            className="w-full"
+            value={expanded ? "selections" : ""}
+            onValueChange={(val) => setExpanded(val === "selections")}
+          >
+            <AccordionItem value="selections" className="border-b-0">
+              <AccordionTrigger className="py-2 text-sm">
+                {selections.length} Selections
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-3 pt-1">
+                  {selections.map((selection, index) => (
+                    <div key={selection.id} className="bg-muted/30 p-3 rounded-md">
+                      <div className="flex justify-between mb-1">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {selection.league}
+                        </span>
+                        <span className="text-xs">
+                          {new Date(selection.startTime).toLocaleString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between mb-1">
+                        <span className="font-medium">{selection.homeTeam} vs {selection.awayTeam}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <div className="flex items-center gap-1">
+                          <span className="text-primary">
+                            {formatPrediction(selection.prediction, selection.valueBet?.market || '')}
+                          </span>
+                          <Badge 
+                            variant="outline" 
+                            className="text-xs h-5 bg-background"
+                          >
+                            {selection.odds.toFixed(2)}
+                          </Badge>
+                        </div>
+                        <Badge 
+                          className={`text-xs ${
+                            selection.confidence >= 80 ? 'bg-green-100 text-green-800' : 
+                            selection.confidence >= 60 ? 'bg-blue-100 text-blue-800' : 
+                            selection.confidence >= 40 ? 'bg-orange-100 text-orange-800' : 
+                            'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {selection.confidence}%
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </div>
+        
+        <div className="flex justify-between items-center text-sm border-t pt-4">
+          <div>
+            <div className="font-medium">Total Odds</div>
+            <div className="text-xl font-bold">{totalOdds}</div>
+          </div>
+          <div className="text-right">
+            <div className="font-medium">Potential Return</div>
+            <div className="text-xl font-bold text-green-600 dark:text-green-400">{potentialReturn}</div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Helper function to calculate confidence based on odds
+const calculateSelectionConfidence = (odds: number): number => {
+  // Using implicit probability: 1/odds as base confidence
+  const baseConfidence = (1 / odds) * 100;
+  return Math.min(Math.round(baseConfidence), 95); // Cap at 95%
+};
+
+// Calculate overall accumulator confidence
+const calculateConfidence = (totalOdds: number, riskLevel: string): number => {
+  // Base confidence factoring in total odds and risk level
+  let baseConfidence = Math.max(95 - (totalOdds * 5), 10);
+  
+  // Adjust based on risk level
+  switch (riskLevel) {
+    case 'safe':
+      baseConfidence = Math.min(baseConfidence + 15, 92);
+      break;
+    case 'balanced':
+      baseConfidence = Math.min(baseConfidence + 5, 82);
+      break;
+    case 'risky':
+      baseConfidence = Math.max(baseConfidence - 10, 35);
+      break;
+    case 'high-risk':
+      baseConfidence = Math.max(baseConfidence - 20, 30);
+      break;
+    case 'ultra':
+      baseConfidence = Math.max(baseConfidence - 30, 25);
+      break;
+  }
+  
+  return Math.round(baseConfidence);
+};
+
+export default function AccumulatorsPage() {
+  const [_, navigate] = useLocation();
+  const { toast } = useToast();
+  const [riskLevel, setRiskLevel] = useState<'safe' | 'balanced' | 'risky' | 'high-risk' | 'ultra'>('balanced');
+  const [filterSport, setFilterSport] = useState<string>('all');
+  const [selectedTab, setSelectedTab] = useState<string>('recommended');
+  const [date, setDate] = useState<Date>(new Date());
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [showCustomBuilder, setShowCustomBuilder] = useState(false);
+  
+  // Date handling
+  const formattedDate = format(date, 'MMMM dd, yyyy');
+  const isCurrentDate = isToday(date);
+  
+  // Fetch all accumulators package with different types from API
+  const { data: accumulatorsData, isLoading: loadingAccumulators, error: accumulatorsError, refetch: refetchAccumulators } = useQuery<any>({
+    queryKey: ['/api/accumulators-package', { sport: filterSport, risk: riskLevel }],
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    refetchOnWindowFocus: false,
+    retry: 1, // Reduced retries to show error state faster
+    retryDelay: 1000,
+    enabled: true
+  });
+  
+  // Process accumulators from API response
+  const accumulators = React.useMemo(() => {
+    if (!accumulatorsData) return [];
+    
+    // Color themes based on risk and sport
+    const colorThemes = {
+      safe: 'bg-green-50 border-green-200',
+      balanced: 'bg-blue-50 border-blue-200',
+      risky: 'bg-orange-50 border-orange-200',
+      'high-risk': 'bg-red-50 border-red-200',
+      ultra: 'bg-purple-50 border-purple-200',
+    };
+    
+    // Icons based on sport
+    const sportIcons = {
+      Soccer: <FootballIcon className="h-5 w-5" />,
+      Football: <FootballIcon className="h-5 w-5" />,
+      Basketball: <BasketballIcon className="h-5 w-5" />,
+      Tennis: <TennisIcon className="h-5 w-5" />,
+      Volleyball: <VolleyballIcon className="h-5 w-5" />,
+      Mixed: <Sparkles className="h-5 w-5" />
+    };
+    
+    // Map AccumulatorType to marketType
+    const marketTypeMap: Record<string, string> = {
+      home_win_special: 'match_winner',
+      value_finder: 'mixed',
+      upset_special: 'match_winner',
+      goals_galore: 'btts',
+      goals_fiesta: 'over_under'
+    };
+    
+    // Process all received accumulators
+    const result: Accumulator[] = [];
+    
+    // Process byType data
+    if (accumulatorsData.byType) {
+      Object.entries(accumulatorsData.byType).forEach(([type, acc]: [string, any]) => {
+        if (!acc) return;
+        
+        // Skip if no selections
+        if (!acc.selections || acc.selections.length === 0) return;
+        
+        // Format selections
+        const formattedSelections = acc.selections.map((selection: any) => ({
+          id: selection.matchId,
+          sport: acc.sport || 'Soccer',
+          league: selection.league,
+          homeTeam: selection.homeTeam,
+          awayTeam: selection.awayTeam,
+          startTime: selection.startTime,
+          prediction: selection.selection,
+          confidence: selection.confidence,
+          odds: selection.odds,
+          explanation: selection.explanation,
+          status: 'pending'
+        }));
+        
+        const stake = 10; // Default $10 stake
+        
+        result.push({
+          id: acc.id,
+          name: acc.name,
+          description: acc.description,
+          selections: formattedSelections,
+          totalOdds: acc.totalOdds.toFixed(2),
+          potentialReturn: `$${(acc.totalOdds * stake).toFixed(2)}`,
+          confidence: acc.confidence,
+          stake,
+          marketType: marketTypeMap[type] || 'mixed',
+          sport: acc.sport || 'Soccer',
+          icon: sportIcons[acc.sport as keyof typeof sportIcons] || sportIcons.Mixed,
+          colorTheme: colorThemes[riskLevel as keyof typeof colorThemes],
+          isRecommended: type === 'valueFinder' || type === 'homeWinSpecial' || type === 'weekendBanker' || type === 'longshotHero' || type === 'globalExplorer'
+        });
+      });
+    }
+    
+    return result;
+  }, [accumulatorsData, riskLevel]);
+  
+  // Is accumulator data loading?
+  const isLoading = loadingAccumulators;
+  
+  // Risk level options
+  const riskLevels = [
+    { value: 'safe', label: 'Safe (2x)', description: 'Lower risk, lower reward' },
+    { value: 'balanced', label: 'Balanced (5x)', description: 'Moderate risk and reward' },
+    { value: 'risky', label: 'Risky (10x)', description: 'Higher risk, higher reward' },
+    { value: 'high-risk', label: 'High Risk (20x)', description: 'Very high risk and reward' },
+    { value: 'ultra', label: 'Ultra (50x)', description: 'Extreme risk, extreme reward' },
+  ];
+  
+  // Generate example sport-specific accumulators
+  const sportFilters = [
+    { value: 'all', label: 'All Sports', icon: <Activity className="h-4 w-4" /> },
+    { value: 'football', label: 'Football', icon: <FootballIcon className="h-4 w-4" /> },
+    { value: 'basketball', label: 'Basketball', icon: <BasketballIcon className="h-4 w-4" /> },
+    { value: 'tennis', label: 'Tennis', icon: <TennisIcon className="h-4 w-4" /> },
+    { value: 'volleyball', label: 'Volleyball', icon: <VolleyballIcon className="h-4 w-4" /> },
+  ];
+
+  const handleDateChange = (newDate: Date | undefined) => {
+    if (newDate) {
+      setDate(newDate);
+      setCalendarOpen(false);
+    }
+  };
+
+  const handlePreviousDay = () => {
+    setDate(prevDate => addDays(prevDate, -1));
+  };
+
+  const handleNextDay = () => {
+    setDate(prevDate => addDays(prevDate, 1));
+  };
+
+  const handleBookmarkAccumulator = (id: string) => {
+    toast({
+      title: "Accumulator Saved",
+      description: "The accumulator has been added to your saved list.",
+    });
+  };
+
+  const handleCreateCustomAccumulator = (selections: CustomSelection[], stake: number, riskLevel: string, sport: string) => {
+    toast({
+      title: "Accumulator Created",
+      description: "Your custom accumulator has been created successfully",
+    });
+    setShowCustomBuilder(false);
+  };
+
+  return (
+    <div className="container max-w-7xl mx-auto p-4 animate-in fade-in duration-300">
+      <div className="flex flex-col space-y-6">
+        {/* Header section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Accumulator Predictions</h1>
+            <p className="text-muted-foreground">AI-powered accumulator bets with different risk levels</p>
+          </div>
+          
+          {/* Date selector & controls */}
+          <div className="flex items-center space-x-2 bg-muted/40 p-1.5 rounded-lg">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={handlePreviousDay}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant={isCurrentDate ? "default" : "outline"} 
+                  size="sm"
+                  className={`flex items-center gap-2 ${isCurrentDate ? 'bg-primary text-primary-foreground' : ''}`}
+                >
+                  <Calendar className="h-3.5 w-3.5" />
+                  {formattedDate}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <CalendarComponent
+                  mode="single"
+                  selected={date}
+                  onSelect={handleDateChange}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+            
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={handleNextDay}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        
+        {/* Main tabs */}
+        <Tabs 
+          defaultValue="recommended" 
+          className="w-full"
+          onValueChange={setSelectedTab}
+        >
+          <div className="flex justify-between items-center border-b">
+            <TabsList className="h-10">
+              <TabsTrigger value="recommended" className="px-4">
+                <Sparkles className="h-4 w-4 mr-2" />
+                Recommended
+              </TabsTrigger>
+              <TabsTrigger value="saved" className="px-4">
+                <BookmarkIcon className="h-4 w-4 mr-2" />
+                Saved
+              </TabsTrigger>
+              <TabsTrigger value="all" className="px-4">
+                <ScrollText className="h-4 w-4 mr-2" />
+                All
+              </TabsTrigger>
+            </TabsList>
+            
+            {/* Filter controls */}
+            <div className="flex items-center space-x-2">
+              {/* Risk level selector */}
+              <Select
+                value={riskLevel}
+                onValueChange={(value) => setRiskLevel(value as any)}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select risk level" />
+                </SelectTrigger>
+                <SelectContent>
+                  {riskLevels.map((level) => (
+                    <SelectItem key={level.value} value={level.value}>
+                      <div className="flex flex-col">
+                        <span>{level.label}</span>
+                        <span className="text-xs text-muted-foreground">{level.description}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {/* Sport filter */}
+              <Select
+                value={filterSport}
+                onValueChange={setFilterSport}
+              >
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Select sport" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sportFilters.map((sport) => (
+                    <SelectItem key={sport.value} value={sport.value}>
+                      <div className="flex items-center">
+                        <span className="mr-2">{sport.icon}</span>
+                        <span>{sport.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          {/* Tab content */}
+          <TabsContent value="recommended" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {isLoading ? (
+                // Loading skeletons
+                Array(6).fill(0).map((_, index) => (
+                  <Card key={index} className="overflow-hidden border border-muted/60">
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between">
+                        <Skeleton className="h-4 w-1/3" />
+                        <Skeleton className="h-4 w-1/4" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <Skeleton className="h-4 w-full mb-2" />
+                      <Skeleton className="h-4 w-2/3 mb-2" />
+                      <Skeleton className="h-4 w-3/4 mb-4" />
+                      <Skeleton className="h-20 w-full rounded-md mb-4" />
+                      <div className="flex justify-between">
+                        <Skeleton className="h-4 w-1/4" />
+                        <Skeleton className="h-4 w-1/3" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : showCustomBuilder ? (
+                <div className="col-span-full">
+                  <CustomAccumulatorBuilder
+                    sportFilters={sportFilters.filter(s => s.value !== 'all')}
+                    riskLevels={riskLevels}
+                    onCancel={() => setShowCustomBuilder(false)}
+                    onCreateAccumulator={handleCreateCustomAccumulator}
+                  />
+                </div>
+              ) : accumulatorsError ? (
+                <ApiErrorState
+                  onRetry={refetchAccumulators}
+                  onCreateCustom={() => setShowCustomBuilder(true)}
+                />
+              ) : !accumulators || accumulators.length === 0 ? (
+                <EmptyState
+                  date={formattedDate}
+                  onCreateCustom={() => setShowCustomBuilder(true)}
+                />
+              ) : (
+                // Accumulator cards
+                accumulators
+                  .filter(acc => acc.isRecommended)
+                  .map((accumulator) => (
+                    <AccumulatorCard
+                      key={accumulator.id}
+                      accumulator={accumulator}
+                      onBookmark={() => handleBookmarkAccumulator(accumulator.id)}
+                    />
+                  ))
+              )}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="saved" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Saved accumulators content */}
+              <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
+                <div className="rounded-full bg-muted p-3 mb-4">
+                  <BookmarkIcon className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium mb-2">No Saved Accumulators</h3>
+                <p className="text-muted-foreground max-w-md">
+                  You haven't saved any accumulators yet. Browse the recommended accumulators and click the bookmark icon to save them.
+                </p>
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="all" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {isLoading ? (
+                // Loading skeletons
+                Array(6).fill(0).map((_, index) => (
+                  <Card key={index} className="overflow-hidden border border-muted/60">
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between">
+                        <Skeleton className="h-4 w-1/3" />
+                        <Skeleton className="h-4 w-1/4" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <Skeleton className="h-4 w-full mb-2" />
+                      <Skeleton className="h-4 w-2/3 mb-2" />
+                      <Skeleton className="h-4 w-3/4 mb-4" />
+                      <Skeleton className="h-20 w-full rounded-md mb-4" />
+                      <div className="flex justify-between">
+                        <Skeleton className="h-4 w-1/4" />
+                        <Skeleton className="h-4 w-1/3" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : showCustomBuilder ? (
+                <div className="col-span-full">
+                  <CustomAccumulatorBuilder
+                    sportFilters={sportFilters.filter(s => s.value !== 'all')}
+                    riskLevels={riskLevels}
+                    onCancel={() => setShowCustomBuilder(false)}
+                    onCreateAccumulator={handleCreateCustomAccumulator}
+                  />
+                </div>
+              ) : accumulatorsError ? (
+                <ApiErrorState
+                  onRetry={refetchAccumulators}
+                  onCreateCustom={() => setShowCustomBuilder(true)}
+                />
+              ) : !accumulators || accumulators.length === 0 ? (
+                <EmptyState
+                  date={formattedDate}
+                  onCreateCustom={() => setShowCustomBuilder(true)}
+                />
+              ) : (
+                // All accumulator cards
+                accumulators.map((accumulator) => (
+                  <AccumulatorCard
+                    key={accumulator.id}
+                    accumulator={accumulator}
+                    onBookmark={() => handleBookmarkAccumulator(accumulator.id)}
+                  />
+                ))
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+}
