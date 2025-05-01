@@ -147,36 +147,35 @@ export function NotificationSettings({ className }: NotificationSettingsProps) {
         settings: newPreferences,
       });
       
-      // If successful, make sure the user object is also updated with the latest settings
       if (response.ok) {
-        // Get fresh user data to ensure the notification settings are up to date
-        const userResponse = await apiRequest("GET", "/api/user");
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          // Update the Auth context with the latest user data
-          // This ensures the user object has the latest notification settings
-          if (userData.notificationSettings) {
-            // We're manually updating the preferences state based on the server response
-            setPreferences({
-              general: {
-                predictions: userData.notificationSettings.general?.predictions ?? false,
-                results: userData.notificationSettings.general?.results ?? false, 
-                promotions: userData.notificationSettings.general?.promotions ?? false
-              },
-              sports: {
-                football: userData.notificationSettings.sports?.football ?? false,
-                basketball: userData.notificationSettings.sports?.basketball ?? false,
-                tennis: userData.notificationSettings.sports?.tennis ?? false,
-                baseball: userData.notificationSettings.sports?.baseball ?? false,
-                hockey: userData.notificationSettings.sports?.hockey ?? false,
-                cricket: userData.notificationSettings.sports?.cricket ?? false,
-                formula1: userData.notificationSettings.sports?.formula1 ?? false,
-                mma: userData.notificationSettings.sports?.mma ?? false,
-                volleyball: userData.notificationSettings.sports?.volleyball ?? false,
-                other: userData.notificationSettings.sports?.other ?? false
-              }
-            });
-          }
+        // Server returns the complete updated settings
+        const data = await response.json();
+        
+        if (data.success && data.settings) {
+          // Use the returned settings from the server
+          setPreferences({
+            general: {
+              predictions: data.settings.general?.predictions ?? false,
+              results: data.settings.general?.results ?? false, 
+              promotions: data.settings.general?.promotions ?? false
+            },
+            sports: {
+              football: data.settings.sports?.football ?? false,
+              basketball: data.settings.sports?.basketball ?? false,
+              tennis: data.settings.sports?.tennis ?? false,
+              baseball: data.settings.sports?.baseball ?? false,
+              hockey: data.settings.sports?.hockey ?? false,
+              cricket: data.settings.sports?.cricket ?? false,
+              formula1: data.settings.sports?.formula1 ?? false,
+              mma: data.settings.sports?.mma ?? false,
+              volleyball: data.settings.sports?.volleyball ?? false,
+              other: data.settings.sports?.other ?? false
+            }
+          });
+          
+          // Force refresh the user data in the auth context
+          // This keeps everything in sync
+          queryClient.invalidateQueries({ queryKey: ["/api/user"] });
         }
       }
       
