@@ -120,7 +120,93 @@ export function setupMockGamificationRoutes(app: Express) {
     }
   });
   
+  // Get a specific user's badges
+  app.get("/api/users/:userId/badges", (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+    
+    try {
+      // Same badge categories and tiers
+      const badgeCategories = ['prediction', 'streak', 'achievement', 'special', 'activity', 'loyalty'];
+      const tiers = ['bronze', 'silver', 'gold', 'platinum', 'diamond'];
+      
+      // Generate user badges with progress
+      const userBadges = [];
+      
+      for (let i = 1; i <= 15; i++) {
+        const category = badgeCategories[i % badgeCategories.length];
+        const tier = tiers[Math.min(Math.floor(i / 3), 4)];
+        const isAchieved = i <= 8; // First 8 badges are achieved
+        
+        userBadges.push({
+          id: i,
+          userId: req.user.id,
+          badgeId: i,
+          progress: isAchieved ? 100 : Math.floor(Math.random() * 70),
+          achieved: isAchieved,
+          earnedAt: isAchieved ? new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000) : null,
+          isNew: isAchieved && i <= 2 // First 2 badges are newly achieved
+        });
+      }
+      
+      res.json(userBadges);
+    } catch (error: any) {
+      console.error("Error generating mock user badges:", error);
+      res.status(500).json({ message: "Failed to generate user badges" });
+    }
+  });
+  
   // ============= LEADERBOARD ROUTES =============
+  
+  // All leaderboards
+  app.get("/api/leaderboards", (req, res) => {
+    try {
+      const leaderboards = [
+        {
+          id: 1,
+          name: "Weekly Competition",
+          description: "This week's prediction performance",
+          type: "weekly",
+          period: new Date().toISOString().slice(0, 7) + "-W" + Math.ceil(new Date().getDate() / 7),
+          startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+          endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          id: 2,
+          name: "Monthly Masters",
+          description: "This month's prediction champions",
+          type: "monthly",
+          period: new Date().toISOString().slice(0, 7),
+          startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          id: 3,
+          name: "All-Time Champions",
+          description: "The best predictors of all time",
+          type: "general",
+          period: "all-time",
+          startDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000),
+          endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      ];
+      
+      res.json(leaderboards);
+    } catch (error: any) {
+      console.error("Error generating mock leaderboards:", error);
+      res.status(500).json({ message: "Failed to generate leaderboards" });
+    }
+  });
   
   // Weekly leaderboard
   app.get("/api/leaderboards/weekly", (req, res) => {
