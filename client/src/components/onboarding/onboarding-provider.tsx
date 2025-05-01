@@ -21,10 +21,12 @@ export type TourStep = {
 export type OnboardingContextType = {
   isTourVisible: boolean;
   isGuideVisible: boolean;
+  isPersonalizedOnboardingVisible: boolean;
   currentTourStep: number;
   tourSteps: TourStep[];
   hasCompletedTour: boolean;
   hasCompletedGuide: boolean;
+  hasCompletedPersonalizedOnboarding: boolean;
   startTour: () => void;
   endTour: () => void;
   nextTourStep: () => void;
@@ -32,8 +34,11 @@ export type OnboardingContextType = {
   goToTourStep: (stepIndex: number) => void;
   openGuide: () => void;
   closeGuide: () => void;
+  openPersonalizedOnboarding: () => void;
+  closePersonalizedOnboarding: () => void;
   markTourCompleted: () => void;
   markGuideCompleted: () => void;
+  markPersonalizedOnboardingCompleted: () => void;
 };
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);

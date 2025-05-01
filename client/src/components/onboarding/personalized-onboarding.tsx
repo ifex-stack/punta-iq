@@ -32,7 +32,7 @@ import {
   DollarSign,
   Dribbble,
   Activity,
-  Racquet,
+  Dumbbell,
   Rat,
   FlaskConical,
   Bike,
@@ -47,7 +47,7 @@ import {
 const SPORTS_OPTIONS = [
   { id: 'football', name: 'Football', icon: Dribbble },
   { id: 'basketball', name: 'Basketball', icon: Activity },
-  { id: 'tennis', name: 'Tennis', icon: Racquet },
+  { id: 'tennis', name: 'Tennis', icon: Dumbbell },
   { id: 'baseball', name: 'Baseball', icon: Rat },
   { id: 'hockey', name: 'Hockey', icon: FlaskConical },
   { id: 'cricket', name: 'Cricket', icon: Bike },

@@ -172,4 +172,50 @@ export function setupAuth(app: Express) {
     const { password, ...userWithoutPassword } = req.user;
     res.json(userWithoutPassword);
   });
+  
+  // User preferences routes
+  app.get("/api/user/preferences", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Return user preferences or default empty object
+      res.json(user.userPreferences || {});
+    } catch (error) {
+      console.error('Error fetching user preferences:', error);
+      res.status(500).json({ message: 'Failed to fetch user preferences' });
+    }
+  });
+  
+  app.post("/api/user/preferences", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    try {
+      const preferences = req.body;
+      const userId = req.user.id;
+      
+      // Save the preferences
+      const updatedUser = await storage.updateUserPreferences(userId, preferences);
+      
+      // Update onboarding status if included
+      if (preferences.onboardingCompleted !== undefined || preferences.lastStep !== undefined) {
+        const status = preferences.onboardingCompleted ? 'completed' : 'in_progress';
+        const lastStep = preferences.lastStep || 0;
+        await storage.updateUserOnboardingStatus(userId, status, lastStep);
+      }
+      
+      res.json(updatedUser.userPreferences || {});
+    } catch (error) {
+      console.error('Error saving user preferences:', error);
+      res.status(500).json({ message: 'Failed to save user preferences' });
+    }
+  });
 }
