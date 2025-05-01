@@ -13,8 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 interface NotificationsContextType {
   hasPermission: boolean;
   isLoading: boolean;
-  requestPermission: () => Promise<void>;
-  disableNotifications: () => Promise<void>;
+  requestPermission: () => Promise<NotificationPermission | boolean>;
+  disableNotifications: () => Promise<boolean>;
   token: string | null;
   messages: any[];
   hasUnread: boolean;
@@ -233,13 +233,19 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
       
       if (token) {
         // Unregister token from backend
-        await apiRequest('POST', '/api/notifications/unregister-token', {
+        const response = await apiRequest('POST', '/api/notifications/unregister-token', {
           token,
           userId: user?.id
         });
         
-        // Clear token in state
+        if (!response.ok) {
+          console.error('Error from server while unregistering token');
+        }
+        
+        // Clear token in state and local storage
         setToken(null);
+        localStorage.removeItem('fcmToken');
+        localStorage.removeItem('push-notification-token');
       }
       
       // Reset permission state
@@ -248,7 +254,7 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
       return true;
     } catch (error) {
       console.error('Error disabling notifications:', error);
-      throw error;
+      return false;
     } finally {
       setIsLoading(false);
     }
