@@ -809,6 +809,60 @@ export class PredictionTypesService {
   }
   
   /**
+   * Calculate consistency rating for an accumulator
+   * @returns Rating on a scale of 1-10
+   */
+  private calculateConsistencyRating(selections: AccumulatorSelection[]): number {
+    if (selections.length === 0) return 5; // Default middle rating
+    
+    // Calculate based on standard deviation of confidences
+    // Lower standard deviation = more consistent = higher rating
+    const confidences = selections.map(s => s.confidence);
+    const mean = confidences.reduce((sum, conf) => sum + conf, 0) / confidences.length;
+    
+    // Calculate standard deviation
+    const squaredDiffs = confidences.map(conf => Math.pow(conf - mean, 2));
+    const avgSquaredDiff = squaredDiffs.reduce((sum, diff) => sum + diff, 0) / squaredDiffs.length;
+    const stdDev = Math.sqrt(avgSquaredDiff);
+    
+    // Convert to rating (1-10 scale)
+    // Lower standard deviation means higher consistency
+    // StdDev 0-5 = rating 10, 5-10 = rating 9, etc.
+    const rating = 10 - Math.min(Math.floor(stdDev / 5), 9);
+    
+    // Add a bonus for higher average confidence
+    const confidenceBonus = mean > 80 ? 1 : mean > 70 ? 0.5 : 0;
+    
+    // Ensure rating is within 1-10 range
+    return Math.min(Math.max(Math.round(rating + confidenceBonus), 1), 10);
+  }
+  
+  /**
+   * Calculate value-risk ratio
+   * Higher values indicate better value in relation to risk
+   * @returns Ratio value (> 1 is good, < 1 suggests high risk for reward)
+   */
+  private calculateValueRiskRatio(odds: number, confidence: number): number {
+    // Implied probability from odds
+    const impliedProb = this.getImpliedProbabilityFromOdds(odds) * 100;
+    
+    // Calculate edge (confidence - implied probability)
+    const edge = confidence - impliedProb;
+    
+    // Risk factor (inverse of confidence, normalized)
+    const risk = (100 - confidence) / 50;
+    
+    // Base ratio calculation: edge / risk
+    // A positive edge with low risk yields a high ratio
+    let ratio = (edge + 30) / (risk * 10);
+    
+    // Normalize to a reasonable range (0.5 to 3.0)
+    ratio = Math.max(Math.min(ratio, 3.0), 0.5);
+    
+    return parseFloat(ratio.toFixed(2));
+  }
+  
+  /**
    * Get explanation for match result prediction
    */
   private getMatchResultExplanation(prediction: string, confidence: number, match: StandardizedMatch): string {
