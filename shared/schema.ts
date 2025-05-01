@@ -12,6 +12,9 @@ export const leaderboardTypeEnum = pgEnum('leaderboard_type', ['weekly', 'monthl
 export const newsTypeEnum = pgEnum('news_type', ['article', 'analysis', 'preview', 'recap', 'interview', 'opinion']);
 export const deviceTypeEnum = pgEnum('device_type', ['android', 'ios', 'web']);
 
+// Onboarding status enum
+export const onboardingStatusEnum = pgEnum('onboarding_status', ['not_started', 'in_progress', 'completed']);
+
 // User table
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -63,6 +66,23 @@ export const users = pgTable("users", {
   // Referral gamification properties
   referralStreak: integer("referral_streak").default(0).notNull(),
   lastReferralDate: timestamp("last_referral_date"),
+  
+  // Personalized onboarding properties
+  userPreferences: json("user_preferences").default({
+    favoriteSports: [],
+    favoriteLeagues: [],
+    bettingFrequency: null, // 'daily', 'weekly', 'monthly', 'rarely'
+    predictionTypes: [], // 'singles', 'accumulators', 'both'
+    riskTolerance: null, // 'low', 'medium', 'high'
+    preferredOddsFormat: 'decimal', // 'decimal', 'fractional', 'american'
+    predictionsPerDay: null, // numeric value
+    experienceLevel: null, // 'beginner', 'intermediate', 'expert'
+    onboardingCompleted: false,
+    lastStep: 0,
+    completedSteps: []
+  }),
+  onboardingStatus: text("onboarding_status").default('not_started'),
+  lastOnboardingStep: integer("last_onboarding_step").default(0),
 });
 
 // Referral Tiers enum
