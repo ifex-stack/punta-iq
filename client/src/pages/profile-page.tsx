@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Card, 
   CardContent, 
@@ -21,13 +22,17 @@ import {
   TrendingUp, 
   Trophy,
   Star,
-  Gift
+  Gift,
+  Sliders,
+  Activity,
+  Clock,
+  Zap
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { BadgeCollection } from "@/components/gamification/badge-collection";
 import { LeaderboardSection } from "@/components/gamification/leaderboard-section";
 import { NotificationSettings as FirebaseNotificationSettings } from "@/components/notifications/notification-settings";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ProfilePage() {
@@ -104,6 +109,10 @@ export default function ProfilePage() {
             <TrendingUp className="h-4 w-4 mr-2" />
             Leaderboards
           </TabsTrigger>
+          <TabsTrigger value="preferences">
+            <Star className="h-4 w-4 mr-2" />
+            Preferences
+          </TabsTrigger>
           <TabsTrigger value="settings">
             <Settings className="h-4 w-4 mr-2" />
             Settings
@@ -167,6 +176,10 @@ export default function ProfilePage() {
         
         <TabsContent value="leaderboards">
           <LeaderboardSection />
+        </TabsContent>
+        
+        <TabsContent value="preferences">
+          <UserPreferences />
         </TabsContent>
         
         <TabsContent value="settings">
