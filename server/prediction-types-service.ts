@@ -588,6 +588,68 @@ export class PredictionTypesService {
           );
         break;
         
+      case AccumulatorType.WEEKEND_BANKER:
+        // Use the specialized weekend bankers selection method
+        const weekendMatches = this.selectWeekendBankers(filteredMatches, RiskLevel.SAFE);
+        candidates = weekendMatches.map(match => ({
+          match,
+          prediction: this.generateMatchResultPrediction(match)
+        }))
+        .filter(candidate => candidate.prediction.confidence >= minConfidence);
+        break;
+        
+      case AccumulatorType.LONGSHOT_HERO:
+        // Use the specialized longshot selection method
+        const longshotMatches = this.selectLongshotMatches(filteredMatches, RiskLevel.BALANCED);
+        candidates = longshotMatches.map(match => ({
+          match,
+          prediction: {
+            type: PredictionType.MATCH_RESULT,
+            prediction: "Away Win",
+            confidence: match.awayOdds ? Math.round(70 - (match.awayOdds * 4)) : 60,
+            odds: match.awayOdds || 3.5,
+            explanation: `Potential upset: ${match.awayTeam} could surprise ${match.homeTeam}`
+          }
+        }))
+        .filter(candidate => candidate.prediction.confidence >= minConfidence - 10); // Lower confidence threshold for longshots
+        break;
+        
+      case AccumulatorType.GLOBAL_EXPLORER:
+        // Use the specialized global explorer selection method
+        const globalMatches = this.selectGlobalMatches(filteredMatches, RiskLevel.BALANCED);
+        candidates = globalMatches.map(match => ({
+          match,
+          prediction: this.generateMatchResultPrediction(match)
+        }))
+        .filter(candidate => candidate.prediction.confidence >= minConfidence);
+        break;
+        
+      case AccumulatorType.DRAW_SPECIALIST:
+        // Use the specialized draw selection method
+        const drawMatches = this.selectDrawMatches(filteredMatches, RiskLevel.BALANCED);
+        candidates = drawMatches.map(match => ({
+          match,
+          prediction: {
+            type: PredictionType.MATCH_RESULT,
+            prediction: "Draw",
+            confidence: match.drawOdds ? Math.round(75 - (match.drawOdds * 7)) : 55,
+            odds: match.drawOdds || 3.25,
+            explanation: `Both teams are evenly matched and a draw is the most likely outcome`
+          }
+        }))
+        .filter(candidate => candidate.prediction.confidence >= minConfidence - 5); // Slightly lower confidence threshold for draws
+        break;
+        
+      case AccumulatorType.CLEAN_SHEET_KINGS:
+        // Use the specialized clean sheet selection method
+        const cleanSheetMatches = this.selectCleanSheetMatches(filteredMatches, RiskLevel.BALANCED);
+        candidates = cleanSheetMatches.map(match => ({
+          match,
+          prediction: this.generateCleanSheetPrediction(match)
+        }))
+        .filter(candidate => candidate.prediction.confidence >= minConfidence);
+        break;
+        
       default:
         // Default to match result predictions sorted by confidence
         candidates = filteredMatches.map(match => ({
@@ -677,7 +739,13 @@ export class PredictionTypesService {
       [AccumulatorType.VALUE_FINDER]: "Value Finder",
       [AccumulatorType.UPSET_SPECIAL]: "Upset Special",
       [AccumulatorType.GOALS_GALORE]: "Goals Galore",
-      [AccumulatorType.GOALS_FIESTA]: "Goals Fiesta"
+      [AccumulatorType.GOALS_FIESTA]: "Goals Fiesta",
+      // New accumulator types
+      [AccumulatorType.WEEKEND_BANKER]: "Weekend Banker",
+      [AccumulatorType.LONGSHOT_HERO]: "Longshot Hero",
+      [AccumulatorType.GLOBAL_EXPLORER]: "Global Explorer",
+      [AccumulatorType.DRAW_SPECIALIST]: "Draw Specialist",
+      [AccumulatorType.CLEAN_SHEET_KINGS]: "Clean Sheet Kings"
     };
     
     const typeDescription = {
@@ -685,7 +753,13 @@ export class PredictionTypesService {
       [AccumulatorType.VALUE_FINDER]: "Selections offering the best value based on our odds analysis",
       [AccumulatorType.UPSET_SPECIAL]: "Potential upsets with high returns",
       [AccumulatorType.GOALS_GALORE]: "Matches where both teams are expected to score",
-      [AccumulatorType.GOALS_FIESTA]: "High-scoring matches with over 2.5 goals expected"
+      [AccumulatorType.GOALS_FIESTA]: "High-scoring matches with over 2.5 goals expected",
+      // New accumulator type descriptions
+      [AccumulatorType.WEEKEND_BANKER]: "Weekend fixtures featuring strong favorites with excellent form",
+      [AccumulatorType.LONGSHOT_HERO]: "Underdog teams with potential to cause upsets at great odds",
+      [AccumulatorType.GLOBAL_EXPLORER]: "Diverse selection across multiple leagues and competitions worldwide",
+      [AccumulatorType.DRAW_SPECIALIST]: "Matches identified as likely to end in draws based on team analysis",
+      [AccumulatorType.CLEAN_SHEET_KINGS]: "Teams with strong defensive records likely to keep clean sheets"
     };
     
     return {
