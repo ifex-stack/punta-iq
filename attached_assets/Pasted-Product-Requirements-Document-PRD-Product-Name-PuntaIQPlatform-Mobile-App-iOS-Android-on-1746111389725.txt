@@ -1,0 +1,131 @@
+Product Requirements Document (PRD)
+
+Product Name: PuntaIQPlatform: Mobile App (iOS & Android only)Target Regions: International, with initial focus on the UK, Nigeria, and broader AfricaBusiness Model: Subscription-based with multiple tiersPrimary Users: Sports bettors, analysts, and enthusiasts seeking accurate, AI-powered daily sports predictions
+
+1. Executive Summary
+
+PuntaIQ is a fully AI-powered mobile-only sports prediction platform that provides daily predictions across all major sports and markets. It is built for a global audience, offering intelligent, data-driven forecasts with no human updates needed. PuntaIQ differentiates itself through automation, historical accuracy dashboards, accumulator prediction packs (2 odds, 5 odds, 10 odds), multi-market support, and a clean, intuitive UX.
+
+2. Goals & Objectives
+
+Provide reliable, AI-generated daily predictions across all sports.
+
+Automate every part of the data pipeline: fetching, prediction, publishing.
+
+Create a subscription service with flexible pricing tiers.
+
+Build credibility through transparent historical data and results.
+
+Deliver an immersive mobile experience without any web interface.
+
+3. Core Features (MVP)
+
+a. Prediction Engine (AI-Powered)
+
+Supports multiple sports: football, basketball, tennis, cricket, MMA, esports, etc.
+
+Covers top leagues and niche sports for diversification.
+
+Multi-market predictions: 1X2, BTTS, Over/Under, Corners, Cards, Double Chance, Accumulators.
+
+Predefined odds groups: 2 odds, 5 odds, 10 odds, with filtering logic.
+
+b. Daily Automated Updates
+
+AI model runs daily to produce and publish updated predictions.
+
+No human editing or uploads required.
+
+Scheduled jobs in the backend to handle generation and deployment.
+
+c. User Dashboard
+
+Historical results tracker with filter options (date, odds type, sport).
+
+Accuracy graph and performance history.
+
+Push notifications for new predictions and performance milestones.
+
+d. Subscription System
+
+Free tier with limited access.
+
+Paid tiers:
+
+Basic: 2 odds daily, 1 sport
+
+Standard: 5 odds, up to 3 sports
+
+Pro: 10 odds, full access across all markets and sports
+
+Stripe integration (or alternative based on region)
+
+e. Mobile App UI/UX
+
+Smooth onboarding experience
+
+Dark and light mode themes
+
+Clean, gamified interaction flow for daily predictions
+
+Favorites and notification toggles
+
+f. Security and Compliance
+
+Encrypted API key usage and secured data pipelines
+
+2FA for user accounts
+
+GDPR/NDPR-compliant privacy policies and terms
+
+App Store / Play Store compliant design and metadata
+
+4. Differentiators
+
+Full automation of daily sports predictions
+
+Coverage beyond football to include a wide range of sports
+
+Historical credibility dashboard
+
+Specialized odds packs (2x, 5x, 10x) & custom accumulators
+
+Designed for mobile-first, with no web app
+
+Edge based on multi-API training data for higher accuracy
+
+5. Tech Stack
+
+Frontend: Flutter or React Native (cross-platform for iOS and Android)
+
+Backend: Python (FastAPI) for AI microservice
+
+Database: Firebase (Authentication + Firestore for historical records)
+
+Hosting: Replit for development, scalable cloud for production
+
+Integrations: OddsAPI, API-Football, SportMonks (combined)
+
+6. KPIs and Success Metrics
+
+Prediction accuracy rate
+
+Daily active users (DAU)
+
+Subscription conversion rate
+
+User retention and churn rate
+
+App store ratings and reviews
+
+7. Next Steps & Timeline
+
+Finalize AI model tuning with selected APIs
+
+Complete frontend and backend integration
+
+Test full automation loop (daily updates, accuracy logging)
+
+Prepare App Store and Play Store assets
+
+Launch MVP to early beta users
