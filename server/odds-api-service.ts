@@ -433,7 +433,7 @@ export class OddsAPIService {
               // Respect API rate limits with delay between requests
               await new Promise(resolve => setTimeout(resolve, 300));
             }
-          } catch (error) {
+          } catch (error: any) {
             logger.warn('OddsAPIService', `Error fetching ${league}, continuing with other leagues: ${error.message}`);
           }
         }

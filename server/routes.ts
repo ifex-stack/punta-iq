@@ -644,7 +644,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/odds/basketball_nba", async (req, res) => {
     try {
-      let matches = await oddsAPIService.getUpcomingEvents("basketball_nba", 3);
+      // Parse query parameters
+      const days = req.query.days ? parseInt(req.query.days as string) : 3;
+      const dateStr = req.query.date as string;
+      const startDate = dateStr ? new Date(dateStr) : undefined;
+      const region = req.query.region as string || 'us';
+      
+      // Get upcoming basketball events
+      let matches = await oddsAPIService.getUpcomingEvents("basketball_nba", days, startDate, region);
       
       // Enhance matches with predictions
       if (matches.length > 0) {
@@ -675,13 +682,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         }));
         
-        res.json({ events: enhancedMatches });
+        // Sort matches by start time
+        const sortedMatches = enhancedMatches.sort((a, b) => {
+          return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+        });
+        
+        res.json({ 
+          events: sortedMatches,
+          count: sortedMatches.length,
+          searchParams: { days, date: startDate?.toISOString() || 'today', region }
+        });
       } else {
-        res.json({ events: [] });
+        res.json({ 
+          events: [],
+          count: 0,
+          searchParams: { days, date: startDate?.toISOString() || 'today', region }
+        });
       }
     } catch (error: any) {
       console.error('Error fetching basketball events:', error.message);
-      res.status(500).json({ error: "Failed to fetch basketball data" });
+      res.status(500).json({ error: "Failed to fetch basketball data", message: error.message });
     }
   });
 
@@ -965,6 +985,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(matches);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Generic endpoint for any sport in the OddsAPI
+  app.get("/api/odds/:sportKey", async (req, res) => {
+    try {
+      const sportKey = req.params.sportKey;
+      
+      // Parse query parameters
+      const days = req.query.days ? parseInt(req.query.days as string) : 3;
+      const dateStr = req.query.date as string;
+      const startDate = dateStr ? new Date(dateStr) : undefined;
+      const region = req.query.region as string || 'us';
+      
+      // Special handling for soccer leagues
+      if (sportKey === 'soccer' || sportKey === 'football') {
+        // Redirect to the specialized soccer endpoint
+        return res.redirect(`/api/odds/soccer?days=${days}&date=${dateStr || ''}&region=${region}`);
+      }
+      
+      // Special handling for basketball leagues
+      if (sportKey === 'basketball') {
+        // Redirect to the basketball_nba endpoint
+        return res.redirect(`/api/odds/basketball_nba?days=${days}&date=${dateStr || ''}&region=${region}`);
+      }
+      
+      // For all other sports, proceed with direct API call
+      let matches = await oddsAPIService.getUpcomingEvents(sportKey, days, startDate, region);
+      
+      // Enhance matches with predictions
+      if (matches.length > 0) {
+        const enhancedMatches = await Promise.all(matches.map(async (match) => {
+          // Basic prediction logic
+          let prediction = "Home Win";
+          let confidence = 65;
+          
+          // Simple odds-based prediction
+          if (match.homeOdds && match.awayOdds) {
+            if (match.homeOdds < match.awayOdds) {
+              prediction = "Home Win";
+              confidence = Math.round(90 - (match.homeOdds * 10));
+            } else {
+              prediction = "Away Win";
+              confidence = Math.round(90 - (match.awayOdds * 10));
+            }
+            
+            // If draw odds are lowest (for sports with draws)
+            if (match.drawOdds && match.drawOdds < match.homeOdds && match.drawOdds < match.awayOdds) {
+              prediction = "Draw";
+              confidence = Math.round(80 - (match.drawOdds * 10));
+            }
+          }
+          
+          // Cap confidence between 35-95%
+          confidence = Math.min(Math.max(confidence, 35), 95);
+          
+          return {
+            ...match,
+            prediction,
+            confidence,
+            explanation: `Based on current odds analysis, our model predicts a ${prediction.toLowerCase()} with ${confidence}% confidence.`
+          };
+        }));
+        
+        // Sort matches by start time
+        const sortedMatches = enhancedMatches.sort((a, b) => {
+          return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+        });
+        
+        res.json({ 
+          events: sortedMatches,
+          count: sortedMatches.length,
+          sport: sportKey,
+          searchParams: { days, date: startDate?.toISOString() || 'today', region }
+        });
+      } else {
+        res.json({ 
+          events: [],
+          count: 0,
+          sport: sportKey,
+          searchParams: { days, date: startDate?.toISOString() || 'today', region }
+        });
+      }
+    } catch (error: any) {
+      console.error(`Error fetching events for ${req.params.sportKey}:`, error.message);
+      res.status(500).json({ 
+        error: `Failed to fetch data for ${req.params.sportKey}`, 
+        message: error.message 
+      });
     }
   });
   
