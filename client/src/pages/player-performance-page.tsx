@@ -30,7 +30,7 @@ import {
   LineChart, 
   Search, 
   Shield, 
-  Goal,
+  Target,
   TrendingUp, 
   User, 
   Zap 
@@ -186,7 +186,7 @@ export default function PlayerPerformancePage() {
           </CardHeader>
           <CardContent className="grid grid-cols-3 gap-4 pt-0">
             <div className="flex flex-col items-center justify-center p-3 bg-muted/40 rounded-lg">
-              <Football className="h-5 w-5 mb-1 text-amber-500" />
+              <Target className="h-5 w-5 mb-1 text-amber-500" />
               <div className="text-2xl font-bold text-center">{player.goals}</div>
               <div className="text-xs text-center text-muted-foreground">Goals</div>
             </div>
