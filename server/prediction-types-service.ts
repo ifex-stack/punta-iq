@@ -99,6 +99,8 @@ export interface Accumulator {
   createdAt: string;
   sport: string;
   isFeatured?: boolean;
+  consistencyRating?: number; // 1-10 rating of how consistent the teams in this accumulator are
+  valueRiskRatio?: number; // Ratio between value (odds) and risk (inverse of confidence)
 }
 
 /**
@@ -468,6 +470,10 @@ export class PredictionTypesService {
     // Create accumulator name and description
     const { name, description } = this.getAccumulatorDetails(type, risk, selections.length);
     
+    // Calculate consistency rating and value-risk ratio
+    const consistencyRating = this.calculateConsistencyRating(selections);
+    const valueRiskRatio = this.calculateValueRiskRatio(totalOdds, avgConfidence);
+    
     return {
       id: `${type}_${risk}_${new Date().getTime()}`,
       type,
@@ -480,7 +486,9 @@ export class PredictionTypesService {
       confidence: Math.round(avgConfidence),
       createdAt: new Date().toISOString(),
       sport: this.determinePrimarySport(selections),
-      isFeatured: risk === RiskLevel.BALANCED
+      isFeatured: risk === RiskLevel.BALANCED,
+      consistencyRating,
+      valueRiskRatio
     };
   }
   
