@@ -334,12 +334,17 @@ export function NotificationSettings({ className }: NotificationSettingsProps) {
                   Receive notifications when new predictions are available
                 </p>
               </div>
-              <Switch
-                id="predictions"
-                checked={preferences.general.predictions}
-                onCheckedChange={() => handleToggleGeneralPreference("predictions")}
-                disabled={isSaving}
-              />
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  {preferences.general.predictions ? "Disable" : "Enable"}
+                </span>
+                <Switch
+                  id="predictions"
+                  checked={preferences.general.predictions}
+                  onCheckedChange={() => handleToggleGeneralPreference("predictions")}
+                  disabled={isSaving}
+                />
+              </div>
             </div>
             
             <div className="flex items-center justify-between space-x-2">
@@ -351,12 +356,17 @@ export function NotificationSettings({ className }: NotificationSettingsProps) {
                   Get notified about the outcomes of your tracked matches
                 </p>
               </div>
-              <Switch
-                id="results"
-                checked={preferences.general.results}
-                onCheckedChange={() => handleToggleGeneralPreference("results")}
-                disabled={isSaving}
-              />
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  {preferences.general.results ? "Disable" : "Enable"}
+                </span>
+                <Switch
+                  id="results"
+                  checked={preferences.general.results}
+                  onCheckedChange={() => handleToggleGeneralPreference("results")}
+                  disabled={isSaving}
+                />
+              </div>
             </div>
             
             <div className="flex items-center justify-between space-x-2">
@@ -368,12 +378,17 @@ export function NotificationSettings({ className }: NotificationSettingsProps) {
                   Offers, new features, and other promotional content
                 </p>
               </div>
-              <Switch
-                id="promotions"
-                checked={preferences.general.promotions}
-                onCheckedChange={() => handleToggleGeneralPreference("promotions")}
-                disabled={isSaving}
-              />
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  {preferences.general.promotions ? "Disable" : "Enable"}
+                </span>
+                <Switch
+                  id="promotions"
+                  checked={preferences.general.promotions}
+                  onCheckedChange={() => handleToggleGeneralPreference("promotions")}
+                  disabled={isSaving}
+                />
+              </div>
             </div>
           </TabsContent>
           
@@ -381,8 +396,7 @@ export function NotificationSettings({ className }: NotificationSettingsProps) {
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium">Notifications by Sport</h3>
               <div className="flex text-xs text-muted-foreground">
-                <span className="mr-2">Off</span>
-                <span>On</span>
+                <span className="mr-4">Options</span>
               </div>
             </div>
             
@@ -395,12 +409,17 @@ export function NotificationSettings({ className }: NotificationSettingsProps) {
                       Get notifications for {sport} matches and predictions
                     </p>
                   </div>
-                  <Switch
-                    id={`sport-${sport}`}
-                    checked={enabled}
-                    onCheckedChange={() => handleToggleSportPreference(sport as keyof typeof preferences.sports)}
-                    disabled={isSaving}
-                  />
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {enabled ? "Disable" : "Enable"}
+                    </span>
+                    <Switch
+                      id={`sport-${sport}`}
+                      checked={enabled}
+                      onCheckedChange={() => handleToggleSportPreference(sport as keyof typeof preferences.sports)}
+                      disabled={isSaving}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
