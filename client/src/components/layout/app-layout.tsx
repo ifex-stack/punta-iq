@@ -15,6 +15,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     if (location === '/') return 'predictions_stats';
     if (location === '/stats') return 'stats';
     if (location === '/news') return 'news';
+    if (location === '/livescore') return 'livescore';
     if (location === '/history') return 'history';
     if (location.startsWith('/fantasy')) return 'fantasy';
     if (location === '/subscription') return 'subscription';

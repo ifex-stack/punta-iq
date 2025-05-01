@@ -25,8 +25,34 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw, Activity, BarChart3, GanttChart, Dumbbell } from 'lucide-react';
-import { StandardizedMatch } from '../../../server/sports-api-service';
 import { useToast } from "@/hooks/use-toast";
+
+// Create a local interface that matches the server-side StandardizedMatch
+interface StandardizedMatch {
+  id: string;
+  sport: string;
+  league: string;
+  country: string;
+  homeTeam: string;
+  awayTeam: string;
+  startTime: string;
+  status: string;
+  score: {
+    home: number | null;
+    away: number | null;
+  };
+  time?: {
+    minutes?: number;
+    seconds?: number;
+    period?: number;
+  };
+  odds?: {
+    homeWin?: number;
+    draw?: number;
+    awayWin?: number;
+  };
+  isPopular?: boolean;
+}
 
 const REFRESH_INTERVAL = 60000; // 60 seconds
 

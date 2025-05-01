@@ -8,11 +8,12 @@ import {
   NewspaperIcon,
   AwardIcon,
   LineChart,
+  Activity,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 interface BottomNavigationProps {
-  activePage: "predictions_stats" | "fantasy" | "subscription" | "profile" | "admin" | "news" | "gamification" | "history";
+  activePage: "predictions_stats" | "fantasy" | "subscription" | "profile" | "admin" | "news" | "gamification" | "history" | "livescore";
 }
 
 const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
@@ -31,7 +32,7 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50">
       {/* Use max-width to center the navigation on larger screens and add consistent padding */}
       <div className="max-w-screen-lg mx-auto px-1">
-        <div className={`grid ${isAdmin ? 'grid-cols-7' : 'grid-cols-6'} h-16`}>
+        <div className={`grid ${isAdmin ? 'grid-cols-8' : 'grid-cols-7'} h-16`}>
           {/* Individual nav items with consistent spacing and sizing */}
           <Link href="/">
             <a className={`flex flex-col items-center justify-center py-2 ${
@@ -48,6 +49,15 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
             }`}>
               <LineChart className="h-5 w-5 mb-1" />
               <span className="text-[10px]">History</span>
+            </a>
+          </Link>
+          
+          <Link href="/livescore">
+            <a className={`flex flex-col items-center justify-center py-2 ${
+              isActive("livescore") ? "text-primary font-medium" : "text-muted-foreground"
+            }`}>
+              <Activity className="h-5 w-5 mb-1" />
+              <span className="text-[10px]">LiveScore</span>
             </a>
           </Link>
           
