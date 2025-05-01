@@ -8,10 +8,77 @@ import {
   sendPushNotification,
   sendMulticastPushNotification,
   sendTopicPushNotification,
-  subscribeToTopic
+  subscribeToTopic,
+  unsubscribeFromTopic
 } from './firebase-admin';
 
 export const notificationRouter = Router();
+
+// Unregister a device token for push notifications
+notificationRouter.post('/api/notifications/unregister-token', async (req, res) => {
+  try {
+    // Check if user is authenticated
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const schema = z.object({
+      token: z.string().min(1),
+      userId: z.number().optional(),
+    });
+
+    const parseResult = schema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({ error: parseResult.error.message });
+    }
+
+    const { token } = parseResult.data;
+    const userId = req.user!.id;
+
+    // Find the token in database
+    const existingToken = await db.select()
+      .from(pushTokens)
+      .where(eq(pushTokens.token, token))
+      .limit(1);
+
+    if (existingToken.length === 0) {
+      // If token doesn't exist, still return success
+      return res.json({ success: true, message: 'Token not found or already removed' });
+    }
+
+    // Delete token from database
+    await db.delete(pushTokens)
+      .where(eq(pushTokens.token, token));
+    
+    logger.info('[NotificationRoutes]', 'Push token unregistered for user', userId);
+
+    // Unsubscribe from all topic subscriptions
+    try {
+      // Default topics
+      await unsubscribeFromTopic(token, 'predictions');
+      await unsubscribeFromTopic(token, 'results');
+      await unsubscribeFromTopic(token, 'promotions');
+      
+      // Sport topics
+      const sportsList = [
+        'football', 'basketball', 'tennis', 'baseball', 
+        'hockey', 'cricket', 'formula1', 'mma', 'volleyball', 'other'
+      ];
+      
+      for (const sport of sportsList) {
+        await unsubscribeFromTopic(token, `sport_${sport}`);
+      }
+    } catch (topicError) {
+      // Log but don't fail if topic unsubscription fails
+      logger.warn('[NotificationRoutes]', 'Error unsubscribing from topics', topicError);
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('[NotificationRoutes]', 'Error unregistering token:', error);
+    res.status(500).json({ error: 'Failed to unregister notification token' });
+  }
+});
 
 // Register a device for push notifications
 notificationRouter.post('/api/notifications/register-device', async (req, res) => {
