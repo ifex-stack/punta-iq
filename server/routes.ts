@@ -1137,46 +1137,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Get risk level from request
+      const riskLevel = (req.query.risk as string || 'balanced') as RiskLevel;
+      
       // Generate a variety of accumulators
       const accumulators = {
         featured: predictionTypesService.generateAccumulator({
           matches,
           type: AccumulatorType.VALUE_FINDER,
-          risk: RiskLevel.BALANCED,
+          risk: riskLevel,
         }),
         homeWinSpecial: predictionTypesService.generateAccumulator({
           matches,
           type: AccumulatorType.HOME_WIN_SPECIAL,
-          risk: RiskLevel.SAFE,
+          risk: riskLevel,
         }),
         valueFinder: predictionTypesService.generateAccumulator({
           matches,
           type: AccumulatorType.VALUE_FINDER,
-          risk: RiskLevel.BALANCED,
+          risk: riskLevel,
         }),
         upsetSpecial: predictionTypesService.generateAccumulator({
           matches,
           type: AccumulatorType.UPSET_SPECIAL,
-          risk: RiskLevel.RISKY,
-          maxSelections: 3
+          risk: riskLevel,
+          maxSelections: riskLevel === RiskLevel.SAFE ? 2 : (riskLevel === RiskLevel.BALANCED ? 3 : 4)
         }),
         goalsGalore: predictionTypesService.generateAccumulator({
           matches,
           type: AccumulatorType.GOALS_GALORE,
-          risk: RiskLevel.BALANCED,
+          risk: riskLevel,
         }),
         goalsFiesta: predictionTypesService.generateAccumulator({
           matches,
           type: AccumulatorType.GOALS_FIESTA,
-          risk: RiskLevel.BALANCED,
+          risk: riskLevel,
+        }),
+        // Add new accumulator types
+        weekendBanker: predictionTypesService.generateAccumulator({
+          matches,
+          type: AccumulatorType.WEEKEND_BANKER,
+          risk: riskLevel,
+        }),
+        longshotHero: predictionTypesService.generateAccumulator({
+          matches,
+          type: AccumulatorType.LONGSHOT_HERO,
+          risk: riskLevel === RiskLevel.SAFE ? RiskLevel.BALANCED : riskLevel, // Longshot needs higher risk
+        }),
+        globalExplorer: predictionTypesService.generateAccumulator({
+          matches,
+          type: AccumulatorType.GLOBAL_EXPLORER,
+          risk: riskLevel,
+        }),
+        drawSpecialist: predictionTypesService.generateAccumulator({
+          matches,
+          type: AccumulatorType.DRAW_SPECIALIST,
+          risk: riskLevel,
+        }),
+        cleanSheetKings: predictionTypesService.generateAccumulator({
+          matches,
+          type: AccumulatorType.CLEAN_SHEET_KINGS,
+          risk: riskLevel,
         })
       };
       
       // Group accumulators by size
       const bySize = {
-        small: [accumulators.homeWinSpecial, accumulators.upsetSpecial].filter(acc => acc.selections.length <= 3),
-        medium: [accumulators.valueFinder, accumulators.goalsGalore].filter(acc => acc.selections.length > 3 && acc.selections.length <= 4),
-        large: [accumulators.goalsFiesta].filter(acc => acc.selections.length > 4)
+        small: [
+          accumulators.homeWinSpecial, 
+          accumulators.upsetSpecial,
+          accumulators.weekendBanker,
+          accumulators.drawSpecialist
+        ].filter(acc => acc.selections.length <= 3),
+        medium: [
+          accumulators.valueFinder, 
+          accumulators.goalsGalore,
+          accumulators.longshotHero,
+          accumulators.cleanSheetKings
+        ].filter(acc => acc.selections.length > 3 && acc.selections.length <= 4),
+        large: [
+          accumulators.goalsFiesta,
+          accumulators.globalExplorer
+        ].filter(acc => acc.selections.length > 4)
       };
       
       const response = {
