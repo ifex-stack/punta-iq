@@ -24,8 +24,9 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw, Activity, BarChart3, GanttChart, Dumbbell } from 'lucide-react';
+import { Loader2, RefreshCw, Activity, BarChart3, GanttChart, Dumbbell, AlertTriangle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 // Create a local interface that matches the server-side StandardizedMatch
 interface StandardizedMatch {
@@ -259,8 +260,37 @@ const LiveScorePage = () => {
     }
   }, [liveScoresError, bySportError, popularError, toast]);
 
+  // Check if any of the matches have API quota limitations
+  const hasApiLimitedMatches = () => {
+    if (liveScoresData?.data) {
+      return liveScoresData.data.some(match => match.status === 'quota_limited');
+    }
+    if (popularLiveScores?.data) {
+      return popularLiveScores.data.some(match => match.status === 'quota_limited');
+    }
+    if (liveScoresBySport?.data) {
+      for (const sport in liveScoresBySport.data) {
+        if (liveScoresBySport.data[sport].some(match => match.status === 'quota_limited')) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* API Quota Limitation Alert */}
+      {hasApiLimitedMatches() && (
+        <Alert className="mb-6 border-amber-500 bg-amber-50 dark:bg-amber-950/30">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-600">API Request Limit Reached</AlertTitle>
+          <AlertDescription className="text-amber-600">
+            Some match data couldn't be loaded due to API quota limitations. This is temporary and full functionality will be restored soon.
+          </AlertDescription>
+        </Alert>
+      )}
+    
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold mb-2">LiveScore</h1>

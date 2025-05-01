@@ -664,6 +664,7 @@ export class OddsAPIService {
           homeTeam: 'Home Team',
           awayTeam: 'Away Team',
           startTime: new Date(),
+          venue: null,
           status: 'quota_limited',
           score: {
             home: null,
@@ -682,6 +683,7 @@ export class OddsAPIService {
           homeTeam: 'Home Team',
           awayTeam: 'Away Team',
           startTime: new Date(),
+          venue: null,
           status: 'quota_limited',
           score: {
             home: null,
