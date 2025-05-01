@@ -154,12 +154,16 @@ export default function NewPredictionsAndStatsPage() {
   const [savedPredictions, setSavedPredictions] = useState<string[]>([]);
   
   // Fetch direct OddsAPI data from our new endpoint
-  const { data: oddsApiData, isLoading: isLoadingOdds, refetch: refetchOdds } = useQuery<Prediction[]>({
-    queryKey: ['/api/odds/football'],
+  const { data: oddsApiData, isLoading: isLoadingOdds, refetch: refetchOdds } = useQuery<{
+    events: Prediction[];
+    count: number;
+    searchParams: any;
+  }>({
+    queryKey: ['/api/odds/soccer'],
   });
 
   // Get match data from OddsAPI
-  const predictions = oddsApiData || [];
+  const predictions = oddsApiData?.events || [];
 
   // We don't need the generatePredictions function anymore as we're getting 
   // predictions directly from our new API endpoint
