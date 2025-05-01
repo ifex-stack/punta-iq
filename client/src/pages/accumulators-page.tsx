@@ -174,11 +174,12 @@ export default function AccumulatorsPage() {
   const isCurrentDate = isToday(date);
   
   // Fetch all accumulators package with different types from API
-  const { data: accumulatorsData, isLoading: loadingAccumulators, refetch: refetchAccumulators } = useQuery<any>({
+  const { data: accumulatorsData, isLoading: loadingAccumulators, error: accumulatorsError, refetch: refetchAccumulators } = useQuery<any>({
     queryKey: ['/api/accumulators-package', { sport: filterSport, risk: riskLevel }],
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     refetchOnWindowFocus: false,
-    retry: 3,
+    retry: 1, // Reduced retries to show error state faster
+    retryDelay: 1000,
     enabled: true
   });
   
