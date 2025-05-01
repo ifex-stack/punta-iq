@@ -617,12 +617,19 @@ export class PredictionTypesService {
     // Convert to AccumulatorSelection format
     return topCandidates.map(candidate => {
       const { match, prediction } = candidate;
+      // Ensure startTime is a string
+      const startTimeString = typeof match.startTime === 'string' 
+        ? match.startTime 
+        : match.startTime instanceof Date 
+          ? match.startTime.toISOString() 
+          : new Date().toISOString();
+      
       return {
         matchId: match.id,
         homeTeam: match.homeTeam,
         awayTeam: match.awayTeam,
         league: match.league,
-        startTime: match.startTime,
+        startTime: startTimeString,
         predictionType: prediction.type,
         selection: prediction.prediction,
         confidence: prediction.confidence,

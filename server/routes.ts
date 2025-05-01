@@ -23,10 +23,10 @@ import {
   predictionTypesService, 
   AccumulatorType, 
   RiskLevel, 
-  PredictionType 
+  PredictionType,
+  StandardizedMatch
 } from "./prediction-types-service";
 import { openaiClient } from "./openai-client";
-import { oddsAPIService } from "./odds-api-service";
 import { historicalDashboardRouter } from "./historical-dashboard-routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -991,6 +991,206 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const matches = await realTimeMatchesService.getMatchesForDate(sport, dateOffset);
       res.json(matches);
     } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Enhanced predictions endpoint - returns detailed predictions for a match
+  app.get("/api/enhanced-predictions/:matchId", async (req, res) => {
+    try {
+      const matchId = req.params.matchId;
+      const sportKey = matchId.split('-')[0]; // Extract sport key from match ID
+      
+      // Get region from query param or default to global
+      const region = req.query.region as string || 'us,uk,eu';
+      
+      // Fetch all matches for this sport to find the specific one
+      const matches = await oddsAPIService.fetchEvents(sportKey, region);
+      
+      // Find the specific match
+      const match = oddsAPIService.convertToStandardizedMatches(
+        matches.filter(m => `${sportKey}-${m.id}` === matchId),
+        sportKey
+      )[0];
+      
+      if (!match) {
+        return res.status(404).json({ message: "Match not found" });
+      }
+      
+      // Generate all prediction types for this match
+      const predictions = predictionTypesService.generateAllPredictions({
+        match,
+        includeValue: true
+      });
+      
+      // Add basic match info with predictions
+      res.json({
+        matchId,
+        sport: match.sport,
+        league: match.league,
+        country: match.country,
+        homeTeam: match.homeTeam,
+        awayTeam: match.awayTeam,
+        startTime: match.startTime,
+        homeOdds: match.homeOdds,
+        drawOdds: match.drawOdds,
+        awayOdds: match.awayOdds,
+        predictions
+      });
+    } catch (error: any) {
+      console.error(`Error generating enhanced predictions: ${error.message}`);
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Generate accumulators endpoint
+  app.get("/api/generate-accumulators", async (req, res) => {
+    try {
+      // Parse query parameters
+      const type = (req.query.type as string || 'home_win_special') as AccumulatorType;
+      const risk = (req.query.risk as string || 'balanced') as RiskLevel;
+      const sportKey = req.query.sport as string || 'soccer';
+      const days = req.query.days ? parseInt(req.query.days as string) : 3;
+      const maxSelections = req.query.selections ? parseInt(req.query.selections as string) : undefined;
+      
+      // Get upcoming matches
+      let matches: StandardizedMatch[] = [];
+      
+      if (sportKey === 'soccer' || sportKey === 'football') {
+        // For soccer, get matches from multiple leagues
+        const soccerLeagues = await oddsAPIService.getAllSoccerLeagues();
+        
+        // Get top leagues only to limit results 
+        const topLeagues = soccerLeagues.slice(0, 8);
+        
+        for (const league of topLeagues) {
+          try {
+            const leagueMatches = await oddsAPIService.getUpcomingEvents(league, days);
+            matches = [...matches, ...leagueMatches];
+          } catch (error: any) {
+            console.warn(`Error fetching ${league}, continuing: ${error.message}`);
+          }
+        }
+      } else {
+        // For other sports, get from single sport key
+        matches = await oddsAPIService.getUpcomingEvents(sportKey, days);
+      }
+      
+      // Only process if we have enough matches
+      if (matches.length < 2) {
+        return res.status(400).json({ 
+          message: "Not enough upcoming matches to generate an accumulator",
+          matchesFound: matches.length
+        });
+      }
+      
+      // Generate accumulator of requested type and risk level
+      const accumulator = predictionTypesService.generateAccumulator({
+        matches,
+        type,
+        risk,
+        maxSelections
+      });
+      
+      res.json({ accumulator });
+    } catch (error: any) {
+      console.error(`Error generating accumulator: ${error.message}`);
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Generate multiple types of accumulators at once
+  app.get("/api/accumulators-package", async (req, res) => {
+    try {
+      // Get matches for next 7 days to have enough for all accumulator types
+      const days = 7;
+      const sportKey = req.query.sport as string || 'soccer';
+      
+      // Get upcoming matches
+      let matches: StandardizedMatch[] = [];
+      
+      if (sportKey === 'soccer' || sportKey === 'football') {
+        // For soccer, get matches from multiple leagues
+        const soccerLeagues = await oddsAPIService.getAllSoccerLeagues();
+        
+        // Get top leagues only to limit results 
+        const topLeagues = soccerLeagues.slice(0, 8);
+        
+        for (const league of topLeagues) {
+          try {
+            const leagueMatches = await oddsAPIService.getUpcomingEvents(league, days);
+            matches = [...matches, ...leagueMatches];
+          } catch (error: any) {
+            console.warn(`Error fetching ${league}, continuing: ${error.message}`);
+          }
+        }
+      } else {
+        // For other sports, get from single sport key
+        matches = await oddsAPIService.getUpcomingEvents(sportKey, days);
+      }
+      
+      // Only process if we have enough matches
+      if (matches.length < 2) {
+        return res.status(400).json({ 
+          message: "Not enough upcoming matches to generate accumulators",
+          matchesFound: matches.length
+        });
+      }
+      
+      // Generate a variety of accumulators
+      const accumulators = {
+        featured: predictionTypesService.generateAccumulator({
+          matches,
+          type: AccumulatorType.VALUE_FINDER,
+          risk: RiskLevel.BALANCED,
+        }),
+        homeWinSpecial: predictionTypesService.generateAccumulator({
+          matches,
+          type: AccumulatorType.HOME_WIN_SPECIAL,
+          risk: RiskLevel.SAFE,
+        }),
+        valueFinder: predictionTypesService.generateAccumulator({
+          matches,
+          type: AccumulatorType.VALUE_FINDER,
+          risk: RiskLevel.BALANCED,
+        }),
+        upsetSpecial: predictionTypesService.generateAccumulator({
+          matches,
+          type: AccumulatorType.UPSET_SPECIAL,
+          risk: RiskLevel.RISKY,
+          maxSelections: 3
+        }),
+        goalsGalore: predictionTypesService.generateAccumulator({
+          matches,
+          type: AccumulatorType.GOALS_GALORE,
+          risk: RiskLevel.BALANCED,
+        }),
+        goalsFiesta: predictionTypesService.generateAccumulator({
+          matches,
+          type: AccumulatorType.GOALS_FIESTA,
+          risk: RiskLevel.BALANCED,
+        })
+      };
+      
+      // Group accumulators by size
+      const bySize = {
+        small: [accumulators.homeWinSpecial, accumulators.upsetSpecial].filter(acc => acc.selections.length <= 3),
+        medium: [accumulators.valueFinder, accumulators.goalsGalore].filter(acc => acc.selections.length > 3 && acc.selections.length <= 4),
+        large: [accumulators.goalsFiesta].filter(acc => acc.selections.length > 4)
+      };
+      
+      const response = {
+        featured: accumulators.featured,
+        byType: accumulators,
+        bySize,
+        total: Object.values(accumulators).length,
+        generatedAt: new Date().toISOString(),
+        sport: sportKey
+      };
+      
+      res.json(response);
+    } catch (error: any) {
+      console.error(`Error generating accumulators package: ${error.message}`);
       res.status(500).json({ message: error.message });
     }
   });
