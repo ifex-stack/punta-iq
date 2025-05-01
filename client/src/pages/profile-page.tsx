@@ -31,6 +31,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { BadgeCollection } from "@/components/gamification/badge-collection";
 import { LeaderboardSection } from "@/components/gamification/leaderboard-section";
+import { UserPreferences } from "@/components/profile/user-preferences";
 import { NotificationSettings as FirebaseNotificationSettings } from "@/components/notifications/notification-settings";
 import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -268,7 +269,7 @@ function NotificationSettings({ settings, userId }: NotificationSettingsProps) {
   });
   
   const handleToggleSetting = (key: string) => {
-    setNotificationSettings(prev => ({
+    setNotificationSettings((prev: Record<string, boolean>) => ({
       ...prev,
       [key]: !prev[key]
     }));

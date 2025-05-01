@@ -15,7 +15,7 @@ export function UserPreferences() {
   
   const { data: preferences, isLoading } = useQuery<any>({
     queryKey: ["/api/user/preferences"],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn({ on401: "returnNull" }),
   });
 
   const sportNames: Record<string, string> = {
