@@ -12,17 +12,18 @@ export default function AppLayout({ children }: AppLayoutProps) {
   
   // Determine active page for bottom navigation
   const getActivePage = () => {
-    if (location === '/') return 'predictions_stats';
-    if (location === '/stats') return 'stats';
-    if (location === '/news') return 'news';
+    if (location === '/') return 'home';
+    if (location === '/predictions' || location === '/stats') return 'predictions_stats';
     if (location === '/livescore') return 'livescore';
-    if (location === '/history') return 'history';
-    if (location.startsWith('/fantasy')) return 'fantasy';
-    if (location === '/subscription') return 'subscription';
     if (location === '/profile') return 'profile';
-    if (location === '/gamification') return 'gamification';
     if (location === '/admin') return 'admin';
-    return 'predictions_stats';
+    
+    // Handle secondary pages under main sections
+    if (location.startsWith('/predictions/')) return 'predictions_stats';
+    if (location.includes('/accumulators')) return 'predictions_stats';
+    if (location.includes('/advanced-analysis')) return 'predictions_stats';
+    
+    return 'home';
   };
   
   return (

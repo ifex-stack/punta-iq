@@ -15,7 +15,7 @@ import { getFantasyStore } from "./fantasy-data-init";
 import { PushNotificationService } from "./push-notification-service";
 import { newsRecommendationEngine } from "./recommendation-engine";
 import { db, pool } from "./db";
-import { setupNewsRoutes } from "./news-routes";
+// News routes removed as part of application streamlining
 import { PlayerSeasonStats, PlayerMatchStats } from "@shared/player-interfaces";
 import { realTimeMatchesService } from "./real-time-matches-service";
 import { oddsAPIService } from "./odds-api-service";
@@ -55,8 +55,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up ML-based prediction routes 
   setupMLRoutes(app);
   
-  // Set up fixed news routes
-  setupNewsRoutes(app);
+  // News routes have been removed as part of application streamlining
   
   // Set up historical dashboard routes
   app.use(historicalDashboardRouter);

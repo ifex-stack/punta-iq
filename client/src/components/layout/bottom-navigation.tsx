@@ -3,17 +3,16 @@ import {
   BarChart2,
   CrownIcon,
   UserIcon,
-  TrophyIcon,
   WrenchIcon,
-  NewspaperIcon,
   AwardIcon,
   LineChart,
   Activity,
+  Home,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 interface BottomNavigationProps {
-  activePage: "predictions_stats" | "fantasy" | "subscription" | "profile" | "admin" | "news" | "gamification" | "history" | "livescore";
+  activePage: "predictions_stats" | "fantasy" | "subscription" | "profile" | "admin" | "gamification" | "history" | "livescore" | "home";
 }
 
 const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
@@ -32,9 +31,19 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50">
       {/* Use max-width to center the navigation on larger screens and add consistent padding */}
       <div className="max-w-screen-lg mx-auto px-1">
-        <div className={`grid ${isAdmin ? 'grid-cols-8' : 'grid-cols-7'} h-16`}>
-          {/* Individual nav items with consistent spacing and sizing */}
+        <div className={`grid ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'} h-16`}>
+          {/* Home/Dashboard */}
           <Link href="/">
+            <a className={`flex flex-col items-center justify-center py-2 ${
+              isActive("home") ? "text-primary font-medium" : "text-muted-foreground"
+            }`}>
+              <Home className="h-5 w-5 mb-1" />
+              <span className="text-[10px]">Home</span>
+            </a>
+          </Link>
+          
+          {/* Predictions */}
+          <Link href="/predictions">
             <a className={`flex flex-col items-center justify-center py-2 ${
               isActive("predictions_stats") ? "text-primary font-medium" : "text-muted-foreground"
             }`}>
@@ -43,15 +52,7 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
             </a>
           </Link>
           
-          <Link href="/history">
-            <a className={`flex flex-col items-center justify-center py-2 ${
-              isActive("history") ? "text-primary font-medium" : "text-muted-foreground"
-            }`}>
-              <LineChart className="h-5 w-5 mb-1" />
-              <span className="text-[10px]">History</span>
-            </a>
-          </Link>
-          
+          {/* LiveScore */}
           <Link href="/livescore">
             <a className={`flex flex-col items-center justify-center py-2 ${
               isActive("livescore") ? "text-primary font-medium" : "text-muted-foreground"
@@ -61,33 +62,7 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
             </a>
           </Link>
           
-          <Link href="/news">
-            <a className={`flex flex-col items-center justify-center py-2 ${
-              isActive("news") ? "text-primary font-medium" : "text-muted-foreground"
-            }`}>
-              <NewspaperIcon className="h-5 w-5 mb-1" />
-              <span className="text-[10px]">News</span>
-            </a>
-          </Link>
-          
-          <Link href="/fantasy/contests">
-            <a className={`flex flex-col items-center justify-center py-2 ${
-              isActive("fantasy") ? "text-primary font-medium" : "text-muted-foreground"
-            }`}>
-              <TrophyIcon className="h-5 w-5 mb-1" />
-              <span className="text-[10px]">Fantasy</span>
-            </a>
-          </Link>
-          
-          <Link href="/gamification">
-            <a className={`flex flex-col items-center justify-center py-2 ${
-              isActive("gamification") ? "text-primary font-medium" : "text-muted-foreground"
-            }`}>
-              <AwardIcon className="h-5 w-5 mb-1" />
-              <span className="text-[10px]">Rewards</span>
-            </a>
-          </Link>
-          
+          {/* Profile/Account */}
           <Link href="/profile">
             <a className={`flex flex-col items-center justify-center py-2 ${
               isActive("profile") ? "text-primary font-medium" : "text-muted-foreground"
@@ -97,6 +72,7 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
             </a>
           </Link>
           
+          {/* Admin panel (only visible to admins) */}
           {isAdmin && (
             <Link href="/admin">
               <a className={`flex flex-col items-center justify-center py-2 ${
