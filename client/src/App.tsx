@@ -87,6 +87,7 @@ const Router: React.FC = () => {
             <ProtectedRoute path="/stats" component={NewPredictionsAndStatsPage} />
             <ProtectedRoute path="/predictions/advanced" component={AdvancedPredictionsPage} />
             <ProtectedRoute path="/advanced-analysis" component={AdvancedAnalysisPage} />
+            <ProtectedRoute path="/accumulators" component={AccumulatorsPage} />
             <ProtectedRoute path="/fantasy/contests" component={FantasyContestsPage} />
             <ProtectedRoute path="/fantasy/contests/create" component={FantasyContestCreatePage} />
             <ProtectedRoute path="/fantasy/teams/:teamId/build" component={FantasyTeamBuildPage} />

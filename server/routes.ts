@@ -509,6 +509,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(statsData);
   });
   
+  // Odds API routes for accumulators page
+  app.get("/api/odds/sports", async (req, res) => {
+    try {
+      const sports = await oddsAPIService.getSupportedSports();
+      res.json(sports);
+    } catch (error: any) {
+      console.error('Error fetching sports:', error.message);
+      res.status(500).json({ error: "Failed to fetch sports data" });
+    }
+  });
+
+  app.get("/api/odds/soccer", async (req, res) => {
+    try {
+      let matches = await oddsAPIService.getUpcomingEvents("soccer", 3);
+      
+      // Enhance matches with predictions
+      if (matches.length > 0) {
+        const enhancedMatches = await Promise.all(matches.map(async (match) => {
+          // Basic prediction logic (can be enhanced with ML model later)
+          let prediction = "Home Win";
+          let confidence = 65;
+          
+          // Simple odds-based prediction
+          if (match.homeOdds && match.awayOdds) {
+            if (match.homeOdds < match.awayOdds) {
+              prediction = "Home Win";
+              confidence = Math.round(90 - (match.homeOdds * 10));
+            } else {
+              prediction = "Away Win";
+              confidence = Math.round(90 - (match.awayOdds * 10));
+            }
+            
+            // If draw odds are lowest
+            if (match.drawOdds && match.drawOdds < match.homeOdds && match.drawOdds < match.awayOdds) {
+              prediction = "Draw";
+              confidence = Math.round(80 - (match.drawOdds * 10));
+            }
+          }
+          
+          // Cap confidence between 35-95%
+          confidence = Math.min(Math.max(confidence, 35), 95);
+          
+          return {
+            ...match,
+            prediction,
+            confidence,
+            explanation: `Based on current odds analysis, our model predicts a ${prediction.toLowerCase()} with ${confidence}% confidence.`
+          };
+        }));
+        
+        res.json({ events: enhancedMatches });
+      } else {
+        res.json({ events: [] });
+      }
+    } catch (error: any) {
+      console.error('Error fetching soccer events:', error.message);
+      res.status(500).json({ error: "Failed to fetch soccer data" });
+    }
+  });
+
+  app.get("/api/odds/basketball_nba", async (req, res) => {
+    try {
+      let matches = await oddsAPIService.getUpcomingEvents("basketball_nba", 3);
+      
+      // Enhance matches with predictions
+      if (matches.length > 0) {
+        const enhancedMatches = await Promise.all(matches.map(async (match) => {
+          // Basic prediction logic
+          let prediction = "Home Win";
+          let confidence = 65;
+          
+          // Simple odds-based prediction (no draw in basketball)
+          if (match.homeOdds && match.awayOdds) {
+            if (match.homeOdds < match.awayOdds) {
+              prediction = "Home Win";
+              confidence = Math.round(90 - (match.homeOdds * 10));
+            } else {
+              prediction = "Away Win";
+              confidence = Math.round(90 - (match.awayOdds * 10));
+            }
+          }
+          
+          // Cap confidence between 35-95%
+          confidence = Math.min(Math.max(confidence, 35), 95);
+          
+          return {
+            ...match,
+            prediction,
+            confidence,
+            explanation: `Based on current odds analysis, our model predicts a ${prediction.toLowerCase()} with ${confidence}% confidence.`
+          };
+        }));
+        
+        res.json({ events: enhancedMatches });
+      } else {
+        res.json({ events: [] });
+      }
+    } catch (error: any) {
+      console.error('Error fetching basketball events:', error.message);
+      res.status(500).json({ error: "Failed to fetch basketball data" });
+    }
+  });
+
   // Add history data for charts
   app.get("/api/predictions/history", (req, res) => {
     const historyData = [
