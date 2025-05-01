@@ -9,6 +9,11 @@ export async function initializeDatabase() {
   logger.info('Database', 'Starting database initialization check');
   
   try {
+    // News feature has been removed as part of application streamlining
+    // Skip news-related database initialization
+    
+    /* 
+    // Original news-related code commented out
     // Check if news_type enum exists
     const enumExists = await checkIfEnumExists('news_type');
     if (!enumExists) {
@@ -83,6 +88,8 @@ export async function initializeDatabase() {
       `);
     }
     
+    // News feature removed - all table updates are now skipped
+    /* 
     // Check and update existing tables if needed
     if (newsTableExists) {
       logger.info('Database', 'Checking news_articles table for missing columns');
@@ -117,13 +124,17 @@ export async function initializeDatabase() {
       await createIndexIfNotExists('user_saved_news_user_id_idx', 'user_saved_news', 'user_id');
       await createIndexIfNotExists('user_saved_news_article_id_idx', 'user_saved_news', 'article_id');
     }
+    */
     
+    // News articles creation has been removed
+    /*
     // Check if there are any news articles; if not, create initial ones
     const hasNews = await hasAnyNewsArticles();
     if (!hasNews) {
       logger.info('Database', 'No news articles found, creating initial news feed');
       await createInitialNewsArticles();
     }
+    */
     
     logger.info('Database', 'Database initialization completed successfully');
   } catch (error) {
