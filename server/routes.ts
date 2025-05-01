@@ -30,6 +30,7 @@ import { openaiClient } from "./openai-client";
 import { sportsApiService } from "./sports-api-service";
 import { historicalDashboardRouter } from "./historical-dashboard-routes";
 import { setupAutomationRoutes } from "./automation/automation-routes";
+import { setupLiveScoreRoutes } from "./livescore-routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
@@ -65,6 +66,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up automation management routes
   setupAutomationRoutes(app);
+  
+  // Set up LiveScore routes for real-time match data
+  setupLiveScoreRoutes(app);
   
   // Direct trending topics API endpoint
   app.get("/api/direct-trending-topics", (req, res) => {

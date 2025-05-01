@@ -29,6 +29,7 @@ import FeedbackPage from "@/pages/feedback";
 import AdvancedAnalysisPage from "@/pages/advanced-analysis-page";
 import AccumulatorsPage from "@/pages/accumulators-page";
 import NewsPage from "@/pages/news-page";
+import LiveScorePage from "@/pages/livescore-page";
 import PrivacyPolicyPage from "@/pages/legal/privacy-policy";
 import TermsConditionsPage from "@/pages/legal/terms-conditions";
 import ResponsibleGamblingPage from "@/pages/legal/responsible-gambling";
@@ -101,6 +102,7 @@ const Router: React.FC = () => {
             <ProtectedRoute path="/referrals" component={ReferralsPage} />
             <ProtectedRoute path="/gamification" component={GamificationPage} />
             <ProtectedRoute path="/admin" component={AdminPage} />
+            <Route path="/livescore" component={LiveScorePage} />
             <Route path="/news" component={NewsPage} />
             <Route path="/faq" component={FAQPage} />
             <Route path="/feedback" component={FeedbackPage} />
