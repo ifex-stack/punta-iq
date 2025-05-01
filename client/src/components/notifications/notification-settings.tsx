@@ -115,6 +115,7 @@ export function NotificationSettings({ className }: NotificationSettingsProps) {
 
   const handleRequestPermission = async () => {
     try {
+      setIsSaving(true);
       await requestPermission();
       toast({
         title: "Notifications enabled",
@@ -126,6 +127,8 @@ export function NotificationSettings({ className }: NotificationSettingsProps) {
         description: "Please enable notifications in your browser settings",
         variant: "destructive",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -295,8 +298,24 @@ export function NotificationSettings({ className }: NotificationSettingsProps) {
               Notifications are currently disabled. Enable notifications to stay updated
               with the latest predictions, match results, and special offers.
             </p>
-            <Button onClick={handleRequestPermission} className="mt-2">
-              Enable Notifications
+            <Button 
+              onClick={handleRequestPermission} 
+              disabled={isSaving}
+              className="mt-2 relative px-6"
+            >
+              {isSaving ? (
+                <>
+                  <span className="opacity-0">Enable Notifications</span>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Bell className="mr-2 h-4 w-4" />
+                  Enable Notifications
+                </>
+              )}
             </Button>
           </div>
         </CardContent>
