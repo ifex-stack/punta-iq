@@ -41,6 +41,11 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format, addDays, startOfDay, endOfDay, isToday, isPast, isFuture } from 'date-fns';
 import { PuntaIQLogo } from '@/components/ui/puntaiq-logo';
 
+// Import custom components
+import CustomAccumulatorBuilder from '@/components/accumulators/custom-accumulator-builder';
+import ApiErrorState from '@/components/accumulators/api-error-state';
+import EmptyState from '@/components/accumulators/empty-state';
+
 // Custom icons for sports (since some might not be in Lucide)
 interface IconProps {
   className?: string;
@@ -266,6 +271,36 @@ export default function AccumulatorsPage() {
   
   // Is accumulator data loading?
   const isLoading = loadingAccumulators;
+  
+  // Custom accumulator state 
+  const [showCustomBuilder, setShowCustomBuilder] = useState(false);
+  
+  // Custom builder state
+  const [customSelections, setCustomSelections] = useState([
+    {
+      id: '1',
+      homeTeam: 'Manchester United',
+      awayTeam: 'Chelsea',
+      market: 'match_winner',
+      selection: 'home',
+      odds: 1.65
+    },
+    {
+      id: '2',
+      homeTeam: 'Liverpool',
+      awayTeam: 'Arsenal',
+      market: 'over_under',
+      selection: 'over',
+      odds: 1.90
+    }
+  ]);
+  const [customStake, setCustomStake] = useState(10);
+  const [customRiskLevel, setCustomRiskLevel] = useState('balanced');
+  const [customSport, setCustomSport] = useState('football');
+  
+  // Calculate custom accumulator total odds and return
+  const customTotalOdds = customSelections.reduce((total, selection) => total * selection.odds, 1);
+  const customPotentialReturn = customTotalOdds * customStake;
 
   // Risk level options
   const riskLevels = [
