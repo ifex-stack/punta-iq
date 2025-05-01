@@ -175,7 +175,7 @@ export function PlayerPerformanceHints({
               </span>
             </div>
             
-            {(hints.contextualFactors?.length > 0 || hints.historicalPatterns) && (
+            {((hints.contextualFactors && hints.contextualFactors.length > 0) || hints.historicalPatterns) && (
               <div className="flex items-center justify-between">
                 <Badge 
                   variant="outline"

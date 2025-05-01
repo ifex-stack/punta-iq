@@ -529,6 +529,28 @@ class SportsApiService {
    * @param sport The sport type (should be 'formula1')
    * @returns Array of standardized match objects
    */
+  /**
+   * Get upcoming fixtures/games for a specific team
+   * @param teamId The ID of the team to fetch fixtures for
+   * @param count Number of upcoming fixtures to fetch
+   * @returns Array of standardized match objects
+   */
+  async getTeamUpcomingFixtures(teamId: number, count: number = 3): Promise<StandardizedMatch[]> {
+    try {
+      logger.info('SportsApiService', `Fetching upcoming fixtures for team: ${teamId}`);
+      
+      // Football API supports direct team filtering
+      return this.getFixtures('football', { 
+        team: teamId, 
+        next: count,
+        season: 2023  // Required for football API
+      });
+    } catch (error: any) {
+      logger.error('SportsApiService', `Error fetching team upcoming fixtures: ${error.message}`);
+      return [];
+    }
+  }
+  
   private processFormula1Races(races: any[], sport: string): StandardizedMatch[] {
     if (!races || !Array.isArray(races)) {
       logger.warn('SportsApiService', `No races found or invalid response for ${sport}`);

@@ -27,6 +27,7 @@ import {
   StandardizedMatch
 } from "./prediction-types-service";
 import { openaiClient } from "./openai-client";
+import { sportsApiService } from "./sports-api-service";
 import { historicalDashboardRouter } from "./historical-dashboard-routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
