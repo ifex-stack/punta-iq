@@ -36,7 +36,7 @@ interface NotificationPreferences {
 
 export function NotificationSettings({ className }: NotificationSettingsProps) {
   const { user } = useAuth();
-  const { hasPermission, requestPermission, isLoading } = useNotifications();
+  const { hasPermission, requestPermission, disableNotifications, isLoading } = useNotifications();
   const { toast } = useToast();
   const [preferences, setPreferences] = useState<NotificationPreferences>({
     general: {
@@ -125,6 +125,25 @@ export function NotificationSettings({ className }: NotificationSettingsProps) {
       toast({
         title: "Permission denied",
         description: "Please enable notifications in your browser settings",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  const handleDisableNotifications = async () => {
+    try {
+      setIsSaving(true);
+      await disableNotifications();
+      toast({
+        title: "Notifications disabled",
+        description: "You will no longer receive notifications from PuntaIQ",
+      });
+    } catch (error) {
+      toast({
+        title: "Error disabling notifications",
+        description: "Please try again or check your browser settings",
         variant: "destructive",
       });
     } finally {
@@ -452,12 +471,36 @@ export function NotificationSettings({ className }: NotificationSettingsProps) {
           </div>
         )}
         
-        <div className="mt-6 flex items-start p-4 border rounded-lg bg-muted/30">
-          <Info className="h-5 w-5 text-muted-foreground mr-3 mt-0.5 flex-shrink-0" />
-          <p className="text-sm text-muted-foreground">
-            You can also disable notifications completely in your browser settings.
-            If you're having trouble with notifications, try refreshing the page.
-          </p>
+        <div className="mt-6 flex flex-col gap-4">
+          <div className="flex items-start p-4 border rounded-lg bg-muted/30">
+            <Info className="h-5 w-5 text-muted-foreground mr-3 mt-0.5 flex-shrink-0" />
+            <div className="space-y-3 flex-1">
+              <p className="text-sm text-muted-foreground">
+                You can also disable notifications completely if you no longer wish to receive any alerts.
+              </p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleDisableNotifications}
+                disabled={isSaving}
+                className="relative"
+              >
+                {isSaving ? (
+                  <>
+                    <span className="opacity-0">Disable All Notifications</span>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <BellOff className="mr-2 h-4 w-4" />
+                    Disable All Notifications
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -14,6 +14,7 @@ interface NotificationsContextType {
   hasPermission: boolean;
   isLoading: boolean;
   requestPermission: () => Promise<void>;
+  disableNotifications: () => Promise<void>;
   token: string | null;
   messages: any[];
   hasUnread: boolean;
@@ -224,6 +225,34 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
       console.error('Error deleting all notifications:', error);
     }
   };
+  
+  // Disable notifications
+  const disableNotificationsHandler = async () => {
+    try {
+      setIsLoading(true);
+      
+      if (token) {
+        // Unregister token from backend
+        await apiRequest('POST', '/api/notifications/unregister-token', {
+          token,
+          userId: user?.id
+        });
+        
+        // Clear token in state
+        setToken(null);
+      }
+      
+      // Reset permission state
+      setPermission(false);
+      
+      return true;
+    } catch (error) {
+      console.error('Error disabling notifications:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <NotificationsContext.Provider
@@ -231,6 +260,7 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
         hasPermission: permission,
         isLoading,
         requestPermission: requestPermissionHandler,
+        disableNotifications: disableNotificationsHandler,
         token,
         messages,
         hasUnread,
