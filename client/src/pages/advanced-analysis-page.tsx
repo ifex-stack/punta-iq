@@ -898,6 +898,57 @@ export default function AdvancedAnalysisPage() {
       </div>
     );
   }
+
+  // Display error message when the API quota is maxed out
+  if (matchesData && (!matchesData.events || matchesData.events.length === 0)) {
+    return (
+      <div className="container mx-auto py-6 max-w-5xl">
+        <div className="flex items-center mb-6">
+          <Button variant="ghost" size="sm" className="mr-2" onClick={() => setLocation("/predictions")}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Predictions
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold">Advanced Analysis</h1>
+            <p className="text-muted-foreground">Detailed match analytics</p>
+          </div>
+        </div>
+        
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-amber-500">
+              <AlertTriangle className="h-5 w-5" />
+              Data Temporarily Unavailable
+            </CardTitle>
+            <CardDescription>
+              We're experiencing issues retrieving the latest odds and match data
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pb-6">
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="bg-amber-50 text-amber-500 rounded-full p-6 mb-4">
+                <AlertTriangle className="h-10 w-10" />
+              </div>
+              <h2 className="text-xl font-semibold mb-3">API Usage Limit Reached</h2>
+              <p className="text-muted-foreground max-w-lg mb-6">
+                Our systems are currently unable to retrieve the latest sports data due to 
+                API usage limits being reached. This is a temporary issue that our team 
+                is working to resolve.
+              </p>
+              <div className="flex gap-3">
+                <Button onClick={() => window.location.reload()} variant="outline" className="gap-2">
+                  <RefreshCw className="h-4 w-4" /> Refresh Page
+                </Button>
+                <Button onClick={() => setLocation('/')} variant="default" className="gap-2">
+                  <ArrowLeft className="h-4 w-4" /> Return to Home
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   
   // Main layout with selection interface and analysis
   return (
