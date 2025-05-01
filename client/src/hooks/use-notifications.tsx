@@ -41,11 +41,25 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
     
     try {
       const response = await apiRequest('GET', '/api/notifications');
+      
+      // Check if response is ok before parsing
+      if (!response.ok) {
+        console.error(`Failed to fetch notifications: ${response.status} ${response.statusText}`);
+        return;
+      }
+      
       const data = await response.json();
-      setMessages(data);
-      setHasUnread(data.some((notification: any) => !notification.read));
+      
+      // Make sure we have valid data before updating state
+      if (Array.isArray(data)) {
+        setMessages(data);
+        setHasUnread(data.some((notification: any) => !notification.read));
+      } else {
+        console.error('Invalid notification data received from API:', data);
+      }
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      // Don't update state if error occurs, maintain previous state
     }
   };
 

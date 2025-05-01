@@ -352,7 +352,30 @@ export function NotificationSettings({ className }: NotificationSettingsProps) {
               Choose what notifications you would like to receive
             </CardDescription>
           </div>
-          <Bell className="h-5 w-5 text-primary" />
+          <div className="flex items-center gap-2">
+            <Button 
+              onClick={handleDisableNotifications} 
+              variant="outline" 
+              size="sm" 
+              disabled={isSaving}
+              className="relative px-4"
+            >
+              {isSaving ? (
+                <>
+                  <span className="opacity-0">Disable Notifications</span>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <BellOff className="mr-1 h-4 w-4" />
+                  Disable Notifications
+                </>
+              )}
+            </Button>
+            <Bell className="h-5 w-5 text-primary" />
+          </div>
         </div>
       </CardHeader>
       <CardContent>
