@@ -6,6 +6,9 @@ import { ReferralBadge } from "@/components/referrals/referral-badge";
 import { ReferralLeaderboard } from "@/components/referrals/referral-leaderboard";
 import { ReferralStreak } from "@/components/referrals/referral-streak";
 import { ReferralShare } from "@/components/referrals/referral-share";
+import { ReferralQRCode } from "@/components/referrals/referral-qr-code";
+import { ReferralStatusTracker } from "@/components/referrals/referral-status-tracker";
+import { ReferralAnalytics } from "@/components/referrals/referral-analytics";
 import { PageHeader } from "@/components/layout/page-header";
 import { Gift, ScrollText, Share, ChartBar, Trophy, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -219,86 +222,22 @@ export default function ReferralsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <ReferralShare className="md:col-span-2" />
             
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ChartBar className="h-5 w-5 text-primary" />
-                  Tracking Performance
-                </CardTitle>
-                <CardDescription>
-                  Monitor how your referrals are performing
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm">
-                  Our enhanced referral system now tracks where your referrals come from, giving you more insight into which platforms perform best:
-                </p>
-                
-                <div className="grid grid-cols-2 gap-3 mt-4">
-                  <div className="border rounded-lg p-3">
-                    <h4 className="text-sm font-medium">Top Performing Channel</h4>
-                    <p className="text-2xl font-bold text-primary mt-1">
-                      {isLoadingStats ? (
-                        <Skeleton className="h-8 w-20" />
-                      ) : (
-                        (referralStats?.topChannel || "Direct")
-                      )}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">Based on conversion rate</p>
-                  </div>
-                  
-                  <div className="border rounded-lg p-3">
-                    <h4 className="text-sm font-medium">Total Shares</h4>
-                    <p className="text-2xl font-bold text-primary mt-1">
-                      {isLoadingStats ? (
-                        <Skeleton className="h-8 w-20" />
-                      ) : (
-                        (referralStats?.totalShares || 0)
-                      )}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">Across all channels</p>
-                  </div>
-                </div>
-                
-                <div className="pt-3">
-                  <h4 className="text-sm font-medium mb-3">Channel Performance</h4>
-                  <div className="space-y-4">
-                    {isLoadingStats ? (
-                      <>
-                        <Skeleton className="h-8 w-full" />
-                        <Skeleton className="h-8 w-full" />
-                        <Skeleton className="h-8 w-full" />
-                      </>
-                    ) : (
-                      ['Twitter', 'WhatsApp', 'Email', 'Direct'].map((channel, index) => (
-                        <div key={channel} className="space-y-1">
-                          <div className="flex justify-between">
-                            <span className="text-sm">{channel}</span>
-                            <span className="text-sm font-medium">
-                              {Math.floor(Math.random() * 40) + 10}%
-                            </span>
-                          </div>
-                          <Progress value={Math.floor(Math.random() * 40) + 10} />
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-                
-                <div className="bg-primary/5 rounded-lg border border-primary/20 p-3 mt-2">
-                  <h4 className="text-sm font-medium flex items-center gap-1.5 mb-1">
-                    <Share className="h-4 w-4 text-primary" />
-                    Tips for Better Results
-                  </h4>
-                  <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-                    <li>• Share on multiple platforms to reach different audiences</li>
-                    <li>• Use customized messages for each platform</li>
-                    <li>• Follow up with friends who haven't signed up yet</li>
-                    <li>• Share at peak times when people are most active online</li>
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Add the new QR Code component */}
+            <ReferralQRCode 
+              referralCode={referralStats?.referralCode || "PUNTA123"}
+              shareUrl={`https://puntaiq.com/join?ref=${referralStats?.referralCode || "PUNTA123"}`}
+            />
+            
+            {/* Add the new Status Tracker component */}
+            <ReferralStatusTracker 
+              referrals={referrals || []}
+            />
+            
+            {/* Add the new Analytics component */}
+            <ReferralAnalytics 
+              userId={user.id}
+              className="md:col-span-2"
+            />
             
             <Card>
               <CardHeader>
