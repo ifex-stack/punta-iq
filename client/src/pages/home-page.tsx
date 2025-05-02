@@ -28,7 +28,7 @@ export default function HomePage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
   const notifications = useNotifications();
-  const { openPersonalizedOnboarding } = useOnboarding();
+  const { showOnboarding } = useOnboarding();
   const [selectedSport, setSelectedSport] = useState("all");
   
   interface Prediction {
@@ -528,7 +528,7 @@ export default function HomePage() {
                     </Button>
                     
                     <Button 
-                      onClick={() => openPersonalizedOnboarding()}
+                      onClick={() => showOnboarding()}
                       variant="outline" 
                       size="sm"
                       className="w-full flex justify-between items-center bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30"
