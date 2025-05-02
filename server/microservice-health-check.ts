@@ -133,10 +133,25 @@ async function attemptServiceRestart() {
     // Get the path to the start script
     const scriptPath = path.join(process.cwd(), 'scripts', 'start-ai-service.js');
     
-    // Spawn the Node.js process to run the script
+    logger.info(`Starting AI microservice using script: ${scriptPath}`);
+    
+    // Spawn the Node.js process to run the script with output capturing
     const childProcess = spawn('node', [scriptPath], {
       detached: true, 
-      stdio: ['ignore', 'ignore', 'ignore'],
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        AI_SERVICE_RESTART: 'true' // Flag to indicate this is a restart
+      }
+    });
+    
+    // Capture output for logging
+    childProcess.stdout.on('data', (data) => {
+      logger.info(`[AI Service Starter] ${data.toString().trim()}`);
+    });
+    
+    childProcess.stderr.on('data', (data) => {
+      logger.error(`[AI Service Starter Error] ${data.toString().trim()}`);
     });
     
     // Detach the child process
@@ -144,8 +159,10 @@ async function attemptServiceRestart() {
     
     logger.info(`Restart initiated, process ID: ${childProcess.pid}`);
     
-    // Wait a bit for the service to start
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    // Wait longer for the service to start (10 seconds)
+    // This gives time for dependency installation
+    logger.info('Waiting for microservice to initialize...');
+    await new Promise(resolve => setTimeout(resolve, 10000));
     
     // Check if the service is now running
     const isNowRunning = await client.isRunning();
@@ -154,7 +171,17 @@ async function attemptServiceRestart() {
       logger.info('Microservice successfully restarted');
       failureCount = 0; // Reset failure count on successful restart
     } else {
-      logger.error('Microservice failed to restart');
+      // Try one more time with a longer wait
+      logger.warn('Microservice not responding yet, waiting an additional 10 seconds...');
+      await new Promise(resolve => setTimeout(resolve, 10000));
+      
+      const isRunningRetry = await client.isRunning();
+      if (isRunningRetry) {
+        logger.info('Microservice successfully restarted after additional wait');
+        failureCount = 0; // Reset failure count on successful restart
+      } else {
+        logger.error('Microservice failed to restart - check logs in ai_service_log.txt');
+      }
     }
   } catch (error) {
     logger.error(`Error during microservice restart: ${error}`);
