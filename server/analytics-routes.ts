@@ -436,8 +436,9 @@ analyticsRouter.get('/export', requireAdmin, (req: Request, res: Response) => {
 /**
  * Endpoint for user demographics data
  * GET /api/analytics/demographics
+ * Accessible to both admin and analyst roles
  */
-analyticsRouter.get('/demographics', requireAdmin, (req: Request, res: Response) => {
+analyticsRouter.get('/demographics', requireAnalyst, (req: Request, res: Response) => {
   try {
     
     // In production, this would retrieve data from database
