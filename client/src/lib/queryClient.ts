@@ -7,12 +7,35 @@ const SILENT_ERROR_PATTERNS = [
   'cancelled',
   'navigation',
   'WebSocket',
-  'Socket'
+  'Socket',
+  'Unauthorized' // Prevent duplicate auth error toasts
 ];
+
+// Session cookie name - used to check if we have a session even if we get a 401
+const SESSION_COOKIE_NAME = 'connect.sid';
+
+// Check if we have a session cookie set
+function hasSessionCookie(): boolean {
+  return document.cookie.split(';').some(c => c.trim().startsWith(`${SESSION_COOKIE_NAME}=`));
+}
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const error = await parseApiError(res);
+    
+    // Add more context to authentication errors
+    if (res.status === 401) {
+      const hasSession = hasSessionCookie();
+      
+      if (hasSession) {
+        console.warn('Session cookie exists but server returned 401 - session may be invalid or expired');
+        error.code = 'SESSION_INVALID';
+      } else {
+        console.warn('No session cookie found - user is not authenticated');
+        error.code = 'NO_SESSION';
+      }
+    }
+    
     throw error;
   }
 }
