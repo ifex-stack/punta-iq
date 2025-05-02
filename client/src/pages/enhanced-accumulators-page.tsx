@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
@@ -1239,11 +1239,19 @@ export default function AccumulatorsPage() {
                     onCreateAccumulator={handleCreateCustomAccumulator}
                   />
                 </div>
-              ) : accumulatorsError ? (
+              ) : accumulatorsError || apiDisabled || retryCount >= 3 ? (
                 <ApiErrorState
                   onRetry={handleRetry}
                   onCreateCustom={() => setShowCustomBuilder(true)}
-                  message="We're experiencing an issue with the sports data API. This is likely due to reaching our API quota limit for the day."
+                  message={
+                    apiDisabled 
+                      ? "API requests have been disabled due to persistent errors. Try again later or create a custom accumulator."
+                      : (accumulatorsError as any)?.message === "Not enough upcoming matches to generate accumulators" 
+                        ? "Not enough upcoming matches available for the selected date" 
+                        : (accumulatorsError as any)?.message?.includes("quota")
+                          ? "API quota limit reached. Please try again later."
+                          : "We're experiencing an issue with the sports data API. Try creating a custom accumulator instead."
+                  }
                 />
               ) : !filteredAccumulators || filteredAccumulators.length === 0 ? (
                 <EmptyState
@@ -1287,6 +1295,20 @@ export default function AccumulatorsPage() {
                     </CardContent>
                   </Card>
                 ))
+              ) : accumulatorsError || apiDisabled || retryCount >= 3 ? (
+                <ApiErrorState
+                  onRetry={handleRetry}
+                  onCreateCustom={() => setShowCustomBuilder(true)}
+                  message={
+                    apiDisabled 
+                      ? "API requests have been disabled due to persistent errors. Try again later or create a custom accumulator."
+                      : (accumulatorsError as any)?.message === "Not enough upcoming matches to generate accumulators" 
+                        ? "Not enough upcoming matches available for the selected date" 
+                        : (accumulatorsError as any)?.message?.includes("quota")
+                          ? "API quota limit reached. Please try again later."
+                          : "We're experiencing an issue with the sports data API. Try creating a custom accumulator instead."
+                  }
+                />
               ) : !filteredAccumulators || filteredAccumulators.length === 0 ? (
                 <EmptyState
                   message="You haven't saved any accumulators yet. Browse the recommended accumulators and click the bookmark icon to save them."
@@ -1338,11 +1360,19 @@ export default function AccumulatorsPage() {
                     onCreateAccumulator={handleCreateCustomAccumulator}
                   />
                 </div>
-              ) : accumulatorsError ? (
+              ) : accumulatorsError || apiDisabled || retryCount >= 3 ? (
                 <ApiErrorState
                   onRetry={handleRetry}
                   onCreateCustom={() => setShowCustomBuilder(true)}
-                  message="We're experiencing an issue with the sports data API. This is likely due to reaching our API quota limit for the day."
+                  message={
+                    apiDisabled 
+                      ? "API requests have been disabled due to persistent errors. Try again later or create a custom accumulator."
+                      : (accumulatorsError as any)?.message === "Not enough upcoming matches to generate accumulators" 
+                        ? "Not enough upcoming matches available for the selected date" 
+                        : (accumulatorsError as any)?.message?.includes("quota")
+                          ? "API quota limit reached. Please try again later."
+                          : "We're experiencing an issue with the sports data API. Try creating a custom accumulator instead."
+                  }
                 />
               ) : !filteredAccumulators || filteredAccumulators.length === 0 ? (
                 <EmptyState
