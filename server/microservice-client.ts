@@ -128,9 +128,60 @@ export class MicroserviceClient {
   // Connection settings
   private connectionTimeoutMs: number = 5000; // 5 seconds
 
+  // Track discovered ports for dynamic service discovery
+  private static discoveredPort: number | null = null;
+  private static ports = [5000, 5001, 5002, 5003, 5004, 5005];
+  
   constructor() {
+    // If we've already discovered a working port, use it
+    if (MicroserviceClient.discoveredPort) {
+      this.baseUrl = `http://localhost:${MicroserviceClient.discoveredPort}`;
+      this.logger.info(`Using previously discovered port: ${MicroserviceClient.discoveredPort}`);
+      return;
+    }
+    
+    // Otherwise use the configured URL or default
     this.baseUrl = process.env.AI_SERVICE_URL || "http://localhost:5000";
     this.logger.info(`Initialized with base URL: ${this.baseUrl}`);
+  }
+  
+  /**
+   * Dynamically discover the correct port for the microservice
+   * This will update the baseUrl if a working port is found
+   */
+  private async discoverPort(): Promise<boolean> {
+    // Skip discovery if we already found a port or URL is not localhost
+    if (MicroserviceClient.discoveredPort || !this.baseUrl.includes('localhost')) {
+      return true;
+    }
+    
+    this.logger.info('Attempting to discover AI service port');
+    
+    // Try each potential port
+    for (const port of MicroserviceClient.ports) {
+      try {
+        const testUrl = `http://localhost:${port}`;
+        this.logger.debug(`Testing port ${port}`);
+        
+        const response = await axios({
+          method: 'get',
+          url: `${testUrl}/api/status`,
+          timeout: 1000
+        });
+        
+        if (response.status === 200) {
+          this.logger.info(`Discovered AI service on port ${port}`);
+          this.baseUrl = testUrl;
+          MicroserviceClient.discoveredPort = port;
+          return true;
+        }
+      } catch (error) {
+        // Continue to next port
+      }
+    }
+    
+    this.logger.warn('Failed to discover AI service port');
+    return false;
   }
 
   /**
@@ -399,7 +450,8 @@ export class MicroserviceClient {
     cacheKey = '',
     cacheTTL = 0,
     bypassCircuitBreaker = false,
-    retryAttempts = 0
+    retryAttempts = 0,
+    shouldTryPortDiscovery = true
   }: {
     method?: string;
     url: string;
@@ -409,6 +461,7 @@ export class MicroserviceClient {
     cacheTTL?: number;
     bypassCircuitBreaker?: boolean;
     retryAttempts?: number;
+    shouldTryPortDiscovery?: boolean;
   }): Promise<T> {
     // Check circuit breaker unless bypassed
     if (!bypassCircuitBreaker) {
@@ -434,6 +487,14 @@ export class MicroserviceClient {
     }
     
     try {
+      // Try port discovery if we're using localhost and at the first attempt
+      if (shouldTryPortDiscovery && 
+          this.baseUrl.includes('localhost') && 
+          retryAttempts === 0 && 
+          !MicroserviceClient.discoveredPort) {
+        await this.discoverPort();
+      }
+      
       // Build full URL with base
       const fullUrl = `${this.baseUrl}${url}`;
       
@@ -496,7 +557,8 @@ export class MicroserviceClient {
           cacheKey,
           cacheTTL,
           bypassCircuitBreaker,
-          retryAttempts: retryAttempts + 1
+          retryAttempts: retryAttempts + 1,
+          shouldTryPortDiscovery: retryAttempts === 0 // Only try discovery on first retry
         });
       }
       

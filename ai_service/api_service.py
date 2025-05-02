@@ -342,5 +342,23 @@ def get_leagues():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    logger.info(f"Starting PuntaIQ API Service")
-    app.run(host='0.0.0.0', port=5000)
+    port = int(os.getenv('AI_SERVICE_PORT', 5000))
+    logger.info(f"Starting PuntaIQ API Service on port {port}")
+    try:
+        app.run(host='0.0.0.0', port=port, threaded=True)
+    except OSError as e:
+        if "Address already in use" in str(e):
+            # Try to find another port
+            for alt_port in range(port + 1, port + 10):
+                logger.info(f"Port {port} is in use, trying port {alt_port}")
+                try:
+                    app.run(host='0.0.0.0', port=alt_port, threaded=True)
+                    break
+                except OSError:
+                    continue
+            else:
+                logger.error(f"Could not find an available port, exiting")
+                sys.exit(1)
+        else:
+            logger.error(f"Error starting server: {e}")
+            raise
