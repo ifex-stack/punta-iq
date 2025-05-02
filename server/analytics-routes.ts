@@ -292,3 +292,237 @@ analyticsRouter.get('/dashboard', (req: Request, res: Response) => {
     });
   }
 });
+
+/**
+ * Endpoint for tracking client-side events
+ * POST /api/analytics/events
+ */
+analyticsRouter.post('/events', (req: Request, res: Response) => {
+  try {
+    const { eventType, properties } = req.body;
+    
+    if (!eventType) {
+      return res.status(400).json({ message: 'Event type is required' });
+    }
+    
+    // Log event for debugging
+    logger.info(`Received analytics event: ${eventType}`, properties);
+    
+    // In production, this would store the event in a database
+    // and potentially trigger real-time notifications or alerts
+    
+    // Record the user ID if authenticated
+    const userId = req.isAuthenticated() && req.user ? req.user.id : null;
+    
+    // Create standardized event object
+    const event = {
+      eventType,
+      properties: {
+        ...properties,
+        userId,
+        timestamp: new Date().toISOString(),
+        sessionId: req.sessionID || 'unknown',
+      }
+    };
+    
+    // Store event in storage (would be implemented in production)
+    // analyticsService.storeEvent(event);
+    
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    logger.error('Error storing analytics event', { error });
+    return res.status(500).json({
+      message: 'Failed to store analytics event'
+    });
+  }
+});
+
+/**
+ * Endpoint for exporting analytics data
+ * GET /api/analytics/export
+ */
+analyticsRouter.get('/export', (req: Request, res: Response) => {
+  try {
+    // Only admins can export data
+    if (!req.isAuthenticated() || !req.user || req.user.role !== 'admin') {
+      return res.status(403).json({
+        message: 'Permission denied'
+      });
+    }
+    
+    const { type, format } = req.query;
+    
+    if (!type) {
+      return res.status(400).json({ message: 'Data type is required' });
+    }
+    
+    // In production, this would retrieve data from database
+    // For now, return sample data based on requested type
+    let data: any[] = [];
+    
+    switch (type) {
+      case 'userActivity':
+        // Generate 30 days of user activity
+        const today = new Date();
+        for (let i = 29; i >= 0; i--) {
+          const date = new Date(today);
+          date.setDate(date.getDate() - i);
+          data.push({
+            date: date.toISOString().split('T')[0],
+            activeUsers: 1200 + Math.floor(Math.random() * 700),
+            newUsers: 100 + Math.floor(Math.random() * 120)
+          });
+        }
+        break;
+        
+      case 'errors':
+        data = [
+          { errorType: 'API Connection', count: 24, percentage: 38, details: 'Connection timeout or server unavailable' },
+          { errorType: 'Client Error', count: 18, percentage: 28, details: 'JavaScript runtime errors in browser' },
+          { errorType: 'Authentication', count: 12, percentage: 19, details: 'Invalid credentials or session expiration' },
+          { errorType: 'Network', count: 8, percentage: 13, details: 'Network connectivity issues' },
+          { errorType: 'Other', count: 2, percentage: 2, details: 'Miscellaneous errors' }
+        ];
+        break;
+        
+      case 'apiPerformance':
+        data = [
+          { endpoint: '/api/predictions', avgResponseTime: 120, count: 450, successRate: 99.2 },
+          { endpoint: '/api/user', avgResponseTime: 85, count: 2300, successRate: 99.8 },
+          { endpoint: '/api/accumulators', avgResponseTime: 180, count: 380, successRate: 98.5 },
+          { endpoint: '/api/tiered-predictions', avgResponseTime: 210, count: 280, successRate: 97.9 },
+          { endpoint: '/api/ai-status', avgResponseTime: 90, count: 120, successRate: 100 },
+          { endpoint: '/api/fantasy/teams', avgResponseTime: 150, count: 220, successRate: 99.5 },
+          { endpoint: '/api/fantasy/contests', avgResponseTime: 170, count: 180, successRate: 98.9 },
+          { endpoint: '/api/news', avgResponseTime: 110, count: 320, successRate: 99.7 },
+          { endpoint: '/api/auth/login', avgResponseTime: 95, count: 1800, successRate: 99.9 },
+          { endpoint: '/api/profile', avgResponseTime: 130, count: 780, successRate: 99.6 }
+        ];
+        break;
+        
+      case 'featureUsage':
+        data = [
+          { feature: 'Tiered Predictions', count: 980, percentage: 32, userSegment: 'All users' },
+          { feature: 'Accumulators', count: 650, percentage: 21, userSegment: 'Premium users' },
+          { feature: 'Fantasy Teams', count: 480, percentage: 16, userSegment: 'Engaged users' },
+          { feature: 'News', count: 420, percentage: 14, userSegment: 'All users' },
+          { feature: 'Statistics', count: 340, percentage: 11, userSegment: 'Premium users' },
+          { feature: 'Player Comparison', count: 290, percentage: 9, userSegment: 'Premium users' },
+          { feature: 'Live Scores', count: 520, percentage: 17, userSegment: 'All users' },
+          { feature: 'AI Service Status', count: 120, percentage: 4, userSegment: 'Admin users' },
+          { feature: 'Referrals', count: 380, percentage: 12, userSegment: 'All users' },
+          { feature: 'User Preferences', count: 220, percentage: 7, userSegment: 'All users' }
+        ];
+        break;
+        
+      default:
+        return res.status(400).json({ message: 'Invalid data type' });
+    }
+    
+    // Format response based on requested format
+    if (format === 'csv') {
+      // Convert data to CSV
+      if (data.length === 0) {
+        return res.status(204).send();
+      }
+      
+      const headers = Object.keys(data[0]).join(',');
+      const rows = data.map(item => Object.values(item).join(','));
+      const csv = [headers, ...rows].join('\n');
+      
+      res.header('Content-Type', 'text/csv');
+      res.header('Content-Disposition', `attachment; filename=${type}-export.csv`);
+      return res.send(csv);
+    } else {
+      // Return as JSON
+      return res.status(200).json(data);
+    }
+  } catch (error) {
+    logger.error('Error exporting analytics data', { error });
+    return res.status(500).json({
+      message: 'Failed to export analytics data'
+    });
+  }
+});
+
+/**
+ * Endpoint for user demographics data
+ * GET /api/analytics/demographics
+ */
+analyticsRouter.get('/demographics', (req: Request, res: Response) => {
+  try {
+    // Only admins can access demographic data
+    if (!req.isAuthenticated() || !req.user || req.user.role !== 'admin') {
+      return res.status(403).json({
+        message: 'Permission denied'
+      });
+    }
+    
+    // In production, this would retrieve data from database
+    // For now, return sample demographic data
+    const demographicData = {
+      // User location data
+      locations: [
+        { country: 'United Kingdom', count: 3500, percentage: 32 },
+        { country: 'United States', count: 2200, percentage: 20 },
+        { country: 'Nigeria', count: 1800, percentage: 16.4 },
+        { country: 'Kenya', count: 1200, percentage: 10.9 },
+        { country: 'South Africa', count: 900, percentage: 8.2 },
+        { country: 'Ghana', count: 650, percentage: 5.9 },
+        { country: 'Canada', count: 320, percentage: 2.9 },
+        { country: 'India', count: 280, percentage: 2.5 },
+        { country: 'Australia', count: 120, percentage: 1.1 },
+        { country: 'Other', count: 130, percentage: 1.1 }
+      ],
+      
+      // Device data
+      devices: [
+        { type: 'Mobile', count: 7200, percentage: 65.5 },
+        { type: 'Desktop', count: 2900, percentage: 26.4 },
+        { type: 'Tablet', count: 900, percentage: 8.1 }
+      ],
+      
+      // Operating system data
+      operatingSystems: [
+        { name: 'Android', count: 4800, percentage: 43.6 },
+        { name: 'iOS', count: 3100, percentage: 28.2 },
+        { name: 'Windows', count: 2100, percentage: 19.1 },
+        { name: 'macOS', count: 800, percentage: 7.3 },
+        { name: 'Linux', count: 200, percentage: 1.8 }
+      ],
+      
+      // Browser data
+      browsers: [
+        { name: 'Chrome', count: 6200, percentage: 56.4 },
+        { name: 'Safari', count: 2900, percentage: 26.4 },
+        { name: 'Firefox', count: 900, percentage: 8.2 },
+        { name: 'Edge', count: 700, percentage: 6.4 },
+        { name: 'Samsung Internet', count: 200, percentage: 1.8 },
+        { name: 'Other', count: 100, percentage: 0.8 }
+      ],
+      
+      // Subscription tier data
+      subscriptionTiers: [
+        { tier: 'Free', count: 6500, percentage: 59.1 },
+        { tier: 'Basic', count: 2800, percentage: 25.5 },
+        { tier: 'Pro', count: 1200, percentage: 10.9 },
+        { tier: 'Elite', count: 500, percentage: 4.5 }
+      ],
+      
+      // User engagement segments
+      engagementSegments: [
+        { segment: 'Daily Active', count: 3200, percentage: 29.1 },
+        { segment: 'Weekly Active', count: 4500, percentage: 40.9 },
+        { segment: 'Monthly Active', count: 2300, percentage: 20.9 },
+        { segment: 'Inactive', count: 1000, percentage: 9.1 }
+      ]
+    };
+    
+    return res.status(200).json(demographicData);
+  } catch (error) {
+    logger.error('Error fetching demographic data', { error });
+    return res.status(500).json({
+      message: 'Failed to retrieve demographic data'
+    });
+  }
+});

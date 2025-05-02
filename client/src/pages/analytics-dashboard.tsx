@@ -147,7 +147,17 @@ export default function AnalyticsDashboard() {
   return (
     <div className="container py-6 mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
+        <div>
+          <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
+          <div className="flex mt-2 space-x-4">
+            <Link href="/analytics-dashboard" className="text-primary hover:underline font-medium">
+              Performance Analytics
+            </Link>
+            <Link href="/user-demographics" className="text-muted-foreground hover:text-primary hover:underline">
+              User Demographics
+            </Link>
+          </div>
+        </div>
         
         <Select value={timeRange} onValueChange={setTimeRange}>
           <SelectTrigger className="w-[180px]">
