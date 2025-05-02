@@ -36,8 +36,8 @@ const BASE_SUBSCRIPTION_PLANS = [
   {
     id: "basic",
     name: "Basic",
-    price: 4.99,
-    yearlyPrice: 49.99, // Save ~$10 with yearly billing
+    price: 7.99,
+    yearlyPrice: 79.99, // Save 16% with yearly billing
     description: "Perfect for casual fans looking for reliable predictions",
     features: [
       "Access to predictions for 1 sport",
@@ -54,8 +54,8 @@ const BASE_SUBSCRIPTION_PLANS = [
   {
     id: "pro",
     name: "Pro",
-    price: 9.99,
-    yearlyPrice: 99.99, // Save ~$20 with yearly billing
+    price: 14.99,
+    yearlyPrice: 149.99, // Save 16% with yearly billing
     description: "Enhanced insights for the serious sports enthusiast",
     features: [
       "All sports predictions included",
@@ -73,8 +73,8 @@ const BASE_SUBSCRIPTION_PLANS = [
   {
     id: "elite",
     name: "Elite",
-    price: 20.00,
-    yearlyPrice: 199.99, // Save ~$40 with yearly billing
+    price: 29.99,
+    yearlyPrice: 299.99, // Save 16% with yearly billing
     description: "The ultimate prediction package for maximum success",
     features: [
       "Priority access to high-confidence predictions",
@@ -203,7 +203,7 @@ export default function SubscriptionPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="monthly">Monthly</SelectItem>
-                <SelectItem value="yearly">Yearly (Save up to 17%)</SelectItem>
+                <SelectItem value="yearly">Yearly (Save 16%)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -213,7 +213,11 @@ export default function SubscriptionPage() {
       <div className="text-center mb-10">
         <h2 className="text-2xl font-bold mb-4">Choose the Right Plan for You</h2>
         <p className="text-muted-foreground max-w-2xl mx-auto mb-3">
-          Access our AI-powered sports predictions with a subscription that fits your needs. 
+          Access our premium AI-powered sports predictions with a subscription that fits your strategy. 
+          Our prediction algorithms can potentially help you achieve positive ROI on your betting.
+        </p>
+        <p className="text-muted-foreground max-w-2xl mx-auto mb-3">
+          A single successful bet can easily cover your monthly subscription cost. 
           Upgrade anytime as your strategy evolves.
         </p>
         <div className="flex justify-center mt-2">
@@ -297,7 +301,8 @@ export default function SubscriptionPage() {
             <div>
               <h3 className="text-xl font-medium mb-2">Subscription Benefits</h3>
               <p className="text-muted-foreground mb-4">
-                All subscriptions include unlimited access to your selected prediction tier, with no hidden fees 
+                Our subscription plans are priced to provide exceptional value based on the quality of our AI predictions.
+                All plans include unlimited access to your selected prediction tier, with no hidden fees 
                 or long-term commitments. You can cancel your subscription at any time.
               </p>
               <div className="grid sm:grid-cols-2 gap-3">
