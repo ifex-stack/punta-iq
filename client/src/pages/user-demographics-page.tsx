@@ -8,6 +8,7 @@ import { BarChart, Bar, ResponsiveContainer, PieChart, Pie, Cell, XAxis, YAxis, 
 import { AnalyticsService } from '@/lib/analytics-service';
 import { useAnalytics } from '@/hooks/use-analytics';
 import { Button } from '@/components/ui/button';
+import { Link } from 'wouter';
 
 // Color palette for charts
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#a4de6c', '#d0ed57'];
@@ -121,7 +122,17 @@ export default function UserDemographicsPage() {
   return (
     <div className="container py-6 mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">User Demographics</h1>
+        <div>
+          <h1 className="text-3xl font-bold">User Demographics</h1>
+          <div className="flex mt-2 space-x-4">
+            <Link href="/analytics-dashboard" className="text-muted-foreground hover:text-primary hover:underline">
+              Performance Analytics
+            </Link>
+            <Link href="/user-demographics" className="text-primary hover:underline font-medium">
+              User Demographics
+            </Link>
+          </div>
+        </div>
         
         <div className="flex space-x-2">
           <Button onClick={() => refetch()} variant="outline" size="sm">
