@@ -74,3 +74,31 @@ Error: AI Service failed to start properly: exit code 1
     at ChildProcess.<anonymous> (file:///home/runner/workspace/scripts/start-ai-service.js:175:16)
     at ChildProcess.emit (node:events:518:28)
     at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+--- Starting AI Microservice at 2025-05-02T17:24:17.099Z ---
+[STDOUT] [2025-05-02 17:24:17,612] [INFO] Starting PuntaIQ API Service
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDERR] Address already in use
+Port 5000 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[EXIT] AI Service exited with code 1 and signal null
+
+--- ERROR starting AI Microservice at 2025-05-02T17:24:17.690Z ---
+Error: AI Service failed to start properly: exit code 1
+    at ChildProcess.<anonymous> (file:///home/runner/workspace/scripts/start-ai-service.js:175:16)
+    at ChildProcess.emit (node:events:518:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+--- Starting AI Microservice at 2025-05-02T17:29:39.378Z ---
+[STDOUT] [2025-05-02 17:29:39,875] [INFO] Starting PuntaIQ API Service
+[STDOUT]  * Serving Flask app 'api_service'
+[STDOUT]  * Debug mode: off
+[STDERR] Address already in use
+Port 5000 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[EXIT] AI Service exited with code 1 and signal null
+
+--- ERROR starting AI Microservice at 2025-05-02T17:29:39.921Z ---
+Error: AI Service failed to start properly: exit code 1
+    at ChildProcess.<anonymous> (file:///home/runner/workspace/scripts/start-ai-service.js:175:16)
+    at ChildProcess.emit (node:events:518:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)

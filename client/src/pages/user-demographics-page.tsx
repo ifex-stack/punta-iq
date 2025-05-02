@@ -7,8 +7,10 @@ import { Loader2, Users, Globe, Smartphone, MonitorIcon } from 'lucide-react';
 import { BarChart, Bar, ResponsiveContainer, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { AnalyticsService } from '@/lib/analytics-service';
 import { useAnalytics } from '@/hooks/use-analytics';
+import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
+import { AccessDenied } from '@/components/ui/access-denied';
 
 // Color palette for charts
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#a4de6c', '#d0ed57'];
@@ -50,10 +52,13 @@ interface DemographicData {
 /**
  * User Demographics Dashboard Page
  * Shows detailed demographics breakdowns for app users
+ * Restricted to admin and analyst roles
  */
 export default function UserDemographicsPage() {
   const { trackPageView } = useAnalytics();
   const { toast } = useToast();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const [, setLocation] = useLocation();
   
   // Track the page view
   useState(() => {
@@ -83,6 +88,31 @@ export default function UserDemographicsPage() {
     refetchOnWindowFocus: false,
   });
 
+  // Check if the user has the required role (admin or analyst)
+  const hasAccess = user && (user.role === 'admin' || user.role === 'analyst');
+  
+  // If loading auth, show loading state
+  if (isAuthLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Checking access permissions...</span>
+      </div>
+    );
+  }
+  
+  // If no access, show the access denied component
+  if (!hasAccess) {
+    return (
+      <AccessDenied 
+        title="Analytics Access Restricted"
+        description="You need admin or analyst privileges to view user demographics."
+        returnPath="/analytics-dashboard" 
+        returnLabel="Back to Analytics Dashboard"
+      />
+    );
+  }
+  
   // Handle error state
   if (error) {
     toast({

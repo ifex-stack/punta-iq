@@ -36,6 +36,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Loader2, LineChart, BarChart as BarChartIcon, PieChart as PieChartIcon, Activity, AlertTriangle, Shield } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { AccessDenied } from '@/components/ui/access-denied';
 
 // Define interfaces for analytics data
 interface AnalyticsPerformanceData {
@@ -171,27 +172,10 @@ export default function AnalyticsDashboard() {
   // Show access denied component if user doesn't have required role
   if (user && !hasAccess) {
     return (
-      <div className="container py-6 mx-auto">
-        <Card className="border-destructive">
-          <CardHeader>
-            <div className="flex items-center space-x-2">
-              <AlertTriangle className="h-6 w-6 text-destructive" />
-              <CardTitle>Access Denied</CardTitle>
-            </div>
-            <CardDescription>
-              You do not have permission to view the analytics dashboard
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-4">
-              This page is restricted to administrators and analysts only. If you believe you should have access, please contact an administrator.
-            </p>
-            <Button onClick={() => setLocation('/')}>
-              Return to Home
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <AccessDenied 
+        title="Analytics Access Denied"
+        description="You do not have permission to view the analytics dashboard"
+      />
     );
   }
   

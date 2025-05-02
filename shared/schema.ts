@@ -29,7 +29,7 @@ export const users = pgTable("users", {
   referralCode: text("referral_code"), // Unique referral code for this user
   referredBy: integer("referred_by"), // ID of user who referred this user
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  role: text("role").default("user").notNull(), // Role for RBAC: 'user', 'admin', 'analyst'
+  role: userRoleEnum("role").default("user").notNull(), // Role for RBAC: 'user', 'admin', 'analyst'
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   subscriptionTier: text("subscription_tier").default("free"),
@@ -83,7 +83,7 @@ export const users = pgTable("users", {
     lastStep: 0,
     completedSteps: []
   }),
-  onboardingStatus: text("onboarding_status").default('not_started'),
+  onboardingStatus: onboardingStatusEnum("onboarding_status").default('not_started'),
   lastOnboardingStep: integer("last_onboarding_step").default(0),
 });
 
@@ -98,7 +98,7 @@ export const referrals = pgTable("referrals", {
   id: serial("id").primaryKey(),
   referrerId: integer("referrer_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   referredId: integer("referred_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  status: text("status").default("pending").notNull(), // pending, completed, rewarded, failed
+  status: referralStatusEnum("status").default("pending").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
   rewardAmount: integer("reward_amount"),
