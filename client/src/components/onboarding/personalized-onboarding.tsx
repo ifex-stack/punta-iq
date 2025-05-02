@@ -44,6 +44,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useCurrency } from "@/hooks/use-currency";
 import { CurrencySelector } from "@/components/currency/currency-selector";
+import { Globe } from "lucide-react";
 
 // Step definitions
 const ONBOARDING_STEPS = [
@@ -114,7 +115,7 @@ export function PersonalizedOnboarding({ open, onOpenChange }: PersonalizedOnboa
   const [currentStep, setCurrentStep] = useState(0);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { currency, setCurrency } = useCurrency();
+  const { currency, changeCurrency } = useCurrency();
   
   // Default form values
   const defaultValues: OnboardingFormValues = {
@@ -576,9 +577,11 @@ export function PersonalizedOnboarding({ open, onOpenChange }: PersonalizedOnboa
                           <CurrencySelector 
                             variant="outline" 
                             showLabel={true}
-                            onCurrencyChange={(newCurrency) => {
-                              field.onChange(newCurrency.code);
-                            }}
+                          />
+                          <input 
+                            type="hidden" 
+                            {...field}
+                            value={currency.code}
                           />
                         </div>
                       </div>

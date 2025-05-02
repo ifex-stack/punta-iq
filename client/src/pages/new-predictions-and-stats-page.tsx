@@ -43,6 +43,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useOnboarding } from "@/components/onboarding/onboarding-provider";
+import { OnboardingWelcomeBanner } from "@/components/onboarding/onboarding-provider";
 import {
   Accordion,
   AccordionContent,
@@ -322,6 +324,9 @@ export default function NewPredictionsAndStatsPage() {
 
   return (
     <div className="container mx-auto py-4 md:py-6 px-4 md:px-6 max-w-7xl">
+      {/* Onboarding welcome banner */}
+      <OnboardingWelcomeBanner />
+      
       {/* Header with gradient background */}
       <div className="relative rounded-lg overflow-hidden mb-6">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/90 to-indigo-700/90"></div>

@@ -39,10 +39,9 @@ import { setNavigationState } from "./lib/error-handler";
 import { CurrencyProvider } from "./hooks/use-currency";
 
 // New components
-import { OnboardingProvider } from "@/components/onboarding/onboarding-provider";
+import { OnboardingProvider, OnboardingReminderButton } from "@/components/onboarding/onboarding-provider";
 import { GuidedTour } from "@/components/onboarding/guided-tour";
 import { GettingStartedGuide } from "@/components/onboarding/getting-started-guide";
-import { PersonalizedOnboardingDialog } from "@/components/onboarding/personalized-onboarding-dialog"; 
 import { NotificationProvider } from "@/components/notifications/notification-provider";
 import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
 import { NotificationToastListener } from "@/components/notifications/notification-toast";
@@ -123,7 +122,7 @@ const Router: React.FC = () => {
         {/* Onboarding components (only shown when triggered) */}
         <GuidedTour />
         <GettingStartedGuide />
-        <PersonalizedOnboardingDialog />
+        <OnboardingReminderButton />
       </div>
     </div>
   );
