@@ -11,6 +11,7 @@ export const badgeTierEnum = pgEnum('badge_tier', ['bronze', 'silver', 'gold', '
 export const leaderboardTypeEnum = pgEnum('leaderboard_type', ['weekly', 'monthly', 'seasonal', 'all_time', 'fantasy', 'prediction_accuracy']);
 export const newsTypeEnum = pgEnum('news_type', ['article', 'analysis', 'preview', 'recap', 'interview', 'opinion']);
 export const deviceTypeEnum = pgEnum('device_type', ['android', 'ios', 'web']);
+export const userRoleEnum = pgEnum('user_role', ['user', 'admin', 'analyst']);
 
 // Onboarding status enum
 export const onboardingStatusEnum = pgEnum('onboarding_status', ['not_started', 'in_progress', 'completed']);
@@ -28,6 +29,7 @@ export const users = pgTable("users", {
   referralCode: text("referral_code"), // Unique referral code for this user
   referredBy: integer("referred_by"), // ID of user who referred this user
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  role: text("role").default("user").notNull(), // Role for RBAC: 'user', 'admin', 'analyst'
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   subscriptionTier: text("subscription_tier").default("free"),
@@ -149,6 +151,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   phoneNumber: true,
   referralCode: true,
   referredBy: true,
+  role: true,
 });
 
 // Sports table
