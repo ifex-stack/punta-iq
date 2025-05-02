@@ -1,183 +1,134 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { TierLevel } from '@/components/tiers/tier-badge';
-import { ConfidenceLevel } from '@/components/tiers/confidence-indicator';
-import { ValueBet } from '@/components/tiers/value-bet-indicator';
+import { useAuth } from '@/hooks/use-auth';
 
+// Define prediction interface
 export interface Prediction {
   id: string;
-  matchId: string;
-  sport: string;
-  createdAt: string;
   homeTeam: string;
   awayTeam: string;
-  startTime: string;
   league: string;
-  predictedOutcome: string;
+  sport: string;
+  startTime: string;
   confidence: number;
-  confidenceLevel: ConfidenceLevel;
-  confidence_explanation?: string;
-  tier: TierLevel;
+  confidence_explanation: string;
+  tier: string;
   isPremium: boolean;
-  valueBet?: ValueBet;
-  predictions: Record<string, any>;
-}
-
-export interface PredictionMetadata {
-  sport: {
-    name: string;
-    competitions: string[];
+  predictedOutcome: string;
+  valueBet?: {
+    market: string;
+    outcome: string;
+    edge: number;
+    odds: number;
+    bookmaker: string;
+    explanation: string;
   };
-  confidence_levels: Record<string, {
-    range: string;
-    description: string;
-  }>;
-  tiers: Record<string, {
-    description: string;
-    isPremium: boolean;
-  }>;
+  predictions: {
+    '1X2'?: {
+      outcome: 'HOME_WIN' | 'DRAW' | 'AWAY_WIN';
+      probability: number;
+      homeWin: { probability: number; odds: number };
+      draw: { probability: number; odds: number };
+      awayWin: { probability: number; odds: number };
+    };
+    'BTTS'?: {
+      outcome: 'YES' | 'NO';
+      probability: number;
+      odds?: number;
+      noOdds?: number;
+    };
+    'Over/Under'?: {
+      outcome: 'OVER' | 'UNDER';
+      probability: number;
+      overOdds: number;
+      underOdds: number;
+    };
+    'Winner'?: {
+      outcome: 'HOME_WIN' | 'AWAY_WIN';
+      probability: number;
+      homeWin: { probability: number; odds: number };
+      awayWin: { probability: number; odds: number };
+    };
+  };
 }
 
-export interface PredictionsResponse {
+// Define response format
+interface PredictionsResponse {
   predictions: Prediction[];
-  metadata: PredictionMetadata;
-  isPremiumUser: boolean;
-  userTier: string;
-}
-
-export interface TieredPredictionsResponse {
-  tier1: Prediction[];
-  tier2: Prediction[];
-  tier5: Prediction[];
-  tier10: Prediction[];
-  metadata: {
-    tiers: Record<string, {
-      description: string;
-      isPremium: boolean;
-    }>;
-    timestamp: string;
+  tierPredictions: {
+    tier1: Prediction[];
+    tier2: Prediction[];
+    tier5: Prediction[];
+    tier10: Prediction[];
   };
   isPremiumUser: boolean;
-  userTier: string;
 }
 
-export interface UseTieredPredictionsOptions {
+interface UseTieredPredictionsOptions {
   initialTier?: TierLevel | 'all';
   initialSport?: string;
-  minConfidence?: number;
 }
 
-export function useTieredPredictions(options: UseTieredPredictionsOptions = {}) {
-  const {
-    initialTier = 'all',
-    initialSport = 'football',
-    minConfidence
-  } = options;
-
+export function useTieredPredictions({ 
+  initialTier = 'all',
+  initialSport = 'football'
+}: UseTieredPredictionsOptions = {}) {
+  // State for current filters
   const [selectedTier, setSelectedTier] = useState<TierLevel | 'all'>(initialTier);
   const [selectedSport, setSelectedSport] = useState<string>(initialSport);
-
-  // Get all predictions organized by tier
-  const {
-    data: tieredData,
-    isLoading: tieredLoading,
-    error: tieredError,
-    refetch: refetchTiered
-  } = useQuery<TieredPredictionsResponse>({
-    queryKey: ['/api/microservice/predictions/tiers'],
-    enabled: selectedTier === 'all',
-  });
-
-  // Get sport-specific predictions with tier filtering
-  const {
-    data: sportData,
-    isLoading: sportLoading,
-    error: sportError,
-    refetch: refetchSport
-  } = useQuery<PredictionsResponse>({
-    queryKey: [
-      '/api/microservice/predictions/sports', 
-      selectedSport, 
-      selectedTier !== 'all' ? selectedTier : undefined,
-      minConfidence
-    ],
-    enabled: selectedTier !== 'all',
-  });
-
-  // Combined loading state
-  const isLoading = selectedTier === 'all' ? tieredLoading : sportLoading;
+  const { user } = useAuth();
   
-  // Combined error state
-  const error = selectedTier === 'all' ? tieredError : sportError;
-  
-  // Get all predictions based on filter
-  const getPredictions = (): Prediction[] => {
-    if (selectedTier === 'all' && tieredData) {
-      // Combine all tiers
-      return [
-        ...tieredData.tier1,
-        ...tieredData.tier2,
-        ...tieredData.tier5,
-        ...tieredData.tier10
-      ];
-    } else if (sportData) {
-      return sportData.predictions;
-    }
-    return [];
-  };
-  
-  // Get predictions for a specific tier
-  const getPredictionsByTier = (tier: TierLevel): Prediction[] => {
-    if (selectedTier === 'all' && tieredData) {
-      switch (tier) {
-        case 'Tier 1': return tieredData.tier1;
-        case 'Tier 2': return tieredData.tier2;
-        case 'Tier 5': return tieredData.tier5;
-        case 'Tier 10': return tieredData.tier10;
+  // Fetch tiered predictions
+  const { 
+    data, 
+    isLoading, 
+    error, 
+    refetch 
+  } = useQuery<PredictionsResponse, Error>({
+    queryKey: ['/api/predictions/tiered', selectedSport, selectedTier, user?.id],
+    queryFn: async () => {
+      // URL with queryParams
+      const params = new URLSearchParams();
+      if (selectedSport !== 'all') params.append('sport', selectedSport);
+      if (selectedTier !== 'all') params.append('tier', selectedTier);
+      
+      // Add the subscription tier if available
+      if (user?.subscriptionTier) {
+        params.append('subscriptionTier', user.subscriptionTier);
       }
-    } else if (sportData) {
-      return sportData.predictions.filter(p => p.tier === tier);
-    }
-    return [];
-  };
-  
-  // Check if user has premium access
-  const isPremiumUser = 
-    (selectedTier === 'all' && tieredData?.isPremiumUser) || 
-    (sportData?.isPremiumUser);
-  
-  // User subscription tier
-  const userTier = 
-    (selectedTier === 'all' && tieredData?.userTier) || 
-    sportData?.userTier || 
-    'free';
-  
-  // Refresh data
-  const refreshData = () => {
-    if (selectedTier === 'all') {
-      refetchTiered();
-    } else {
-      refetchSport();
-    }
-  };
-
-  return {
-    predictions: getPredictions(),
-    tierPredictions: {
-      tier1: getPredictionsByTier('Tier 1'),
-      tier2: getPredictionsByTier('Tier 2'),
-      tier5: getPredictionsByTier('Tier 5'),
-      tier10: getPredictionsByTier('Tier 10')
+      
+      const response = await fetch(`/api/predictions/tiered?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch tiered predictions');
+      }
+      
+      return await response.json();
     },
-    metadata: selectedTier === 'all' ? tieredData?.metadata : sportData?.metadata,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+  
+  // Default to empty arrays if data is not available
+  const predictions = data?.predictions || [];
+  const tierPredictions = data?.tierPredictions || {
+    tier1: [],
+    tier2: [],
+    tier5: [],
+    tier10: []
+  };
+  const isPremiumUser = data?.isPremiumUser || false;
+  
+  return {
+    predictions,
+    tierPredictions,
     isLoading,
     error,
     selectedTier,
     setSelectedTier,
     selectedSport,
     setSelectedSport,
-    refreshData,
-    isPremiumUser,
-    userTier
+    refreshData: refetch,
+    isPremiumUser
   };
 }

@@ -1,173 +1,192 @@
 import React from 'react';
-import { cva } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
+import { DollarSign, TrendingUp, BarChart4 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { 
   Tooltip,
   TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
+  TooltipTrigger 
 } from '@/components/ui/tooltip';
-import { TierLevel, getTierFromString } from './tier-badge';
-import { BadgeCheck, TrendingUp } from 'lucide-react';
 
+// Value bet interface
 export interface ValueBet {
+  market: string;
   outcome: string;
-  odds: number;
-  value: number;
   edge: number;
-  tier: string;
-  isRecommended: boolean;
-}
-
-const valueBadgeVariants = cva(
-  "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
-  {
-    variants: {
-      value: {
-        high: "bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-300",
-        medium: "bg-blue-100 text-blue-800 dark:bg-blue-800/20 dark:text-blue-300",
-        low: "bg-amber-100 text-amber-800 dark:bg-amber-800/20 dark:text-amber-300",
-        none: "bg-gray-100 text-gray-800 dark:bg-gray-800/20 dark:text-gray-300"
-      },
-      size: {
-        sm: "text-[10px] px-1.5 py-0",
-        md: "text-xs px-2.5 py-0.5",
-        lg: "text-sm px-3 py-1"
-      }
-    },
-    defaultVariants: {
-      value: "none",
-      size: "md"
-    }
-  }
-);
-
-const edgeVariants = cva(
-  "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-medium",
-  {
-    variants: {
-      edge: {
-        high: "bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-300",
-        medium: "bg-blue-100 text-blue-800 dark:bg-blue-800/20 dark:text-blue-300",
-        low: "bg-amber-100 text-amber-800 dark:bg-amber-800/20 dark:text-amber-300",
-        negative: "bg-red-100 text-red-800 dark:bg-red-800/20 dark:text-red-300"
-      },
-      size: {
-        sm: "text-[10px] px-1 py-0",
-        md: "text-xs px-2 py-0.5",
-        lg: "text-sm px-2.5 py-0.5"
-      }
-    },
-    defaultVariants: {
-      edge: "low",
-      size: "md"
-    }
-  }
-);
-
-export function getValueCategory(value: number): 'high' | 'medium' | 'low' | 'none' {
-  if (value >= 8) return 'high';
-  if (value >= 5) return 'medium';
-  if (value > 0) return 'low';
-  return 'none';
-}
-
-export function getEdgeCategory(edge: number): 'high' | 'medium' | 'low' | 'negative' {
-  if (edge >= 10) return 'high';
-  if (edge >= 5) return 'medium';
-  if (edge >= 0) return 'low';
-  return 'negative';
+  odds: number;
+  bookmaker: string;
+  explanation: string;
+  value?: 'low' | 'medium' | 'high';
+  tier?: 'Tier 1' | 'Tier 2' | 'Tier 5' | 'Tier 10';
+  isRecommended?: boolean;
 }
 
 interface ValueBetIndicatorProps {
-  valueBet?: ValueBet;
+  valueBet: ValueBet;
+  showEdge?: boolean;
   showOdds?: boolean;
   showOutcome?: boolean;
-  size?: "sm" | "md" | "lg";
+  size?: 'sm' | 'md' | 'lg';
   className?: string;
+}
+
+// Get value level from edge percentage
+function getValueLevel(edge: number): 'low' | 'medium' | 'high' {
+  if (edge >= 10) return 'high';
+  if (edge >= 5) return 'medium';
+  return 'low';
+}
+
+// Get color scheme based on value level
+function getValueColors(level: 'low' | 'medium' | 'high'): {
+  bg: string;
+  text: string;
+  border: string;
+} {
+  switch (level) {
+    case 'high':
+      return {
+        bg: 'bg-emerald-50 dark:bg-emerald-950/20',
+        text: 'text-emerald-700 dark:text-emerald-400',
+        border: 'border-emerald-200 dark:border-emerald-900'
+      };
+    case 'medium':
+      return {
+        bg: 'bg-blue-50 dark:bg-blue-950/20',
+        text: 'text-blue-700 dark:text-blue-400',
+        border: 'border-blue-200 dark:border-blue-900'
+      };
+    case 'low':
+      return {
+        bg: 'bg-amber-50 dark:bg-amber-950/20',
+        text: 'text-amber-700 dark:text-amber-400',
+        border: 'border-amber-200 dark:border-amber-900'
+      };
+    default:
+      return {
+        bg: 'bg-muted/30',
+        text: 'text-muted-foreground',
+        border: 'border-muted'
+      };
+  }
+}
+
+// Get text description based on value level
+function getValueText(level: 'low' | 'medium' | 'high'): string {
+  switch (level) {
+    case 'high':
+      return 'High Value';
+    case 'medium':
+      return 'Medium Value';
+    case 'low':
+      return 'Slight Value';
+    default:
+      return '';
+  }
 }
 
 export function ValueBetIndicator({
   valueBet,
-  showOdds = true,
+  showEdge = true,
+  showOdds = false,
   showOutcome = false,
-  size = "md",
+  size = 'md',
   className
 }: ValueBetIndicatorProps) {
-  if (!valueBet) return null;
+  // Determine value level
+  const valueLevel = valueBet.value || getValueLevel(valueBet.edge);
   
-  const { outcome, odds, value, edge, isRecommended } = valueBet;
-  const valueCategory = getValueCategory(value);
-  const edgeCategory = getEdgeCategory(edge);
+  // Get color scheme
+  const colors = getValueColors(valueLevel);
   
-  const tier = getTierFromString(valueBet.tier);
+  // Determine text size based on size prop
+  const textSizes = {
+    sm: 'text-xs',
+    md: 'text-sm',
+    lg: 'text-base'
+  };
+  
+  // Icon sizes
+  const iconSizes = {
+    sm: 'h-3.5 w-3.5',
+    md: 'h-4 w-4',
+    lg: 'h-5 w-5'
+  };
   
   return (
-    <div className={cn("space-y-1", className)}>
-      <div className="flex flex-wrap gap-1 items-center">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span 
-                className={cn(
-                  valueBadgeVariants({ value: valueCategory, size }),
-                  "cursor-help"
-                )}
-              >
-                {isRecommended && <BadgeCheck className="h-3 w-3" />}
-                <span>Value: {value > 0 ? `${value.toFixed(1)}` : 'None'}</span>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent side="top" className="text-xs p-2 max-w-[200px]">
-              <p className="font-bold">Bet Value: {value.toFixed(1)}</p>
-              <p>Value represents the statistical advantage of this bet based on our predictions vs. bookmaker odds</p>
-              {isRecommended && (
-                <p className="mt-1 font-semibold text-green-500">
-                  ✓ Recommended bet in {tier}
-                </p>
-              )}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+    <div className={cn(
+      "border rounded-md overflow-hidden",
+      colors.border,
+      className
+    )}>
+      <div className={cn(
+        "p-2.5 flex items-center justify-between",
+        colors.bg
+      )}>
+        <div className="flex items-center gap-2">
+          <div className={cn(
+            "flex items-center justify-center w-8 h-8 rounded-full",
+            colors.bg,
+            "border-2",
+            colors.border
+          )}>
+            <DollarSign className={cn(iconSizes[size], colors.text)} />
+          </div>
+          
+          <div>
+            <h4 className={cn("font-medium", textSizes[size])}>
+              Value Bet Detected
+            </h4>
+            <p className={cn("text-xs text-muted-foreground")}>
+              {valueBet.market}
+              {showOutcome && ` - ${valueBet.outcome}`}
+            </p>
+          </div>
+        </div>
         
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <span 
+              <Badge
+                variant="secondary"
                 className={cn(
-                  edgeVariants({ edge: edgeCategory, size }),
-                  "cursor-help"
+                  colors.bg,
+                  colors.text,
+                  "font-semibold border",
+                  colors.border
                 )}
               >
-                <TrendingUp className="h-3 w-3" />
-                <span>Edge: {edge > 0 ? `+${edge.toFixed(1)}%` : `${edge.toFixed(1)}%`}</span>
-              </span>
+                {getValueText(valueLevel)}
+              </Badge>
             </TooltipTrigger>
-            <TooltipContent side="top" className="text-xs p-2 max-w-[200px]">
-              <p className="font-bold">Betting Edge: {edge > 0 ? `+${edge.toFixed(1)}%` : `${edge.toFixed(1)}%`}</p>
-              <p>Edge represents your percentage advantage over the bookmaker's implied probability</p>
-              {edge >= 5 && (
-                <p className="mt-1 font-semibold text-green-500">
-                  Strong betting opportunity
-                </p>
-              )}
+            <TooltipContent side="top" className="max-w-sm">
+              <p className="text-sm text-muted-foreground">
+                {valueBet.explanation}
+              </p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>
       
-      {(showOdds || showOutcome) && (
-        <div className="flex flex-wrap gap-2 text-xs">
-          {showOutcome && (
-            <span className="text-muted-foreground">
-              Prediction: <span className="font-medium text-foreground">{outcome}</span>
-            </span>
+      {(showEdge || showOdds) && (
+        <div className="p-2 border-t border-border flex items-center justify-between">
+          {showEdge && (
+            <div className="flex items-center gap-1.5">
+              <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className={cn("text-sm", colors.text, "font-medium")}>
+                {valueBet.edge.toFixed(1)}% Edge
+              </span>
+            </div>
           )}
           
           {showOdds && (
-            <span className="text-muted-foreground">
-              Odds: <span className="font-medium text-foreground">{odds.toFixed(2)}</span>
-            </span>
+            <div className="flex items-center gap-1.5">
+              <BarChart4 className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-sm font-medium">
+                {valueBet.bookmaker}: <span className="font-bold">{valueBet.odds.toFixed(2)}</span>
+              </span>
+            </div>
           )}
         </div>
       )}

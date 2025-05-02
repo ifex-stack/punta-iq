@@ -1,145 +1,144 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { TierLevel } from '@/components/tiers/tier-badge';
+import { useAuth } from '@/hooks/use-auth';
 import { Prediction } from './use-tiered-predictions';
 
-export type AccumulatorSize = 'small' | 'medium' | 'large' | 'mega';
+// Define accumulator types
 export type TierCategory = 'tier1' | 'tier2' | 'tier5' | 'tier10';
+
+export interface AccumulatorSelection {
+  match: {
+    id: string;
+    homeTeam: string;
+    awayTeam: string;
+    league: string;
+    sport: string;
+    startTime: string;
+  };
+  prediction: string;
+  odds: number;
+  confidence: number;
+}
 
 export interface Accumulator {
   id: string;
-  matches: Prediction[];
+  tier: string;
+  category: TierCategory;
   size: number;
-  tier: TierLevel;
-  totalOdds: number;
   confidence: number;
-  selections: {
-    match: {
-      homeTeam: string;
-      awayTeam: string;
-      league: string;
-      startTime: string;
-    };
-    prediction: string;
-    odds: number;
-    confidence: number;
-  }[];
-  createdAt: string;
-  sport: string;
+  totalOdds: number;
   isPremium: boolean;
+  createdAt: string;
+  selections: AccumulatorSelection[];
 }
 
-export interface AccumulatorMetadata {
-  tiers: Record<TierCategory, {
-    name: string;
-    description: string;
-    isPremium: boolean;
-  }>;
-  timestamp: string;
-  updateFrequency: string;
-}
-
+// Define response format
 export interface AccumulatorsResponse {
-  accumulators: Record<string, Accumulator[]>;
-  count: number;
-  metadata: AccumulatorMetadata;
+  accumulators: Accumulator[];
+  accumulatorsByCategory: {
+    tier1: Accumulator[];
+    tier2: Accumulator[];
+    tier5: Accumulator[];
+    tier10: Accumulator[];
+  };
+  metadata: {
+    totalCount: number;
+    premiumCount: number;
+    countByCategory: {
+      tier1: number;
+      tier2: number;
+      tier5: number;
+      tier10: number;
+    };
+  };
   isPremiumUser: boolean;
-  userTier: string;
 }
 
-export interface UseTieredAccumulatorsOptions {
+interface UseTieredAccumulatorsOptions {
   initialTier?: TierLevel | 'all';
   initialCategory?: TierCategory | 'all';
   initialSize?: number;
 }
 
-export function useTieredAccumulators(options: UseTieredAccumulatorsOptions = {}) {
-  const {
-    initialTier = 'all',
-    initialCategory = 'all',
-    initialSize
-  } = options;
-
+export function useTieredAccumulators({ 
+  initialTier = 'all',
+  initialCategory = 'all',
+  initialSize
+}: UseTieredAccumulatorsOptions = {}) {
+  // State for current filters
   const [selectedTier, setSelectedTier] = useState<TierLevel | 'all'>(initialTier);
   const [selectedCategory, setSelectedCategory] = useState<TierCategory | 'all'>(initialCategory);
   const [selectedSize, setSelectedSize] = useState<number | undefined>(initialSize);
-
-  // Build query parameters
-  const buildQueryKey = () => {
-    const key = ['/api/microservice/predictions/accumulators'];
-    const params: Record<string, string | number> = {};
-    
-    if (selectedTier !== 'all') {
-      params.tier = selectedTier;
-    }
-    
-    if (selectedCategory !== 'all') {
-      params.tierCategory = selectedCategory;
-    }
-    
-    if (selectedSize !== undefined) {
-      params.size = selectedSize;
-    }
-    
-    if (Object.keys(params).length > 0) {
-      key.push(params);
-    }
-    
-    return key;
-  };
-
-  // Get accumulators based on filters
+  const { user } = useAuth();
+  
+  // Fetch tiered accumulators
   const { 
-    data,
-    isLoading,
-    error,
-    refetch
-  } = useQuery<AccumulatorsResponse>({
-    queryKey: buildQueryKey(),
+    data, 
+    isLoading, 
+    error, 
+    refetch 
+  } = useQuery<AccumulatorsResponse, Error>({
+    queryKey: ['/api/accumulators/tiered', selectedTier, selectedCategory, selectedSize, user?.id],
+    queryFn: async () => {
+      // URL with queryParams
+      const params = new URLSearchParams();
+      if (selectedTier !== 'all') params.append('tier', selectedTier);
+      if (selectedCategory !== 'all') params.append('category', selectedCategory);
+      if (selectedSize) params.append('size', selectedSize.toString());
+      
+      // Add the subscription tier if available
+      if (user?.subscriptionTier) {
+        params.append('subscriptionTier', user.subscriptionTier);
+      }
+      
+      const response = await fetch(`/api/accumulators/tiered?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch tiered accumulators');
+      }
+      
+      return await response.json();
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
-
-  // Get categories that are available
-  const getAvailableCategories = (): TierCategory[] => {
-    if (!data || !data.accumulators) return [];
-    return Object.keys(data.accumulators) as TierCategory[];
-  };
   
-  // Get accumulators for a specific category
-  const getAccumulatorsByCategory = (category: TierCategory): Accumulator[] => {
-    if (!data || !data.accumulators) return [];
-    return data.accumulators[category] || [];
+  // Default to empty arrays if data is not available
+  const accumulators = data?.accumulators || [];
+  const accumulatorsByCategory = data?.accumulatorsByCategory || {
+    tier1: [],
+    tier2: [],
+    tier5: [],
+    tier10: []
   };
-  
-  // Get all accumulators across all categories
-  const getAllAccumulators = (): Accumulator[] => {
-    if (!data || !data.accumulators) return [];
-    
-    return Object.values(data.accumulators).flat();
+  const metadata = data?.metadata || {
+    totalCount: 0,
+    premiumCount: 0,
+    countByCategory: {
+      tier1: 0,
+      tier2: 0,
+      tier5: 0,
+      tier10: 0
+    }
   };
-  
-  // Check if user has premium access
   const isPremiumUser = data?.isPremiumUser || false;
   
-  // User subscription tier
-  const userTier = data?.userTier || 'free';
-  
-  // Check if a category has accumulators
+  // Available categories (only those with accumulators)
+  const availableCategories: TierCategory[] = Object.entries(metadata.countByCategory)
+    .filter(([_, count]) => count > 0)
+    .map(([category]) => category as TierCategory);
+    
+  // Helper to check if a category has accumulators
   const hasCategoryAccumulators = (category: TierCategory): boolean => {
-    if (!data || !data.accumulators) return false;
-    return !!data.accumulators[category] && data.accumulators[category].length > 0;
+    return metadata.countByCategory[category] > 0;
   };
-
+  
   return {
-    accumulators: getAllAccumulators(),
-    accumulatorsByCategory: {
-      tier1: getAccumulatorsByCategory('tier1'),
-      tier2: getAccumulatorsByCategory('tier2'),
-      tier5: getAccumulatorsByCategory('tier5'),
-      tier10: getAccumulatorsByCategory('tier10')
-    },
-    availableCategories: getAvailableCategories(),
+    accumulators,
+    accumulatorsByCategory,
+    metadata,
+    availableCategories,
     hasCategoryAccumulators,
-    metadata: data?.metadata,
     isLoading,
     error,
     selectedTier,
@@ -149,8 +148,6 @@ export function useTieredAccumulators(options: UseTieredAccumulatorsOptions = {}
     selectedSize,
     setSelectedSize,
     refreshData: refetch,
-    isPremiumUser,
-    userTier,
-    totalCount: data?.count || 0
+    isPremiumUser
   };
 }
