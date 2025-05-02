@@ -29,7 +29,15 @@ interface ServiceStatus {
   lastRestartAt?: string | null;
 }
 
-export function AIServiceStatusIndicator() {
+interface AIServiceStatusIndicatorProps {
+  size?: 'small' | 'default' | 'large';
+  className?: string;
+}
+
+export function AIServiceStatusIndicator({ 
+  size = 'default',
+  className = ''
+}: AIServiceStatusIndicatorProps) {
   const { toast } = useToast();
   const [isRestarting, setIsRestarting] = useState(false);
   
@@ -119,6 +127,106 @@ export function AIServiceStatusIndicator() {
     }
   };
   
+  // Get component size based on the size prop
+  const getDotSize = () => {
+    switch (size) {
+      case 'small': return 'w-2 h-2';
+      case 'large': return 'w-4 h-4';
+      default: return 'w-3 h-3';
+    }
+  };
+  
+  const getTextSize = () => {
+    switch (size) {
+      case 'small': return 'text-[10px]';
+      case 'large': return 'text-sm';
+      default: return 'text-xs';
+    }
+  };
+  
+  const getIconSize = () => {
+    switch (size) {
+      case 'small': return 'h-3 w-3';
+      case 'large': return 'h-5 w-5';
+      default: return 'h-4 w-4';
+    }
+  };
+  
+  // Get status icon with correct size
+  const getStatusIconSized = () => {
+    const iconSize = getIconSize();
+    if (isLoading) return <RefreshCw className={`${iconSize} animate-spin`} />;
+    if (isError) return <XCircle className={iconSize} />;
+    
+    switch (status?.status) {
+      case "online":
+        return <CheckCircle2 className={iconSize} />;
+      case "degraded":
+        return <AlertTriangle className={iconSize} />;
+      case "offline":
+        return <XCircle className={iconSize} />;
+      default:
+        return <Server className={iconSize} />;
+    }
+  };
+  
+  // Custom rendering for small size - just a dot
+  if (size === 'small') {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger>
+            <div className={`${getDotSize()} rounded-full ${getStatusColor()} animate-pulse`} />
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="max-w-xs">
+            <p className="text-xs">AI Service: {getStatusText()}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+  
+  // Custom rendering for large size
+  if (size === 'large') {
+    return (
+      <div className={`rounded-lg bg-card border border-border p-3 ${className}`}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className={`${getDotSize()} rounded-full ${getStatusColor()}`} />
+            <h3 className="font-medium">AI Service</h3>
+          </div>
+          {getStatusIconSized()}
+        </div>
+        
+        <div className={`${getTextSize()} font-medium`}>
+          Status: {getStatusText()}
+        </div>
+        
+        <p className="text-xs text-muted-foreground mt-1">
+          {status?.message || error?.message || (
+            status?.status === "online" 
+              ? "The AI prediction service is running normally." 
+              : status?.status === "degraded"
+              ? "The AI service is running with reduced capabilities."
+              : "The AI prediction service is currently offline."
+          )}
+        </p>
+        
+        {status?.status === "offline" && (
+          <Button 
+            className="w-full mt-3 h-9"
+            onClick={handleRestart}
+            disabled={isRestarting}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRestarting ? 'animate-spin' : ''}`} />
+            {isRestarting ? "Restarting..." : "Restart Service"}
+          </Button>
+        )}
+      </div>
+    );
+  }
+  
+  // Default size rendering
   if (isLoading) {
     return <Skeleton className="h-8 w-24" />;
   }
@@ -127,21 +235,21 @@ export function AIServiceStatusIndicator() {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex items-center space-x-2">
+          <div className={`flex items-center space-x-2 ${className}`}>
             <Badge 
               variant="outline" 
-              className="flex items-center gap-1 px-2 py-1"
+              className="flex items-center gap-1.5 px-2 py-1"
             >
-              <div className={`w-2 h-2 rounded-full ${getStatusColor()}`} />
-              <span className="text-xs">AI: {getStatusText()}</span>
-              {getStatusIcon()}
+              <div className={`${getDotSize()} rounded-full ${getStatusColor()}`} />
+              <span className={getTextSize()}>AI: {getStatusText()}</span>
+              {getStatusIconSized()}
             </Badge>
             
             {status?.status === "offline" && (
               <Button 
                 size="sm" 
                 variant="ghost" 
-                className="h-8 px-2"
+                className="h-8 px-2 touch-manipulation active:scale-95 transition-transform"
                 onClick={handleRestart}
                 disabled={isRestarting}
               >
