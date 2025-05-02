@@ -78,7 +78,7 @@ export function CurrencyBadge() {
   );
 }
 
-// Format price with currency using locale-aware formatting
+// Format price with currency using locale-aware formatting and conversion
 export function PriceDisplay({ 
   amount, 
   className = "" 
@@ -86,11 +86,17 @@ export function PriceDisplay({
   amount: number, 
   className?: string 
 }) {
-  const { format } = useCurrency();
+  const { format, convert, currency } = useCurrency();
+  
+  // First convert from USD to selected currency, then format
+  const convertedAmount = convert(amount);
+  
+  // Log for debugging purposes
+  console.log(`Converting ${amount} USD to ${currency.code}: ${convertedAmount} (rate: ${currency.rate})`);
   
   return (
     <span className={`font-medium ${className}`}>
-      {format(amount)}
+      {format(convertedAmount)}
     </span>
   );
 }

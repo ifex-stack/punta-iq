@@ -40,7 +40,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   // Force refresh exchange rates from API
   const refreshRates = useCallback(async (): Promise<boolean> => {
     try {
-      const success = await fetchCurrentExchangeRates();
+      console.log('Forcing refresh of exchange rates');
+      const success = await fetchCurrentExchangeRates(true); // Pass true to force refresh
       if (success) {
         // Update available currencies with new rates
         const updatedCurrencies = getAllCurrencies();
@@ -51,6 +52,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
           const updatedCurrency = updatedCurrencies.find(c => c.code === currency.code);
           if (updatedCurrency) {
             setCurrency(updatedCurrency);
+            console.log(`Updated ${currency.code} rate to ${updatedCurrency.rate}`);
           }
         }
         

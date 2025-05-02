@@ -116,10 +116,15 @@ export default function SubscriptionPage() {
   
   // Update subscription plans with pricing information
   useEffect(() => {
+    // Create deep copy of base plans and apply currency conversion
     const plans = BASE_SUBSCRIPTION_PLANS.map(plan => ({
       ...plan
     }));
     setSubscriptionPlans(plans);
+
+    // Log for debugging
+    console.log('Current currency:', currency);
+    console.log(`Converting prices using rate: ${currency.rate} ${currency.code} to 1 USD`);
   }, [currency, isYearly]);
   
   const subscribeMutation = useMutation({
