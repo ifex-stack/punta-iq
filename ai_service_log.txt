@@ -1,0 +1,17 @@
+
+--- Starting AI Microservice at 2025-05-02T16:56:43.751Z ---
+[STDERR] Traceback (most recent call last):
+  File "/home/runner/workspace/ai_service/api_service.py", line 6, in <module>
+[STDERR]     from flask import Flask, jsonify, request, make_response
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/__init__.py", line 5, in <module>
+    from .app import Flask as Flask
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 30, in <module>
+    from werkzeug.urls import url_quote
+ImportError: cannot import name 'url_quote' from 'werkzeug.urls' (/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/werkzeug/urls.py)
+[EXIT] AI Service exited with code 1 and signal null
+
+--- ERROR starting AI Microservice at 2025-05-02T16:56:44.505Z ---
+Error: AI Service failed to start properly: exit code 1
+    at ChildProcess.<anonymous> (file:///home/runner/workspace/scripts/start-ai-service.js:163:16)
+    at ChildProcess.emit (node:events:518:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)

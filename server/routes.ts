@@ -34,8 +34,10 @@ import { setupLiveScoreRoutes } from "./livescore-routes";
 import { userPreferencesRouter } from "./user-preferences-routes";
 import { microserviceRouter } from "./microservice-routes";
 import { aiStatusRouter } from "./ai-status-routes";
+import { analyticsRouter } from "./analytics-routes";
 import { MicroserviceClient } from "./microservice-client";
 import { createContextLogger } from "./logger";
+import { analytics, AnalyticsEventType } from "./analytics-service";
 
 // Create logger for routes
 const routesLogger = createContextLogger("Routes");
@@ -85,6 +87,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up AI status routes
   app.use('/api/ai-status', aiStatusRouter);
+  
+  // Set up analytics routes
+  app.use('/api/analytics', analyticsRouter);
   
   // Try to start the microservice at server initialization
   try {
