@@ -7,6 +7,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
+import createMemoryStore from "memorystore";
 
 declare global {
   namespace Express {
@@ -33,12 +34,17 @@ export function setupAuth(app: Express) {
   if (!process.env.SESSION_SECRET) {
     throw new Error("SESSION_SECRET environment variable is required");
   }
-
+  
+  // Create in-memory session store
+  const MemoryStore = createMemoryStore(session);
+  
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    store: storage.sessionStore,
+    store: new MemoryStore({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    }),
     cookie: {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     }
