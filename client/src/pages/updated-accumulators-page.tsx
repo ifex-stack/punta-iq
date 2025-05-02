@@ -509,7 +509,7 @@ function EmptyState({
   onCreateCustom
 }: EmptyStateProps) {
   return (
-    <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
+    <div className="col-span-full flex flex-col items-center justify-center py-12 text-center animate-in fade-in duration-300">
       <div className="rounded-full bg-muted p-3 mb-4">
         <AlertCircle className="h-6 w-6 text-muted-foreground" />
       </div>
@@ -522,7 +522,10 @@ function EmptyState({
         Try changing the date, risk level, or sport filter.
       </p>
       
-      <Button onClick={onCreateCustom}>
+      <Button 
+        onClick={onCreateCustom}
+        className="bg-gradient-to-r from-primary to-primary-600 hover:from-primary-600 hover:to-primary-700"
+      >
         <PlusCircle className="mr-2 h-4 w-4" />
         Create Custom Accumulator
       </Button>
@@ -570,116 +573,127 @@ function AccumulatorCard({ accumulator, onBookmark }: AccumulatorCardProps) {
   };
   
   return (
-    <Card className={`overflow-hidden border ${colorTheme}`}>
-      <CardHeader className="pb-2">
-        <div className="flex justify-between">
-          <div className="flex items-center gap-2">
-            {icon}
-            <h3 className="text-base font-semibold">{name}</h3>
-          </div>
-          <Button variant="ghost" size="icon" onClick={onBookmark}>
-            <BookmarkIcon className="h-4 w-4" />
-          </Button>
-        </div>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="mb-4">
-          <div className="flex justify-between items-center mb-2">
+    <div className="animate-in fade-in-50 duration-300 slide-in-from-bottom-4">
+      <Card className={`overflow-hidden border ${colorTheme} hover:shadow-md transition-shadow`}>
+        <CardHeader className="pb-2">
+          <div className="flex justify-between">
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">
-                {formatMarketType(marketType)}
-              </Badge>
-              <Badge variant="outline" className="text-xs uppercase">
-                {sport}
+              {icon}
+              <h3 className="text-base font-semibold">{name}</h3>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={onBookmark}
+              className="hover:bg-primary/10 hover:text-primary transition-colors"
+            >
+              <BookmarkIcon className="h-4 w-4" />
+            </Button>
+          </div>
+          <CardDescription>{description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-2">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">
+                  {formatMarketType(marketType)}
+                </Badge>
+                <Badge variant="outline" className="text-xs uppercase">
+                  {sport}
+                </Badge>
+              </div>
+              <Badge 
+                className={`
+                  ${confidence >= 80 ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' : 
+                    confidence >= 60 ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' : 
+                    confidence >= 40 ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300' : 
+                    'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'}
+                `}
+              >
+                {confidence}% Confidence
               </Badge>
             </div>
-            <Badge 
-              className={`
-                ${confidence >= 80 ? 'bg-green-100 text-green-800' : 
-                  confidence >= 60 ? 'bg-blue-100 text-blue-800' : 
-                  confidence >= 40 ? 'bg-orange-100 text-orange-800' : 
-                  'bg-red-100 text-red-800'}
-              `}
+            
+            <Accordion
+              type="single"
+              collapsible
+              className="w-full"
+              value={expanded ? "selections" : ""}
+              onValueChange={(val) => setExpanded(val === "selections")}
             >
-              {confidence}% Confidence
-            </Badge>
-          </div>
-          
-          <Accordion
-            type="single"
-            collapsible
-            className="w-full"
-            value={expanded ? "selections" : ""}
-            onValueChange={(val) => setExpanded(val === "selections")}
-          >
-            <AccordionItem value="selections" className="border-b-0">
-              <AccordionTrigger className="py-2 text-sm">
-                {selections.length} Selections
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-3 pt-1">
-                  {selections.map((selection, index) => (
-                    <div key={selection.id} className="bg-muted/30 p-3 rounded-md">
-                      <div className="flex justify-between mb-1">
-                        <span className="text-xs font-medium text-muted-foreground">
-                          {selection.league}
-                        </span>
-                        <span className="text-xs">
-                          {new Date(selection.startTime).toLocaleString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit'
-                          })}
-                        </span>
-                      </div>
-                      <div className="flex justify-between mb-1">
-                        <span className="font-medium">{selection.homeTeam} vs {selection.awayTeam}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <div className="flex items-center gap-1">
-                          <span className="text-primary">
-                            {formatPrediction(selection.prediction, selection.valueBet?.market || '')}
+              <AccordionItem value="selections" className="border-b-0">
+                <AccordionTrigger className="py-2 text-sm hover:no-underline hover:text-primary">
+                  {selections.length} Selections
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-3 pt-1">
+                    {selections.map((selection, index) => (
+                      <div 
+                        key={selection.id} 
+                        className="bg-muted/30 p-3 rounded-md animate-in slide-in-from-left duration-300"
+                        style={{ animationDelay: `${index * 75}ms` }}
+                      >
+                        <div className="flex justify-between mb-1">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {selection.league}
                           </span>
+                          <span className="text-xs">
+                            {new Date(selection.startTime).toLocaleString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex justify-between mb-1">
+                          <span className="font-medium">{selection.homeTeam} vs {selection.awayTeam}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <div className="flex items-center gap-1">
+                            <span className="text-primary">
+                              {formatPrediction(selection.prediction, selection.valueBet?.market || '')}
+                            </span>
+                            <Badge 
+                              variant="outline" 
+                              className="text-xs h-5 bg-background"
+                            >
+                              {selection.odds.toFixed(2)}
+                            </Badge>
+                          </div>
                           <Badge 
-                            variant="outline" 
-                            className="text-xs h-5 bg-background"
+                            className={`text-xs ${
+                              selection.confidence >= 80 ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' : 
+                              selection.confidence >= 60 ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' : 
+                              selection.confidence >= 40 ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300' : 
+                              'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
+                            }`}
                           >
-                            {selection.odds.toFixed(2)}
+                            {selection.confidence}%
                           </Badge>
                         </div>
-                        <Badge 
-                          className={`text-xs ${
-                            selection.confidence >= 80 ? 'bg-green-100 text-green-800' : 
-                            selection.confidence >= 60 ? 'bg-blue-100 text-blue-800' : 
-                            selection.confidence >= 40 ? 'bg-orange-100 text-orange-800' : 
-                            'bg-red-100 text-red-800'
-                          }`}
-                        >
-                          {selection.confidence}%
-                        </Badge>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </div>
-        
-        <div className="flex justify-between items-center text-sm border-t pt-4">
-          <div>
-            <div className="font-medium">Total Odds</div>
-            <div className="text-xl font-bold">{totalOdds}</div>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
-          <div className="text-right">
-            <div className="font-medium">Potential Return</div>
-            <div className="text-xl font-bold text-green-600 dark:text-green-400">{potentialReturn}</div>
+          
+          <div className="flex justify-between items-center text-sm border-t pt-4">
+            <div>
+              <div className="font-medium">Total Odds</div>
+              <div className="text-xl font-bold">{totalOdds}</div>
+            </div>
+            <div className="text-right">
+              <div className="font-medium">Potential Return</div>
+              <div className="text-xl font-bold text-green-600 dark:text-green-400">{potentialReturn}</div>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -756,16 +770,29 @@ export default function AccumulatorsPage() {
     refetchOnWindowFocus: false,
     retry: 1, // Reduced retries to show error state faster
     retryDelay: 1000,
-    enabled: true,
-    // Add better error handling
-    onError: (error: any) => {
-      console.error("Error fetching accumulators:", error);
-      // If the error is quota related, suggest custom builder right away
-      if (error.message?.includes("quota") || error.status === 429) {
+    enabled: true
+  });
+  
+  // Handle errors separately to fix TypeScript issues
+  React.useEffect(() => {
+    if (accumulatorsError) {
+      console.error("Error fetching accumulators:", accumulatorsError);
+      // Check if the error is quota related
+      const errorAny = accumulatorsError as any;
+      if (
+        errorAny.message?.includes("quota") || 
+        errorAny.status === 429 ||
+        errorAny.message?.includes("upcoming matches")
+      ) {
         setShowCustomBuilder(true);
+        toast({
+          title: "API Quota Limit Reached",
+          description: "Our sports data API quota limit has been reached. You can create custom accumulators instead.",
+          variant: "destructive",
+        });
       }
     }
-  });
+  }, [accumulatorsError, toast]);
   
   // Process accumulators from API response
   const accumulators = React.useMemo(() => {
