@@ -74,19 +74,31 @@ function installPythonDependencies() {
   return new Promise((resolve, reject) => {
     console.log('Installing Python dependencies...');
     
-    // List of required packages with versions to ensure compatibility
-    const requiredPackages = [
-      'flask==2.2.3',
-      'requests==2.31.0',
-      'python-dotenv==1.0.0'
-    ];
+    // Use the local requirements file
+    let requirementsPath = path.join(AI_SERVICE_DIR, 'requirements.txt');
+    let tempRequirementsPath = '';
     
-    // Create a temporary requirements file
-    const tempRequirementsPath = path.join(os.tmpdir(), 'puntaiq_requirements.txt');
-    fs.writeFileSync(tempRequirementsPath, requiredPackages.join('\n'));
+    // Fall back to temp requirements file if the local one doesn't exist
+    if (!fs.existsSync(requirementsPath)) {
+      console.log('No requirements.txt found in AI service directory, creating temporary requirements');
+      // List of required packages with versions to ensure compatibility
+      const requiredPackages = [
+        'flask==2.2.3',
+        'Werkzeug==2.2.3',
+        'requests==2.31.0',
+        'python-dotenv==1.0.0'
+      ];
+      
+      // Create a temporary requirements file
+      tempRequirementsPath = path.join(os.tmpdir(), 'puntaiq_requirements.txt');
+      fs.writeFileSync(tempRequirementsPath, requiredPackages.join('\n'));
+      
+      // Set requirementsPath to the temp file
+      requirementsPath = tempRequirementsPath;
+    }
     
     // Install dependencies with pip
-    const installCmd = `pip install -r ${tempRequirementsPath}`;
+    const installCmd = `pip install -r ${requirementsPath}`;
     
     exec(installCmd, (error, stdout, stderr) => {
       if (error) {
