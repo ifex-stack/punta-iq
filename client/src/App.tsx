@@ -46,6 +46,7 @@ import { PersonalizedOnboardingDialog } from "@/components/onboarding/personaliz
 import { NotificationProvider } from "@/components/notifications/notification-provider";
 import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
 import { NotificationToastListener } from "@/components/notifications/notification-toast";
+import { CurrencyRecommendationProvider, CurrencyRecommendationContainer } from "@/components/currency/currency-recommendation-provider";
 import { fetchFeatureFlags } from "./lib/feature-flags";
 
 import AppLayout from "@/components/layout/app-layout";
@@ -142,15 +143,17 @@ function App() {
         <TooltipProvider>
           <AuthProvider>
             <CurrencyProvider>
-              <NotificationsProvider>
-                <NotificationProvider>
-                  <OnboardingProvider>
-                    <Toaster />
-                    <NotificationToastListener />
-                    <Router />
-                  </OnboardingProvider>
-                </NotificationProvider>
-              </NotificationsProvider>
+              <CurrencyRecommendationProvider>
+                <NotificationsProvider>
+                  <NotificationProvider>
+                    <OnboardingProvider>
+                      <Toaster />
+                      <NotificationToastListener />
+                      <Router />
+                    </OnboardingProvider>
+                  </NotificationProvider>
+                </NotificationsProvider>
+              </CurrencyRecommendationProvider>
             </CurrencyProvider>
           </AuthProvider>
         </TooltipProvider>
