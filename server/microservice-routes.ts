@@ -1,12 +1,12 @@
 /**
  * Routes for interacting with the AI microservice
  */
+import type { Express } from "express";
+import axios from "axios";
+import { MicroserviceClient } from "./microservice-client";
+import { execSync, spawn } from "child_process";
+import path from "path";
 
-import { Express } from 'express';
-import { microserviceClient } from './microservice-client';
-import axios from 'axios';
-
-// Type guard to check if an object has response data with a message
 interface ErrorWithResponse {
   response?: {
     data?: {
@@ -16,139 +16,169 @@ interface ErrorWithResponse {
   };
 }
 
-// Helper function to safely get error details
 function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
+  if (axios.isAxiosError(error) && error.response?.data?.message) {
+    return error.response.data.message;
+  } else if (error instanceof Error) {
     return error.message;
   }
   return String(error);
 }
 
-// Helper function to check if an error is API key related
 function isApiKeyError(error: unknown): boolean {
-  if (typeof error !== 'object' || error === null) {
-    return false;
+  if (axios.isAxiosError(error) && error.response?.status === 401) {
+    return true;
   }
-  
-  const errWithResponse = error as ErrorWithResponse;
-  return !!(
-    errWithResponse.response?.data?.message &&
-    typeof errWithResponse.response.data.message === 'string' &&
-    errWithResponse.response.data.message.includes('API key')
-  );
+  if (axios.isAxiosError(error) && error.response?.status === 403) {
+    return true;
+  }
+  if (error instanceof Error && error.message.includes("API key")) {
+    return true;
+  }
+  return false;
 }
 
-// Setup routes for microservice interaction
 export function registerMicroserviceRoutes(app: Express) {
-  // Get status of the AI microservice
-  app.get('/api/sports/status', async (req, res) => {
+  const microserviceClient = new MicroserviceClient();
+
+  // API Status endpoint
+  app.get("/api/sports/status", async (req, res) => {
     try {
       const status = await microserviceClient.getStatus();
-      return res.json(status);
+      res.json(status);
     } catch (error) {
-      console.error('Error getting microservice status:', error);
-      return res.status(500).json({
-        message: 'Error checking microservice status',
-        error: getErrorMessage(error)
-      });
-    }
-  });
-
-  // Start the AI microservice 
-  app.post('/api/sports/microservice/start', async (req, res) => {
-    try {
-      const result = await microserviceClient.startService();
+      console.error("Error getting API status:", error);
       
-      if (result) {
-        return res.json({ 
-          success: true, 
-          message: 'Microservice started successfully' 
+      if (isApiKeyError(error)) {
+        res.status(403).json({
+          overall: "error",
+          services: {
+            odds_api: {
+              status: "error",
+              message: "API key required or invalid"
+            },
+            sportsdb_api: {
+              status: "unknown",
+              message: "Status unknown"
+            }
+          },
+          timestamp: new Date().toISOString()
         });
       } else {
-        return res.status(500).json({ 
-          success: false, 
-          message: 'Failed to start microservice' 
+        res.status(500).json({
+          overall: "error",
+          services: {
+            odds_api: {
+              status: "error",
+              message: "Service unavailable"
+            },
+            sportsdb_api: {
+              status: "error",
+              message: "Service unavailable"
+            }
+          },
+          timestamp: new Date().toISOString()
         });
       }
-    } catch (error) {
-      console.error('Error starting microservice:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error starting microservice',
-        error: getErrorMessage(error)
-      });
     }
   });
 
-  // Get odds from the AI microservice
-  app.get('/api/sports/odds/:sport', async (req, res) => {
+  // Get Sports
+  app.get("/api/sports", async (req, res) => {
+    try {
+      const sports = await microserviceClient.getSports();
+      res.json(sports);
+    } catch (error) {
+      console.error("Error getting sports:", error);
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
+
+  // Get Odds
+  app.get("/api/sports/odds/:sport", async (req, res) => {
     try {
       const { sport } = req.params;
-      
-      // Check if the service is running first
-      const isRunning = await microserviceClient.isServiceRunning();
-      if (!isRunning) {
-        // Try to start the service
-        const started = await microserviceClient.startService();
-        if (!started) {
-          return res.status(503).json({ 
-            message: 'AI service is not running and could not be started',
-          });
-        }
-      }
-      
       const odds = await microserviceClient.getOdds(sport);
-      return res.json(odds);
+      res.json(odds);
     } catch (error) {
-      console.error(`Error getting odds for ${req.params.sport}:`, error);
+      console.error(`Error getting odds for sport ${req.params.sport}:`, error);
       
-      // Check if it's an API key error
       if (isApiKeyError(error)) {
-        const errWithResponse = error as ErrorWithResponse;
-        return res.status(401).json({
-          message: 'API key error: ' + errWithResponse.response?.data?.message,
-        });
+        res.status(403).json({ error: "API key required or invalid for this operation" });
+      } else {
+        res.status(500).json({ error: getErrorMessage(error) });
       }
-      
-      return res.status(500).json({
-        message: 'Error fetching odds data',
-        error: getErrorMessage(error)
-      });
     }
   });
 
-  // Get livescores from the AI microservice
-  app.get('/api/sports/livescores', async (req, res) => {
+  // Get Live Scores
+  app.get("/api/sports/livescores", async (req, res) => {
     try {
-      // Check if the service is running first
-      const isRunning = await microserviceClient.isServiceRunning();
-      if (!isRunning) {
-        // Try to start the service
-        const started = await microserviceClient.startService();
-        if (!started) {
-          return res.status(503).json({ 
-            message: 'AI service is not running and could not be started',
-          });
-        }
-      }
-      
       const livescores = await microserviceClient.getLiveScores();
-      return res.json(livescores);
+      res.json(livescores);
     } catch (error) {
-      console.error('Error getting livescores:', error);
+      console.error("Error getting live scores:", error);
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
+
+  // Get league fixtures
+  app.get("/api/fixtures/league/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const fixtures = await microserviceClient.getLeagueFixtures(id);
+      res.json(fixtures);
+    } catch (error) {
+      console.error(`Error getting fixtures for league ${req.params.id}:`, error);
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
+
+  // Get teams in a league
+  app.get("/api/teams/league/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const teams = await microserviceClient.getTeams(id);
+      res.json(teams);
+    } catch (error) {
+      console.error(`Error getting teams for league ${req.params.id}:`, error);
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
+
+  // Get leagues
+  app.get("/api/leagues", async (req, res) => {
+    try {
+      const leagues = await microserviceClient.getLeagues();
+      res.json(leagues);
+    } catch (error) {
+      console.error("Error getting leagues:", error);
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
+
+  // Start the microservice
+  app.post("/api/sports/microservice/start", async (req, res) => {
+    try {
+      console.log("Starting AI microservice...");
       
-      // Check if it's an API key error
-      if (isApiKeyError(error)) {
-        const errWithResponse = error as ErrorWithResponse;
-        return res.status(401).json({
-          message: 'API key error: ' + errWithResponse.response?.data?.message,
-        });
-      }
+      // Execute the start-ai-service.js script
+      const scriptPath = path.join(process.cwd(), "scripts", "start-ai-service.js");
       
-      return res.status(500).json({
-        message: 'Error fetching livescore data',
-        error: getErrorMessage(error)
+      const childProcess = spawn("node", [scriptPath], {
+        detached: true,
+        stdio: ["ignore", "ignore", "ignore"]
       });
+      
+      // Unref the child process so the parent can exit independently
+      childProcess.unref();
+      
+      console.log("Successfully started the AI microservice");
+      
+      res.json({ success: true, message: "AI microservice started successfully" });
+    } catch (error) {
+      console.error("Failed to start AI microservice:", error);
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 }

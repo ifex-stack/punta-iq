@@ -102,39 +102,41 @@ const TopBar = () => {
       
       <div className="flex items-center gap-2">
         {/* Historical Dashboard Button */}
-        <Button
-          variant="outline"
-          size="sm"
-          className="hidden md:flex items-center gap-1 border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white"
-          onClick={() => window.location.href = '/history'}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 3v18h18"></path>
-            <path d="m19 9-5 5-4-4-3 3"></path>
-          </svg>
-          <span className="ml-1">History</span>
-        </Button>
+        <Link href="/history">
+          <Button
+            variant="outline"
+            size="sm"
+            className="hidden md:flex items-center gap-1 border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 3v18h18"></path>
+              <path d="m19 9-5 5-4-4-3 3"></path>
+            </svg>
+            <span className="ml-1">History</span>
+          </Button>
+        </Link>
         
         {/* AI Service Status Link */}
-        <Button
-          variant="outline"
-          size="sm"
-          className="hidden md:flex items-center gap-1 border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
-          onClick={() => window.location.href = '/ai-service-status'}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path>
-            <path d="M12 2v2"></path>
-            <path d="M12 20v2"></path>
-            <path d="m4.93 4.93 1.41 1.41"></path>
-            <path d="m17.66 17.66 1.41 1.41"></path>
-            <path d="M2 12h2"></path>
-            <path d="M20 12h2"></path>
-            <path d="m6.34 17.66-1.41 1.41"></path>
-            <path d="m19.07 4.93-1.41 1.41"></path>
-          </svg>
-          <span className="ml-1">AI Status</span>
-        </Button>
+        <Link href="/ai-service-status">
+          <Button
+            variant="outline"
+            size="sm"
+            className="hidden md:flex items-center gap-1 border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path>
+              <path d="M12 2v2"></path>
+              <path d="M12 20v2"></path>
+              <path d="m4.93 4.93 1.41 1.41"></path>
+              <path d="m17.66 17.66 1.41 1.41"></path>
+              <path d="M2 12h2"></path>
+              <path d="M20 12h2"></path>
+              <path d="m6.34 17.66-1.41 1.41"></path>
+              <path d="m19.07 4.93-1.41 1.41"></path>
+            </svg>
+            <span className="ml-1">AI Status</span>
+          </Button>
+        </Link>
 
         <ThemeToggle variant="ghost" />
         
