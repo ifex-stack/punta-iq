@@ -24,6 +24,7 @@ import { useCurrency } from "@/hooks/use-currency";
 import { CurrencySelector, PriceDisplay } from "@/components/currency/currency-selector";
 import { CurrencyUpdateInfo } from "@/components/currency/currency-info";
 import { CurrencyRecommendationContainer } from "@/components/currency/currency-recommendation-provider";
+import { GamblingRegulationsFooter } from "@/components/legal/gambling-regulations";
 import { 
   Select,
   SelectContent,
@@ -216,11 +217,12 @@ export default function SubscriptionPage() {
         <h2 className="text-2xl font-bold mb-4">Choose the Right Plan for You</h2>
         <p className="text-muted-foreground max-w-2xl mx-auto mb-3">
           Access our premium AI-powered sports predictions with a subscription that fits your strategy. 
-          Our prediction algorithms can potentially help you achieve positive ROI on your betting.
+          Our prediction algorithms are designed to provide data-driven insights that may improve your betting decisions.
         </p>
         <p className="text-muted-foreground max-w-2xl mx-auto mb-3">
-          A single successful bet can easily cover your monthly subscription cost. 
-          Upgrade anytime as your strategy evolves.
+          <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">IMPORTANT:</span> Past performance is not indicative of future results. 
+          Sports betting involves risk and you should only bet what you can afford to lose.
+          Upgrade anytime as your needs evolve.
         </p>
         <div className="flex justify-center mt-2">
           <CurrencyUpdateInfo />
@@ -360,6 +362,9 @@ export default function SubscriptionPage() {
           </div>
         </div>
       </div>
+      
+      {/* Legal compliance - Gambling regulations */}
+      <GamblingRegulationsFooter />
     </div>
   );
 }

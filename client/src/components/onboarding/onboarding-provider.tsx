@@ -1,299 +1,145 @@
-import { 
-  createContext, 
-  useContext, 
-  useState, 
-  useEffect, 
-  ReactNode 
-} from 'react';
-import { useFeatureFlag } from '@/lib/feature-flags';
-import { useAuth } from '@/hooks/use-auth';
+import { createContext, useState, useContext, useEffect, ReactNode } from "react";
+import { PersonalizedOnboarding } from "./personalized-onboarding";
+import { useAuth } from "@/hooks/use-auth";
+import { useQuery } from "@tanstack/react-query";
+import { getQueryFn } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
+import { Sparkle } from "lucide-react";
 
-export type TourStep = {
-  id: string;
-  title: string;
-  description: string;
-  targetSelector: string;
-  placement?: 'top' | 'right' | 'bottom' | 'left' | 'center';
-  spotlightRadius?: number;
-  action?: () => void;
-};
-
-export type OnboardingContextType = {
-  isTourVisible: boolean;
-  isGuideVisible: boolean;
-  isPersonalizedOnboardingVisible: boolean;
-  currentTourStep: number;
-  tourSteps: TourStep[];
-  hasCompletedTour: boolean;
-  hasCompletedGuide: boolean;
-  hasCompletedPersonalizedOnboarding: boolean;
-  startTour: () => void;
-  endTour: () => void;
-  nextTourStep: () => void;
-  prevTourStep: () => void;
-  goToTourStep: (stepIndex: number) => void;
-  openGuide: () => void;
-  closeGuide: () => void;
-  openPersonalizedOnboarding: () => void;
-  closePersonalizedOnboarding: () => void;
-  markTourCompleted: () => void;
-  markGuideCompleted: () => void;
-  markPersonalizedOnboardingCompleted: () => void;
-};
+interface OnboardingContextType {
+  showOnboarding: () => void;
+  hasCompletedOnboarding: boolean;
+}
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
 
-// Define the tour steps for the application
-const DEFAULT_TOUR_STEPS: TourStep[] = [
-  {
-    id: 'welcome',
-    title: 'Welcome to PuntaIQ',
-    description: 'Let us show you around our platform and help you get the most out of our AI sports predictions.',
-    targetSelector: 'body',
-    placement: 'center',
-    spotlightRadius: 0,
-  },
-  {
-    id: 'predictions',
-    title: 'Daily Predictions',
-    description: 'Here you\'ll find the latest AI-generated predictions with confidence levels and odds for multiple sports.',
-    targetSelector: '[data-tour="predictions"]',
-    placement: 'bottom',
-  },
-  {
-    id: 'accumulators',
-    title: 'Accumulators',
-    description: 'Our AI combines high-confidence predictions into accumulators with potential returns from 15x to 50x.',
-    targetSelector: '[data-tour="accumulators"]',
-    placement: 'bottom',
-  },
-  {
-    id: 'stats',
-    title: 'Historical Stats',
-    description: 'Track our prediction performance and analyze success rates across different sports and markets.',
-    targetSelector: '[data-tour="stats"]',
-    placement: 'bottom',
-  },
-  {
-    id: 'profile',
-    title: 'Your Profile',
-    description: 'Manage your account settings, subscription tiers, and set your notification preferences.',
-    targetSelector: '[data-tour="profile"]',
-    placement: 'left',
-  },
-  {
-    id: 'notifications',
-    title: 'Notifications',
-    description: 'Stay updated with alerts about new predictions, special accumulators, and system announcements.',
-    targetSelector: '[data-tour="notifications"]',
-    placement: 'bottom',
-  },
-];
-
-type OnboardingProviderProps = {
+interface OnboardingProviderProps {
   children: ReactNode;
-};
+}
 
 export function OnboardingProvider({ children }: OnboardingProviderProps) {
-  const [isTourVisible, setIsTourVisible] = useState(false);
-  const [isGuideVisible, setIsGuideVisible] = useState(false);
-  const [isPersonalizedOnboardingVisible, setIsPersonalizedOnboardingVisible] = useState(false);
-  const [currentTourStep, setCurrentTourStep] = useState(0);
-  const [tourSteps, setTourSteps] = useState<TourStep[]>(DEFAULT_TOUR_STEPS);
-  const [hasCompletedTour, setHasCompletedTour] = useState(() => {
-    const stored = localStorage.getItem('puntaiq_tour_completed');
-    return stored ? JSON.parse(stored) : false;
-  });
-  const [hasCompletedGuide, setHasCompletedGuide] = useState(() => {
-    const stored = localStorage.getItem('puntaiq_guide_completed');
-    return stored ? JSON.parse(stored) : false;
-  });
-  const [hasCompletedPersonalizedOnboarding, setHasCompletedPersonalizedOnboarding] = useState(() => {
-    const stored = localStorage.getItem('puntaiq_personalized_onboarding_completed');
-    return stored ? JSON.parse(stored) : false;
-  });
-  
-  // Feature flags
-  const onboardingEnabled = useFeatureFlag('onboarding');
-  const gettingStartedGuideEnabled = useFeatureFlag('gettingStartedGuide');
-  const personalizedOnboardingEnabled = useFeatureFlag('onboarding');
-  
-  // Auth context
+  const [isOpen, setIsOpen] = useState(false);
   const { user } = useAuth();
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(true);
   
-  // Check if user has already completed personalized onboarding through the API
-  const [hasApiCheckedOnboarding, setHasApiCheckedOnboarding] = useState(false);
-
-  useEffect(() => {
-    if (personalizedOnboardingEnabled && user && !hasApiCheckedOnboarding) {
-      // Check the API for onboarding status
-      fetch('/api/user/preferences')
-        .then(res => res.json())
-        .then(data => {
-          if (data.onboardingCompleted) {
-            setHasCompletedPersonalizedOnboarding(true);
-            localStorage.setItem('puntaiq_personalized_onboarding_completed', JSON.stringify(true));
-          }
-          setHasApiCheckedOnboarding(true);
-        })
-        .catch(() => {
-          // If there's an error, we'll just use the localStorage value
-          setHasApiCheckedOnboarding(true);
-        });
-    }
-  }, [personalizedOnboardingEnabled, user, hasApiCheckedOnboarding]);
+  // Fetch user preferences to determine if onboarding is completed
+  const { data: preferences, isLoading } = useQuery<any>({
+    queryKey: ["/api/user/preferences"],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+    enabled: !!user,
+  });
   
-  // Auto-start personalized onboarding for new users after checking API status
   useEffect(() => {
-    if (personalizedOnboardingEnabled && user && hasApiCheckedOnboarding && !hasCompletedPersonalizedOnboarding && !isTourVisible && !isGuideVisible) {
-      // Small delay to ensure the UI is fully rendered
-      const timer = setTimeout(() => {
-        openPersonalizedOnboarding();
-      }, 1500);
+    // If user is logged in and we have preferences data
+    if (user && !isLoading) {
+      // Consider onboarding incomplete if no preferences are set
+      // or if favoriteSports is empty
+      const onboardingIncomplete = !preferences || 
+        !preferences.favoriteSports || 
+        preferences.favoriteSports.length === 0;
       
-      return () => clearTimeout(timer);
-    }
-  }, [personalizedOnboardingEnabled, user, hasApiCheckedOnboarding, hasCompletedPersonalizedOnboarding, isTourVisible, isGuideVisible]);
-  
-  // Auto-start the tour for new users if enabled
-  useEffect(() => {
-    if (onboardingEnabled && user && hasCompletedPersonalizedOnboarding && !hasCompletedTour) {
-      // Small delay to ensure the UI is fully rendered
-      const timer = setTimeout(() => {
-        startTour();
-      }, 1500);
+      setHasCompletedOnboarding(!onboardingIncomplete);
       
-      return () => clearTimeout(timer);
-    }
-  }, [onboardingEnabled, user, hasCompletedPersonalizedOnboarding, hasCompletedTour]);
-  
-  // Auto-open the getting started guide after tour completion
-  useEffect(() => {
-    if (gettingStartedGuideEnabled && hasCompletedTour && !hasCompletedGuide && !isTourVisible && !isPersonalizedOnboardingVisible) {
-      // Small delay after tour completion
-      const timer = setTimeout(() => {
-        openGuide();
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [gettingStartedGuideEnabled, hasCompletedTour, hasCompletedGuide, isTourVisible, isPersonalizedOnboardingVisible]);
-  
-  const startTour = () => {
-    setCurrentTourStep(0);
-    setIsTourVisible(true);
-    setIsGuideVisible(false);
-    setIsPersonalizedOnboardingVisible(false);
-  };
-  
-  const endTour = () => {
-    setIsTourVisible(false);
-  };
-  
-  const nextTourStep = () => {
-    if (currentTourStep < tourSteps.length - 1) {
-      setCurrentTourStep(prev => prev + 1);
-      // Execute any actions attached to the step
-      if (tourSteps[currentTourStep + 1]?.action) {
-        tourSteps[currentTourStep + 1].action?.();
-      }
-    } else {
-      endTour();
-      markTourCompleted();
-    }
-  };
-  
-  const prevTourStep = () => {
-    if (currentTourStep > 0) {
-      setCurrentTourStep(prev => prev - 1);
-      // Execute any actions attached to the step
-      if (tourSteps[currentTourStep - 1]?.action) {
-        tourSteps[currentTourStep - 1].action?.();
+      // Auto show onboarding for new users
+      if (onboardingIncomplete && !isOpen) {
+        // Small delay to ensure auth is fully loaded
+        const timer = setTimeout(() => setIsOpen(true), 1000);
+        return () => clearTimeout(timer);
       }
     }
-  };
+  }, [user, preferences, isLoading, isOpen]);
   
-  const goToTourStep = (stepIndex: number) => {
-    if (stepIndex >= 0 && stepIndex < tourSteps.length) {
-      setCurrentTourStep(stepIndex);
-      // Execute any actions attached to the step
-      if (tourSteps[stepIndex]?.action) {
-        tourSteps[stepIndex].action?.();
-      }
-    }
-  };
+  // Listen for manual trigger to open onboarding
+  useEffect(() => {
+    const handleOpenOnboarding = () => setIsOpen(true);
+    window.addEventListener('open-onboarding', handleOpenOnboarding);
+    
+    return () => {
+      window.removeEventListener('open-onboarding', handleOpenOnboarding);
+    };
+  }, []);
   
-  const openGuide = () => {
-    setIsGuideVisible(true);
-    setIsTourVisible(false);
-    setIsPersonalizedOnboardingVisible(false);
-  };
-  
-  const closeGuide = () => {
-    setIsGuideVisible(false);
-  };
-  
-  const openPersonalizedOnboarding = () => {
-    setIsPersonalizedOnboardingVisible(true);
-    setIsGuideVisible(false);
-    setIsTourVisible(false);
-  };
-  
-  const closePersonalizedOnboarding = () => {
-    setIsPersonalizedOnboardingVisible(false);
-  };
-  
-  const markTourCompleted = () => {
-    setHasCompletedTour(true);
-    localStorage.setItem('puntaiq_tour_completed', JSON.stringify(true));
-  };
-  
-  const markGuideCompleted = () => {
-    setHasCompletedGuide(true);
-    localStorage.setItem('puntaiq_guide_completed', JSON.stringify(true));
-  };
-  
-  const markPersonalizedOnboardingCompleted = () => {
-    setHasCompletedPersonalizedOnboarding(true);
-    localStorage.setItem('puntaiq_personalized_onboarding_completed', JSON.stringify(true));
-  };
+  const showOnboarding = () => setIsOpen(true);
   
   const value = {
-    isTourVisible,
-    isGuideVisible,
-    isPersonalizedOnboardingVisible,
-    currentTourStep,
-    tourSteps,
-    hasCompletedTour,
-    hasCompletedGuide,
-    hasCompletedPersonalizedOnboarding,
-    startTour,
-    endTour,
-    nextTourStep,
-    prevTourStep,
-    goToTourStep,
-    openGuide,
-    closeGuide,
-    openPersonalizedOnboarding,
-    closePersonalizedOnboarding,
-    markTourCompleted,
-    markGuideCompleted,
-    markPersonalizedOnboardingCompleted,
+    showOnboarding,
+    hasCompletedOnboarding,
   };
   
   return (
     <OnboardingContext.Provider value={value}>
       {children}
+      <PersonalizedOnboarding 
+        open={isOpen} 
+        onOpenChange={(open) => {
+          setIsOpen(open);
+          // If dialog is closed, refresh the completion status
+          if (!open && user) {
+            // Refetch preferences after a short delay
+            setTimeout(() => {
+              // Refetch will happen automatically due to cache invalidation in PersonalizedOnboarding
+            }, 500);
+          }
+        }} 
+      />
     </OnboardingContext.Provider>
   );
 }
 
 export function useOnboarding() {
   const context = useContext(OnboardingContext);
-  
   if (context === undefined) {
     throw new Error('useOnboarding must be used within an OnboardingProvider');
   }
-  
   return context;
+}
+
+// Onboarding welcome banner to show on the homepage for users who haven't completed onboarding
+export function OnboardingWelcomeBanner() {
+  const { hasCompletedOnboarding, showOnboarding } = useOnboarding();
+  const { user } = useAuth();
+  
+  if (!user || hasCompletedOnboarding) {
+    return null;
+  }
+  
+  return (
+    <div className="bg-gradient-to-r from-primary/10 to-primary-foreground/5 rounded-lg p-4 mb-6 animate-fade-in">
+      <div className="flex flex-col sm:flex-row items-center gap-4">
+        <div className="flex-1">
+          <h3 className="text-lg font-medium flex items-center gap-2">
+            <Sparkle className="h-5 w-5 text-primary" /> 
+            Welcome to PuntaIQ!
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Complete your personalized onboarding to get tailored predictions for your favorite sports.
+          </p>
+        </div>
+        <Button onClick={showOnboarding} size="sm" className="whitespace-nowrap">
+          Complete Setup
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// Small persistent button that appears in the corner for users who haven't completed onboarding
+export function OnboardingReminderButton() {
+  const { hasCompletedOnboarding, showOnboarding } = useOnboarding();
+  const { user } = useAuth();
+  
+  if (!user || hasCompletedOnboarding) {
+    return null;
+  }
+  
+  return (
+    <Button 
+      onClick={showOnboarding} 
+      size="sm" 
+      className="fixed bottom-20 right-4 z-50 rounded-full shadow-lg" 
+      variant="default"
+    >
+      <Sparkle className="h-4 w-4 mr-2" /> Complete Setup
+    </Button>
+  );
 }
