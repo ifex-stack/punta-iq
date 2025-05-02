@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { 
   ChevronRight, Filter, Loader2, TrendingUp, Bell, 
   ChevronDown, Calculator, Trophy, Activity,
@@ -26,7 +27,7 @@ export default function HomePage() {
   const [_, navigate] = useLocation();
   const { user, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
-  const { createNotification } = useNotifications();
+  const notifications = useNotifications();
   const { openPersonalizedOnboarding } = useOnboarding();
   const [selectedSport, setSelectedSport] = useState("all");
   
@@ -84,15 +85,13 @@ export default function HomePage() {
     }
     
     try {
-      await createNotification({
+      // Send a test notification via API
+      const response = await apiRequest('POST', '/api/notifications', {
         userId: user.id,
         title: "Test Notification",
-        message: "This is a test notification from PuntaIQ",
-        type: "info",
-        link: null,
-        icon: null,
-        expiresAt: null,
-        data: {}
+        body: "This is a test notification from PuntaIQ",
+        category: "test",
+        actionUrl: null
       });
       
       toast({
