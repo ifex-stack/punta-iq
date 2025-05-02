@@ -812,12 +812,20 @@ export default function AccumulatorsPage() {
     refetchOnWindowFocus: false,
     retry: 1, // Reduced retries to show error state faster
     retryDelay: 1000,
-    enabled: true,
-    // Add better error handling
-    onError: (error: any) => {
-      console.error("Error fetching accumulators:", error);
+    enabled: true
+  });
+  
+  // Add error handling separately to fix TypeScript issues
+  React.useEffect(() => {
+    if (accumulatorsError) {
+      console.error("Error fetching accumulators:", accumulatorsError);
       // If the error is quota related, suggest custom builder right away
-      if (error.message?.includes("quota") || error.status === 429) {
+      const errorAny = accumulatorsError as any;
+      if (
+        errorAny.message?.includes("quota") || 
+        errorAny.status === 429 ||
+        errorAny.message?.includes("upcoming matches")
+      ) {
         setShowCustomBuilder(true);
         toast({
           title: "API Quota Limit Reached",
@@ -826,7 +834,7 @@ export default function AccumulatorsPage() {
         });
       }
     }
-  });
+  }, [accumulatorsError, toast]);
   
   // Process accumulators from API response
   const accumulators = useMemo(() => {

@@ -444,8 +444,19 @@ function ApiErrorState({
   onRetry,
   onCreateCustom
 }: ApiErrorStateProps) {
+  const [isRetrying, setIsRetrying] = useState(false);
+  
+  const handleRetry = async () => {
+    setIsRetrying(true);
+    try {
+      await onRetry();
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+  
   return (
-    <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
+    <div className="col-span-full flex flex-col items-center justify-center py-12 text-center animate-in fade-in duration-300">
       <div className="rounded-full bg-red-100 dark:bg-red-900/30 p-3 mb-4">
         <AlertCircle className="h-6 w-6 text-red-500 dark:text-red-400" />
       </div>
@@ -457,14 +468,28 @@ function ApiErrorState({
       <div className="flex flex-col gap-4 w-full max-w-md">
         <Button 
           onClick={onCreateCustom}
+          className="bg-gradient-to-r from-primary to-primary-600 hover:from-primary-600 hover:to-primary-700"
         >
           <PlusCircle className="mr-2 h-4 w-4" />
           Create Custom Accumulator
         </Button>
         
-        <Button variant="outline" onClick={() => onRetry()}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Retry Loading Accumulators
+        <Button 
+          variant="outline" 
+          onClick={handleRetry}
+          disabled={isRetrying}
+        >
+          {isRetrying ? (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+              Retrying...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Retry Loading Accumulators
+            </>
+          )}
         </Button>
       </div>
     </div>
