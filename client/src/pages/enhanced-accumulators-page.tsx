@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
@@ -34,12 +34,13 @@ import {
   Rocket, Flame, Target, BarChart4, 
   CheckCircle2, XCircle, Percent, 
   Menu, PlusCircle, BellRing, ExternalLink,
-  Calendar, ChevronLeft
+  Calendar, ChevronLeft, Share2
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format, addDays, startOfDay, endOfDay, isToday, isPast, isFuture } from 'date-fns';
 import { PuntaIQLogo } from '@/components/ui/puntaiq-logo';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Custom icons for sports (since some might not be in Lucide)
 interface IconProps {
@@ -180,13 +181,13 @@ function CustomAccumulatorBuilder({
   const [sport, setSport] = useState('football');
 
   // Calculate total odds and potential return
-  const totalOdds = selections.reduce((total, selection) => total * selection.odds, 1);
-  const potentialReturn = totalOdds * stake;
+  const totalOdds = useMemo(() => selections.reduce((total, selection) => total * selection.odds, 1), [selections]);
+  const potentialReturn = useMemo(() => totalOdds * stake, [totalOdds, stake]);
 
   // Add a new selection
-  const addSelection = () => {
+  const addSelection = useCallback(() => {
     const newId = (selections.length + 1).toString();
-    setSelections([...selections, {
+    setSelections(prev => [...prev, {
       id: newId,
       homeTeam: '',
       awayTeam: '',
@@ -194,48 +195,52 @@ function CustomAccumulatorBuilder({
       selection: 'home',
       odds: 1.50
     }]);
-  };
+  }, [selections.length]);
 
   // Remove a selection
-  const removeSelection = (id: string) => {
+  const removeSelection = useCallback((id: string) => {
     const filtered = selections.filter(s => s.id !== id);
     if (filtered.length > 0) {
       setSelections(filtered);
     }
-  };
+  }, [selections]);
 
   // Update a selection field
-  const updateSelection = (index: number, field: keyof CustomSelection, value: string | number) => {
-    const newSelections = [...selections];
-    newSelections[index] = {
-      ...selections[index],
-      [field]: value
-    };
-    setSelections(newSelections);
-  };
+  const updateSelection = useCallback((index: number, field: keyof CustomSelection, value: string | number) => {
+    setSelections(prev => {
+      const newSelections = [...prev];
+      newSelections[index] = {
+        ...newSelections[index],
+        [field]: value
+      };
+      return newSelections;
+    });
+  }, []);
 
   // Update market and reset selection based on market type
-  const updateMarket = (index: number, market: string) => {
-    const newSelections = [...selections];
-    newSelections[index] = {
-      ...selections[index],
-      market,
-      selection: market === 'match_winner' ? 'home' : 
-                market === 'over_under' ? 'over' : 
-                market === 'both_teams_to_score' ? 'yes' : 'home'
-    };
-    setSelections(newSelections);
-  };
+  const updateMarket = useCallback((index: number, market: string) => {
+    setSelections(prev => {
+      const newSelections = [...prev];
+      newSelections[index] = {
+        ...newSelections[index],
+        market,
+        selection: market === 'match_winner' ? 'home' : 
+                 market === 'over_under' ? 'over' : 
+                 market === 'both_teams_to_score' ? 'yes' : 'home'
+      };
+      return newSelections;
+    });
+  }, []);
 
   return (
-    <Card className="border border-muted-50">
-      <CardHeader>
+    <Card className="border border-muted-50 overflow-hidden shadow-md">
+      <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
         <CardTitle className="text-center">Build Your Accumulator</CardTitle>
         <CardDescription className="text-center">
           Create your own custom accumulator by selecting markets
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 p-6">
         <div className="flex flex-col gap-2">
           <h3 className="text-sm font-medium">Risk Level</h3>
           <Select 
@@ -287,111 +292,120 @@ function CustomAccumulatorBuilder({
           </div>
           
           <div className="border rounded-md p-4 space-y-4">
-            {selections.map((selection, index) => (
-              <div key={selection.id} className={`flex flex-col gap-3 ${index < selections.length - 1 ? 'pb-3 border-b' : ''}`}>
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium">Selection {index + 1}</span>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-6 w-6"
-                    onClick={() => removeSelection(selection.id)}
-                    disabled={selections.length <= 1}
-                  >
-                    <XCircle className="h-4 w-4 text-muted-foreground" />
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3">
+            <AnimatePresence initial={false}>
+              {selections.map((selection, index) => (
+                <motion.div 
+                  key={selection.id} 
+                  className={`flex flex-col gap-3 ${index < selections.length - 1 ? 'pb-3 border-b' : ''}`}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, height: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium">Selection {index + 1}</span>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6"
+                      onClick={() => removeSelection(selection.id)}
+                      disabled={selections.length <= 1}
+                    >
+                      <XCircle className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs mb-1 block">Home Team</label>
+                      <Input 
+                        placeholder="Home Team" 
+                        value={selection.homeTeam}
+                        onChange={e => updateSelection(index, 'homeTeam', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs mb-1 block">Away Team</label>
+                      <Input 
+                        placeholder="Away Team" 
+                        value={selection.awayTeam}
+                        onChange={e => updateSelection(index, 'awayTeam', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs mb-1 block">Market</label>
+                      <Select 
+                        value={selection.market}
+                        onValueChange={value => updateMarket(index, value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select market" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="match_winner">Match Winner</SelectItem>
+                          <SelectItem value="double_chance">Double Chance</SelectItem>
+                          <SelectItem value="both_teams_to_score">Both Teams to Score</SelectItem>
+                          <SelectItem value="over_under">Over/Under Goals</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-xs mb-1 block">Selection</label>
+                      <Select 
+                        value={selection.selection}
+                        onValueChange={value => updateSelection(index, 'selection', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select prediction" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {selection.market === 'match_winner' && (
+                            <>
+                              <SelectItem value="home">Home Win</SelectItem>
+                              <SelectItem value="draw">Draw</SelectItem>
+                              <SelectItem value="away">Away Win</SelectItem>
+                            </>
+                          )}
+                          {selection.market === 'double_chance' && (
+                            <>
+                              <SelectItem value="home_draw">Home or Draw</SelectItem>
+                              <SelectItem value="home_away">Home or Away</SelectItem>
+                              <SelectItem value="draw_away">Draw or Away</SelectItem>
+                            </>
+                          )}
+                          {selection.market === 'both_teams_to_score' && (
+                            <>
+                              <SelectItem value="yes">Yes</SelectItem>
+                              <SelectItem value="no">No</SelectItem>
+                            </>
+                          )}
+                          {selection.market === 'over_under' && (
+                            <>
+                              <SelectItem value="over">Over 2.5 Goals</SelectItem>
+                              <SelectItem value="under">Under 2.5 Goals</SelectItem>
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
                   <div>
-                    <label className="text-xs mb-1 block">Home Team</label>
+                    <label className="text-xs mb-1 block">Odds</label>
                     <Input 
-                      placeholder="Home Team" 
-                      value={selection.homeTeam}
-                      onChange={e => updateSelection(index, 'homeTeam', e.target.value)}
+                      type="number" 
+                      min="1.01" 
+                      step="0.01" 
+                      value={selection.odds} 
+                      onChange={e => updateSelection(index, 'odds', parseFloat(e.target.value) || 1.01)}
                     />
                   </div>
-                  <div>
-                    <label className="text-xs mb-1 block">Away Team</label>
-                    <Input 
-                      placeholder="Away Team" 
-                      value={selection.awayTeam}
-                      onChange={e => updateSelection(index, 'awayTeam', e.target.value)}
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs mb-1 block">Market</label>
-                    <Select 
-                      value={selection.market}
-                      onValueChange={value => updateMarket(index, value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select market" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="match_winner">Match Winner</SelectItem>
-                        <SelectItem value="double_chance">Double Chance</SelectItem>
-                        <SelectItem value="both_teams_to_score">Both Teams to Score</SelectItem>
-                        <SelectItem value="over_under">Over/Under Goals</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-xs mb-1 block">Selection</label>
-                    <Select 
-                      value={selection.selection}
-                      onValueChange={value => updateSelection(index, 'selection', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select prediction" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selection.market === 'match_winner' && (
-                          <>
-                            <SelectItem value="home">Home Win</SelectItem>
-                            <SelectItem value="draw">Draw</SelectItem>
-                            <SelectItem value="away">Away Win</SelectItem>
-                          </>
-                        )}
-                        {selection.market === 'double_chance' && (
-                          <>
-                            <SelectItem value="home_draw">Home or Draw</SelectItem>
-                            <SelectItem value="home_away">Home or Away</SelectItem>
-                            <SelectItem value="draw_away">Draw or Away</SelectItem>
-                          </>
-                        )}
-                        {selection.market === 'both_teams_to_score' && (
-                          <>
-                            <SelectItem value="yes">Yes</SelectItem>
-                            <SelectItem value="no">No</SelectItem>
-                          </>
-                        )}
-                        {selection.market === 'over_under' && (
-                          <>
-                            <SelectItem value="over">Over 2.5 Goals</SelectItem>
-                            <SelectItem value="under">Under 2.5 Goals</SelectItem>
-                          </>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="text-xs mb-1 block">Odds</label>
-                  <Input 
-                    type="number" 
-                    min="1.01" 
-                    step="0.01" 
-                    value={selection.odds} 
-                    onChange={e => updateSelection(index, 'odds', parseFloat(e.target.value) || 1.01)}
-                  />
-                </div>
-              </div>
-            ))}
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         </div>
         
@@ -406,7 +420,12 @@ function CustomAccumulatorBuilder({
           />
         </div>
         
-        <div className="bg-muted/40 p-4 rounded-md">
+        <motion.div 
+          className="bg-gradient-to-r from-muted/40 to-muted/60 p-4 rounded-md"
+          initial={{ opacity: 0.8 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm">Total Odds:</span>
             <span className="font-medium">{totalOdds.toFixed(2)}</span>
@@ -415,16 +434,19 @@ function CustomAccumulatorBuilder({
             <span className="text-sm">Potential Return:</span>
             <span className="font-medium text-green-600 dark:text-green-400">${potentialReturn.toFixed(2)}</span>
           </div>
-        </div>
+        </motion.div>
       </CardContent>
-      <CardFooter className="flex justify-between">
+      <CardFooter className="flex justify-between bg-muted/20 p-4">
         <Button 
           variant="outline" 
           onClick={onCancel}
         >
           Cancel
         </Button>
-        <Button onClick={() => onCreateAccumulator(selections, stake, riskLevel, sport)}>
+        <Button 
+          onClick={() => onCreateAccumulator(selections, stake, riskLevel, sport)}
+          className="bg-gradient-to-r from-primary to-primary-600 hover:from-primary-600 hover:to-primary-700"
+        >
           Create Accumulator
         </Button>
       </CardFooter>
@@ -444,8 +466,24 @@ function ApiErrorState({
   onRetry,
   onCreateCustom
 }: ApiErrorStateProps) {
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  const handleRetry = async () => {
+    setIsRetrying(true);
+    try {
+      await onRetry();
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+
   return (
-    <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
+    <motion.div 
+      className="col-span-full flex flex-col items-center justify-center py-12 text-center"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
       <div className="rounded-full bg-red-100 dark:bg-red-900/30 p-3 mb-4">
         <AlertCircle className="h-6 w-6 text-red-500 dark:text-red-400" />
       </div>
@@ -457,17 +495,31 @@ function ApiErrorState({
       <div className="flex flex-col gap-4 w-full max-w-md">
         <Button 
           onClick={onCreateCustom}
+          className="bg-gradient-to-r from-primary to-primary-600 hover:from-primary-600 hover:to-primary-700"
         >
           <PlusCircle className="mr-2 h-4 w-4" />
           Create Custom Accumulator
         </Button>
         
-        <Button variant="outline" onClick={() => onRetry()}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Retry Loading Accumulators
+        <Button 
+          variant="outline" 
+          onClick={handleRetry}
+          disabled={isRetrying}
+        >
+          {isRetrying ? (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+              Retrying...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Retry Loading Accumulators
+            </>
+          )}
         </Button>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -484,7 +536,12 @@ function EmptyState({
   onCreateCustom
 }: EmptyStateProps) {
   return (
-    <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
+    <motion.div 
+      className="col-span-full flex flex-col items-center justify-center py-12 text-center"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
       <div className="rounded-full bg-muted p-3 mb-4">
         <AlertCircle className="h-6 w-6 text-muted-foreground" />
       </div>
@@ -497,11 +554,14 @@ function EmptyState({
         Try changing the date, risk level, or sport filter.
       </p>
       
-      <Button onClick={onCreateCustom}>
+      <Button 
+        onClick={onCreateCustom}
+        className="bg-gradient-to-r from-primary to-primary-600 hover:from-primary-600 hover:to-primary-700"
+      >
         <PlusCircle className="mr-2 h-4 w-4" />
         Create Custom Accumulator
       </Button>
-    </div>
+    </motion.div>
   );
 }
 
@@ -545,116 +605,136 @@ function AccumulatorCard({ accumulator, onBookmark }: AccumulatorCardProps) {
   };
   
   return (
-    <Card className={`overflow-hidden border ${colorTheme}`}>
-      <CardHeader className="pb-2">
-        <div className="flex justify-between">
-          <div className="flex items-center gap-2">
-            {icon}
-            <h3 className="text-base font-semibold">{name}</h3>
-          </div>
-          <Button variant="ghost" size="icon" onClick={onBookmark}>
-            <BookmarkIcon className="h-4 w-4" />
-          </Button>
-        </div>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="mb-4">
-          <div className="flex justify-between items-center mb-2">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      <Card className={`overflow-hidden border ${colorTheme} hover:shadow-md transition-shadow`}>
+        <CardHeader className="pb-2">
+          <div className="flex justify-between">
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">
-                {formatMarketType(marketType)}
-              </Badge>
-              <Badge variant="outline" className="text-xs uppercase">
-                {sport}
+              {icon}
+              <h3 className="text-base font-semibold">{name}</h3>
+            </div>
+            <div className="flex gap-1">
+              <Button variant="ghost" size="icon" onClick={() => window.alert('Share functionality not implemented yet')}>
+                <Share2 className="h-4 w-4 text-muted-foreground" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={onBookmark}>
+                <BookmarkIcon className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <CardDescription>{description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-2">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">
+                  {formatMarketType(marketType)}
+                </Badge>
+                <Badge variant="outline" className="text-xs uppercase">
+                  {sport}
+                </Badge>
+              </div>
+              <Badge 
+                className={`
+                  ${confidence >= 80 ? 'bg-green-100 text-green-800' : 
+                    confidence >= 60 ? 'bg-blue-100 text-blue-800' : 
+                    confidence >= 40 ? 'bg-orange-100 text-orange-800' : 
+                    'bg-red-100 text-red-800'}
+                `}
+              >
+                {confidence}% Confidence
               </Badge>
             </div>
-            <Badge 
-              className={`
-                ${confidence >= 80 ? 'bg-green-100 text-green-800' : 
-                  confidence >= 60 ? 'bg-blue-100 text-blue-800' : 
-                  confidence >= 40 ? 'bg-orange-100 text-orange-800' : 
-                  'bg-red-100 text-red-800'}
-              `}
+            
+            <Accordion
+              type="single"
+              collapsible
+              className="w-full"
+              value={expanded ? "selections" : ""}
+              onValueChange={(val) => setExpanded(val === "selections")}
             >
-              {confidence}% Confidence
-            </Badge>
+              <AccordionItem value="selections" className="border-b-0">
+                <AccordionTrigger className="py-2 text-sm">
+                  {selections.length} Selections
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-3 pt-1">
+                    <AnimatePresence initial={false}>
+                      {selections.map((selection, index) => (
+                        <motion.div 
+                          key={selection.id} 
+                          className="bg-muted/30 p-3 rounded-md"
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.2, delay: index * 0.05 }}
+                        >
+                          <div className="flex justify-between mb-1">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              {selection.league}
+                            </span>
+                            <span className="text-xs">
+                              {new Date(selection.startTime).toLocaleString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                          <div className="flex justify-between mb-1">
+                            <span className="font-medium">{selection.homeTeam} vs {selection.awayTeam}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <div className="flex items-center gap-1">
+                              <span className="text-primary">
+                                {formatPrediction(selection.prediction, selection.valueBet?.market || '')}
+                              </span>
+                              <Badge 
+                                variant="outline" 
+                                className="text-xs h-5 bg-background"
+                              >
+                                {selection.odds.toFixed(2)}
+                              </Badge>
+                            </div>
+                            <Badge 
+                              className={`text-xs ${
+                                selection.confidence >= 80 ? 'bg-green-100 text-green-800' : 
+                                selection.confidence >= 60 ? 'bg-blue-100 text-blue-800' : 
+                                selection.confidence >= 40 ? 'bg-orange-100 text-orange-800' : 
+                                'bg-red-100 text-red-800'
+                              }`}
+                            >
+                              {selection.confidence}%
+                            </Badge>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
           
-          <Accordion
-            type="single"
-            collapsible
-            className="w-full"
-            value={expanded ? "selections" : ""}
-            onValueChange={(val) => setExpanded(val === "selections")}
-          >
-            <AccordionItem value="selections" className="border-b-0">
-              <AccordionTrigger className="py-2 text-sm">
-                {selections.length} Selections
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-3 pt-1">
-                  {selections.map((selection, index) => (
-                    <div key={selection.id} className="bg-muted/30 p-3 rounded-md">
-                      <div className="flex justify-between mb-1">
-                        <span className="text-xs font-medium text-muted-foreground">
-                          {selection.league}
-                        </span>
-                        <span className="text-xs">
-                          {new Date(selection.startTime).toLocaleString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit'
-                          })}
-                        </span>
-                      </div>
-                      <div className="flex justify-between mb-1">
-                        <span className="font-medium">{selection.homeTeam} vs {selection.awayTeam}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <div className="flex items-center gap-1">
-                          <span className="text-primary">
-                            {formatPrediction(selection.prediction, selection.valueBet?.market || '')}
-                          </span>
-                          <Badge 
-                            variant="outline" 
-                            className="text-xs h-5 bg-background"
-                          >
-                            {selection.odds.toFixed(2)}
-                          </Badge>
-                        </div>
-                        <Badge 
-                          className={`text-xs ${
-                            selection.confidence >= 80 ? 'bg-green-100 text-green-800' : 
-                            selection.confidence >= 60 ? 'bg-blue-100 text-blue-800' : 
-                            selection.confidence >= 40 ? 'bg-orange-100 text-orange-800' : 
-                            'bg-red-100 text-red-800'
-                          }`}
-                        >
-                          {selection.confidence}%
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </div>
-        
-        <div className="flex justify-between items-center text-sm border-t pt-4">
-          <div>
-            <div className="font-medium">Total Odds</div>
-            <div className="text-xl font-bold">{totalOdds}</div>
+          <div className="flex justify-between items-center text-sm border-t pt-4">
+            <div>
+              <div className="font-medium">Total Odds</div>
+              <div className="text-xl font-bold">{totalOdds}</div>
+            </div>
+            <div className="text-right">
+              <div className="font-medium">Potential Return</div>
+              <div className="text-xl font-bold text-green-600 dark:text-green-400">{potentialReturn}</div>
+            </div>
           </div>
-          <div className="text-right">
-            <div className="font-medium">Potential Return</div>
-            <div className="text-xl font-bold text-green-600 dark:text-green-400">{potentialReturn}</div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }
 
@@ -703,13 +783,14 @@ export default function AccumulatorsPage() {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [showCustomBuilder, setShowCustomBuilder] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [savedAccumulators, setSavedAccumulators] = useState<string[]>([]);
   
   // Date handling
   const formattedDate = format(date, 'MMMM dd, yyyy');
   const isCurrentDate = isToday(date);
   
   // Create a dedicated retry function that intelligently handles retries
-  const handleRetry = React.useCallback(async () => {
+  const handleRetry = useCallback(async () => {
     setRetryCount(prev => prev + 1);
     // If we've already tried multiple times and it's still failing,
     // show a more detailed toast message
@@ -726,7 +807,7 @@ export default function AccumulatorsPage() {
   
   // Fetch all accumulators package with different types from API
   const { data: accumulatorsData, isLoading: loadingAccumulators, error: accumulatorsError, refetch: refetchAccumulators } = useQuery<any>({
-    queryKey: ['/api/accumulators-package', { sport: filterSport, risk: riskLevel }],
+    queryKey: ['/api/accumulators-package', { sport: filterSport, risk: riskLevel, date: format(date, 'yyyy-MM-dd') }],
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     refetchOnWindowFocus: false,
     retry: 1, // Reduced retries to show error state faster
@@ -738,21 +819,26 @@ export default function AccumulatorsPage() {
       // If the error is quota related, suggest custom builder right away
       if (error.message?.includes("quota") || error.status === 429) {
         setShowCustomBuilder(true);
+        toast({
+          title: "API Quota Limit Reached",
+          description: "Our sports data API quota limit has been reached. You can create custom accumulators instead.",
+          variant: "destructive",
+        });
       }
     }
   });
   
   // Process accumulators from API response
-  const accumulators = React.useMemo(() => {
+  const accumulators = useMemo(() => {
     if (!accumulatorsData) return [];
     
     // Color themes based on risk and sport
     const colorThemes = {
-      safe: 'bg-green-50 border-green-200',
-      balanced: 'bg-blue-50 border-blue-200',
-      risky: 'bg-orange-50 border-orange-200',
-      'high-risk': 'bg-red-50 border-red-200',
-      ultra: 'bg-purple-50 border-purple-200',
+      safe: 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800',
+      balanced: 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800',
+      risky: 'bg-orange-50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-800',
+      'high-risk': 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800',
+      ultra: 'bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800',
     };
     
     // Icons based on sport
@@ -823,6 +909,16 @@ export default function AccumulatorsPage() {
     return result;
   }, [accumulatorsData, riskLevel]);
   
+  // Filtered accumulators based on tab selection and saved status
+  const filteredAccumulators = useMemo(() => {
+    if (selectedTab === 'recommended') {
+      return accumulators.filter(acc => acc.isRecommended);
+    } else if (selectedTab === 'saved') {
+      return accumulators.filter(acc => savedAccumulators.includes(acc.id));
+    }
+    return accumulators;
+  }, [accumulators, selectedTab, savedAccumulators]);
+  
   // Is accumulator data loading?
   const isLoading = loadingAccumulators;
   
@@ -844,35 +940,53 @@ export default function AccumulatorsPage() {
     { value: 'volleyball', label: 'Volleyball', icon: <VolleyballIcon className="h-4 w-4" /> },
   ];
 
-  const handleDateChange = (newDate: Date | undefined) => {
+  const handleDateChange = useCallback((newDate: Date | undefined) => {
     if (newDate) {
       setDate(newDate);
       setCalendarOpen(false);
     }
-  };
+  }, []);
 
-  const handlePreviousDay = () => {
+  const handlePreviousDay = useCallback(() => {
     setDate(prevDate => addDays(prevDate, -1));
-  };
+  }, []);
 
-  const handleNextDay = () => {
+  const handleNextDay = useCallback(() => {
     setDate(prevDate => addDays(prevDate, 1));
-  };
+  }, []);
 
-  const handleBookmarkAccumulator = (id: string) => {
-    toast({
-      title: "Accumulator Saved",
-      description: "The accumulator has been added to your saved list.",
+  const handleBookmarkAccumulator = useCallback((id: string) => {
+    setSavedAccumulators(prev => {
+      if (prev.includes(id)) {
+        toast({
+          title: "Accumulator Removed",
+          description: "The accumulator has been removed from your saved list.",
+        });
+        return prev.filter(accId => accId !== id);
+      } else {
+        toast({
+          title: "Accumulator Saved",
+          description: "The accumulator has been added to your saved list.",
+        });
+        return [...prev, id];
+      }
     });
-  };
+  }, [toast]);
 
-  const handleCreateCustomAccumulator = (selections: CustomSelection[], stake: number, riskLevel: string, sport: string) => {
+  const handleCreateCustomAccumulator = useCallback((selections: CustomSelection[], stake: number, riskLevel: string, sport: string) => {
+    // In a real implementation, we would send this data to the API
+    // but for now we'll just show a success message
     toast({
       title: "Accumulator Created",
       description: "Your custom accumulator has been created successfully",
+      variant: "default",
     });
     setShowCustomBuilder(false);
-  };
+  }, [toast]);
+
+  const showCreateCustomButton = useCallback(() => {
+    setShowCustomBuilder(true);
+  }, []);
 
   return (
     <div className="container max-w-7xl mx-auto p-4 animate-in fade-in duration-300">
@@ -880,7 +994,7 @@ export default function AccumulatorsPage() {
         {/* Header section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Accumulator Predictions</h1>
+            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary-600">Accumulator Predictions</h1>
             <p className="text-muted-foreground">AI-powered accumulator bets with different risk levels</p>
           </div>
           
@@ -931,7 +1045,7 @@ export default function AccumulatorsPage() {
           className="w-full"
           onValueChange={setSelectedTab}
         >
-          <div className="flex justify-between items-center border-b">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b gap-4">
             <TabsList className="h-10">
               <TabsTrigger value="recommended" className="px-4">
                 <Sparkles className="h-4 w-4 mr-2" />
@@ -948,7 +1062,18 @@ export default function AccumulatorsPage() {
             </TabsList>
             
             {/* Filter controls */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 pb-2 sm:pb-0">
+              {/* Create Custom Button - Always visible */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={showCreateCustomButton}
+                className="mr-2 sm:hidden md:flex"
+              >
+                <PlusCircle className="h-3.5 w-3.5 mr-1" />
+                Create Custom
+              </Button>
+              
               {/* Risk level selector */}
               <Select
                 value={riskLevel}
@@ -1027,41 +1152,67 @@ export default function AccumulatorsPage() {
                 </div>
               ) : accumulatorsError ? (
                 <ApiErrorState
-                  onRetry={refetchAccumulators}
+                  onRetry={handleRetry}
                   onCreateCustom={() => setShowCustomBuilder(true)}
+                  message="We're experiencing an issue with the sports data API. This is likely due to reaching our API quota limit for the day."
                 />
-              ) : !accumulators || accumulators.length === 0 ? (
+              ) : !filteredAccumulators || filteredAccumulators.length === 0 ? (
                 <EmptyState
                   date={formattedDate}
                   onCreateCustom={() => setShowCustomBuilder(true)}
                 />
               ) : (
                 // Accumulator cards
-                accumulators
-                  .filter(acc => acc.isRecommended)
-                  .map((accumulator) => (
-                    <AccumulatorCard
-                      key={accumulator.id}
-                      accumulator={accumulator}
-                      onBookmark={() => handleBookmarkAccumulator(accumulator.id)}
-                    />
-                  ))
+                filteredAccumulators.map((accumulator) => (
+                  <AccumulatorCard
+                    key={accumulator.id}
+                    accumulator={accumulator}
+                    onBookmark={() => handleBookmarkAccumulator(accumulator.id)}
+                  />
+                ))
               )}
             </div>
           </TabsContent>
           
           <TabsContent value="saved" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Saved accumulators content */}
-              <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
-                <div className="rounded-full bg-muted p-3 mb-4">
-                  <BookmarkIcon className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-medium mb-2">No Saved Accumulators</h3>
-                <p className="text-muted-foreground max-w-md">
-                  You haven't saved any accumulators yet. Browse the recommended accumulators and click the bookmark icon to save them.
-                </p>
-              </div>
+              {isLoading ? (
+                // Loading skeletons
+                Array(3).fill(0).map((_, index) => (
+                  <Card key={index} className="overflow-hidden border border-muted/60">
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between">
+                        <Skeleton className="h-4 w-1/3" />
+                        <Skeleton className="h-4 w-1/4" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <Skeleton className="h-4 w-full mb-2" />
+                      <Skeleton className="h-4 w-2/3 mb-2" />
+                      <Skeleton className="h-4 w-3/4 mb-4" />
+                      <Skeleton className="h-20 w-full rounded-md mb-4" />
+                      <div className="flex justify-between">
+                        <Skeleton className="h-4 w-1/4" />
+                        <Skeleton className="h-4 w-1/3" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : !filteredAccumulators || filteredAccumulators.length === 0 ? (
+                <EmptyState
+                  message="You haven't saved any accumulators yet. Browse the recommended accumulators and click the bookmark icon to save them."
+                  onCreateCustom={() => setShowCustomBuilder(true)}
+                />
+              ) : (
+                // Saved accumulator cards
+                filteredAccumulators.map((accumulator) => (
+                  <AccumulatorCard
+                    key={accumulator.id}
+                    accumulator={accumulator}
+                    onBookmark={() => handleBookmarkAccumulator(accumulator.id)}
+                  />
+                ))
+              )}
             </div>
           </TabsContent>
           
@@ -1100,17 +1251,18 @@ export default function AccumulatorsPage() {
                 </div>
               ) : accumulatorsError ? (
                 <ApiErrorState
-                  onRetry={refetchAccumulators}
+                  onRetry={handleRetry}
                   onCreateCustom={() => setShowCustomBuilder(true)}
+                  message="We're experiencing an issue with the sports data API. This is likely due to reaching our API quota limit for the day."
                 />
-              ) : !accumulators || accumulators.length === 0 ? (
+              ) : !filteredAccumulators || filteredAccumulators.length === 0 ? (
                 <EmptyState
                   date={formattedDate}
                   onCreateCustom={() => setShowCustomBuilder(true)}
                 />
               ) : (
                 // All accumulator cards
-                accumulators.map((accumulator) => (
+                filteredAccumulators.map((accumulator) => (
                   <AccumulatorCard
                     key={accumulator.id}
                     accumulator={accumulator}
@@ -1121,6 +1273,17 @@ export default function AccumulatorsPage() {
             </div>
           </TabsContent>
         </Tabs>
+        
+        {/* Mobile FAB for creating custom accumulator */}
+        <div className="fixed bottom-20 right-4 sm:hidden">
+          <Button
+            onClick={() => setShowCustomBuilder(true)}
+            size="icon"
+            className="h-12 w-12 rounded-full bg-primary shadow-lg hover:bg-primary/80 text-white"
+          >
+            <PlusCircle className="h-6 w-6" />
+          </Button>
+        </div>
       </div>
     </div>
   );
