@@ -12,7 +12,9 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2 } from "lucide-react";
+import { Loader2, Info } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Login schema
 const loginSchema = z.object({
@@ -172,7 +174,46 @@ export default function AuthPage() {
                           </>
                         ) : "Sign in"}
                       </Button>
-                    </form>
+                      
+                      {/* Debug login for beta testing */}
+                        <div className="mt-4 space-y-3">
+                          <Separator />
+                          <Alert className="bg-muted/50">
+                            <Info className="h-4 w-4" />
+                            <AlertTitle className="flex items-center gap-2">
+                              Beta Testing <Badge variant="outline" className="text-xs">Development Only</Badge>
+                            </AlertTitle>
+                            <AlertDescription className="pt-2">
+                              Use these credentials for testing:
+                              <div className="mt-2 font-mono text-xs bg-background p-2 rounded">
+                                Username: beta_tester<br />
+                                Password: puntaiq_beta_test
+                              </div>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="mt-2 w-full text-xs"
+                                onClick={() => {
+                                  loginForm.setValue('username', 'beta_tester');
+                                  loginForm.setValue('password', 'puntaiq_beta_test');
+                                  loginMutation.mutate({
+                                    username: 'beta_tester',
+                                    password: 'puntaiq_beta_test'
+                                  });
+                                }}
+                                disabled={loginMutation.isPending}
+                              >
+                                {loginMutation.isPending ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                    Logging in...
+                                  </>
+                                ) : "Login as Beta Tester"}
+                              </Button>
+                            </AlertDescription>
+                          </Alert>
+                        </div>
+                      </form>
                   </Form>
                 </TabsContent>
                 
