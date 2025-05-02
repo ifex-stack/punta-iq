@@ -36,6 +36,7 @@ import { UIShowcase } from "@/components/ui-showcase";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from 'next-themes';
 import { setNavigationState } from "./lib/error-handler";
+import { CurrencyProvider } from "./hooks/use-currency";
 
 // New components
 import { OnboardingProvider } from "@/components/onboarding/onboarding-provider";
@@ -140,15 +141,17 @@ function App() {
       <ThemeProvider defaultTheme="system" enableSystem={true} attribute="class">
         <TooltipProvider>
           <AuthProvider>
-            <NotificationsProvider>
-              <NotificationProvider>
-                <OnboardingProvider>
-                  <Toaster />
-                  <NotificationToastListener />
-                  <Router />
-                </OnboardingProvider>
-              </NotificationProvider>
-            </NotificationsProvider>
+            <CurrencyProvider>
+              <NotificationsProvider>
+                <NotificationProvider>
+                  <OnboardingProvider>
+                    <Toaster />
+                    <NotificationToastListener />
+                    <Router />
+                  </OnboardingProvider>
+                </NotificationProvider>
+              </NotificationsProvider>
+            </CurrencyProvider>
           </AuthProvider>
         </TooltipProvider>
       </ThemeProvider>
