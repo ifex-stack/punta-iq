@@ -58,9 +58,65 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
-        // Check if the input is an email or username
-        const isEmail = username.includes('@');
+        // Debug account for beta testing
+        // This allows testers to log in with a consistent account
+        if (process.env.NODE_ENV === 'development' && username === 'beta_tester') {
+          if (password === 'puntaiq_beta_test') {
+            // Create a debug user object with required fields from the schema
+            const debugUser = {
+              id: 9999,
+              username: 'beta_tester',
+              email: 'beta@puntaiq.com',
+              password: 'hashed_password_placeholder',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              deviceImei: null,
+              phoneNumber: null,
+              isTwoFactorEnabled: false,
+              twoFactorSecret: null,
+              referralCode: 'BETATEST',
+              referredBy: null,
+              stripeCustomerId: null,
+              stripeSubscriptionId: null,
+              subscriptionTier: 'pro',
+              lastLoginAt: new Date(),
+              isActive: true,
+              isEmailVerified: true,
+              emailVerificationToken: null,
+              passwordResetToken: null,
+              passwordResetExpires: null,
+              userPreferences: {
+                favoriteSports: [1, 3, 5],
+                favoriteLeagues: [39, 40, 61],
+                preferredTimeZone: 'UTC',
+                theme: 'dark',
+                language: 'en',
+                currency: 'USD'
+              },
+              notificationSettings: {
+                general: {
+                  predictions: true,
+                  results: true,
+                  promotions: true,
+                },
+                sports: {
+                  football: true,
+                  basketball: true,
+                  tennis: true,
+                  baseball: true,
+                  hockey: true
+                }
+              },
+              notificationToken: null,
+              onboardingStatus: 'completed',
+              lastOnboardingStep: 5
+            } as SelectUser;
+            return done(null, debugUser);
+          }
+        }
         
+        // Regular authentication logic
+        const isEmail = username.includes('@');
         const user = isEmail 
           ? await storage.getUserByEmail(username)
           : await storage.getUserByUsername(username);
@@ -71,6 +127,7 @@ export function setupAuth(app: Express) {
           return done(null, user);
         }
       } catch (error) {
+        console.error('Authentication error:', error);
         return done(error);
       }
     }),
@@ -79,9 +136,56 @@ export function setupAuth(app: Express) {
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
     try {
+      // Handle debug user for beta testing
+      if (id === 9999) {
+        // Return the debug user with the same structure
+        const debugUser = {
+          id: 9999,
+          username: 'beta_tester',
+          email: 'beta@puntaiq.com',
+          password: 'hashed_password_placeholder',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          role: 'user',
+          preferences: {
+            theme: 'dark',
+            notifications: true,
+            subscriptionLevel: 'pro'
+          },
+          userPreferences: {
+            favoriteSports: [1, 3, 5],  // ids for football, basketball, etc.
+            favoriteLeagues: [39, 40, 61],  // Premier League, La Liga, NBA
+            notificationSettings: {
+              predictions: true,
+              news: true,
+              matches: true
+            }
+          },
+          profile: {
+            avatar: null,
+            name: 'Beta Tester',
+            bio: 'Testing the PuntaIQ platform'
+          },
+          subscription: {
+            level: 'pro',
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            active: true
+          }
+        };
+        return done(null, debugUser);
+      }
+      
+      // Normal user lookup from storage
       const user = await storage.getUser(id);
+      if (!user) {
+        // User not found, but don't throw an error
+        // This prevents the app from crashing when sessions reference users
+        // that no longer exist or when storage is in memory mode
+        return done(null, null);
+      }
       done(null, user);
     } catch (error) {
+      console.error('Error deserializing user:', error);
       done(error);
     }
   });

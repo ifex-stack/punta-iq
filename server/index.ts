@@ -175,11 +175,25 @@ app.use((req, res, next) => {
     // Keep old log format for compatibility
     log(`serving on port ${port}`);
     
-    // Skip database initialization to avoid connection errors
-    appLogger.info('Skipping database initialization - using in-memory storage only');
+    // Initialize database tables with fallback mechanism
+    try {
+      appLogger.info('Initializing database tables');
+      await initializeDatabase();
+      appLogger.info('Database tables initialized successfully');
+    } catch (error) {
+      appLogger.error('Failed to initialize database tables', { error });
+      appLogger.warn('Using in-memory storage as fallback');
+    }
     
-    // Skip fantasy football data initialization
-    appLogger.info('Skipping fantasy football data initialization - using in-memory storage only');
+    // Initialize fantasy football data with fallback mechanism
+    try {
+      appLogger.info('Initializing fantasy football data');
+      await initializeFantasyData();
+      appLogger.info('Fantasy football data initialized successfully');
+    } catch (error) {
+      appLogger.error('Failed to initialize fantasy data', { error });
+      appLogger.warn('Using default fantasy data as fallback');
+    }
     
     // Initialize and start the automation system
     try {
