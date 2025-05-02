@@ -794,6 +794,9 @@ export default function AccumulatorsPage() {
   const [retryCount, setRetryCount] = useState(0);
   const [savedAccumulators, setSavedAccumulators] = useState<string[]>([]);
   
+  // Create a flag to completely disable further API requests on errors
+  const [apiDisabled, setApiDisabled] = useState(false);
+  
   // Date handling
   const formattedDate = format(date, 'MMMM dd, yyyy');
   const isCurrentDate = isToday(date);
@@ -808,15 +811,28 @@ export default function AccumulatorsPage() {
     refetchOnWindowFocus: false,
     retry: false, // Disable automatic retries
     retryDelay: 1000,
-    enabled: retryCount < 3, // Disable the query after 3 failures
+    enabled: !apiDisabled && retryCount < 3, // Completely disable when flag is set or after 3 failures
     refetchInterval: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
     refetchIntervalInBackground: false,
+    gcTime: 0, // Don't cache failed requests
   });
   
   // Create a dedicated retry function that intelligently handles retries
   const handleRetry = useCallback(async () => {
+    // If API is disabled, show message and don't retry
+    if (apiDisabled) {
+      toast({
+        title: "API Disabled",
+        description: "API requests have been disabled due to persistent errors. Try again later or create a custom accumulator.",
+        variant: "destructive",
+        duration: 5000
+      });
+      setShowCustomBuilder(true);
+      return null;
+    }
+    
     // Reset error handled flag when manually retrying
     errorHandled.current = false;
     
@@ -824,7 +840,7 @@ export default function AccumulatorsPage() {
     setRetryCount(currentRetryCount);
     
     // If we've already tried multiple times and it's still failing,
-    // show a more detailed toast message
+    // show a more detailed toast message and disable API
     if (currentRetryCount >= 2) {
       toast({
         title: "API Quota Limit Reached",
@@ -833,7 +849,8 @@ export default function AccumulatorsPage() {
         duration: 5000
       });
       
-      // Automatically show custom builder after multiple retries
+      // Disable API and show custom builder
+      setApiDisabled(true);
       setShowCustomBuilder(true);
       return null;
     }
@@ -842,9 +859,11 @@ export default function AccumulatorsPage() {
       return await refetchAccumulators();
     } catch (err) {
       console.error("Manual retry failed:", err);
+      // If we get an error on manual retry, disable API
+      setApiDisabled(true);
       return null;
     }
-  }, [retryCount, toast, refetchAccumulators, errorHandled]);
+  }, [retryCount, toast, refetchAccumulators, errorHandled, apiDisabled]);
   
   // Auto-detect errors and show custom builder once
   React.useEffect(() => {
@@ -877,7 +896,10 @@ export default function AccumulatorsPage() {
         duration: 5000,
       });
       
-      // Disable further API calls by increasing retry count
+      // Disable further API calls
+      setApiDisabled(true);
+      
+      // Also increase retry count as a backup measure
       if (retryCount < 3) {
         setRetryCount(3);
       }
@@ -885,7 +907,15 @@ export default function AccumulatorsPage() {
       // Mark that we've handled this error
       errorHandled.current = true;
     }
-  }, [accumulatorsError, toast, retryCount]);
+  }, [accumulatorsError, toast, retryCount, setApiDisabled]);
+  
+  // Reset API disabled when certain parameters change
+  useEffect(() => {
+    // If user changes date, sport, or risk level, reset error state
+    setApiDisabled(false);
+    setRetryCount(0);
+    errorHandled.current = false;
+  }, [date, filterSport, riskLevel]);
   
   // Process accumulators from API response
   const accumulators = useMemo(() => {
