@@ -62,8 +62,8 @@ export function setupAuth(app: Express) {
         // This allows testers to log in with a consistent account
         if (process.env.NODE_ENV === 'development' && username === 'beta_tester') {
           if (password === 'puntaiq_beta_test') {
-            // Create a debug user object with required fields from the schema
-            const debugUser = {
+            // Create a complete debug user object with all required fields from the schema
+            const debugUser: SelectUser = {
               id: 9999,
               username: 'beta_tester',
               email: 'beta@puntaiq.com',
@@ -79,6 +79,13 @@ export function setupAuth(app: Express) {
               stripeCustomerId: null,
               stripeSubscriptionId: null,
               subscriptionTier: 'pro',
+              // Gamification properties
+              fantasyPoints: 1500,
+              totalContestsWon: 12,
+              totalContestsEntered: 25,
+              referralStreak: 3,
+              lastReferralDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+              // Additional properties 
               lastLoginAt: new Date(),
               isActive: true,
               isEmailVerified: true,
@@ -91,7 +98,14 @@ export function setupAuth(app: Express) {
                 preferredTimeZone: 'UTC',
                 theme: 'dark',
                 language: 'en',
-                currency: 'USD'
+                currency: 'USD',
+                bettingFrequency: 'weekly',
+                predictionTypes: ['singles', 'accumulators'],
+                riskTolerance: 'medium',
+                preferredOddsFormat: 'decimal',
+                predictionsPerDay: 5,
+                experienceLevel: 'intermediate',
+                onboardingCompleted: true
               },
               notificationSettings: {
                 general: {
@@ -104,13 +118,26 @@ export function setupAuth(app: Express) {
                   basketball: true,
                   tennis: true,
                   baseball: true,
-                  hockey: true
+                  hockey: true,
+                  cricket: false,
+                  formula1: false,
+                  mma: true,
+                  volleyball: false,
+                  other: false
+                },
+                metrics: {
+                  notificationCount: 24,
+                  lastNotificationSent: new Date(),
+                  clickThroughRate: 0.65,
+                  viewCount: 42,
+                  clickCount: 27,
+                  dismissCount: 5
                 }
               },
               notificationToken: null,
               onboardingStatus: 'completed',
               lastOnboardingStep: 5
-            } as SelectUser;
+            };
             return done(null, debugUser);
           }
         }
@@ -138,39 +165,81 @@ export function setupAuth(app: Express) {
     try {
       // Handle debug user for beta testing
       if (id === 9999) {
-        // Return the debug user with the same structure
-        const debugUser = {
+        // Create a complete debug user object with all required fields from the schema
+        const debugUser: SelectUser = {
           id: 9999,
           username: 'beta_tester',
           email: 'beta@puntaiq.com',
           password: 'hashed_password_placeholder',
           createdAt: new Date(),
           updatedAt: new Date(),
-          role: 'user',
-          preferences: {
-            theme: 'dark',
-            notifications: true,
-            subscriptionLevel: 'pro'
-          },
+          deviceImei: null,
+          phoneNumber: null,
+          isTwoFactorEnabled: false,
+          twoFactorSecret: null,
+          referralCode: 'BETATEST',
+          referredBy: null,
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+          subscriptionTier: 'pro',
+          // Gamification properties
+          fantasyPoints: 1500,
+          totalContestsWon: 12,
+          totalContestsEntered: 25,
+          referralStreak: 3,
+          lastReferralDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+          // Additional properties 
+          lastLoginAt: new Date(),
+          isActive: true,
+          isEmailVerified: true,
+          emailVerificationToken: null,
+          passwordResetToken: null,
+          passwordResetExpires: null,
           userPreferences: {
-            favoriteSports: [1, 3, 5],  // ids for football, basketball, etc.
-            favoriteLeagues: [39, 40, 61],  // Premier League, La Liga, NBA
-            notificationSettings: {
+            favoriteSports: [1, 3, 5],
+            favoriteLeagues: [39, 40, 61],
+            preferredTimeZone: 'UTC',
+            theme: 'dark',
+            language: 'en',
+            currency: 'USD',
+            bettingFrequency: 'weekly',
+            predictionTypes: ['singles', 'accumulators'],
+            riskTolerance: 'medium',
+            preferredOddsFormat: 'decimal',
+            predictionsPerDay: 5,
+            experienceLevel: 'intermediate',
+            onboardingCompleted: true
+          },
+          notificationSettings: {
+            general: {
               predictions: true,
-              news: true,
-              matches: true
+              results: true,
+              promotions: true,
+            },
+            sports: {
+              football: true,
+              basketball: true,
+              tennis: true,
+              baseball: true,
+              hockey: true,
+              cricket: false,
+              formula1: false,
+              mma: true,
+              volleyball: false,
+              other: false
+            },
+            metrics: {
+              notificationCount: 24,
+              lastNotificationSent: new Date(),
+              clickThroughRate: 0.65,
+              viewCount: 42,
+              clickCount: 27,
+              dismissCount: 5
             }
           },
-          profile: {
-            avatar: null,
-            name: 'Beta Tester',
-            bio: 'Testing the PuntaIQ platform'
-          },
-          subscription: {
-            level: 'pro',
-            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-            active: true
-          }
+          notificationToken: null,
+          onboardingStatus: 'completed',
+          lastOnboardingStep: 5
         };
         return done(null, debugUser);
       }
