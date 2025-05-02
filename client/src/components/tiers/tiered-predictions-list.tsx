@@ -60,7 +60,7 @@ export function TieredPredictionsList({
   
   // Function to determine if a prediction is accessible
   const isPredictionAccessible = (prediction: Prediction): boolean => {
-    return !prediction.isPremium || isPremiumUser;
+    return !prediction.isPremium || (isPremiumUser === true);
   };
   
   // Handle saving a prediction
@@ -143,7 +143,9 @@ export function TieredPredictionsList({
     if (selectedTier === 'all') {
       return predictions;
     } else {
-      return tierPredictions[`tier${selectedTier.split(' ')[1]}`] || [];
+      const tierNumber = selectedTier.split(' ')[1];
+      const tierKey = `tier${tierNumber}` as keyof typeof tierPredictions;
+      return tierPredictions[tierKey] || [];
     }
   };
   
@@ -186,7 +188,7 @@ export function TieredPredictionsList({
               variant="outline"
               size="sm"
               className="h-10"
-              onClick={refreshData}
+              onClick={() => refreshData()}
             >
               Refresh
             </Button>
