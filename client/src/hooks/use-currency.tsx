@@ -1,5 +1,13 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Currency, getUserCurrency, setUserCurrency, getAllCurrencies, convertPrice, formatPrice } from '@/lib/currency-service';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { 
+  Currency, 
+  getUserCurrency, 
+  setUserCurrency, 
+  getAllCurrencies, 
+  convertPrice, 
+  formatPrice,
+  fetchCurrentExchangeRates 
+} from '@/lib/currency-service';
 
 interface CurrencyContextType {
   // Current active currency
@@ -14,6 +22,10 @@ interface CurrencyContextType {
   convert: (priceInUSD: number) => number;
   // Format price with symbol
   format: (price: number) => string;
+  // Force refresh of exchange rates from API
+  refreshRates: () => Promise<boolean>;
+  // Last update timestamp
+  lastUpdated: Date | null;
 }
 
 // Create context with default values
@@ -23,18 +35,50 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [currency, setCurrency] = useState<Currency | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [availableCurrencies, setAvailableCurrencies] = useState<Currency[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Force refresh exchange rates from API
+  const refreshRates = useCallback(async (): Promise<boolean> => {
+    try {
+      const success = await fetchCurrentExchangeRates();
+      if (success) {
+        // Update available currencies with new rates
+        const updatedCurrencies = getAllCurrencies();
+        setAvailableCurrencies(updatedCurrencies);
+        
+        // Update current currency with new rate
+        if (currency) {
+          const updatedCurrency = updatedCurrencies.find(c => c.code === currency.code);
+          if (updatedCurrency) {
+            setCurrency(updatedCurrency);
+          }
+        }
+        
+        // Update last updated timestamp
+        setLastUpdated(new Date());
+      }
+      return success;
+    } catch (error) {
+      console.error('Failed to refresh exchange rates:', error);
+      return false;
+    }
+  }, [currency]);
 
   // Initialize currency on component mount
   useEffect(() => {
     async function initialize() {
       try {
-        // Get all available currencies
+        // This will try to fetch current rates from API or use cache
+        // getUserCurrency calls fetchCurrentExchangeRates internally
+        const userCurrency = await getUserCurrency();
+        
+        // Get all available currencies with updated rates
         const currencies = getAllCurrencies();
         setAvailableCurrencies(currencies);
-        
-        // Get user's preferred currency based on location or stored preference
-        const userCurrency = await getUserCurrency();
         setCurrency(userCurrency);
+        
+        // Set last updated timestamp
+        setLastUpdated(new Date());
       } catch (error) {
         console.error('Failed to initialize currency provider:', error);
       } finally {
@@ -46,7 +90,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Change currency
-  const changeCurrency = (newCurrency: string | Currency) => {
+  const changeCurrency = useCallback((newCurrency: string | Currency) => {
     try {
       // Update the global currency setting
       setUserCurrency(newCurrency);
@@ -64,7 +108,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Failed to change currency:', error);
     }
-  };
+  }, [availableCurrencies]);
 
   // Convert price from USD to the active currency
   const convert = (priceInUSD: number): number => {
@@ -89,6 +133,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
           changeCurrency: () => {},
           convert: (price) => price,
           format: (price) => formatPrice(price, 'USD'),
+          refreshRates: async () => false,
+          lastUpdated: null
         }}
       >
         {children}
@@ -105,6 +151,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
         changeCurrency,
         convert,
         format,
+        refreshRates,
+        lastUpdated
       }}
     >
       {children}

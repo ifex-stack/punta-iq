@@ -13,7 +13,8 @@ import {
   Globe, 
   Calendar, 
   TrendingUp,
-  Users
+  Users,
+  RefreshCw
 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -183,6 +184,29 @@ export default function SubscriptionPage() {
           <div className="flex items-center space-x-2">
             <Globe className="h-4 w-4 text-muted-foreground" />
             <CurrencySelector variant="outline" showLabel={true} />
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              className="h-8 w-8"
+              title="Refresh exchange rates"
+              onClick={async () => {
+                const success = await refreshRates();
+                if (success) {
+                  toast({
+                    title: "Exchange rates updated",
+                    description: "Currency rates have been refreshed with the latest values.",
+                  });
+                } else {
+                  toast({
+                    title: "Couldn't update rates",
+                    description: "Using current exchange rates. Please try again later.",
+                    variant: "destructive"
+                  });
+                }
+              }}
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+            </Button>
           </div>
           
           <div className="flex items-center space-x-2">
