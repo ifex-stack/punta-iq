@@ -41,7 +41,7 @@ export function AIServiceStatusIndicator() {
     refetch 
   } = useQuery<ServiceStatus>({
     queryKey: ["/api/ai-status"],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn({ on401: "throw" }),
     refetchInterval: 30000, // Refetch every 30 seconds
   });
   

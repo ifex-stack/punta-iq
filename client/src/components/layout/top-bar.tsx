@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { AIServiceStatusIndicator } from "@/components/status/ai-service-status-indicator";
 
 // Type definition for notification
 type Notification = {
@@ -115,6 +116,11 @@ const TopBar = () => {
             <span className="ml-1">History</span>
           </Button>
         </Link>
+        
+        {/* AI Service Status Indicator */}
+        <div className="hidden md:block">
+          <AIServiceStatusIndicator />
+        </div>
         
         {/* AI Service Status Link */}
         <Link href="/ai-service-status">
