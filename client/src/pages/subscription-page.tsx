@@ -19,6 +19,8 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useCurrency } from "@/hooks/use-currency";
+import { CurrencySelector, PriceDisplay } from "@/components/currency/currency-selector";
 import { 
   Select,
   SelectContent,
@@ -26,14 +28,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-// Available currencies with their symbols and exchange rates
-const CURRENCIES = [
-  { code: "USD", symbol: "$", rate: 1, name: "US Dollar" },
-  { code: "GBP", symbol: "£", rate: 0.79, name: "British Pound" },
-  { code: "EUR", symbol: "€", rate: 0.92, name: "Euro" },
-  { code: "NGN", symbol: "₦", rate: 1550, name: "Nigerian Naira" }
-];
 
 // Base subscription plans in USD
 const BASE_SUBSCRIPTION_PLANS = [
@@ -109,48 +103,14 @@ interface Plan {
   popular: boolean;
 }
 
-// Calculate prices based on currency and billing cycle
-const formatPrice = (price: number, currency: typeof CURRENCIES[0], isYearly = false) => {
-  const value = (price * currency.rate).toFixed(2);
-  // For Naira, don't show decimals
-  return currency.code === 'NGN' ? `${currency.symbol}${Math.round(Number(value))}` : `${currency.symbol}${value}`;
-};
-
 export default function SubscriptionPage() {
   const [_, navigate] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { currency, format, convert } = useCurrency();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-  const [selectedCurrency, setSelectedCurrency] = useState(CURRENCIES[0]);
   const [isYearly, setIsYearly] = useState(false);
   const [subscriptionPlans, setSubscriptionPlans] = useState<Plan[]>([]);
-  
-  // Get user's location and set the appropriate currency
-  useEffect(() => {
-    // In a real app, we'd use the browser's geolocation API 
-    // or IP-based location services to detect the user's country
-    // For demo purposes, we'll default to USD
-    
-    const detectUserCurrency = async () => {
-      try {
-        // This could be replaced with actual geolocation or IP-based detection
-        const mockCountryCode: string = 'US'; // Default to US
-        
-        // Find the appropriate currency based on country code
-        if (mockCountryCode === 'GB') {
-          setSelectedCurrency(CURRENCIES.find(c => c.code === 'GBP') || CURRENCIES[0]);
-        } else if (mockCountryCode === 'NG') {
-          setSelectedCurrency(CURRENCIES.find(c => c.code === 'NGN') || CURRENCIES[0]);
-        } else if (['DE', 'FR', 'IT', 'ES'].includes(mockCountryCode)) {
-          setSelectedCurrency(CURRENCIES.find(c => c.code === 'EUR') || CURRENCIES[0]);
-        }
-      } catch (error) {
-        console.error('Error detecting user location:', error);
-      }
-    };
-    
-    detectUserCurrency();
-  }, []);
   
   // Update subscription plans with pricing information
   useEffect(() => {
@@ -158,7 +118,7 @@ export default function SubscriptionPage() {
       ...plan
     }));
     setSubscriptionPlans(plans);
-  }, [selectedCurrency, isYearly]);
+  }, [currency, isYearly]);
   
   const subscribeMutation = useMutation({
     mutationFn: async (planData: { planId: string, isYearly: boolean, currencyCode: string }) => {
@@ -191,7 +151,7 @@ export default function SubscriptionPage() {
     subscribeMutation.mutate({
       planId,
       isYearly,
-      currencyCode: selectedCurrency.code
+      currencyCode: currency.code
     });
   };
 
@@ -222,24 +182,7 @@ export default function SubscriptionPage() {
         <div className="flex items-center space-x-4 ml-auto">
           <div className="flex items-center space-x-2">
             <Globe className="h-4 w-4 text-muted-foreground" />
-            <Select
-              value={selectedCurrency.code}
-              onValueChange={(value) => {
-                const currency = CURRENCIES.find(c => c.code === value);
-                if (currency) setSelectedCurrency(currency);
-              }}
-            >
-              <SelectTrigger className="w-[130px]">
-                <SelectValue placeholder="Select currency" />
-              </SelectTrigger>
-              <SelectContent>
-                {CURRENCIES.map(currency => (
-                  <SelectItem key={currency.code} value={currency.code}>
-                    {currency.symbol} {currency.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <CurrencySelector variant="outline" showLabel={true} />
           </div>
           
           <div className="flex items-center space-x-2">
@@ -288,10 +231,7 @@ export default function SubscriptionPage() {
               </CardTitle>
               <div className="mt-2">
                 <span className="text-3xl font-bold">
-                  {formatPrice(
-                    isYearly ? plan.yearlyPrice : plan.price, 
-                    selectedCurrency
-                  )}
+                  <PriceDisplay price={isYearly ? plan.yearlyPrice : plan.price} />
                 </span>
                 <span className="text-muted-foreground ml-1">
                   {isYearly ? "/year" : "/month"}
