@@ -35,7 +35,7 @@ export default function AIServiceStatusPage() {
     refetch: refetchStatus
   } = useQuery<StatusResponse>({
     queryKey: ['/api/sports/status', refreshTrigger],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn({ on401: "returnNull" }),
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 

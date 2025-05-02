@@ -33,7 +33,7 @@ import { setupAutomationRoutes } from "./automation/automation-routes";
 import { setupLiveScoreRoutes } from "./livescore-routes";
 import { userPreferencesRouter } from "./user-preferences-routes";
 import { registerMicroserviceRoutes } from "./microservice-routes";
-import { microserviceClient } from "./microservice-client";
+import { MicroserviceClient } from "./microservice-client";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
@@ -80,7 +80,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Try to start the microservice at server initialization
   try {
-    microserviceClient.startService().then(isRunning => {
+    const microserviceClient = new MicroserviceClient();
+    microserviceClient.isRunning().then(isRunning => {
       if (isRunning) {
         console.log('Successfully started the AI microservice');
       } else {

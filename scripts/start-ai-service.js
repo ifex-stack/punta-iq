@@ -1,88 +1,89 @@
 /**
- * Utility script to start the AI microservice
- * Usage: node scripts/start-ai-service.js
+ * Script to start the AI microservice
  */
+import { exec, spawn } from 'child_process';
+import path from 'path';
+import fs from 'fs';
+import os from 'os';
+import { fileURLToPath } from 'url';
 
-const { spawn } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-console.log('[AI Service] Starting microservice...');
+const AI_SERVICE_DIR = path.join(process.cwd(), 'ai_service');
+const API_SERVICE_PATH = path.join(AI_SERVICE_DIR, 'api_service.py');
 
-// Determine the Python executable to use
-const pythonExecutable = process.platform === 'win32' ? 'python' : 'python3';
-
-// Determine the path to the API service script
-const apiServicePath = path.join(process.cwd(), 'ai_service', 'api_service.py');
-
-// Check if the service script exists
-if (!fs.existsSync(apiServicePath)) {
-  console.error(`[AI Service] Error: Service script not found at ${apiServicePath}`);
-  process.exit(1);
-}
-
-// Install required dependencies if they don't exist
-console.log('[AI Service] Checking and installing dependencies...');
-
-// Create a function to install dependencies
-function installDependencies() {
+function checkPythonDependencies() {
   return new Promise((resolve, reject) => {
-    const pip = spawn(pythonExecutable, ['-m', 'pip', 'install', 'flask', 'requests', 'python-dotenv']);
+    console.log('Checking Python dependencies...');
     
-    pip.stdout.on('data', (data) => {
-      console.log(`[AI Service] pip: ${data.toString().trim()}`);
-    });
+    // List of required packages
+    const requiredPackages = [
+      'flask',
+      'requests',
+      'python-dotenv'
+    ];
     
-    pip.stderr.on('data', (data) => {
-      console.error(`[AI Service] pip error: ${data.toString().trim()}`);
-    });
+    // Create a temporary requirements file
+    const tempRequirementsPath = path.join(os.tmpdir(), 'temp_requirements.txt');
+    fs.writeFileSync(tempRequirementsPath, requiredPackages.join('\n'));
     
-    pip.on('close', (code) => {
-      if (code === 0) {
-        console.log('[AI Service] Dependencies installed successfully');
-        resolve();
-      } else {
-        console.error(`[AI Service] Failed to install dependencies with code ${code}`);
-        reject(new Error(`Failed to install dependencies with code ${code}`));
+    // Install dependencies
+    const installCmd = `pip install -r ${tempRequirementsPath}`;
+    
+    exec(installCmd, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error installing dependencies: ${error.message}`);
+        console.error(stderr);
+        reject(error);
+        return;
       }
+      
+      console.log('Python dependencies installed successfully');
+      
+      // Clean up the temporary file
+      try {
+        fs.unlinkSync(tempRequirementsPath);
+      } catch (err) {
+        console.warn(`Failed to delete temporary requirements file: ${err.message}`);
+      }
+      
+      resolve();
     });
   });
 }
 
-// Start the AI service
-async function startService() {
+function startMicroservice() {
+  console.log('Starting AI microservice...');
+  
+  // Check if the service file exists
+  if (!fs.existsSync(API_SERVICE_PATH)) {
+    console.error(`API service file not found at: ${API_SERVICE_PATH}`);
+    process.exit(1);
+  }
+  
+  // Start the Python process
+  const pythonProcess = spawn('python', [API_SERVICE_PATH], {
+    detached: true,
+    stdio: 'ignore',
+    cwd: AI_SERVICE_DIR
+  });
+  
+  // Unref the process so the parent can exit independently
+  pythonProcess.unref();
+  
+  console.log(`AI microservice started with PID: ${pythonProcess.pid}`);
+}
+
+// Main execution
+async function main() {
   try {
-    // Install dependencies
-    await installDependencies();
-    
-    console.log(`[AI Service] Starting Flask service from ${apiServicePath}`);
-    
-    // Start the Flask application
-    const flask = spawn(pythonExecutable, [apiServicePath]);
-    
-    // Handle process output
-    flask.stdout.on('data', (data) => {
-      console.log(`[AI Service] ${data.toString().trim()}`);
-    });
-    
-    flask.stderr.on('data', (data) => {
-      console.error(`[AI Service] Error: ${data.toString().trim()}`);
-    });
-    
-    flask.on('close', (code) => {
-      console.log(`[AI Service] Process exited with code ${code}`);
-    });
-    
-    // Log PID for monitoring
-    console.log(`[AI Service] Started with PID: ${flask.pid}`);
-    
-    // We won't wait for the process to complete, it will continue running in the background
-    
+    await checkPythonDependencies();
+    startMicroservice();
   } catch (error) {
-    console.error(`[AI Service] Failed to start service: ${error.message}`);
+    console.error('Failed to start AI microservice:', error);
     process.exit(1);
   }
 }
 
-// Start the service
-startService();
+main();

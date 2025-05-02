@@ -1,31 +1,18 @@
 /**
- * Client for communicating with the Flask microservice
+ * Client for communicating with the AI Flask microservice
  */
+import axios from "axios";
+import { Logger } from "winston";
+import { logger } from "./logger";
 
-import axios, { AxiosError } from 'axios';
-import { spawn, type ChildProcess } from 'child_process';
-import path from 'path';
-import fs from 'fs';
-
-// Create a logger for the microservice client
-const logger = {
-  info: (message: string, ...args: any[]) => {
-    console.log(`[${new Date().toISOString()}] [INFO] [MicroserviceClient] ${message}`, ...args);
-  },
-  error: (message: string, ...args: any[]) => {
-    console.error(`[${new Date().toISOString()}] [ERROR] [MicroserviceClient] ${message}`, ...args);
-  }
-};
-
-export interface ServiceStatus {
-  status: 'ok' | 'error' | 'degraded';
+interface ServiceStatus {
+  status: "ok" | "error" | "degraded";
   message: string;
-  details?: any;
+  requests_remaining?: string | null;
 }
 
-// Interface for the status response
-export interface StatusResponse {
-  overall: 'ok' | 'error' | 'degraded';
+interface StatusResponse {
+  overall: "ok" | "error" | "degraded";
   services: {
     odds_api?: ServiceStatus;
     sportsdb_api?: ServiceStatus;
@@ -33,189 +20,142 @@ export interface StatusResponse {
   timestamp: string;
 }
 
-// Type guard to check if an error is an AxiosError
-function isAxiosError(error: unknown): error is AxiosError {
-  return axios.isAxiosError(error);
+interface Match {
+  id: string;
+  sport_key: string;
+  sport_title: string;
+  commence_time: string;
+  home_team: string;
+  away_team: string;
+  bookmakers: Array<{
+    key: string;
+    title: string;
+    markets: Array<{
+      key: string;
+      outcomes: Array<{
+        name: string;
+        price: number;
+      }>;
+    }>;
+  }>;
 }
 
-// Type for error with code property
-interface ErrorWithCode {
-  code?: string;
-  response?: {
-    status?: number;
-  };
-}
-
-// Type guard to check if an error has a code property
-function hasErrorCode(error: unknown): error is ErrorWithCode {
-  return (
-    typeof error === 'object' && 
-    error !== null && 
-    ('code' in error || 'response' in error)
-  );
-}
-
+/**
+ * Client for interacting with the AI Flask microservice
+ */
 export class MicroserviceClient {
   private baseUrl: string;
-  private process: ChildProcess | null = null;
+  private logger: Logger;
 
-  constructor(baseUrl = process.env.AI_SERVICE_URL || 'http://localhost:5000') {
-    this.baseUrl = baseUrl;
-    logger.info(`Initialized with base URL: ${this.baseUrl}`);
-  }
-
-  /**
-   * Start the microservice if it's not running
-   */
-  async startService(): Promise<boolean> {
-    try {
-      // Check if service is already running
-      const isRunning = await this.isServiceRunning();
-      if (isRunning) {
-        logger.info('Microservice is already running');
-        return true;
-      }
-
-      logger.info('Starting microservice...');
-      
-      // Get the path to the script
-      const scriptPath = path.join(process.cwd(), 'scripts', 'start-ai-service.js');
-      
-      // Check if the script exists
-      if (!fs.existsSync(scriptPath)) {
-        logger.error(`Script not found: ${scriptPath}`);
-        return false;
-      }
-      
-      // Start the process
-      this.process = spawn('node', [scriptPath], {
-        detached: true,
-        stdio: 'inherit'
-      });
-      
-      // Check if process started successfully
-      if (!this.process.pid) {
-        logger.error('Failed to start microservice process');
-        return false;
-      }
-      
-      logger.info(`Microservice started with PID ${this.process.pid}`);
-      
-      // Allow the service a moment to start up
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Verify the service is running
-      const serviceRunning = await this.isServiceRunning();
-      if (!serviceRunning) {
-        logger.error('Service failed to start within timeout period');
-        return false;
-      }
-      
-      return true;
-    } catch (error) {
-      logger.error(`Error starting microservice: ${error instanceof Error ? error.message : String(error)}`);
-      return false;
-    }
+  constructor() {
+    this.baseUrl = process.env.AI_SERVICE_URL || "http://localhost:5000";
+    this.logger = logger;
+    this.logger.info("[MicroserviceClient] Initialized with base URL: " + this.baseUrl);
   }
 
   /**
    * Check if the microservice is running
    */
-  async isServiceRunning(): Promise<boolean> {
+  async isRunning(): Promise<boolean> {
     try {
-      logger.info(`Checking microservice status from ${this.baseUrl}/api/status`);
-      const response = await axios.get(`${this.baseUrl}/api/status`, { timeout: 3000 });
-      return response.status === 200;
-    } catch (error) {
-      logger.error(`Error checking microservice status: ${error instanceof Error ? error.message : String(error)}`);
-      // We'll assume the service is running and handle errors later
-      // This is to prevent spawning multiple instances
+      this.logger.info("[MicroserviceClient] Checking microservice status from " + this.baseUrl + "/api/status");
+      await axios.get(`${this.baseUrl}/api/status`, { timeout: 5000 });
       return true;
+    } catch (error) {
+      this.logger.error("[MicroserviceClient] Error checking microservice status: " + error);
+      this.logger.info("[MicroserviceClient] Microservice is already running");
+      return false;
     }
   }
 
   /**
-   * Get the status of the microservice and its connected APIs
+   * Get the status of the external APIs
    */
   async getStatus(): Promise<StatusResponse> {
     try {
       const response = await axios.get(`${this.baseUrl}/api/status`, { timeout: 5000 });
-      return response.data as StatusResponse;
-    } catch (error) {
-      // If we can't connect to the service, create an error status
-      const errorStatus: StatusResponse = {
-        overall: 'error',
-        services: {
-          odds_api: {
-            status: 'error',
-            message: 'Unable to check API status'
-          },
-          sportsdb_api: {
-            status: 'error',
-            message: 'Unable to check API status'
-          }
-        },
-        timestamp: new Date().toISOString()
-      };
-
-      if (hasErrorCode(error) && error.code === 'ECONNREFUSED') {
-        // Service is not running
-        errorStatus.overall = 'error';
-        errorStatus.services = {
-          odds_api: {
-            status: 'error',
-            message: 'Microservice not running'
-          },
-          sportsdb_api: {
-            status: 'error',
-            message: 'Microservice not running'
-          }
-        };
-      } else if (hasErrorCode(error) && error.response?.status) {
-        // The service responded with an error status code
-        errorStatus.overall = 'error';
-        errorStatus.services = {
-          odds_api: {
-            status: 'error',
-            message: `Service responded with error: ${error.response.status}`
-          },
-          sportsdb_api: {
-            status: 'error',
-            message: `Service responded with error: ${error.response.status}`
-          }
-        };
-      }
-
-      return errorStatus;
-    }
-  }
-
-  /**
-   * Get odds from the microservice
-   */
-  async getOdds(sport: string): Promise<any> {
-    try {
-      const response = await axios.get(`${this.baseUrl}/api/odds/${sport}`);
       return response.data;
     } catch (error) {
-      logger.error(`Error getting odds: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error("[MicroserviceClient] Error getting service status: " + error);
       throw error;
     }
   }
 
   /**
-   * Get live scores from the microservice
+   * Get list of supported sports
+   */
+  async getSports(): Promise<any> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/api/sports`);
+      return response.data;
+    } catch (error) {
+      this.logger.error("[MicroserviceClient] Error getting sports: " + error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get odds for a specific sport
+   */
+  async getOdds(sport: string): Promise<Match[]> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/api/odds/${sport}`);
+      return response.data;
+    } catch (error) {
+      this.logger.error(`[MicroserviceClient] Error getting odds for ${sport}: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Get live scores for current matches
    */
   async getLiveScores(): Promise<any> {
     try {
       const response = await axios.get(`${this.baseUrl}/api/livescore`);
       return response.data;
     } catch (error) {
-      logger.error(`Error getting live scores: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error("[MicroserviceClient] Error getting live scores: " + error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get fixtures for a specific league
+   */
+  async getLeagueFixtures(leagueId: string): Promise<any> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/api/fixtures/league/${leagueId}`);
+      return response.data;
+    } catch (error) {
+      this.logger.error(`[MicroserviceClient] Error getting fixtures for league ${leagueId}: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Get teams in a specific league
+   */
+  async getTeams(leagueId: string): Promise<any> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/api/teams/league/${leagueId}`);
+      return response.data;
+    } catch (error) {
+      this.logger.error(`[MicroserviceClient] Error getting teams for league ${leagueId}: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all leagues
+   */
+  async getLeagues(): Promise<any> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/api/leagues`);
+      return response.data;
+    } catch (error) {
+      this.logger.error("[MicroserviceClient] Error getting leagues: " + error);
       throw error;
     }
   }
 }
-
-// Create and export a singleton instance
-export const microserviceClient = new MicroserviceClient();
