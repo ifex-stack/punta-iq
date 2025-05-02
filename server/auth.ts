@@ -93,12 +93,6 @@ export function setupAuth(app: Express) {
               referralStreak: 3,
               lastReferralDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
               // Additional properties 
-              lastLoginAt: new Date(),
-              isActive: true,
-              isEmailVerified: true,
-              emailVerificationToken: null,
-              passwordResetToken: null,
-              passwordResetExpires: null,
               userPreferences: {
                 favoriteSports: [1, 3, 5],
                 favoriteLeagues: [39, 40, 61],
@@ -141,7 +135,6 @@ export function setupAuth(app: Express) {
                   dismissCount: 5
                 }
               },
-              notificationToken: null,
               onboardingStatus: 'completed',
               lastOnboardingStep: 5
             };
@@ -184,6 +177,14 @@ export function setupAuth(app: Express) {
           isTwoFactorEnabled: false,
           twoFactorSecret: null,
           referralCode: 'BETATEST',
+          role: 'admin',
+          lastLoginAt: new Date(),
+          isActive: true,
+          isEmailVerified: true,
+          emailVerificationToken: null,
+          passwordResetToken: null,
+          passwordResetExpires: null,
+          notificationToken: null,
           referredBy: null,
           stripeCustomerId: null,
           stripeSubscriptionId: null,
@@ -238,7 +239,6 @@ export function setupAuth(app: Express) {
               dismissCount: 5
             }
           },
-          notificationToken: null,
           onboardingStatus: 'completed',
           lastOnboardingStep: 5
         };

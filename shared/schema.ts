@@ -161,6 +161,9 @@ export const insertUserSchema = createInsertSchema(users).pick({
   referralCode: true,
   referredBy: true,
   role: true,
+  isActive: true,
+  isEmailVerified: true,
+  lastLoginAt: true
 });
 
 // Sports table
