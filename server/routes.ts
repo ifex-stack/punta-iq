@@ -3532,6 +3532,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
     }
   }
+  
+  // Health check endpoint for the main server
+  app.get('/api/server-status', (req, res) => {
+    routesLogger.debug("Server status check");
+    res.status(200).json({
+      status: 'ok',
+      message: 'Main server is running',
+      timestamp: new Date().toISOString(),
+      serverInfo: {
+        port: 3000,
+        version: process.env.npm_package_version || '1.0.0',
+        environment: process.env.NODE_ENV || 'development'
+      }
+    });
+  });
+
+  // API that explicitly checks AI microservice connection and reports detailed status
+  app.get('/api/system-status', async (req, res) => {
+    routesLogger.debug("System status check");
+    
+    // Create a fresh client to check AI microservice
+    const microserviceClient = new MicroserviceClient();
+    const isAiServiceRunning = await microserviceClient.isRunning();
+    
+    try {
+      // Get more detailed status from the AI service if it's running
+      const aiServiceDetails = isAiServiceRunning 
+        ? await microserviceClient.getStatus().catch(() => ({
+            overall: "degraded",
+            services: {},
+            timestamp: new Date().toISOString()
+          }))
+        : {
+            overall: "error",
+            services: {},
+            timestamp: new Date().toISOString()
+          };
+          
+      res.status(200).json({
+        main_server: {
+          status: "ok",
+          message: "Main server is running",
+          port: 3000
+        },
+        ai_service: {
+          status: isAiServiceRunning ? "ok" : "error",
+          message: isAiServiceRunning ? "AI service is running" : "AI service is not responding",
+          port: 5000,
+          details: aiServiceDetails
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      routesLogger.error("Error getting system status", { error });
+      res.status(500).json({
+        main_server: {
+          status: "ok",
+          message: "Main server is running but encountered an error checking AI service",
+          port: 3000
+        },
+        ai_service: {
+          status: "unknown",
+          message: "Error checking AI service status",
+          port: 5000
+        },
+        timestamp: new Date().toISOString(),
+        error: error.message
+      });
+    }
+  });
 
   const httpServer = createServer(app);
   

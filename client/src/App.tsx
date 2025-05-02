@@ -78,24 +78,56 @@ const Router: React.FC = () => {
     return () => clearTimeout(timeoutId);
   }, [location]);
   
-  // Handle 404 redirects - sometimes in development the server returns 404 but we need to render the app
+  // Enhanced 404 recovery mechanism
   useEffect(() => {
     const handleLocationChange = () => {
       // If we're at a 404 page from the server but we have an SPA route for it
       // force a re-render by using the custom location hook to set it explicitly
-      if (document.title.includes('404') && location !== '/not-found') {
+      if ((document.title.includes('404') || document.body.textContent?.includes('Not Found')) && 
+          location !== '/not-found') {
         console.log('Detected 404 page - attempting route recovery');
-        // Let's try to recover by forcing an SPA render
-        window.history.replaceState(null, '', location);
+        
+        // Force a client-side navigation to the current path
+        // This will trigger the SPA router instead of showing the server's 404 page
+        const currentPath = window.location.pathname;
+        console.log(`Attempting to recover path: ${currentPath}`);
+        
+        // Make sure we're on the right port first
+        if (window.location.port !== '3000' && 
+            (window.location.hostname.includes('replit.dev') || window.location.hostname === 'localhost')) {
+          // We need to redirect to port 3000 first
+          console.log('Redirecting to port 3000 before route recovery');
+          window.location.href = `${window.location.protocol}//${window.location.hostname}:3000${currentPath}`;
+          return;
+        }
+        
+        // If we're already on port 3000, try client-side navigation
+        window.history.replaceState(null, '', currentPath);
+        setNavigationState(true); // Suppress errors during recovery
+        
+        // Force a refresh after a short delay if we're still seeing a 404
+        setTimeout(() => {
+          if (document.title.includes('404') || document.body.textContent?.includes('Not Found')) {
+            console.log('Still on 404 page - forcing navigation to root');
+            window.location.href = `${window.location.protocol}//${window.location.hostname}:3000/`;
+          }
+        }, 1000);
       }
     };
     
     // Run once on mount
     handleLocationChange();
     
-    // Also listen for popstate events
+    // Also listen for popstate events and other navigation events
     window.addEventListener('popstate', handleLocationChange);
-    return () => window.removeEventListener('popstate', handleLocationChange);
+    window.addEventListener('navigate', handleLocationChange);
+    window.addEventListener('load', handleLocationChange);
+    
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('navigate', handleLocationChange);
+      window.removeEventListener('load', handleLocationChange);
+    };
   }, [location]);
 
   // Don't wrap auth page in AppLayout to prevent showing the bottom navigation bar
@@ -108,6 +140,9 @@ const Router: React.FC = () => {
       </div>
     );
   }
+  
+  // Add app debug info for troubleshooting
+  console.log(`Current app state: location=${location}, port=${window.location.port}, hostname=${window.location.hostname}`);
   
   return (
     <div className="flex h-screen">

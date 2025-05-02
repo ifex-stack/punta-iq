@@ -20,7 +20,14 @@
       if (window.location.port !== '3000' && 
           (window.location.hostname.includes('replit.dev') || window.location.hostname === 'localhost')) {
         console.log('Redirecting to correct port (3000) for client application');
-        window.location.href = `${window.location.protocol}//${window.location.hostname}:3000${window.location.pathname}${window.location.search}`;
+        
+        // Store the current path to redirect back to after port change
+        const currentPath = window.location.pathname;
+        const currentSearch = window.location.search;
+        
+        // First redirect to the base URL with the correct port to ensure proper loading
+        // Then the app will handle client-side routing to the correct path
+        window.location.href = `${window.location.protocol}//${window.location.hostname}:3000${currentPath}${currentSearch}`;
       }
     </script>
   </head>

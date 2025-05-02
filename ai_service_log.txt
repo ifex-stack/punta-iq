@@ -364,3 +364,48 @@ Error: AI Service failed to start properly: exit code 1
 [STDOUT] [2025-05-02 18:28:51,867] [INFO] 127.0.0.1 - - [02/May/2025 18:28:51] "GET /api/status HTTP/1.1" 200 -
 [STDOUT] [2025-05-02 18:29:17,173] [INFO] 127.0.0.1 - - [02/May/2025 18:29:17] "GET /api/status HTTP/1.1" 200 -
 [STDOUT] [2025-05-02 18:29:17,177] [INFO] 127.0.0.1 - - [02/May/2025 18:29:17] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:29:47,173] [INFO] 127.0.0.1 - - [02/May/2025 18:29:47] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:30:17,172] [INFO] 127.0.0.1 - - [02/May/2025 18:30:17] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:30:47,172] [INFO] 127.0.0.1 - - [02/May/2025 18:30:47] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:31:17,172] [INFO] 127.0.0.1 - - [02/May/2025 18:31:17] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-02T18:31:41.396Z on port 5000 ---
+[STDOUT] [2025-05-02 18:31:41,759] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+[STDOUT]  * Debug mode: off
+[STDOUT] [2025-05-02 18:31:41,763] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.21:5000
+[2025-05-02 18:31:41,763] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-02 18:31:42,750] [INFO] 172.31.128.21 - - [02/May/2025 18:31:42] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:31:44,348] [INFO] 127.0.0.1 - - [02/May/2025 18:31:44] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:31:44,402] [INFO] 127.0.0.1 - - [02/May/2025 18:31:44] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:32:09,965] [INFO] 127.0.0.1 - - [02/May/2025 18:32:09] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:32:09,968] [INFO] 127.0.0.1 - - [02/May/2025 18:32:09] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:32:39,965] [INFO] 127.0.0.1 - - [02/May/2025 18:32:39] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:32:59,221] [INFO] 127.0.0.1 - - [02/May/2025 18:32:59] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:32:59,225] [INFO] 127.0.0.1 - - [02/May/2025 18:32:59] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:33:09,965] [INFO] 127.0.0.1 - - [02/May/2025 18:33:09] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:33:12,731] [INFO] 172.31.128.21 - - [02/May/2025 18:33:12] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:33:13,826] [INFO] 172.31.128.21 - - [02/May/2025 18:33:13] "[33mGET / HTTP/1.1[0m" 404 -
+
+--- Starting AI Microservice at 2025-05-02T18:33:45.396Z on port 5000 ---
+[STDOUT] [2025-05-02 18:33:45,722] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-02 18:33:45,724] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.21:5000
+[STDOUT] [2025-05-02 18:33:45,724] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-02 18:33:46,661] [INFO] 172.31.128.21 - - [02/May/2025 18:33:46] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:33:48,067] [INFO] 127.0.0.1 - - [02/May/2025 18:33:48] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:33:48,401] [INFO] 127.0.0.1 - - [02/May/2025 18:33:48] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:34:14,122] [INFO] 127.0.0.1 - - [02/May/2025 18:34:14] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:34:14,126] [INFO] 127.0.0.1 - - [02/May/2025 18:34:14] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:34:44,122] [INFO] 127.0.0.1 - - [02/May/2025 18:34:44] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:35:14,122] [INFO] 127.0.0.1 - - [02/May/2025 18:35:14] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:35:41,678] [INFO] 172.31.128.21 - - [02/May/2025 18:35:41] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:35:42,746] [INFO] 172.31.128.21 - - [02/May/2025 18:35:42] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:35:44,124] [INFO] 127.0.0.1 - - [02/May/2025 18:35:44] "GET /api/status HTTP/1.1" 200 -
