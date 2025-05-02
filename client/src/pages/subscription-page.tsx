@@ -117,14 +117,15 @@ export default function SubscriptionPage() {
   // Update subscription plans with pricing information
   useEffect(() => {
     // Create deep copy of base plans and apply currency conversion
-    const plans = BASE_SUBSCRIPTION_PLANS.map(plan => ({
-      ...plan
-    }));
+    const plans = BASE_SUBSCRIPTION_PLANS.map(plan => {
+      // No need to convert prices since they're already in GBP and will be converted by PriceDisplay
+      return { ...plan };
+    });
     setSubscriptionPlans(plans);
 
     // Log for debugging
     console.log('Current currency:', currency);
-    console.log(`Converting prices using rate: ${currency.rate} ${currency.code} to 1 GBP`);
+    console.log(`Using exchange rate: 1 GBP = ${currency.rate} ${currency.code}`);
   }, [currency, isYearly]);
   
   const subscribeMutation = useMutation({

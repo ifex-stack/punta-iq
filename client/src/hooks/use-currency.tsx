@@ -18,8 +18,8 @@ interface CurrencyContextType {
   availableCurrencies: Currency[];
   // Change the currency
   changeCurrency: (newCurrency: string | Currency) => void;
-  // Convert price from USD to active currency
-  convert: (priceInUSD: number) => number;
+  // Convert price from GBP to active currency
+  convert: (priceInGBP: number) => number;
   // Format price with symbol
   format: (price: number) => string;
   // Force refresh of exchange rates from API
@@ -112,15 +112,15 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     }
   }, [availableCurrencies]);
 
-  // Convert price from USD to the active currency
-  const convert = (priceInUSD: number): number => {
-    if (!currency) return priceInUSD;
-    return convertPrice(priceInUSD, currency);
+  // Convert price from GBP to the active currency
+  const convert = (priceInGBP: number): number => {
+    if (!currency) return priceInGBP;
+    return convertPrice(priceInGBP, currency);
   };
 
   // Format price with currency symbol using locale-aware formatting
   const format = (price: number): string => {
-    if (!currency) return formatPrice(price, 'USD'); // Fallback to USD
+    if (!currency) return formatPrice(price, 'GBP'); // Fallback to GBP
     return formatPrice(price, currency.code);
   };
 
@@ -129,12 +129,12 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     return (
       <CurrencyContext.Provider 
         value={{
-          currency: { code: 'USD', symbol: '$', name: 'US Dollar', flag: '🇺🇸', rate: 1 },
+          currency: { code: 'GBP', symbol: '£', name: 'British Pound', flag: '🇬🇧', rate: 1 },
           isLoading: true,
           availableCurrencies: [],
           changeCurrency: () => {},
           convert: (price) => price,
-          format: (price) => formatPrice(price, 'USD'),
+          format: (price) => formatPrice(price, 'GBP'),
           refreshRates: async () => false,
           lastUpdated: null
         }}
