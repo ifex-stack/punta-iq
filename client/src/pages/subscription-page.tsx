@@ -36,8 +36,8 @@ const BASE_SUBSCRIPTION_PLANS = [
   {
     id: "basic",
     name: "Basic",
-    price: 5.99,
-    yearlyPrice: 59.99, // Save 16% with yearly billing
+    price: 7.99,
+    yearlyPrice: 79.99, // Save 16% with yearly billing
     description: "Perfect for casual fans looking for reliable predictions",
     features: [
       "Access to predictions for 1 sport",
@@ -54,8 +54,8 @@ const BASE_SUBSCRIPTION_PLANS = [
   {
     id: "pro",
     name: "Pro",
-    price: 11.99,
-    yearlyPrice: 119.99, // Save 16% with yearly billing
+    price: 14.99,
+    yearlyPrice: 149.99, // Save 16% with yearly billing
     description: "Enhanced insights for the serious sports enthusiast",
     features: [
       "All sports predictions included",
@@ -73,8 +73,8 @@ const BASE_SUBSCRIPTION_PLANS = [
   {
     id: "elite",
     name: "Elite",
-    price: 23.99,
-    yearlyPrice: 239.99, // Save 16% with yearly billing
+    price: 29.99,
+    yearlyPrice: 299.99, // Save 16% with yearly billing
     description: "The ultimate prediction package for maximum success",
     features: [
       "Priority access to high-confidence predictions",
