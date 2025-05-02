@@ -43,11 +43,13 @@ const BASE_SUBSCRIPTION_PLANS = [
     description: "Perfect for casual fans looking for reliable predictions",
     features: [
       "Access to predictions for 1 sport",
+      "5 daily predictions",
       "Basic accumulator tips (up to 15 odds)",
-      "Free fantasy contests entry",
+      "Free fantasy contests entry (up to £25 prize pool)",
       "Basic statistics dashboard",
       "Daily notifications for new predictions",
-      "Email support"
+      "Historical success rate metrics",
+      "Email support (24-hour response)"
     ],
     color: "bg-slate-100 dark:bg-slate-800",
     accentColor: "text-slate-600 dark:text-slate-400",
@@ -60,13 +62,15 @@ const BASE_SUBSCRIPTION_PLANS = [
     yearlyPrice: 149.99, // Save 16% with yearly billing
     description: "Enhanced insights for the serious sports enthusiast",
     features: [
-      "All sports predictions included",
+      "All sports predictions included (football, basketball, tennis & more)",
+      "15 daily predictions with detailed analysis",
       "Medium accumulator tips (up to 30 odds)",
-      "Premium fantasy contests entry",
+      "Premium fantasy contests entry (up to £50 prize pool)",
       "Advanced statistics and trend analysis",
-      "In-app chat support",
-      "Performance tracking dashboard",
-      "Priority notifications for value bets"
+      "Player performance insights & matchup advantages",
+      "Performance tracking dashboard with export options",
+      "Priority notifications for value bets",
+      "In-app chat support (4-hour response)"
     ],
     color: "bg-primary/10 dark:bg-primary/20",
     accentColor: "text-primary dark:text-primary",
@@ -79,13 +83,16 @@ const BASE_SUBSCRIPTION_PLANS = [
     yearlyPrice: 299.99, // Save 16% with yearly billing
     description: "The ultimate prediction package for maximum success",
     features: [
-      "Priority access to high-confidence predictions",
-      "Premium accumulator tips (up to 50 odds)",
-      "Exclusive VIP fantasy contests (£75 prize pool)",
-      "Advanced pattern recognition insights",
-      "Personal prediction strategy consultation",
-      "Real-time value betting alerts",
-      "24/7 priority support",
+      "Priority access to all high-confidence predictions",
+      "Unlimited daily predictions with expert insights",
+      "Premium accumulator tips (up to 50 odds) with optimal combinations",
+      "Exclusive VIP fantasy contests (£75+ prize pools)",
+      "Advanced pattern recognition insights from machine learning models",
+      "Betting portfolio optimization tools",
+      "Personal prediction strategy consultation (monthly call)",
+      "Real-time value betting alerts for immediate opportunities",
+      "Exclusive early access to new features",
+      "24/7 priority support with dedicated account manager",
       "No ads or promotions"
     ],
     color: "bg-amber-100 dark:bg-amber-900/30",
