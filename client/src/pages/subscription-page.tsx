@@ -31,13 +31,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Base subscription plans in USD
+// Base subscription plans in GBP
 const BASE_SUBSCRIPTION_PLANS = [
   {
     id: "basic",
     name: "Basic",
-    price: 7.99,
-    yearlyPrice: 79.99, // Save 16% with yearly billing
+    price: 5.99,
+    yearlyPrice: 59.99, // Save 16% with yearly billing
     description: "Perfect for casual fans looking for reliable predictions",
     features: [
       "Access to predictions for 1 sport",
@@ -54,8 +54,8 @@ const BASE_SUBSCRIPTION_PLANS = [
   {
     id: "pro",
     name: "Pro",
-    price: 14.99,
-    yearlyPrice: 149.99, // Save 16% with yearly billing
+    price: 11.99,
+    yearlyPrice: 119.99, // Save 16% with yearly billing
     description: "Enhanced insights for the serious sports enthusiast",
     features: [
       "All sports predictions included",
@@ -73,13 +73,13 @@ const BASE_SUBSCRIPTION_PLANS = [
   {
     id: "elite",
     name: "Elite",
-    price: 29.99,
-    yearlyPrice: 299.99, // Save 16% with yearly billing
+    price: 23.99,
+    yearlyPrice: 239.99, // Save 16% with yearly billing
     description: "The ultimate prediction package for maximum success",
     features: [
       "Priority access to high-confidence predictions",
       "Premium accumulator tips (up to 50 odds)",
-      "Exclusive VIP fantasy contests ($100 prize pool)",
+      "Exclusive VIP fantasy contests (£75 prize pool)",
       "Advanced pattern recognition insights",
       "Personal prediction strategy consultation",
       "Real-time value betting alerts",
@@ -124,7 +124,7 @@ export default function SubscriptionPage() {
 
     // Log for debugging
     console.log('Current currency:', currency);
-    console.log(`Converting prices using rate: ${currency.rate} ${currency.code} to 1 USD`);
+    console.log(`Converting prices using rate: ${currency.rate} ${currency.code} to 1 GBP`);
   }, [currency, isYearly]);
   
   const subscribeMutation = useMutation({
@@ -346,7 +346,7 @@ export default function SubscriptionPage() {
                 </div>
                 <div className="flex items-start">
                   <Badge className="bg-amber-600 mr-2 mt-0.5">Elite</Badge>
-                  <span className="text-sm">Exclusive VIP contests with $100 guaranteed prize pools</span>
+                  <span className="text-sm">Exclusive VIP contests with £75 guaranteed prize pools</span>
                 </div>
               </div>
             </div>

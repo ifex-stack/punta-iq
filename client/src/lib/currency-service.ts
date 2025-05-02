@@ -7,81 +7,81 @@ export interface Currency {
   symbol: string;
   name: string;
   flag: string;
-  rate: number; // Exchange rate relative to USD
+  rate: number; // Exchange rate relative to GBP
 }
 
 // Supported currencies with their symbols and exchange rates (as of May 2025)
-// Updated with the latest official exchange rates
+// Updated with the latest official exchange rates (based on GBP)
 const currencies: Record<string, Currency> = {
-  USD: { 
-    code: 'USD', 
-    symbol: '$', 
-    name: 'US Dollar', 
-    flag: '🇺🇸', 
-    rate: 1 
-  },
   GBP: { 
     code: 'GBP', 
     symbol: '£', 
     name: 'British Pound', 
     flag: '🇬🇧', 
-    rate: 0.79 // Updated May 2025 rate
+    rate: 1 // Base currency 
+  },
+  USD: { 
+    code: 'USD', 
+    symbol: '$', 
+    name: 'US Dollar', 
+    flag: '🇺🇸', 
+    rate: 1.27 // 1 GBP = 1.27 USD
   },
   EUR: { 
     code: 'EUR', 
     symbol: '€', 
     name: 'Euro', 
     flag: '🇪🇺', 
-    rate: 0.92 // Updated May 2025 rate
+    rate: 1.16 // 1 GBP = 1.16 EUR
   },
   NGN: { 
     code: 'NGN', 
     symbol: '₦', 
     name: 'Nigerian Naira', 
     flag: '🇳🇬', 
-    rate: 1650 // Updated May 2025 rate
+    rate: 2088 // 1 GBP = 2088 NGN
   },
   KES: { 
     code: 'KES', 
     symbol: 'KSh', 
     name: 'Kenyan Shilling', 
     flag: '🇰🇪', 
-    rate: 133.75 // Updated May 2025 rate
+    rate: 169.3 // 1 GBP = 169.3 KES
   },
   ZAR: { 
     code: 'ZAR', 
     symbol: 'R', 
     name: 'South African Rand', 
     flag: '🇿🇦', 
-    rate: 18.82 // Updated May 2025 rate 
+    rate: 23.82 // 1 GBP = 23.82 ZAR
   },
   GHS: { 
     code: 'GHS', 
     symbol: 'GH₵', 
     name: 'Ghanaian Cedi', 
     flag: '🇬🇭', 
-    rate: 16.25 // Updated May 2025 rate
+    rate: 20.57 // 1 GBP = 20.57 GHS
   },
   INR: { 
     code: 'INR', 
     symbol: '₹', 
     name: 'Indian Rupee', 
     flag: '🇮🇳', 
-    rate: 83.72 // Updated May 2025 rate
+    rate: 105.97 // 1 GBP = 105.97 INR
   },
   CAD: {
     code: 'CAD',
     symbol: 'C$',
     name: 'Canadian Dollar',
     flag: '🇨🇦',
-    rate: 1.36 // Updated May 2025 rate
+    rate: 1.72 // 1 GBP = 1.72 CAD
   },
   AUD: {
     code: 'AUD',
     symbol: 'A$',
     name: 'Australian Dollar',
     flag: '🇦🇺',
-    rate: 1.51 // Updated May 2025 rate
+    rate: 1.91 // 1 GBP = 1.91 AUD
   },
 };
 
@@ -137,7 +137,7 @@ const countryToCurrencyMap: Record<string, string> = {
 };
 
 // Default currency code
-const DEFAULT_CURRENCY = 'USD';
+const DEFAULT_CURRENCY = 'GBP';
 
 /**
  * Get currency based on country code
@@ -273,22 +273,22 @@ export async function fetchCurrentExchangeRates(forceRefresh = false): Promise<b
     // Ensure Naira rate is set correctly for Nigeria
     if (forceRefresh || !exchangeRateCache) {
       // Set Nigerian Naira rate to fixed value
-      currencies.NGN.rate = 1650;
+      currencies.NGN.rate = 2088;
     }
     
     // Create fake API response data (for development only)
     // In production, this would be replaced with a real API call
     const rates: Record<string, number> = {
-      USD: 1,
-      GBP: 0.79,
-      EUR: 0.92,
-      NGN: 1650, // Fixed Nigerian Naira rate
-      KES: 133.75,
-      ZAR: 18.82,
-      GHS: 16.25,
-      INR: 83.72,
-      CAD: 1.36,
-      AUD: 1.51
+      GBP: 1,      // Base currency
+      USD: 1.27,   // 1 GBP = 1.27 USD
+      EUR: 1.16,   // 1 GBP = 1.16 EUR
+      NGN: 2088,   // 1 GBP = 2088 NGN (Fixed rate)
+      KES: 169.3,  // 1 GBP = 169.3 KES
+      ZAR: 23.82,  // 1 GBP = 23.82 ZAR
+      GHS: 20.57,  // 1 GBP = 20.57 GHS
+      INR: 105.97, // 1 GBP = 105.97 INR
+      CAD: 1.72,   // 1 GBP = 1.72 CAD
+      AUD: 1.91    // 1 GBP = 1.91 AUD
     };
     
     // Create a new cache with the rates
@@ -308,7 +308,7 @@ export async function fetchCurrentExchangeRates(forceRefresh = false): Promise<b
     });
     
     // Log that we've updated rates
-    console.log('Updated exchange rates - Nigerian Naira rate is now 1650 NGN to 1 USD');
+    console.log('Updated exchange rates - Nigerian Naira rate is now 2088 NGN to 1 GBP');
     
     return true;
   } catch (error) {
