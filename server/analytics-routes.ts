@@ -4,6 +4,7 @@
 import { Router, Request, Response } from 'express';
 import { analytics, AnalyticsEventType, AnalyticsProperties } from './analytics-service';
 import { createContextLogger } from './logger';
+import { requireAdmin, requireAnalyst } from './middleware/role-auth';
 
 // Set up logging for this module
 const logger = createContextLogger('AnalyticsRoutes');
@@ -174,28 +175,21 @@ analyticsRouter.post('/feature', (req: Request, res: Response) => {
  * Endpoint to check analytics status
  * GET /api/analytics/status
  */
-analyticsRouter.get('/status', (req: Request, res: Response) => {
-  // Only allow admin users to check analytics status
-  if (req.isAuthenticated() && req.user && req.user.role === 'admin') {
-    const eventCounts = {
-      total: 100, // Placeholder - would be real counts in production
-      byType: {
-        error: 5,
-        performance: 15,
-        user: 30,
-        feature: 50
-      }
-    };
-    
-    return res.status(200).json({
-      enabled: true,
-      anonymous: false,
-      eventCounts
-    });
-  }
+analyticsRouter.get('/status', requireAdmin, (req: Request, res: Response) => {
+  const eventCounts = {
+    total: 100, // Placeholder - would be real counts in production
+    byType: {
+      error: 5,
+      performance: 15,
+      user: 30,
+      feature: 50
+    }
+  };
   
-  return res.status(403).json({
-    message: 'Permission denied'
+  return res.status(200).json({
+    enabled: true,
+    anonymous: false,
+    eventCounts
   });
 });
 
