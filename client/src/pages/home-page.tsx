@@ -15,7 +15,8 @@ import PredictionCard from "@/components/predictions/prediction-card";
 import SportsTabs from "@/components/predictions/sports-tabs";
 import AccumulatorPanel from "@/components/predictions/accumulator-panel";
 import { useAuth } from "@/hooks/use-auth";
-import { useNotifications } from "@/components/notifications/notification-provider";
+import { useNotifications } from "@/hooks/use-notifications";
+import { useOnboarding } from "@/components/onboarding/onboarding-provider";
 import { PuntaIQLogo } from "@/components/ui/puntaiq-logo";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,6 +27,7 @@ export default function HomePage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
   const { createNotification } = useNotifications();
+  const { openPersonalizedOnboarding } = useOnboarding();
   const [selectedSport, setSelectedSport] = useState("all");
   
   interface Prediction {
@@ -496,6 +498,52 @@ export default function HomePage() {
                 </div>
               </CardContent>
             </Card>
+            
+            {/* Developer Tools */}
+            {user && (
+              <Card className="border-0 shadow-md overflow-hidden bg-gradient-to-r from-blue-50/50 to-indigo-50/50 dark:from-blue-950/30 dark:to-indigo-950/30">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-base flex items-center">
+                      <Sparkles className="h-4 w-4 mr-2 text-blue-500" />
+                      Developer Tools
+                    </CardTitle>
+                    <Badge variant="outline" className="bg-blue-100/80 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                      Test Only
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="space-y-2">
+                    <Button 
+                      onClick={handleSendTestNotification}
+                      variant="outline" 
+                      size="sm"
+                      className="w-full flex justify-between items-center"
+                    >
+                      <span className="flex items-center">
+                        <Bell className="mr-2 h-4 w-4" />
+                        Send Test Notification
+                      </span>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    
+                    <Button 
+                      onClick={() => openPersonalizedOnboarding()}
+                      variant="outline" 
+                      size="sm"
+                      className="w-full flex justify-between items-center bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30"
+                    >
+                      <span className="flex items-center">
+                        <Users className="mr-2 h-4 w-4" />
+                        Launch Onboarding Flow
+                      </span>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
