@@ -37,13 +37,24 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
   
   // Fetch notifications from API
   const fetchNotifications = async () => {
-    if (!user) return;
+    if (!user) {
+      setMessages([]);
+      setHasUnread(false);
+      return;
+    }
     
     try {
+      setIsLoading(true);
       const response = await apiRequest('GET', '/api/notifications');
       
       // Check if response is ok before parsing
       if (!response.ok) {
+        if (response.status === 401) {
+          // Just log auth errors, the auth provider will handle redirecting if needed
+          console.warn('Authentication required for notifications');
+          return;
+        }
+        
         console.error(`Failed to fetch notifications: ${response.status} ${response.statusText}`);
         return;
       }
@@ -58,8 +69,12 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
         console.error('Invalid notification data received from API:', data);
       }
     } catch (error) {
-      console.error('Error fetching notifications:', error);
-      // Don't update state if error occurs, maintain previous state
+      // Only log non-auth errors
+      if (!(error instanceof Error && error.message.includes('Authentication required'))) {
+        console.error('Error fetching notifications:', error);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 

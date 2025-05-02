@@ -15,7 +15,7 @@ const SILENT_ERROR_PATTERNS = [
 const SESSION_COOKIE_NAME = 'connect.sid';
 
 // Check if we have a session cookie set
-function hasSessionCookie(): boolean {
+export function hasSessionCookie(): boolean {
   return document.cookie.split(';').some(c => c.trim().startsWith(`${SESSION_COOKIE_NAME}=`));
 }
 

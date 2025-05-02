@@ -1,5 +1,6 @@
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 
 interface Notification {
   id: string;
@@ -31,30 +32,61 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | null>(null);
 
 export function NotificationProvider({ children }: NotificationProviderProps) {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasAuthError, setHasAuthError] = useState(false);
 
   const fetchNotifications = async () => {
+    // Skip if not logged in
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       const response = await apiRequest("GET", "/api/notifications");
+      
+      if (!response.ok) {
+        // Handle auth errors specifically
+        if (response.status === 401) {
+          setHasAuthError(true);
+          throw new Error("Authentication required");
+        }
+        
+        throw new Error(`Failed to fetch notifications: ${response.status}`);
+      }
+      
       const data = await response.json();
-      setNotifications(data);
+      setNotifications(Array.isArray(data) ? data : []);
+      setHasAuthError(false);
     } catch (error) {
-      console.error("Failed to fetch notifications:", error);
+      // Only log error if it's not an auth error we're already handling
+      if (!hasAuthError) {
+        console.error("Failed to fetch notifications:", error);
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Refetch when user state changes or login occurs
   useEffect(() => {
-    fetchNotifications();
-    
-    // Set up polling for new notifications (every 30 seconds)
-    const intervalId = setInterval(fetchNotifications, 30000);
-    
-    return () => clearInterval(intervalId);
-  }, []);
+    if (user) {
+      // Clear any previous auth errors when user changes
+      setHasAuthError(false);
+      fetchNotifications();
+      
+      // Set up polling for new notifications (every 30 seconds) only when authenticated
+      const intervalId = setInterval(fetchNotifications, 30000);
+      return () => clearInterval(intervalId);
+    } else {
+      // Clear notifications when not logged in
+      setNotifications([]);
+      setIsLoading(false);
+    }
+  }, [user]);
 
   const markAsRead = async (id: string) => {
     try {
