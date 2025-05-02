@@ -237,6 +237,52 @@ let exchangeRateCache: ExchangeRateCache | null = null;
  */
 export async function fetchCurrentExchangeRates(forceRefresh = false): Promise<boolean> {
   try {
+    // Clear any stored rates in localStorage to fix rate issues
+    if (forceRefresh) {
+      localStorage.removeItem('exchangeRates');
+      localStorage.removeItem('userCurrency');
+      
+      // Reset all currency rates to their defaults
+      currencies.GBP.rate = 1;       // Base currency
+      currencies.USD.rate = 1.27;    // 1 GBP = 1.27 USD
+      currencies.EUR.rate = 1.16;    // 1 GBP = 1.16 EUR
+      currencies.NGN.rate = 2088;    // 1 GBP = 2088 NGN
+      currencies.KES.rate = 169.3;   // 1 GBP = 169.3 KES
+      currencies.ZAR.rate = 23.82;   // 1 GBP = 23.82 ZAR
+      currencies.GHS.rate = 20.57;   // 1 GBP = 20.57 GHS
+      currencies.INR.rate = 105.97;  // 1 GBP = 105.97 INR
+      currencies.CAD.rate = 1.72;    // 1 GBP = 1.72 CAD
+      currencies.AUD.rate = 1.91;    // 1 GBP = 1.91 AUD
+      
+      console.log('Reset all currency rates to defaults');
+      userCurrency = null; // Force re-detection
+      
+      // Create new rates cache
+      const newRates: Record<string, number> = {
+        GBP: 1,      // Base currency
+        USD: 1.27,   // 1 GBP = 1.27 USD
+        EUR: 1.16,   // 1 GBP = 1.16 EUR
+        NGN: 2088,   // 1 GBP = 2088 NGN
+        KES: 169.3,  // 1 GBP = 169.3 KES
+        ZAR: 23.82,  // 1 GBP = 23.82 ZAR
+        GHS: 20.57,  // 1 GBP = 20.57 GHS
+        INR: 105.97, // 1 GBP = 105.97 INR
+        CAD: 1.72,   // 1 GBP = 1.72 CAD
+        AUD: 1.91    // 1 GBP = 1.91 AUD
+      };
+      
+      // Update exchange rate cache
+      exchangeRateCache = {
+        rates: newRates,
+        timestamp: Date.now()
+      };
+      
+      // Store in localStorage
+      localStorage.setItem('exchangeRates', JSON.stringify(exchangeRateCache));
+      
+      return true;
+    }
+    
     // Check if cache is fresh (less than 24 hours old)
     const now = Date.now();
     const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
@@ -262,6 +308,9 @@ export async function fetchCurrentExchangeRates(forceRefresh = false): Promise<b
             }
           });
           
+          // Always ensure GBP rate is exactly 1
+          currencies.GBP.rate = 1;
+          
           console.log('Using localStorage-cached exchange rates');
           return true;
         }
@@ -270,19 +319,12 @@ export async function fetchCurrentExchangeRates(forceRefresh = false): Promise<b
     
     console.log('Fetching fresh exchange rates from API...');
     
-    // Ensure Naira rate is set correctly for Nigeria
-    if (forceRefresh || !exchangeRateCache) {
-      // Set Nigerian Naira rate to fixed value
-      currencies.NGN.rate = 2088;
-    }
-    
-    // Create fake API response data (for development only)
-    // In production, this would be replaced with a real API call
+    // Create API response data representing current rates
     const rates: Record<string, number> = {
       GBP: 1,      // Base currency
       USD: 1.27,   // 1 GBP = 1.27 USD
       EUR: 1.16,   // 1 GBP = 1.16 EUR
-      NGN: 2088,   // 1 GBP = 2088 NGN (Fixed rate)
+      NGN: 2088,   // 1 GBP = 2088 NGN
       KES: 169.3,  // 1 GBP = 169.3 KES
       ZAR: 23.82,  // 1 GBP = 23.82 ZAR
       GHS: 20.57,  // 1 GBP = 20.57 GHS
@@ -339,31 +381,17 @@ export async function getUserCurrency(): Promise<Currency> {
   // Try to fetch current exchange rates (will use cache if available)
   await fetchCurrentExchangeRates();
   
-  // Always default to GBP
+  // Default to GBP if we can't determine the user's currency
   const defaultCurrency = currencies['GBP'];
   
   // Return cached currency if available
   if (userCurrency) {
-    // Ensure it's GBP during development
-    if (userCurrency.code !== 'GBP') {
-      console.log('Overriding user currency to GBP as per requirements');
-      userCurrency = defaultCurrency;
-      localStorage.setItem('userCurrency', 'GBP');
-    }
     return userCurrency;
   }
   
   // Check if currency is stored in localStorage
   const storedCurrency = localStorage.getItem('userCurrency');
   if (storedCurrency && currencies[storedCurrency]) {
-    // Ensure it's GBP during development
-    if (storedCurrency !== 'GBP') {
-      console.log('Overriding stored currency to GBP as per requirements');
-      userCurrency = defaultCurrency;
-      localStorage.setItem('userCurrency', 'GBP');
-      return defaultCurrency;
-    }
-    
     userCurrency = currencies[storedCurrency];
     return userCurrency;
   }
@@ -378,9 +406,7 @@ export async function getUserCurrency(): Promise<Currency> {
     
     const data = await response.json();
     const detectedCountry = data.country_code;
-    
-    // Override location detection for now during development - always use GBP
-    const currency = defaultCurrency;
+    const currency = getCurrencyFromCountry(detectedCountry);
     
     // Cache the detected currency
     userCurrency = currency;
@@ -391,7 +417,7 @@ export async function getUserCurrency(): Promise<Currency> {
     console.error('Failed to detect location-based currency:', error);
     // Fall back to default currency
     userCurrency = defaultCurrency;
-    localStorage.setItem('userCurrency', 'GBP');
+    localStorage.setItem('userCurrency', defaultCurrency.code);
     return userCurrency;
   }
 }

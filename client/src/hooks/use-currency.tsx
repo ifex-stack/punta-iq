@@ -70,12 +70,16 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function initialize() {
       try {
-        // This will try to fetch current rates from API or use cache
-        // getUserCurrency calls fetchCurrentExchangeRates internally
+        // Force refresh to reset all rates to correct values
+        await fetchCurrentExchangeRates(true);
+        
+        // After refreshing rates, get the user's currency
         const userCurrency = await getUserCurrency();
         
         // Get all available currencies with updated rates
         const currencies = getAllCurrencies();
+        console.log('Available currencies with rates:', currencies);
+        
         setAvailableCurrencies(currencies);
         setCurrency(userCurrency);
         
