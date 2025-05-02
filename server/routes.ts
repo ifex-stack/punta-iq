@@ -1108,6 +1108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Generate multiple types of accumulators at once
+  // Enhanced accumulators package endpoint with robust error handling and default data
   app.get("/api/accumulators-package", async (req, res) => {
     try {
       // Get matches for next 7 days to have enough for all accumulator types

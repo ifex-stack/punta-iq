@@ -3,31 +3,50 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
 
-neonConfig.webSocketConstructor = ws;
-// Fix for "Control plane request failed: endpoint is disabled"
-neonConfig.useSecureWebSocket = false;
-neonConfig.forceDisableSsl = true; 
-neonConfig.connectionTimeoutMillis = 60000; // Increase timeout to 60s
-neonConfig.pipeliningEnabled = false; // Disable pipelining for stability
+// This flag will be set to true if there's a database connection issue
+// and we'll use in-memory storage instead
+export let useMemoryFallback = false;
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+// Configure WebSocket for Neon
+try {
+  neonConfig.webSocketConstructor = ws;
+  // Set secure WebSocket to false to avoid SSL issues
+  neonConfig.useSecureWebSocket = false;
+} catch (error) {
+  console.error("Error configuring Neon:", error);
+  useMemoryFallback = true;
 }
 
-export const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  max: 10, // Set max pool size
-  idleTimeoutMillis: 30000, // Reduce idle timeout to 30s
-  connectionTimeoutMillis: 10000, // Connection timeout of 10s
-  maxUses: 100, // Max uses per connection to avoid stale connections
-  maxLifetimeSeconds: 3600, // Max lifetime of connection to avoid memory issues
-});
+let pool: Pool;
+let db: any;
 
-// Add graceful error handling
-pool.on('error', (err) => {
-  console.error('[Database] Pool error:', err);
-});
+// Try to set up the database connection, but don't fail if it doesn't work
+try {
+  if (!process.env.DATABASE_URL) {
+    console.warn("DATABASE_URL not set, using memory storage");
+    useMemoryFallback = true;
+  } else {
+    // Configure connection pool with retry-safe settings
+    pool = new Pool({ 
+      connectionString: process.env.DATABASE_URL,
+      max: 3, // Reduce pool size for stability
+      idleTimeoutMillis: 30000, // Reduce idle timeout to 30s
+      connectionTimeoutMillis: 10000, // Connection timeout of 10s
+    });
 
-export const db = drizzle(pool, { schema });
+    // Add graceful error handling
+    pool.on('error', (err) => {
+      console.error('[Database] Pool error:', err);
+      useMemoryFallback = true; // Switch to memory fallback on any pool error
+    });
+
+    db = drizzle(pool, { schema });
+    console.log("Database connection pool established");
+  }
+} catch (error) {
+  console.error("Failed to initialize database connection:", error);
+  useMemoryFallback = true;
+}
+
+// Export the connection objects, or undefined if we're using memory fallback
+export { pool, db };

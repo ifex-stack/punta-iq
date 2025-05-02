@@ -805,7 +805,12 @@ export default function AccumulatorsPage() {
   const errorHandled = React.useRef(false);
   
   // Fetch all accumulators package with different types from API
-  const { data: accumulatorsData, isLoading: loadingAccumulators, error: accumulatorsError, refetch: refetchAccumulators } = useQuery<any>({
+  const { 
+    data: accumulatorsData, 
+    isLoading: loadingAccumulators, 
+    error: accumulatorsError, 
+    refetch: refetchAccumulators 
+  } = useQuery<any>({
     queryKey: ['/api/accumulators-package', { sport: filterSport, risk: riskLevel, date: format(date, 'yyyy-MM-dd') }],
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     refetchOnWindowFocus: false,
