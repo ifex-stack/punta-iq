@@ -378,7 +378,7 @@ export function setupAuth(app: Express) {
         });
       }
       
-      req.login(user, (loginErr) => {
+      req.login(user, async (loginErr) => {
         if (loginErr) {
           console.error('Session creation error:', loginErr);
           return res.status(500).json({
@@ -388,11 +388,21 @@ export function setupAuth(app: Express) {
           });
         }
         
-        // Remove password from response
-        const { password, ...userWithoutPassword } = user;
-        
-        // Success - return user data
-        res.status(200).json(userWithoutPassword);
+        try {
+          // Update the last login timestamp
+          await storage.updateLastLogin(user.id);
+          
+          // Remove password from response
+          const { password, ...userWithoutPassword } = user;
+          
+          // Success - return user data
+          res.status(200).json(userWithoutPassword);
+        } catch (updateError) {
+          console.warn('Failed to update last login time, but login successful:', updateError);
+          // Still return user data even if updating last login fails
+          const { password, ...userWithoutPassword } = user;
+          res.status(200).json(userWithoutPassword);
+        }
       });
     })(req, res, next);
   });

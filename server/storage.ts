@@ -100,6 +100,7 @@ export interface IStorage {
   updateUserNotificationSettings(userId: number, settings: any): Promise<User>;
   updateUserPreferences(userId: number, preferences: any): Promise<User>;
   updateUserOnboardingStatus(userId: number, status: string, lastStep: number): Promise<User>;
+  updateLastLogin(userId: number): Promise<User>;
   
   // Football Player methods
   getAllFootballPlayers(limit?: number, offset?: number, filters?: any): Promise<FootballPlayer[]>;
@@ -494,6 +495,13 @@ export class MemStorage implements IStorage {
       ...insertUser, 
       id,
       createdAt: now,
+      lastLoginAt: now,
+      isActive: true,
+      isEmailVerified: false,
+      emailVerificationToken: null,
+      passwordResetToken: null,
+      passwordResetExpires: null,
+      notificationToken: null,
       subscriptionTier: subscriptionTiers.FREE,
       notificationSettings: {
         predictions: true,
@@ -559,6 +567,18 @@ export class MemStorage implements IStorage {
       ...user, 
       onboardingStatus: status,
       lastOnboardingStep: lastStep
+    };
+    this.usersMap.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
+  async updateLastLogin(userId: number): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    const updatedUser = {
+      ...user,
+      lastLoginAt: new Date()
     };
     this.usersMap.set(userId, updatedUser);
     return updatedUser;
@@ -4017,6 +4037,19 @@ export class DatabaseStorage implements IStorage {
       .set({
         onboardingStatus: status,
         lastOnboardingStep: lastStep
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (!user) throw new Error("User not found");
+    return user;
+  }
+  
+  async updateLastLogin(userId: number): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        lastLoginAt: new Date()
       })
       .where(eq(users.id, userId))
       .returning();
