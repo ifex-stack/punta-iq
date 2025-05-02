@@ -467,9 +467,18 @@ function ApiErrorState({
   onCreateCustom
 }: ApiErrorStateProps) {
   const [isRetrying, setIsRetrying] = useState(false);
+  const [retryAttempted, setRetryAttempted] = useState(false);
 
   const handleRetry = async () => {
+    // Only allow one retry attempt from this component
+    if (retryAttempted) {
+      onCreateCustom();
+      return;
+    }
+    
     setIsRetrying(true);
+    setRetryAttempted(true);
+    
     try {
       await onRetry();
     } finally {
@@ -789,35 +798,52 @@ export default function AccumulatorsPage() {
   const formattedDate = format(date, 'MMMM dd, yyyy');
   const isCurrentDate = isToday(date);
   
-  // Create a dedicated retry function that intelligently handles retries
-  const handleRetry = useCallback(async () => {
-    setRetryCount(prev => prev + 1);
-    // If we've already tried multiple times and it's still failing,
-    // show a more detailed toast message
-    if (retryCount >= 2) {
-      toast({
-        title: "API Quota Limit Reached",
-        description: "We're experiencing high traffic. Try again later or create a custom accumulator.",
-        variant: "destructive",
-        duration: 5000
-      });
-    }
-    return await refetchAccumulators();
-  }, [retryCount, toast]);
+  // Add error handling separately with a ref to ensure we only show one toast message
+  const errorHandled = React.useRef(false);
   
   // Fetch all accumulators package with different types from API
   const { data: accumulatorsData, isLoading: loadingAccumulators, error: accumulatorsError, refetch: refetchAccumulators } = useQuery<any>({
     queryKey: ['/api/accumulators-package', { sport: filterSport, risk: riskLevel, date: format(date, 'yyyy-MM-dd') }],
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     refetchOnWindowFocus: false,
-    retry: 1, // Reduced retries to show error state faster
+    retry: 0, // No automatic retries to prevent loop
     retryDelay: 1000,
     enabled: true
   });
   
-  // Add error handling separately to fix TypeScript issues
+  // Create a dedicated retry function that intelligently handles retries
+  const handleRetry = useCallback(async () => {
+    // Reset error handled flag when manually retrying
+    errorHandled.current = false;
+    
+    const currentRetryCount = retryCount + 1;
+    setRetryCount(currentRetryCount);
+    
+    // If we've already tried multiple times and it's still failing,
+    // show a more detailed toast message
+    if (currentRetryCount >= 2) {
+      toast({
+        title: "API Quota Limit Reached",
+        description: "We're experiencing high traffic. Try again later or create a custom accumulator.",
+        variant: "destructive",
+        duration: 5000
+      });
+      
+      // Automatically show custom builder after multiple retries
+      setShowCustomBuilder(true);
+      return null;
+    }
+    
+    try {
+      return await refetchAccumulators();
+    } catch (err) {
+      console.error("Manual retry failed:", err);
+      return null;
+    }
+  }, [retryCount, toast, refetchAccumulators, errorHandled]);
+  
   React.useEffect(() => {
-    if (accumulatorsError) {
+    if (accumulatorsError && !errorHandled.current) {
       console.error("Error fetching accumulators:", accumulatorsError);
       // If the error is quota related, suggest custom builder right away
       const errorAny = accumulatorsError as any;
@@ -832,6 +858,8 @@ export default function AccumulatorsPage() {
           description: "Our sports data API quota limit has been reached. You can create custom accumulators instead.",
           variant: "destructive",
         });
+        // Mark that we've handled this error
+        errorHandled.current = true;
       }
     }
   }, [accumulatorsError, toast]);
