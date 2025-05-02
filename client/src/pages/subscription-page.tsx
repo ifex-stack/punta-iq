@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrency } from "@/hooks/use-currency";
 import { CurrencySelector, PriceDisplay } from "@/components/currency/currency-selector";
+import { CurrencyUpdateInfo } from "@/components/currency/currency-info";
 import { 
   Select,
   SelectContent,
@@ -108,7 +109,7 @@ export default function SubscriptionPage() {
   const [_, navigate] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { currency, format, convert } = useCurrency();
+  const { currency, format, convert, refreshRates } = useCurrency();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [isYearly, setIsYearly] = useState(false);
   const [subscriptionPlans, setSubscriptionPlans] = useState<Plan[]>([]);
@@ -184,29 +185,6 @@ export default function SubscriptionPage() {
           <div className="flex items-center space-x-2">
             <Globe className="h-4 w-4 text-muted-foreground" />
             <CurrencySelector variant="outline" showLabel={true} />
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              className="h-8 w-8"
-              title="Refresh exchange rates"
-              onClick={async () => {
-                const success = await refreshRates();
-                if (success) {
-                  toast({
-                    title: "Exchange rates updated",
-                    description: "Currency rates have been refreshed with the latest values.",
-                  });
-                } else {
-                  toast({
-                    title: "Couldn't update rates",
-                    description: "Using current exchange rates. Please try again later.",
-                    variant: "destructive"
-                  });
-                }
-              }}
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-            </Button>
           </div>
           
           <div className="flex items-center space-x-2">
@@ -229,10 +207,13 @@ export default function SubscriptionPage() {
 
       <div className="text-center mb-10">
         <h2 className="text-2xl font-bold mb-4">Choose the Right Plan for You</h2>
-        <p className="text-muted-foreground max-w-2xl mx-auto">
+        <p className="text-muted-foreground max-w-2xl mx-auto mb-3">
           Access our AI-powered sports predictions with a subscription that fits your needs. 
           Upgrade anytime as your strategy evolves.
         </p>
+        <div className="flex justify-center mt-2">
+          <CurrencyUpdateInfo />
+        </div>
       </div>
       
       <div className="grid md:grid-cols-3 gap-6">
