@@ -9,6 +9,9 @@ import { ReferralShare } from "@/components/referrals/referral-share";
 import { ReferralQRCode } from "@/components/referrals/referral-qr-code";
 import { ReferralStatusTracker } from "@/components/referrals/referral-status-tracker";
 import { ReferralAnalytics } from "@/components/referrals/referral-analytics";
+import { ReferralChallenges } from "@/components/referrals/referral-challenges";
+import { ReferralMilestones } from "@/components/referrals/referral-milestones";
+import { SocialBoost } from "@/components/referrals/social-boost";
 import { PageHeader } from "@/components/layout/page-header";
 import { Gift, ScrollText, Share, ChartBar, Trophy, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -202,6 +205,8 @@ export default function ReferralsPage() {
           <div className="grid md:grid-cols-2 gap-6">
             <ReferralStreak />
             <ReferralBadge />
+            <ReferralChallenges className="md:col-span-2" />
+            <ReferralMilestones className="md:col-span-2" />
             <ReferralTiers userId={user.id} className="md:col-span-2" />
             <ReferralLeaderboard limit={5} className="md:col-span-2" />
           </div>
@@ -222,18 +227,24 @@ export default function ReferralsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <ReferralShare className="md:col-span-2" />
             
-            {/* Add the new QR Code component */}
+            {/* Social Boost component for sharing on social media */}
+            <SocialBoost 
+              referralCode={referralStats?.referralCode || "PUNTA123"}
+              referralUrl={`https://puntaiq.com/join?ref=${referralStats?.referralCode || "PUNTA123"}`}
+            />
+            
+            {/* QR Code component */}
             <ReferralQRCode 
               referralCode={referralStats?.referralCode || "PUNTA123"}
               shareUrl={`https://puntaiq.com/join?ref=${referralStats?.referralCode || "PUNTA123"}`}
             />
             
-            {/* Add the new Status Tracker component */}
+            {/* Status Tracker component */}
             <ReferralStatusTracker 
               referrals={referrals || []}
             />
             
-            {/* Add the new Analytics component */}
+            {/* Analytics component */}
             <ReferralAnalytics 
               userId={user.id}
               className="md:col-span-2"
