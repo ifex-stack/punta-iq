@@ -339,19 +339,37 @@ export async function getUserCurrency(): Promise<Currency> {
   // Try to fetch current exchange rates (will use cache if available)
   await fetchCurrentExchangeRates();
   
+  // Always default to GBP
+  const defaultCurrency = currencies['GBP'];
+  
   // Return cached currency if available
   if (userCurrency) {
+    // Ensure it's GBP during development
+    if (userCurrency.code !== 'GBP') {
+      console.log('Overriding user currency to GBP as per requirements');
+      userCurrency = defaultCurrency;
+      localStorage.setItem('userCurrency', 'GBP');
+    }
     return userCurrency;
   }
   
   // Check if currency is stored in localStorage
   const storedCurrency = localStorage.getItem('userCurrency');
   if (storedCurrency && currencies[storedCurrency]) {
+    // Ensure it's GBP during development
+    if (storedCurrency !== 'GBP') {
+      console.log('Overriding stored currency to GBP as per requirements');
+      userCurrency = defaultCurrency;
+      localStorage.setItem('userCurrency', 'GBP');
+      return defaultCurrency;
+    }
+    
     userCurrency = currencies[storedCurrency];
     return userCurrency;
   }
   
   try {
+    // Set up currency based on the user's location
     // Attempt to detect country from IP using public API
     const response = await fetch('https://ipapi.co/json/');
     if (!response.ok) {
@@ -360,7 +378,9 @@ export async function getUserCurrency(): Promise<Currency> {
     
     const data = await response.json();
     const detectedCountry = data.country_code;
-    const currency = getCurrencyFromCountry(detectedCountry);
+    
+    // Override location detection for now during development - always use GBP
+    const currency = defaultCurrency;
     
     // Cache the detected currency
     userCurrency = currency;
@@ -370,7 +390,8 @@ export async function getUserCurrency(): Promise<Currency> {
   } catch (error) {
     console.error('Failed to detect location-based currency:', error);
     // Fall back to default currency
-    userCurrency = currencies[DEFAULT_CURRENCY];
+    userCurrency = defaultCurrency;
+    localStorage.setItem('userCurrency', 'GBP');
     return userCurrency;
   }
 }

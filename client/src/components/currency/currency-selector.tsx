@@ -24,6 +24,16 @@ export function CurrencySelector({
 }: CurrencySelectorProps) {
   const { currency, availableCurrencies, changeCurrency } = useCurrency();
 
+  // Force GBP as default for current user
+  React.useEffect(() => {
+    // If currency is not GBP, force it to be GBP
+    if (currency && currency.code !== 'GBP') {
+      console.log('Forcing currency to GBP as per requirements');
+      changeCurrency('GBP');
+      localStorage.setItem('userCurrency', 'GBP');
+    }
+  }, [currency, changeCurrency]);
+
   // Handle currency selection
   const handleSelect = (currencyCode: string) => {
     changeCurrency(currencyCode);
