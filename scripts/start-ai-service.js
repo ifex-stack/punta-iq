@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * Utility script to start the AI microservice
  * Usage: node scripts/start-ai-service.js
@@ -7,70 +5,84 @@
 
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 
-// Colors for console output
-const RESET = "\x1b[0m";
-const RED = "\x1b[31m";
-const GREEN = "\x1b[32m";
-const YELLOW = "\x1b[33m";
-const BLUE = "\x1b[34m";
+console.log('[AI Service] Starting microservice...');
 
-console.log(`${BLUE}Starting PuntaIQ AI Microservice...${RESET}`);
+// Determine the Python executable to use
+const pythonExecutable = process.platform === 'win32' ? 'python' : 'python3';
 
-// Path to the Python script
-const scriptPath = path.join(__dirname, '..', 'ai_service', 'start_api_service.py');
+// Determine the path to the API service script
+const apiServicePath = path.join(process.cwd(), 'ai_service', 'api_service.py');
 
-// Check if required environment variables are set
-const requiredVars = ['ODDS_API_KEY', 'SPORTSDB_API_KEY'];
-let missingVars = [];
-
-for (const varName of requiredVars) {
-  if (!process.env[varName]) {
-    missingVars.push(varName);
-  }
-}
-
-if (missingVars.length > 0) {
-  console.log(`${RED}Error: The following environment variables are required: ${missingVars.join(', ')}${RESET}`);
-  console.log(`${YELLOW}Please make sure they are set in the .env file${RESET}`);
+// Check if the service script exists
+if (!fs.existsSync(apiServicePath)) {
+  console.error(`[AI Service] Error: Service script not found at ${apiServicePath}`);
   process.exit(1);
 }
 
-// Start the process
-const aiProcess = spawn('python', [scriptPath], {
-  stdio: 'inherit',
-  detached: true
-});
+// Install required dependencies if they don't exist
+console.log('[AI Service] Checking and installing dependencies...');
 
-// Handle process events
-aiProcess.on('error', (err) => {
-  console.error(`${RED}Failed to start AI service: ${err.message}${RESET}`);
-  process.exit(1);
-});
+// Create a function to install dependencies
+function installDependencies() {
+  return new Promise((resolve, reject) => {
+    const pip = spawn(pythonExecutable, ['-m', 'pip', 'install', 'flask', 'requests', 'python-dotenv']);
+    
+    pip.stdout.on('data', (data) => {
+      console.log(`[AI Service] pip: ${data.toString().trim()}`);
+    });
+    
+    pip.stderr.on('data', (data) => {
+      console.error(`[AI Service] pip error: ${data.toString().trim()}`);
+    });
+    
+    pip.on('close', (code) => {
+      if (code === 0) {
+        console.log('[AI Service] Dependencies installed successfully');
+        resolve();
+      } else {
+        console.error(`[AI Service] Failed to install dependencies with code ${code}`);
+        reject(new Error(`Failed to install dependencies with code ${code}`));
+      }
+    });
+  });
+}
 
-aiProcess.on('exit', (code, signal) => {
-  if (code !== null) {
-    console.log(`${YELLOW}AI service exited with code ${code}${RESET}`);
-  } else if (signal !== null) {
-    console.log(`${YELLOW}AI service was killed with signal ${signal}${RESET}`);
+// Start the AI service
+async function startService() {
+  try {
+    // Install dependencies
+    await installDependencies();
+    
+    console.log(`[AI Service] Starting Flask service from ${apiServicePath}`);
+    
+    // Start the Flask application
+    const flask = spawn(pythonExecutable, [apiServicePath]);
+    
+    // Handle process output
+    flask.stdout.on('data', (data) => {
+      console.log(`[AI Service] ${data.toString().trim()}`);
+    });
+    
+    flask.stderr.on('data', (data) => {
+      console.error(`[AI Service] Error: ${data.toString().trim()}`);
+    });
+    
+    flask.on('close', (code) => {
+      console.log(`[AI Service] Process exited with code ${code}`);
+    });
+    
+    // Log PID for monitoring
+    console.log(`[AI Service] Started with PID: ${flask.pid}`);
+    
+    // We won't wait for the process to complete, it will continue running in the background
+    
+  } catch (error) {
+    console.error(`[AI Service] Failed to start service: ${error.message}`);
+    process.exit(1);
   }
-  process.exit(code || 0);
-});
+}
 
-console.log(`${GREEN}AI service started!${RESET}`);
-console.log(`${BLUE}Press Ctrl+C to stop the service${RESET}`);
-
-// Keep the script running
-process.on('SIGINT', () => {
-  console.log(`${YELLOW}Stopping AI service...${RESET}`);
-  
-  // In Windows, we need to spawn taskkill to kill the child and its children
-  if (process.platform === 'win32') {
-    spawn('taskkill', ['/pid', aiProcess.pid, '/f', '/t']);
-  } else {
-    // On POSIX systems we can kill the process group
-    process.kill(-aiProcess.pid, 'SIGINT');
-  }
-  
-  process.exit(0);
-});
+// Start the service
+startService();

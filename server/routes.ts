@@ -80,7 +80,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Try to start the microservice at server initialization
   try {
-    microserviceClient.startMicroservice().then(isRunning => {
+    microserviceClient.startService().then(isRunning => {
       if (isRunning) {
         console.log('Successfully started the AI microservice');
       } else {

@@ -2,8 +2,8 @@
  * Client for communicating with the Flask microservice
  */
 
-import axios from 'axios';
-import { spawn } from 'child_process';
+import axios, { AxiosError } from 'axios';
+import { spawn, type ChildProcess } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 
@@ -33,9 +33,31 @@ export interface StatusResponse {
   timestamp: string;
 }
 
+// Type guard to check if an error is an AxiosError
+function isAxiosError(error: unknown): error is AxiosError {
+  return axios.isAxiosError(error);
+}
+
+// Type for error with code property
+interface ErrorWithCode {
+  code?: string;
+  response?: {
+    status?: number;
+  };
+}
+
+// Type guard to check if an error has a code property
+function hasErrorCode(error: unknown): error is ErrorWithCode {
+  return (
+    typeof error === 'object' && 
+    error !== null && 
+    ('code' in error || 'response' in error)
+  );
+}
+
 export class MicroserviceClient {
   private baseUrl: string;
-  private process: any = null;
+  private process: ChildProcess | null = null;
 
   constructor(baseUrl = process.env.AI_SERVICE_URL || 'http://localhost:5000') {
     this.baseUrl = baseUrl;
@@ -91,7 +113,7 @@ export class MicroserviceClient {
       
       return true;
     } catch (error) {
-      logger.error(`Error starting microservice: ${error.message}`);
+      logger.error(`Error starting microservice: ${error instanceof Error ? error.message : String(error)}`);
       return false;
     }
   }
@@ -105,7 +127,7 @@ export class MicroserviceClient {
       const response = await axios.get(`${this.baseUrl}/api/status`, { timeout: 3000 });
       return response.status === 200;
     } catch (error) {
-      logger.error(`Error checking microservice status: ${error.message}`);
+      logger.error(`Error checking microservice status: ${error instanceof Error ? error.message : String(error)}`);
       // We'll assume the service is running and handle errors later
       // This is to prevent spawning multiple instances
       return true;
@@ -136,7 +158,7 @@ export class MicroserviceClient {
         timestamp: new Date().toISOString()
       };
 
-      if (error.code === 'ECONNREFUSED') {
+      if (hasErrorCode(error) && error.code === 'ECONNREFUSED') {
         // Service is not running
         errorStatus.overall = 'error';
         errorStatus.services = {
@@ -149,7 +171,7 @@ export class MicroserviceClient {
             message: 'Microservice not running'
           }
         };
-      } else if (error.response) {
+      } else if (hasErrorCode(error) && error.response?.status) {
         // The service responded with an error status code
         errorStatus.overall = 'error';
         errorStatus.services = {
@@ -176,7 +198,7 @@ export class MicroserviceClient {
       const response = await axios.get(`${this.baseUrl}/api/odds/${sport}`);
       return response.data;
     } catch (error) {
-      logger.error(`Error getting odds: ${error.message}`);
+      logger.error(`Error getting odds: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
   }
@@ -189,7 +211,7 @@ export class MicroserviceClient {
       const response = await axios.get(`${this.baseUrl}/api/livescore`);
       return response.data;
     } catch (error) {
-      logger.error(`Error getting live scores: ${error.message}`);
+      logger.error(`Error getting live scores: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
   }
