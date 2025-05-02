@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getQueryFn } from '@/lib/queryClient';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { 
   Card, 
   CardContent, 
@@ -32,8 +32,10 @@ import {
 } from 'recharts';
 import { useAnalytics } from '@/hooks/use-analytics';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, LineChart, BarChart as BarChartIcon, PieChart as PieChartIcon, Activity } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import { Loader2, LineChart, BarChart as BarChartIcon, PieChart as PieChartIcon, Activity, AlertTriangle, Shield } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 
 // Define interfaces for analytics data
 interface AnalyticsPerformanceData {
@@ -73,7 +75,12 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'
 export default function AnalyticsDashboard() {
   const { trackPageView } = useAnalytics();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const [timeRange, setTimeRange] = useState('7d');
+  
+  // Check if user has access to this page (admin or analyst role)
+  const hasAccess = user && (user.role === 'admin' || user.role === 'analyst');
   
   // Track the page view
   useState(() => {
@@ -83,8 +90,20 @@ export default function AnalyticsDashboard() {
     }, 0);
     return undefined;
   });
+  
+  // Redirect if user doesn't have required role
+  useEffect(() => {
+    if (user && !hasAccess) {
+      toast({
+        title: "Access Denied",
+        description: "You do not have permission to view the analytics dashboard",
+        variant: "destructive"
+      });
+      setLocation('/');
+    }
+  }, [user, hasAccess, toast, setLocation]);
 
-  // Fetch analytics data
+  // Fetch analytics data only if the user has access
   const { 
     data: analyticsData,
     isLoading,
@@ -92,10 +111,14 @@ export default function AnalyticsDashboard() {
   } = useQuery<AnalyticsPerformanceData>({
     queryKey: ['/api/analytics/dashboard', timeRange],
     queryFn: () => fetch(`/api/analytics/dashboard?timeRange=${timeRange}`).then(res => {
+      if (res.status === 403) {
+        throw new Error('Permission denied');
+      }
       if (!res.ok) throw new Error('Failed to fetch analytics data');
       return res.json();
     }),
     refetchOnWindowFocus: false,
+    enabled: !!hasAccess, // Only fetch if user has access
   });
 
   // Handle error state
@@ -144,6 +167,43 @@ export default function AnalyticsDashboard() {
 
   // Use real data if available, otherwise sample data
   const data = analyticsData || sampleData;
+  
+  // Show access denied component if user doesn't have required role
+  if (user && !hasAccess) {
+    return (
+      <div className="container py-6 mx-auto">
+        <Card className="border-destructive">
+          <CardHeader>
+            <div className="flex items-center space-x-2">
+              <AlertTriangle className="h-6 w-6 text-destructive" />
+              <CardTitle>Access Denied</CardTitle>
+            </div>
+            <CardDescription>
+              You do not have permission to view the analytics dashboard
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              This page is restricted to administrators and analysts only. If you believe you should have access, please contact an administrator.
+            </p>
+            <Button onClick={() => setLocation('/')}>
+              Return to Home
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
+  // Show loading state when we don't know yet if user has access
+  if (!user) {
+    return (
+      <div className="container py-6 mx-auto flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Checking permissions...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-6 mx-auto">

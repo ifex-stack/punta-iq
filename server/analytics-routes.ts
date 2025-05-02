@@ -197,7 +197,7 @@ analyticsRouter.get('/status', requireAdmin, (req: Request, res: Response) => {
  * Endpoint for retrieving analytics dashboard data
  * GET /api/analytics/dashboard
  */
-analyticsRouter.get('/dashboard', (req: Request, res: Response) => {
+analyticsRouter.get('/dashboard', requireAnalyst, (req: Request, res: Response) => {
   try {
     // Get time range from query params with 7d default
     const timeRange = req.query.timeRange || '7d';
@@ -335,14 +335,8 @@ analyticsRouter.post('/events', (req: Request, res: Response) => {
  * Endpoint for exporting analytics data
  * GET /api/analytics/export
  */
-analyticsRouter.get('/export', (req: Request, res: Response) => {
+analyticsRouter.get('/export', requireAdmin, (req: Request, res: Response) => {
   try {
-    // Only admins can export data
-    if (!req.isAuthenticated() || !req.user || req.user.role !== 'admin') {
-      return res.status(403).json({
-        message: 'Permission denied'
-      });
-    }
     
     const { type, format } = req.query;
     
@@ -443,14 +437,8 @@ analyticsRouter.get('/export', (req: Request, res: Response) => {
  * Endpoint for user demographics data
  * GET /api/analytics/demographics
  */
-analyticsRouter.get('/demographics', (req: Request, res: Response) => {
+analyticsRouter.get('/demographics', requireAdmin, (req: Request, res: Response) => {
   try {
-    // Only admins can access demographic data
-    if (!req.isAuthenticated() || !req.user || req.user.role !== 'admin') {
-      return res.status(403).json({
-        message: 'Permission denied'
-      });
-    }
     
     // In production, this would retrieve data from database
     // For now, return sample demographic data
