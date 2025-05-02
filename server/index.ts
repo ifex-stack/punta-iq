@@ -175,19 +175,11 @@ app.use((req, res, next) => {
     // Keep old log format for compatibility
     log(`serving on port ${port}`);
     
-    // Initialize database tables
-    try {
-      await initializeDatabase();
-    } catch (error) {
-      appLogger.error('Failed to initialize database tables', { error });
-    }
+    // Skip database initialization to avoid connection errors
+    appLogger.info('Skipping database initialization - using in-memory storage only');
     
-    // Initialize fantasy football data
-    try {
-      await initializeFantasyData();
-    } catch (error) {
-      appLogger.error('Failed to initialize fantasy data', { error });
-    }
+    // Skip fantasy football data initialization
+    appLogger.info('Skipping fantasy football data initialization - using in-memory storage only');
     
     // Initialize and start the automation system
     try {
