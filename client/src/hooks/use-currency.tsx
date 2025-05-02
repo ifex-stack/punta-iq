@@ -72,10 +72,10 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     return convertPrice(priceInUSD, currency);
   };
 
-  // Format price with currency symbol
+  // Format price with currency symbol using locale-aware formatting
   const format = (price: number): string => {
-    if (!currency) return `$${price.toFixed(2)}`; // Fallback to USD
-    return `${currency.symbol}${price.toFixed(2)}`;
+    if (!currency) return formatPrice(price, 'USD'); // Fallback to USD
+    return formatPrice(price, currency.code);
   };
 
   // Provide default context while loading
@@ -88,7 +88,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
           availableCurrencies: [],
           changeCurrency: () => {},
           convert: (price) => price,
-          format: (price) => `$${price.toFixed(2)}`,
+          format: (price) => formatPrice(price, 'USD'),
         }}
       >
         {children}

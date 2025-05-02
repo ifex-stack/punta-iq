@@ -78,7 +78,7 @@ export function CurrencyBadge() {
   );
 }
 
-// Format price with currency 
+// Format price with currency using locale-aware formatting
 export function PriceDisplay({ 
   amount, 
   className = "" 
