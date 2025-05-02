@@ -142,3 +142,225 @@ Error: AI Service failed to start properly: exit code 1
  * Running on http://127.0.0.1:5001
  * Running on http://172.31.128.21:5001
 [2025-05-02 18:13:08,123] [INFO] [33mPress CTRL+C to quit[0m
+
+--- Starting AI Microservice at 2025-05-02T18:15:58.522Z on port 5000 ---
+[STDOUT] [2025-05-02 18:15:59,330] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-02 18:15:59,333] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.21:5000
+[STDOUT] [2025-05-02 18:15:59,333] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-02 18:15:59,984] [INFO] 172.31.128.21 - - [02/May/2025 18:15:59] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:16:01,886] [INFO] 127.0.0.1 - - [02/May/2025 18:16:01] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-02T18:16:07.452Z on port 5000 ---
+[STDOUT] [2025-05-02 18:16:07,826] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-02 18:16:07,832] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.21:5000
+[2025-05-02 18:16:07,832] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-02 18:16:07,875] [INFO] 172.31.128.21 - - [02/May/2025 18:16:07] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:16:08,728] [INFO] 172.31.128.21 - - [02/May/2025 18:16:08] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:16:08,810] [INFO] 172.31.128.21 - - [02/May/2025 18:16:08] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:16:08,999] [INFO] 127.0.0.1 - - [02/May/2025 18:16:08] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:16:09,035] [INFO] 127.0.0.1 - - [02/May/2025 18:16:09] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:16:10,457] [INFO] 127.0.0.1 - - [02/May/2025 18:16:10] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:16:23,575] [INFO] 127.0.0.1 - - [02/May/2025 18:16:23] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:16:23,580] [INFO] 127.0.0.1 - - [02/May/2025 18:16:23] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:16:23,583] [INFO] 127.0.0.1 - - [02/May/2025 18:16:23] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:16:34,781] [INFO] 127.0.0.1 - - [02/May/2025 18:16:34] "GET /api/sports HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:16:36,017] [INFO] 127.0.0.1 - - [02/May/2025 18:16:36] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:16:43,611] [INFO] 172.31.128.21 - - [02/May/2025 18:16:43] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:16:44,556] [INFO] 172.31.128.21 - - [02/May/2025 18:16:44] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:17:06,018] [INFO] 127.0.0.1 - - [02/May/2025 18:17:06] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:17:36,018] [INFO] 127.0.0.1 - - [02/May/2025 18:17:36] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-02T18:17:49.300Z on port 5000 ---
+[STDOUT] [2025-05-02 18:17:49,750] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-02 18:17:49,757] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.21:5000
+[2025-05-02 18:17:49,757] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-02 18:17:50,681] [INFO] 172.31.128.21 - - [02/May/2025 18:17:50] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:17:51,460] [INFO] 127.0.0.1 - - [02/May/2025 18:17:51] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:17:52,306] [INFO] 127.0.0.1 - - [02/May/2025 18:17:52] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:18:17,599] [INFO] 127.0.0.1 - - [02/May/2025 18:18:17] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:18:17,603] [INFO] 127.0.0.1 - - [02/May/2025 18:18:17] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:18:47,604] [INFO] 127.0.0.1 - - [02/May/2025 18:18:47] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-02T18:19:11.164Z on port 5000 ---
+[STDOUT] [2025-05-02 18:19:11,801] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-02 18:19:11,803] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.21:5000
+[2025-05-02 18:19:11,803] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-02 18:19:12,211] [INFO] 127.0.0.1 - - [02/May/2025 18:19:12] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:19:14,169] [INFO] 127.0.0.1 - - [02/May/2025 18:19:14] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-02T18:19:23.884Z on port 5000 ---
+[STDOUT] [2025-05-02 18:19:24,258] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+[STDOUT]  * Debug mode: off
+[STDOUT] [2025-05-02 18:19:24,262] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.21:5000
+[STDOUT] [2025-05-02 18:19:24,263] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-02 18:19:24,524] [INFO] 172.31.128.21 - - [02/May/2025 18:19:24] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:19:25,161] [INFO] 127.0.0.1 - - [02/May/2025 18:19:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:19:25,456] [INFO] 127.0.0.1 - - [02/May/2025 18:19:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:19:26,890] [INFO] 127.0.0.1 - - [02/May/2025 18:19:26] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:19:38,150] [INFO] 172.31.128.21 - - [02/May/2025 18:19:38] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:19:39,032] [INFO] 172.31.128.21 - - [02/May/2025 18:19:39] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:19:51,949] [INFO] 127.0.0.1 - - [02/May/2025 18:19:51] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:19:51,955] [INFO] 127.0.0.1 - - [02/May/2025 18:19:51] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:20:03,483] [INFO] 127.0.0.1 - - [02/May/2025 18:20:03] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:20:03,490] [INFO] 127.0.0.1 - - [02/May/2025 18:20:03] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:20:21,949] [INFO] 127.0.0.1 - - [02/May/2025 18:20:21] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:20:51,949] [INFO] 127.0.0.1 - - [02/May/2025 18:20:51] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:21:02,291] [INFO] 172.31.128.21 - - [02/May/2025 18:21:02] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:21:02,403] [INFO] 172.31.128.21 - - [02/May/2025 18:21:02] "[33mGET / HTTP/1.1[0m" 404 -
+
+--- Starting AI Microservice at 2025-05-02T18:21:19.223Z on port 5000 ---
+[STDOUT] [2025-05-02 18:21:19,872] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-02 18:21:19,876] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.21:5000
+[2025-05-02 18:21:19,876] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-02 18:21:20,036] [INFO] 172.31.128.21 - - [02/May/2025 18:21:20] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:21:20,443] [INFO] 127.0.0.1 - - [02/May/2025 18:21:20] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:21:20,451] [INFO] 127.0.0.1 - - [02/May/2025 18:21:20] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:21:20,480] [INFO] 172.31.128.21 - - [02/May/2025 18:21:20] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:21:22,229] [INFO] 127.0.0.1 - - [02/May/2025 18:21:22] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-02T18:21:35.694Z on port 5000 ---
+[STDOUT] [2025-05-02 18:21:36,040] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-02 18:21:36,046] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.21:5000
+[STDOUT] [2025-05-02 18:21:36,047] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-02 18:21:36,192] [INFO] 172.31.128.21 - - [02/May/2025 18:21:36] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:21:36,649] [INFO] 127.0.0.1 - - [02/May/2025 18:21:36] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:21:37,186] [INFO] 127.0.0.1 - - [02/May/2025 18:21:37] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:21:38,698] [INFO] 127.0.0.1 - - [02/May/2025 18:21:38] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-02T18:22:01.060Z on port 5000 ---
+[STDOUT] [2025-05-02 18:22:01,489] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-02 18:22:01,492] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.21:5000
+[2025-05-02 18:22:01,492] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-02 18:22:02,176] [INFO] 172.31.128.21 - - [02/May/2025 18:22:02] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:22:02,222] [INFO] 172.31.128.21 - - [02/May/2025 18:22:02] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:22:04,269] [INFO] 127.0.0.1 - - [02/May/2025 18:22:04] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:22:04,360] [INFO] 127.0.0.1 - - [02/May/2025 18:22:04] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:22:04,379] [INFO] 127.0.0.1 - - [02/May/2025 18:22:04] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:22:07,448] [INFO] 172.31.128.21 - - [02/May/2025 18:22:07] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:22:07,518] [INFO] 172.31.128.21 - - [02/May/2025 18:22:07] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:22:07,919] [INFO] 172.31.128.21 - - [02/May/2025 18:22:07] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:22:08,352] [INFO] 172.31.128.21 - - [02/May/2025 18:22:08] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:22:29,064] [INFO] 127.0.0.1 - - [02/May/2025 18:22:29] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:22:29,068] [INFO] 127.0.0.1 - - [02/May/2025 18:22:29] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-02T18:22:52.025Z on port 5000 ---
+[STDOUT] [2025-05-02 18:22:52,342] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-02 18:22:52,344] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.21:5000
+[STDOUT] [2025-05-02 18:22:52,344] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-02 18:22:53,277] [INFO] 172.31.128.21 - - [02/May/2025 18:22:53] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:22:53,983] [INFO] 127.0.0.1 - - [02/May/2025 18:22:53] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:22:54,169] [INFO] 127.0.0.1 - - [02/May/2025 18:22:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:22:55,030] [INFO] 127.0.0.1 - - [02/May/2025 18:22:55] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:23:20,648] [INFO] 127.0.0.1 - - [02/May/2025 18:23:20] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:23:20,652] [INFO] 127.0.0.1 - - [02/May/2025 18:23:20] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:23:50,647] [INFO] 127.0.0.1 - - [02/May/2025 18:23:50] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:24:20,648] [INFO] 127.0.0.1 - - [02/May/2025 18:24:20] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:24:50,652] [INFO] 127.0.0.1 - - [02/May/2025 18:24:50] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:25:20,650] [INFO] 127.0.0.1 - - [02/May/2025 18:25:20] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-02T18:25:37.866Z on port 5000 ---
+[STDOUT] [2025-05-02 18:25:38,208] [INFO] Starting PuntaIQ API Service on port 5000
+ * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-02 18:25:38,215] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.21:5000
+[2025-05-02 18:25:38,215] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-02 18:25:40,395] [INFO] 127.0.0.1 - - [02/May/2025 18:25:40] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:25:40,871] [INFO] 127.0.0.1 - - [02/May/2025 18:25:40] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-02T18:25:47.454Z on port 5000 ---
+[STDOUT] [2025-05-02 18:25:47,753] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-02 18:25:47,756] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.21:5000
+[STDOUT] [2025-05-02 18:25:47,756] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-02 18:25:48,804] [INFO] 172.31.128.21 - - [02/May/2025 18:25:48] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:25:49,186] [INFO] 127.0.0.1 - - [02/May/2025 18:25:49] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:25:49,290] [INFO] 127.0.0.1 - - [02/May/2025 18:25:49] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:25:50,459] [INFO] 127.0.0.1 - - [02/May/2025 18:25:50] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:26:15,758] [INFO] 127.0.0.1 - - [02/May/2025 18:26:15] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:26:15,762] [INFO] 127.0.0.1 - - [02/May/2025 18:26:15] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:26:45,757] [INFO] 127.0.0.1 - - [02/May/2025 18:26:45] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:27:15,757] [INFO] 127.0.0.1 - - [02/May/2025 18:27:15] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:27:45,757] [INFO] 127.0.0.1 - - [02/May/2025 18:27:45] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-02T18:27:58.641Z on port 5000 ---
+[STDOUT] [2025-05-02 18:27:59,048] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+[STDOUT]  * Debug mode: off
+[STDOUT] [2025-05-02 18:27:59,053] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.21:5000
+[2025-05-02 18:27:59,053] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-02 18:28:01,172] [INFO] 127.0.0.1 - - [02/May/2025 18:28:01] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:28:01,646] [INFO] 127.0.0.1 - - [02/May/2025 18:28:01] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:28:16,083] [INFO] 172.31.128.21 - - [02/May/2025 18:28:16] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:28:17,185] [INFO] 172.31.128.21 - - [02/May/2025 18:28:17] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:28:27,243] [INFO] 127.0.0.1 - - [02/May/2025 18:28:27] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:28:27,248] [INFO] 127.0.0.1 - - [02/May/2025 18:28:27] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-02T18:28:48.861Z on port 5000 ---
+[STDOUT] [2025-05-02 18:28:49,167] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-02 18:28:49,169] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.21:5000
+[STDOUT] [2025-05-02 18:28:49,169] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-02 18:28:50,115] [INFO] 172.31.128.21 - - [02/May/2025 18:28:50] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-02 18:28:50,615] [INFO] 127.0.0.1 - - [02/May/2025 18:28:50] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:28:50,697] [INFO] 127.0.0.1 - - [02/May/2025 18:28:50] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:28:51,867] [INFO] 127.0.0.1 - - [02/May/2025 18:28:51] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:29:17,173] [INFO] 127.0.0.1 - - [02/May/2025 18:29:17] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-02 18:29:17,177] [INFO] 127.0.0.1 - - [02/May/2025 18:29:17] "GET /api/status HTTP/1.1" 200 -

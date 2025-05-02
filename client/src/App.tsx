@@ -1,5 +1,5 @@
-import { Route, Switch, useLocation } from "wouter";
-import { useEffect } from "react";
+import { Route, Switch, useLocation, Router as WouterRouter } from "wouter";
+import { useEffect, useState } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -59,6 +59,12 @@ const Router: React.FC = () => {
   // Track location changes to know when we're navigating
   const [location] = useLocation();
   
+  // Debug location - useful for troubleshooting routing issues
+  useEffect(() => {
+    console.log(`Current location: ${location}`);
+    console.log(`Current URL: ${window.location.href}`);
+  }, [location]);
+  
   // Set navigation state when location changes
   useEffect(() => {
     // Mark that we're navigating (will suppress errors during this time)
@@ -72,6 +78,26 @@ const Router: React.FC = () => {
     return () => clearTimeout(timeoutId);
   }, [location]);
   
+  // Handle 404 redirects - sometimes in development the server returns 404 but we need to render the app
+  useEffect(() => {
+    const handleLocationChange = () => {
+      // If we're at a 404 page from the server but we have an SPA route for it
+      // force a re-render by using the custom location hook to set it explicitly
+      if (document.title.includes('404') && location !== '/not-found') {
+        console.log('Detected 404 page - attempting route recovery');
+        // Let's try to recover by forcing an SPA render
+        window.history.replaceState(null, '', location);
+      }
+    };
+    
+    // Run once on mount
+    handleLocationChange();
+    
+    // Also listen for popstate events
+    window.addEventListener('popstate', handleLocationChange);
+    return () => window.removeEventListener('popstate', handleLocationChange);
+  }, [location]);
+
   // Don't wrap auth page in AppLayout to prevent showing the bottom navigation bar
   if (location === '/auth') {
     return (
@@ -118,6 +144,8 @@ const Router: React.FC = () => {
             <Route path="/legal/terms-of-service" component={TermsOfServicePage} />
             <Route path="/legal/responsible-gambling" component={ResponsibleGamblingPage} />
             <Route path="/ui-showcase" component={UIShowcase} />
+            <Route path="/not-found" component={NotFound} />
+            <Route path="/:path" component={NotFound} />
             <Route component={NotFound} />
           </Switch>
         </AppLayout>
@@ -135,6 +163,79 @@ const Router: React.FC = () => {
     </div>
   );
 }
+
+// Custom location hook for Wouter to ensure proper routing
+const useCustomLocation = () => {
+  // Use state to force re-renders when needed
+  const [location, setLocation] = useState(() => window.location.pathname);
+  
+  // Debug initial location
+  useEffect(() => {
+    console.log(`Initial location hook path: ${window.location.pathname}`);
+    console.log(`Initial URL: ${window.location.href}`);
+    
+    // Handle case where we might be on a different port (development server vs. application server)
+    if (window.location.port !== '3000' && process.env.NODE_ENV === 'development') {
+      console.log('Development port mismatch detected - using client-side routing');
+    }
+  }, []);
+  
+  useEffect(() => {
+    // Listen for history changes
+    const handleLocationChange = () => {
+      console.log(`Location change detected: ${window.location.pathname}`);
+      setLocation(window.location.pathname);
+    };
+    
+    // Listen for popstate (back/forward navigation)
+    window.addEventListener('popstate', handleLocationChange);
+    
+    // Also listen for hashchange events in case we're using those
+    window.addEventListener('hashchange', handleLocationChange);
+    
+    // Fix for direct URL navigation - if document title contains 404 but route exists
+    const fixNonExistentRoutes = () => {
+      if (document.title.includes('404')) {
+        console.log('404 page detected - attempting SPA recovery');
+        // Force a client-side render
+        window.history.replaceState(null, '', window.location.pathname);
+        setLocation(window.location.pathname);
+      }
+    };
+    
+    // Check once on mount with a slight delay to ensure page has loaded
+    setTimeout(fixNonExistentRoutes, 300);
+    
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
+    };
+  }, []);
+  
+  // Return current path and a function to navigate
+  return [
+    location,
+    (to: string) => {
+      console.log(`Navigation requested to: ${to}`);
+      
+      // Handle relative URLs
+      if (to.startsWith('/')) {
+        // Ensure we're navigating to the right port in development
+        if (window.location.port !== '3000' && process.env.NODE_ENV === 'development') {
+          const baseUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+          console.log(`Cross-port navigation to: ${baseUrl}${to}`);
+          window.location.href = `${baseUrl}${to}`;
+          return;
+        }
+      }
+      
+      // Standard navigation
+      console.log(`Standard navigation to: ${to}`);
+      window.history.pushState(null, '', to);
+      setLocation(to);
+    }
+  ] as const;
+};
 
 function App() {
   // Fetch feature flags on app initialization
@@ -156,7 +257,10 @@ function App() {
                     <OnboardingProvider>
                       <Toaster />
                       <NotificationToastListener />
-                      <Router />
+                      {/* Use our custom router with fixed location handling */}
+                      <WouterRouter hook={useCustomLocation}>
+                        <Router />
+                      </WouterRouter>
                     </OnboardingProvider>
                   </NotificationProvider>
                 </NotificationsProvider>

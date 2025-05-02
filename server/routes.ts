@@ -3536,7 +3536,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   
   // Create WebSocket server for real-time notifications
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  // Use path to differentiate WebSocket server from the AI microservice and Vite's HMR WebSocket
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
+    path: '/ws' 
+  });
   
   wss.on('connection', (ws) => {
     console.log('WebSocket client connected');

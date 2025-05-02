@@ -4,6 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     <title>PuntaIQ Predictions</title>
+    <!-- Force client to use port 3000 for all requests in development mode -->
+    <script type="text/javascript">
+      // Configuration script for PuntaIQ
+      window.PuntaIQ = window.PuntaIQ || {};
+      
+      // Set API port for development
+      if (window.location.hostname.includes('replit.dev') || window.location.hostname === 'localhost') {
+        window.PuntaIQ.apiBaseUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+        window.PuntaIQ.aiServiceBaseUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
+        console.log(`PuntaIQ configured for development - API on port 3000, AI service on port 5000`);
+      }
+      
+      // Handle direct navigation to ensure we're using the right server
+      if (window.location.port !== '3000' && 
+          (window.location.hostname.includes('replit.dev') || window.location.hostname === 'localhost')) {
+        console.log('Redirecting to correct port (3000) for client application');
+        window.location.href = `${window.location.protocol}//${window.location.hostname}:3000${window.location.pathname}${window.location.search}`;
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

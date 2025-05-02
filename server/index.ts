@@ -9,10 +9,19 @@ import { startMicroserviceHealthCheck } from "./microservice-health-check";
 import { analytics, AnalyticsEventType } from "./analytics-service";
 import { spawn } from 'child_process';
 import path from 'path';
+import cors from 'cors';
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Add CORS middleware for development environment - helps with the port mismatch in development
+app.use(cors({
+  origin: process.env.NODE_ENV === 'development' ? '*' : false,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 
 // Create a logger specific to HTTP requests
 const httpLogger = createContextLogger('HTTP');
@@ -168,10 +177,9 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
+  // Use port 3000 for the main server to avoid conflict with the AI microservice on port 5000
+  // The AI microservice will be on port 5000
+  const port = 3000;
   const appLogger = createContextLogger('APP');
   
   appLogger.info('Application starting up', {

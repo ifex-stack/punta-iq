@@ -88,7 +88,16 @@ export async function apiRequest(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
     
-    const res = await fetch(url, {
+    // Ensure API calls are directed to port 3000 where our server is now running
+    let apiUrl = url;
+    if (url.startsWith('/api')) {
+      // Always use port 3000 for API calls regardless of current port
+      const baseUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+      apiUrl = `${baseUrl}${url}`;
+      console.log(`Routing API call to server: ${apiUrl}`);
+    }
+    
+    const res = await fetch(apiUrl, {
       method,
       headers: data ? { "Content-Type": "application/json" } : {},
       body: data ? JSON.stringify(data) : undefined,
@@ -160,7 +169,15 @@ export const getQueryFn: <T>(options: {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
       
-      const res = await fetch(queryKey[0] as string, {
+      // Ensure API calls are directed to port 3000 where our server is now running
+      let url = queryKey[0] as string;
+      if (url.startsWith('/api') && window.location.port !== '3000') {
+        // Replace current port with port 3000 if we're not already on port 3000
+        const baseUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+        url = `${baseUrl}${url}`;
+      }
+      
+      const res = await fetch(url, {
         credentials: "include",
         signal: controller.signal
       });

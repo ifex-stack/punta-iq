@@ -130,7 +130,8 @@ export class MicroserviceClient {
 
   // Track discovered ports for dynamic service discovery
   private static discoveredPort: number | null = null;
-  private static ports = [5000, 5001, 5002, 5003, 5004, 5005];
+  // Only use port 5000 for the AI microservice since the main server now runs on port 3000
+  private static ports = [5000];
   
   constructor() {
     // If we've already discovered a working port, use it
