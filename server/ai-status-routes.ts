@@ -23,31 +23,106 @@ const microserviceClient = new MicroserviceClient();
 
 export const aiStatusRouter = Router();
 
-// Route to get AI service status
+// Track the status over time to detect patterns
+let consecutiveSuccesses = 0;
+let consecutiveFailures = 0;
+const MAX_TRACKING = 5; // Track up to 5 consecutive events
+let lastCheckTime = 0;
+let lastStatus = 'unknown';
+let responseTimeHistory: number[] = [];
+
+// Route to get AI service status with enhanced monitoring
 aiStatusRouter.get('/', async (req: Request, res: Response) => {
   try {
     logger.info('Checking AI service status');
     
+    // Implement rate limiting for status checks (prevent hammering the service)
+    const now = Date.now();
+    const timeSinceLastCheck = now - lastCheckTime;
+    if (timeSinceLastCheck < 2000 && lastStatus !== 'unknown' && req.query.force !== 'true') {
+      // Return cached status if checked within last 2 seconds (unless force=true)
+      logger.debug('Returning cached status due to rate limiting');
+      const cachedStatus = {
+        status: lastStatus,
+        message: lastStatus === 'online' 
+          ? 'The AI sports prediction service is online and fully operational.'
+          : lastStatus === 'degraded'
+            ? 'The AI sports prediction service is running but with limited functionality.'
+            : 'The AI sports prediction service is currently offline.',
+        cached: true,
+        lastChecked: new Date(lastCheckTime).toISOString(),
+        responseTime: {
+          avg: responseTimeHistory.reduce((sum, time) => sum + time, 0) / responseTimeHistory.length,
+          history: responseTimeHistory
+        }
+      };
+      return res.json(cachedStatus);
+    }
+    
+    // Start timing the request for performance metrics
+    const startTime = Date.now();
+    
     // Check if the service is running using our client (handles circuit breaker and error management)
     const isRunning = await microserviceClient.isRunning();
+    
+    // Calculate response time
+    const responseTime = Date.now() - startTime;
+    
+    // Update response time history (max 10 items)
+    responseTimeHistory.push(responseTime);
+    if (responseTimeHistory.length > 10) {
+      responseTimeHistory.shift();
+    }
+    
+    // Update tracking variables
+    lastCheckTime = now;
     
     if (isRunning) {
       try {
         // If it's running, get detailed status
         const statusData = await microserviceClient.getStatus();
-        logger.info('AI service status check successful', { status: statusData });
+        
+        // Analyze the status
+        const isFullyOperational = statusData.overall === 'ok';
+        
+        // Update consecutive tracking counters
+        if (isFullyOperational) {
+          consecutiveSuccesses = Math.min(consecutiveSuccesses + 1, MAX_TRACKING);
+          consecutiveFailures = 0;
+        } else {
+          consecutiveFailures = Math.min(consecutiveFailures + 1, MAX_TRACKING);
+          consecutiveSuccesses = 0;
+        }
+        
+        // Determine status based on pattern recognition
+        let currentStatus = 'degraded';
+        if (isFullyOperational && consecutiveSuccesses >= 3) {
+          currentStatus = 'online';
+        }
+        
+        lastStatus = currentStatus;
+        logger.info('AI service status check successful', { status: currentStatus, responseTime });
         
         return res.json({
-          status: statusData.overall === 'ok' ? 'online' : 'degraded',
-          message: 'The AI sports prediction service is running.',
+          status: currentStatus,
+          message: currentStatus === 'online'
+            ? 'The AI sports prediction service is online and fully operational.'
+            : 'The AI sports prediction service is running but with limited functionality.',
           detailed: {
             overall: statusData.overall,
             services: statusData.services,
-            timestamp: statusData.timestamp
+            timestamp: statusData.timestamp,
+            responseTime,
+            consecutiveSuccesses,
+            consecutiveFailures
           }
         });
       } catch (statusError) {
         // If we get here, the service is running but had an error fetching detailed status
+        consecutiveFailures = Math.min(consecutiveFailures + 1, MAX_TRACKING);
+        consecutiveSuccesses = 0;
+        lastStatus = 'degraded';
+        
         logger.warn('Service is running but detailed status check failed', { error: statusError });
         return res.json({
           status: 'degraded',
@@ -57,12 +132,19 @@ aiStatusRouter.get('/', async (req: Request, res: Response) => {
             services: {
               'status-api': { status: 'error', message: 'Status check failed' }
             },
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            responseTime,
+            consecutiveSuccesses,
+            consecutiveFailures
           }
         });
       }
     } else {
       // Service is not running
+      consecutiveFailures = Math.min(consecutiveFailures + 1, MAX_TRACKING);
+      consecutiveSuccesses = 0;
+      lastStatus = 'offline';
+      
       return res.json({
         status: 'offline',
         message: 'The AI sports prediction service is currently offline.',
@@ -72,7 +154,10 @@ aiStatusRouter.get('/', async (req: Request, res: Response) => {
             'ai-predictions': { status: 'error', lastCheck: new Date().toISOString() },
             'api-service': { status: 'error', lastCheck: new Date().toISOString() }
           },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          responseTime,
+          consecutiveSuccesses,
+          consecutiveFailures
         }
       });
     }

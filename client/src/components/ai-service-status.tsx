@@ -28,12 +28,21 @@ interface AIServiceDetailedStatus {
     [key: string]: ServiceStatusDetail;
   };
   timestamp: string;
+  responseTime?: number;
+  consecutiveSuccesses?: number;
+  consecutiveFailures?: number;
 }
 
 interface AIServiceStatus {
   status: 'online' | 'offline' | 'degraded' | 'error';
   message: string;
   detailed?: AIServiceDetailedStatus;
+  cached?: boolean;
+  lastChecked?: string;
+  responseTime?: {
+    avg: number;
+    history: number[];
+  };
 }
 
 export function AIServiceStatus() {
@@ -187,11 +196,43 @@ export function AIServiceStatus() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {statusData?.cached && (
+          <div className="mb-3 text-xs flex items-center bg-blue-50 text-blue-600 p-2 rounded-md">
+            <RefreshCw className="h-3 w-3 mr-1" />
+            <span>Using cached status from {statusData.lastChecked ? formatDate(statusData.lastChecked) : 'recent check'}</span>
+          </div>
+        )}
+      
         {statusData?.detailed && (
           <div className="space-y-4">
-            <div className="text-xs text-muted-foreground">
-              Last updated: {formatDate(statusData.detailed.timestamp)}
+            <div className="text-xs flex justify-between items-center text-muted-foreground">
+              <span>Last updated: {formatDate(statusData.detailed.timestamp)}</span>
+              {statusData.detailed.responseTime && (
+                <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
+                  Response time: {statusData.detailed.responseTime}ms
+                </span>
+              )}
             </div>
+
+            {/* Reliability indicators */}
+            {(statusData.detailed.consecutiveSuccesses !== undefined || 
+             statusData.detailed.consecutiveFailures !== undefined) && (
+              <div className="flex gap-3 text-xs border-t border-b py-2">
+                {statusData.detailed.consecutiveSuccesses !== undefined && (
+                  <div className="flex items-center">
+                    <span className="font-semibold text-green-600 mr-1">Success streak:</span> 
+                    <span>{statusData.detailed.consecutiveSuccesses}</span>
+                  </div>
+                )}
+                {statusData.detailed.consecutiveFailures !== undefined && 
+                 statusData.detailed.consecutiveFailures > 0 && (
+                  <div className="flex items-center">
+                    <span className="font-semibold text-yellow-600 mr-1">Failure streak:</span> 
+                    <span>{statusData.detailed.consecutiveFailures}</span>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
               {statusData.detailed.services && Object.entries(statusData.detailed.services).map(([name, service]) => (
@@ -219,6 +260,16 @@ export function AIServiceStatus() {
                 </div>
               ))}
             </div>
+            
+            {/* Performance metrics */}
+            {statusData.responseTime && (
+              <div className="mt-4 border-t pt-3">
+                <div className="text-xs font-semibold mb-1">Performance Metrics</div>
+                <div className="text-xs text-muted-foreground">
+                  Average response time: {Math.round(statusData.responseTime.avg)}ms
+                </div>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
