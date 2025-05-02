@@ -6,6 +6,8 @@ import { initializeFantasyData } from "./fantasy-data-init";
 import { initializeDatabase } from "./db-init";
 import { automationManager } from "./automation";
 import { startMicroserviceHealthCheck } from "./microservice-health-check";
+import { spawn } from 'child_process';
+import path from 'path';
 
 const app = express();
 app.use(express.json());
@@ -209,6 +211,41 @@ app.use((req, res, next) => {
       }
     } catch (error) {
       appLogger.error('Failed to initialize PuntaIQ automation system', { error });
+    }
+    
+    // Start the AI microservice proactively
+    try {
+      appLogger.info('Starting the AI microservice');
+      
+      // Get the path to the start script
+      const scriptPath = path.join(process.cwd(), 'scripts', 'start-ai-service.js');
+      
+      // Spawn the Node.js process to run the script with output capturing
+      const childProcess = spawn('node', [scriptPath], {
+        detached: true, 
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: {
+          ...process.env,
+          AI_SERVICE_PROACTIVE_START: 'true'
+        }
+      });
+      
+      // Capture output for better debugging
+      childProcess.stdout.on('data', (data) => {
+        appLogger.info(`[AI Service Starter] ${data.toString().trim()}`);
+      });
+      
+      childProcess.stderr.on('data', (data) => {
+        appLogger.error(`[AI Service Starter Error] ${data.toString().trim()}`);
+      });
+      
+      // Detach the child process so it runs independently
+      childProcess.unref();
+      
+      appLogger.info(`AI microservice startup initiated, process ID: ${childProcess.pid}`);
+    } catch (error) {
+      appLogger.error('Failed to start AI microservice', { error });
+      appLogger.warn('Failed to start the AI microservice - will start on demand');
     }
     
     // Start the microservice health check system
