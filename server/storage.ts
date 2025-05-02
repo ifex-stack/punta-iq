@@ -4019,43 +4019,77 @@ export class DatabaseStorage implements IStorage {
   }
   
   async updateUserPreferences(userId: number, preferences: any): Promise<User> {
-    const [user] = await db
-      .update(users)
-      .set({
-        userPreferences: preferences
-      })
-      .where(eq(users.id, userId))
-      .returning();
-    
-    if (!user) throw new Error("User not found");
-    return user;
+    try {
+      // Only update the userPreferences field to avoid issues with schema mismatches
+      const [user] = await db
+        .update(users)
+        .set({
+          userPreferences: preferences
+        })
+        .where(eq(users.id, userId))
+        .returning({
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          userPreferences: users.userPreferences
+        });
+      
+      if (!user) throw new Error("User not found");
+      return user;
+    } catch (error) {
+      console.error("Error updating user preferences:", error);
+      throw error;
+    }
   }
   
   async updateUserOnboardingStatus(userId: number, status: string, lastStep: number): Promise<User> {
-    const [user] = await db
-      .update(users)
-      .set({
-        onboardingStatus: status,
-        lastOnboardingStep: lastStep
-      })
-      .where(eq(users.id, userId))
-      .returning();
-    
-    if (!user) throw new Error("User not found");
-    return user;
+    try {
+      // Only update the specific onboarding fields to avoid schema mismatches
+      const [user] = await db
+        .update(users)
+        .set({
+          onboardingStatus: status,
+          lastOnboardingStep: lastStep
+        })
+        .where(eq(users.id, userId))
+        .returning({
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          onboardingStatus: users.onboardingStatus,
+          lastOnboardingStep: users.lastOnboardingStep
+        });
+      
+      if (!user) throw new Error("User not found");
+      return user;
+    } catch (error) {
+      console.error("Error updating user onboarding status:", error);
+      throw error;
+    }
   }
   
   async updateLastLogin(userId: number): Promise<User> {
-    const [user] = await db
-      .update(users)
-      .set({
-        lastLoginAt: new Date()
-      })
-      .where(eq(users.id, userId))
-      .returning();
-    
-    if (!user) throw new Error("User not found");
-    return user;
+    try {
+      // Only update the lastLoginAt field to avoid schema mismatches
+      const [user] = await db
+        .update(users)
+        .set({
+          lastLoginAt: new Date()
+        })
+        .where(eq(users.id, userId))
+        .returning({
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          lastLoginAt: users.lastLoginAt
+        });
+      
+      if (!user) throw new Error("User not found");
+      return user;
+    } catch (error) {
+      console.error("Error updating user last login:", error);
+      throw error;
+    }
   }
   
   async updateUserFantasyPoints(userId: number, points: number): Promise<User> {
@@ -4067,14 +4101,19 @@ export class DatabaseStorage implements IStorage {
       const currentPoints = user.fantasyPoints || 0;
       const newPoints = currentPoints + points;
       
-      // Update user with new points total
+      // Update user with new points total, selecting only needed fields to avoid schema mismatches
       const [updatedUser] = await db
         .update(users)
         .set({
           fantasyPoints: newPoints
         })
         .where(eq(users.id, userId))
-        .returning();
+        .returning({
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          fantasyPoints: users.fantasyPoints
+        });
       
       return updatedUser;
     } catch (error) {
@@ -4106,7 +4145,7 @@ export class DatabaseStorage implements IStorage {
         newStreak = currentStreak + 1;
       }
       
-      // Update user with new streak total and last referral date
+      // Update user with new streak total and last referral date, selecting only needed fields
       const [updatedUser] = await db
         .update(users)
         .set({
@@ -4114,7 +4153,13 @@ export class DatabaseStorage implements IStorage {
           lastReferralDate: today
         })
         .where(eq(users.id, userId))
-        .returning();
+        .returning({
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          referralStreak: users.referralStreak,
+          lastReferralDate: users.lastReferralDate
+        });
       
       return updatedUser;
     } catch (error) {
