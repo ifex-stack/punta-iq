@@ -10,7 +10,9 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const AI_SERVICE_DIR = path.join(process.cwd(), 'ai_service');
+// Adjust for the script being run from the scripts directory
+const ROOT_DIR = path.resolve(path.join(__dirname, '..'));
+const AI_SERVICE_DIR = path.join(ROOT_DIR, 'ai_service');
 const API_SERVICE_PATH = path.join(AI_SERVICE_DIR, 'api_service.py');
 
 function checkPythonDependencies() {
