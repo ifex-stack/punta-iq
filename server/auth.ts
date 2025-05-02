@@ -69,7 +69,6 @@ export function setupAuth(app: Express) {
               email: 'beta@puntaiq.com',
               password: 'hashed_password_placeholder',
               createdAt: new Date(),
-              updatedAt: new Date(),
               deviceImei: null,
               phoneNumber: null,
               isTwoFactorEnabled: false,
@@ -172,7 +171,6 @@ export function setupAuth(app: Express) {
           email: 'beta@puntaiq.com',
           password: 'hashed_password_placeholder',
           createdAt: new Date(),
-          updatedAt: new Date(),
           deviceImei: null,
           phoneNumber: null,
           isTwoFactorEnabled: false,
@@ -274,12 +272,20 @@ export function setupAuth(app: Express) {
       // Check if user already exists
       const existingUsername = await storage.getUserByUsername(validatedData.username);
       if (existingUsername) {
-        return res.status(400).json({ message: "Username already exists" });
+        return res.status(400).json({
+          error: 'Registration Failed',
+          message: "Username already exists",
+          code: 'USERNAME_EXISTS'
+        });
       }
       
       const existingEmail = await storage.getUserByEmail(validatedData.email);
       if (existingEmail) {
-        return res.status(400).json({ message: "Email already exists" });
+        return res.status(400).json({
+          error: 'Registration Failed',
+          message: "Email already exists",
+          code: 'EMAIL_EXISTS'
+        });
       }
 
       // Create user with hashed password
@@ -309,30 +315,80 @@ export function setupAuth(app: Express) {
 
       // Log user in
       req.login(user, (err) => {
-        if (err) return next(err);
+        if (err) {
+          console.error('Session creation error on registration:', err);
+          return res.status(500).json({
+            error: 'Session Error',
+            message: 'Account created but login failed. Please try logging in manually.',
+            code: 'SESSION_ERROR_AFTER_REGISTER'
+          });
+        }
         // Remove password from response
         const { password, ...userWithoutPassword } = user;
         res.status(201).json(userWithoutPassword);
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: error.errors[0].message });
+        // Detailed validation error message
+        return res.status(400).json({
+          error: 'Validation Error',
+          message: error.errors[0].message,
+          code: 'VALIDATION_ERROR',
+          field: error.errors[0].path.join('.') // Return the field that failed validation
+        });
       }
-      next(error);
+      console.error('Registration error:', error);
+      res.status(500).json({
+        error: 'Server Error',
+        message: 'Failed to create account. Please try again later.',
+        code: 'REGISTRATION_ERROR'
+      });
     }
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
-      if (err) return next(err);
+    // Validate input is present
+    if (!req.body.username || !req.body.password) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'Username and password are required',
+        code: 'MISSING_CREDENTIALS'
+      });
+    }
+
+    passport.authenticate("local", (err: any, user: SelectUser | false, info: any) => {
+      if (err) {
+        console.error('Authentication error:', err);
+        return res.status(500).json({
+          error: 'Server Error',
+          message: 'An error occurred during authentication. Please try again.',
+          code: 'AUTH_ERROR'
+        });
+      }
+      
       if (!user) {
-        return res.status(401).json({ message: "Invalid credentials" });
+        // Enhanced error response with clear messaging
+        return res.status(401).json({
+          error: 'Authentication Failed',
+          message: 'Invalid username or password. Please try again.',
+          code: 'INVALID_CREDENTIALS'
+        });
       }
       
       req.login(user, (loginErr) => {
-        if (loginErr) return next(loginErr);
+        if (loginErr) {
+          console.error('Session creation error:', loginErr);
+          return res.status(500).json({
+            error: 'Session Error',
+            message: 'Could not create a session. Please try again.',
+            code: 'SESSION_ERROR'
+          });
+        }
+        
         // Remove password from response
         const { password, ...userWithoutPassword } = user;
+        
+        // Success - return user data
         res.status(200).json(userWithoutPassword);
       });
     })(req, res, next);
@@ -346,7 +402,29 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    // Enhanced authentication check with detailed error responses
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'You must be logged in to access this resource',
+        code: 'NOT_AUTHENTICATED'
+      });
+    }
+    
+    // Check if session exists but user isn't valid
+    if (!req.user || !req.user.id) {
+      // Destroy the invalid session
+      req.logout((err) => {
+        if (err) console.error('Error destroying invalid session:', err);
+        return res.status(401).json({
+          error: 'Invalid Session',
+          message: 'Your session appears to be invalid. Please login again.',
+          code: 'INVALID_SESSION'
+        });
+      });
+      return;
+    }
+    
     // Remove password from response
     const { password, ...userWithoutPassword } = req.user;
     res.json(userWithoutPassword);
