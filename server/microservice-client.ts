@@ -20,6 +20,63 @@ interface StatusResponse {
   timestamp: string;
 }
 
+interface TierMetadata {
+  description: string;
+  isPremium: boolean;
+}
+
+interface TierSystemMetadata {
+  [key: string]: TierMetadata;
+}
+
+interface ConfidenceLevelMetadata {
+  range: string;
+  description: string;
+}
+
+interface ConfidenceLevelsMetadata {
+  [key: string]: ConfidenceLevelMetadata;
+}
+
+interface PredictionMetadata {
+  sport: {
+    name: string;
+    competitions: string[];
+  };
+  confidence_levels: ConfidenceLevelsMetadata;
+  tiers: {
+    [key: string]: TierMetadata;
+  };
+}
+
+interface ValueBet {
+  outcome: string;
+  odds: number;
+  value: number;
+  edge: number;
+  tier: string;
+  isRecommended: boolean;
+}
+
+interface Prediction {
+  id: string;
+  matchId: string;
+  sport: string;
+  createdAt: string;
+  homeTeam: string;
+  awayTeam: string;
+  startTime: string;
+  league: string;
+  predictedOutcome: string;
+  confidence: number;
+  confidenceLevel: string;
+  confidence_explanation?: string;
+  tier: string;
+  isPremium: boolean;
+  valueBet?: ValueBet;
+  predictions: Record<string, any>;
+}
+
 interface Match {
   id: string;
   sport_key: string;
@@ -178,6 +235,152 @@ export class MicroserviceClient {
       cacheKey: 'leagues',
       cacheTTL: 86400000 // 24 hour cache for static data
     });
+  }
+  
+  /**
+   * Get predictions for a specific sport
+   * @param sport - The sport to get predictions for (e.g., 'football', 'basketball')
+   * @param options - Options for filtering predictions
+   */
+  async getSportPredictions(
+    sport: string, 
+    options: {
+      minConfidence?: number;
+      tier?: string;
+      includePremium?: boolean;
+    } = {}
+  ): Promise<{ predictions: Prediction[]; metadata: PredictionMetadata }> {
+    const { minConfidence, tier, includePremium = true } = options;
+    
+    // Build query parameters
+    const params = new URLSearchParams();
+    if (minConfidence !== undefined) {
+      params.append('min_confidence', minConfidence.toString());
+    }
+    if (tier !== undefined) {
+      params.append('tier', tier);
+    }
+    if (includePremium !== undefined) {
+      params.append('include_premium', includePremium.toString());
+    }
+    
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    
+    return this.makeRequest<any>({
+      method: 'get',
+      url: `/api/predictions/sports/${sport}${queryString}`,
+      cacheKey: `predictions_${sport}_${queryString}`,
+      cacheTTL: 900000 // 15 minutes cache
+    });
+  }
+  
+  /**
+   * Get accumulator predictions with tier support
+   * @param options - Options for filtering accumulators
+   */
+  async getAccumulators(
+    options: {
+      tier?: string;
+      tierCategory?: string;
+      size?: number;
+    } = {}
+  ): Promise<any> {
+    const { tier, tierCategory, size } = options;
+    
+    // Build query parameters
+    const params = new URLSearchParams();
+    if (tier !== undefined) {
+      params.append('tier', tier);
+    }
+    if (tierCategory !== undefined) {
+      params.append('tier_category', tierCategory);
+    }
+    if (size !== undefined) {
+      params.append('size', size.toString());
+    }
+    
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    
+    return this.makeRequest<any>({
+      method: 'get',
+      url: `/api/predictions/accumulators${queryString}`,
+      cacheKey: `accumulators_${queryString}`,
+      cacheTTL: 900000 // 15 minutes cache
+    });
+  }
+  
+  /**
+   * Get predictions organized by tier
+   * Returns combined results from all supported sports, organized by tier
+   */
+  async getTieredPredictions(): Promise<{
+    tier1: Prediction[];
+    tier2: Prediction[];
+    tier5: Prediction[];
+    tier10: Prediction[];
+    metadata: {
+      tiers: TierSystemMetadata;
+      timestamp: string;
+    }
+  }> {
+    // Organize predictions by their tier
+    const result = {
+      tier1: [] as Prediction[],
+      tier2: [] as Prediction[],
+      tier5: [] as Prediction[],
+      tier10: [] as Prediction[],
+      metadata: {
+        tiers: {
+          tier1: {
+            description: "Premium predictions with highest confidence and value",
+            isPremium: true
+          },
+          tier2: {
+            description: "High confidence selections with strong value",
+            isPremium: true
+          },
+          tier5: {
+            description: "Solid selections with reasonable value",
+            isPremium: false
+          },
+          tier10: {
+            description: "Standard selections with varied confidence",
+            isPremium: false
+          }
+        },
+        timestamp: new Date().toISOString()
+      }
+    };
+    
+    try {
+      // Get predictions for each sport
+      const football = await this.getSportPredictions('football');
+      const basketball = await this.getSportPredictions('basketball');
+      
+      // Get all predictions
+      const allPredictions = [
+        ...(football?.predictions || []),
+        ...(basketball?.predictions || [])
+      ];
+      
+      // Categorize by tier
+      for (const pred of allPredictions) {
+        if (pred.tier === 'Tier 1') {
+          result.tier1.push(pred);
+        } else if (pred.tier === 'Tier 2') {
+          result.tier2.push(pred);
+        } else if (pred.tier === 'Tier 5') {
+          result.tier5.push(pred);
+        } else {
+          result.tier10.push(pred);
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      this.logger.error(`Error getting tiered predictions: ${error}`);
+      throw error;
+    }
   }
   
   /**
