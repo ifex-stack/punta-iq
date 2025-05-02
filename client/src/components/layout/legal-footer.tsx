@@ -8,15 +8,15 @@ export function LegalFooter() {
       <div className="container">
         <div className="flex flex-wrap justify-center gap-4 mb-2">
           <Link href="/legal/terms-of-service">
-            <a className="hover:text-foreground transition-colors">Terms of Service</a>
+            <span className="hover:text-foreground transition-colors cursor-pointer">Terms of Service</span>
           </Link>
           <Separator orientation="vertical" className="h-4 my-auto" />
           <Link href="/legal/privacy-policy">
-            <a className="hover:text-foreground transition-colors">Privacy Policy</a>
+            <span className="hover:text-foreground transition-colors cursor-pointer">Privacy Policy</span>
           </Link>
           <Separator orientation="vertical" className="h-4 my-auto" />
           <Link href="/legal/responsible-gambling">
-            <a className="hover:text-foreground transition-colors">Responsible Gambling</a>
+            <span className="hover:text-foreground transition-colors cursor-pointer">Responsible Gambling</span>
           </Link>
         </div>
         <p className="text-xs">

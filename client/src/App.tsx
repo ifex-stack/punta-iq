@@ -30,7 +30,7 @@ import AdvancedAnalysisPage from "@/pages/advanced-analysis-page";
 import AccumulatorsPage from "@/pages/enhanced-accumulators-page"; // Using enhanced version with animations and improved UX
 import LiveScorePage from "@/pages/livescore-page";
 import PrivacyPolicyPage from "@/pages/legal/privacy-policy";
-import TermsConditionsPage from "@/pages/legal/terms-conditions";
+import TermsOfServicePage from "@/pages/legal/terms-of-service";
 import ResponsibleGamblingPage from "@/pages/legal/responsible-gambling";
 import { UIShowcase } from "@/components/ui-showcase";
 import { ProtectedRoute } from "./lib/protected-route";
@@ -106,7 +106,7 @@ const Router: React.FC = () => {
             <Route path="/faq" component={FAQPage} />
             <Route path="/feedback" component={FeedbackPage} />
             <Route path="/legal/privacy-policy" component={PrivacyPolicyPage} />
-            <Route path="/legal/terms-conditions" component={TermsConditionsPage} />
+            <Route path="/legal/terms-of-service" component={TermsOfServicePage} />
             <Route path="/legal/responsible-gambling" component={ResponsibleGamblingPage} />
             <Route path="/ui-showcase" component={UIShowcase} />
             <Route component={NotFound} />
