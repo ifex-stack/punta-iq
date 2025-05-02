@@ -8,6 +8,7 @@ import {
   LineChart,
   Activity,
   Home,
+  CreditCard,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -31,7 +32,7 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50">
       {/* Use max-width to center the navigation on larger screens and add consistent padding */}
       <div className="max-w-screen-lg mx-auto px-1">
-        <div className={`grid ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'} h-16`}>
+        <div className={`grid ${isAdmin ? 'grid-cols-6' : 'grid-cols-5'} h-16`}>
           {/* Home/Dashboard */}
           <Link href="/">
             <a className={`flex flex-col items-center justify-center py-2 ${
@@ -59,6 +60,16 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
             }`}>
               <Activity className="h-5 w-5 mb-1" />
               <span className="text-[10px]">LiveScore</span>
+            </a>
+          </Link>
+          
+          {/* Subscription */}
+          <Link href="/subscription">
+            <a className={`flex flex-col items-center justify-center py-2 ${
+              isActive("subscription") ? "text-primary font-medium" : "text-muted-foreground"
+            }`}>
+              <CreditCard className="h-5 w-5 mb-1" />
+              <span className="text-[10px]">Pricing</span>
             </a>
           </Link>
           

@@ -121,10 +121,11 @@ export default function SubscriptionPage() {
   }, [currency, isYearly]);
   
   const subscribeMutation = useMutation({
-    mutationFn: async (planData: { planId: string, isYearly: boolean, currencyCode: string }) => {
+    mutationFn: async (planData: { planId: string, isYearly: boolean }) => {
       const res = await apiRequest("POST", "/api/create-subscription", {
         userId: user?.id,
-        ...planData
+        ...planData,
+        currencyCode: currency.code
       });
       return await res.json();
     },
@@ -150,8 +151,7 @@ export default function SubscriptionPage() {
     setSelectedPlan(planId);
     subscribeMutation.mutate({
       planId,
-      isYearly,
-      currencyCode: currency.code
+      isYearly
     });
   };
 
@@ -231,7 +231,7 @@ export default function SubscriptionPage() {
               </CardTitle>
               <div className="mt-2">
                 <span className="text-3xl font-bold">
-                  <PriceDisplay price={isYearly ? plan.yearlyPrice : plan.price} />
+                  <PriceDisplay amount={isYearly ? plan.yearlyPrice : plan.price} />
                 </span>
                 <span className="text-muted-foreground ml-1">
                   {isYearly ? "/year" : "/month"}
