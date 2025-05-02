@@ -39,6 +39,7 @@ import {
   Crown,
   X,
   Check,
+  CheckCircle2,
   ChevronRight,
   Loader2,
 } from 'lucide-react';
@@ -725,62 +726,96 @@ export function PersonalizedOnboarding() {
         return (
           <div className="space-y-6 py-8 text-center">
             <div className="flex flex-col items-center justify-center space-y-4">
-              <div className="rounded-full bg-green-100 p-3">
-                <Check className="h-8 w-8 text-green-600" />
+              <div className="rounded-full bg-green-100 dark:bg-green-900/30 p-3">
+                <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
               </div>
               
               <h2 className="text-2xl font-bold tracking-tight">Personalization Complete!</h2>
               
-              <p className="text-muted-foreground max-w-md">
-                Your PuntaIQ experience is now personalized based on your preferences. You can always update these settings in your profile.
+              <p className="text-muted-foreground max-w-md mx-auto">
+                Your AI sports prediction experience has been customized based on your preferences. Here's a summary of your selections:
               </p>
               
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">
-                {favoriteSports.map(sportId => {
-                  const sport = SPORTS_OPTIONS.find(s => s.id === sportId);
-                  if (!sport) return null;
-                  
-                  return (
-                    <Badge key={sportId} variant="outline" className="flex items-center gap-1">
-                      <sport.icon className="h-3 w-3" />
-                      {sport.name}
-                    </Badge>
-                  );
-                })}
+              <div className="grid grid-cols-2 gap-4 max-w-lg mx-auto mt-4 text-left">
+                <Card className="bg-muted/30">
+                  <CardContent className="p-4">
+                    <h3 className="font-medium text-sm mb-2">Favorite Sports</h3>
+                    <div className="flex flex-wrap gap-1">
+                      {favoriteSports.length > 0 ? (
+                        favoriteSports.map(sportId => {
+                          const sport = SPORTS_OPTIONS.find(s => s.id === sportId);
+                          return sport ? (
+                            <Badge key={sport.id} variant="secondary" className="mr-1 mb-1">
+                              {sport.name}
+                            </Badge>
+                          ) : null;
+                        })
+                      ) : (
+                        <span className="text-muted-foreground text-xs">None selected</span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-muted/30">
+                  <CardContent className="p-4">
+                    <h3 className="font-medium text-sm mb-2">Betting Preferences</h3>
+                    {bettingFrequency ? (
+                      <Badge variant="secondary" className="mr-1 mb-1">
+                        {BETTING_FREQUENCY_OPTIONS.find(b => b.id === bettingFrequency)?.label || bettingFrequency}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">None selected</span>
+                    )}
+                    {riskTolerance && (
+                      <Badge variant="secondary" className="mr-1 mb-1">
+                        {RISK_TOLERANCE_OPTIONS.find(r => r.id === riskTolerance)?.label?.split(' ')[0] || riskTolerance}
+                      </Badge>
+                    )}
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-muted/30">
+                  <CardContent className="p-4">
+                    <h3 className="font-medium text-sm mb-2">Experience Level</h3>
+                    {experienceLevel ? (
+                      <Badge variant="secondary">
+                        {EXPERIENCE_LEVEL_OPTIONS.find(e => e.id === experienceLevel)?.label || experienceLevel}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">None selected</span>
+                    )}
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-muted/30">
+                  <CardContent className="p-4">
+                    <h3 className="font-medium text-sm mb-2">Prediction Settings</h3>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs">
+                        <span className="font-medium">Format:</span> {preferredOddsFormat || 'Decimal'}
+                      </span>
+                      <span className="text-xs">
+                        <span className="font-medium">Daily predictions:</span> {predictionsPerDay || 5}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-              
-              <div className="border rounded-lg p-4 mt-4 bg-muted/30 w-full">
-                <h3 className="font-medium mb-3">Your Preferences</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-8 text-sm text-left">
-                  {riskTolerance && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Risk level:</span>
-                      <span>{RISK_TOLERANCE_OPTIONS.find(o => o.id === riskTolerance)?.label.split(' ')[0]}</span>
-                    </div>
-                  )}
-                  
-                  {bettingFrequency && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Betting frequency:</span>
-                      <span>{BETTING_FREQUENCY_OPTIONS.find(o => o.id === bettingFrequency)?.label}</span>
-                    </div>
-                  )}
-                  
-                  {experienceLevel && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Experience:</span>
-                      <span>{EXPERIENCE_LEVEL_OPTIONS.find(o => o.id === experienceLevel)?.label}</span>
-                    </div>
-                  )}
-                  
-                  {preferredOddsFormat && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Odds format:</span>
-                      <span>{ODDS_FORMAT_OPTIONS.find(o => o.id === preferredOddsFormat)?.label.split(' ')[0]}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
+            </div>
+            
+            <div className="pt-4">
+              <p className="text-sm text-muted-foreground mb-2">
+                You can update these preferences any time in your profile settings.
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={handleNextStep}
+                className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30"
+              >
+                <CheckCircle2 className="mr-2 h-4 w-4 text-primary" />
+                Complete Setup
+              </Button>
             </div>
           </div>
         );
