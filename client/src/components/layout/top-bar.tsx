@@ -177,7 +177,7 @@ const TopBar = () => {
               animate={{ scale: 1 }}
               exit={{ scale: 0 }}
             >
-              <AIServiceStatusIndicator size="small" />
+              <AIServiceStatusIndicator size="small" className="" />
             </motion.div>
           </AnimatePresence>
         </div>

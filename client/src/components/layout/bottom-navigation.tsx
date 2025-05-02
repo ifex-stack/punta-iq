@@ -54,7 +54,7 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
         <div className={`grid ${isAdmin ? 'grid-cols-6' : 'grid-cols-5'} h-16`}>
           {/* Home/Dashboard */}
           <Link href="/">
-            <a className="flex flex-col items-center justify-center py-2 focus:outline-none touch-manipulation active:opacity-70">
+            <div className="flex flex-col items-center justify-center py-2 focus:outline-none touch-manipulation active:opacity-70">
               <motion.div 
                 className="relative flex flex-col items-center"
                 initial="inactive"
@@ -73,12 +73,12 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
                   Home
                 </span>
               </motion.div>
-            </a>
+            </div>
           </Link>
           
           {/* Predictions */}
           <Link href="/predictions">
-            <a className="flex flex-col items-center justify-center py-2 focus:outline-none touch-manipulation active:opacity-70">
+            <div className="flex flex-col items-center justify-center py-2 focus:outline-none touch-manipulation active:opacity-70">
               <motion.div 
                 className="relative flex flex-col items-center"
                 initial="inactive"
@@ -97,12 +97,12 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
                   Predictions
                 </span>
               </motion.div>
-            </a>
+            </div>
           </Link>
           
           {/* LiveScore */}
           <Link href="/livescore">
-            <a className="flex flex-col items-center justify-center py-2 focus:outline-none touch-manipulation active:opacity-70">
+            <div className="flex flex-col items-center justify-center py-2 focus:outline-none touch-manipulation active:opacity-70">
               <motion.div 
                 className="relative flex flex-col items-center"
                 initial="inactive"
@@ -121,12 +121,12 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
                   LiveScore
                 </span>
               </motion.div>
-            </a>
+            </div>
           </Link>
           
           {/* Subscription */}
           <Link href="/subscription">
-            <a className="flex flex-col items-center justify-center py-2 focus:outline-none touch-manipulation active:opacity-70">
+            <div className="flex flex-col items-center justify-center py-2 focus:outline-none touch-manipulation active:opacity-70">
               <motion.div 
                 className="relative flex flex-col items-center"
                 initial="inactive"
@@ -145,12 +145,12 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
                   Pricing
                 </span>
               </motion.div>
-            </a>
+            </div>
           </Link>
           
           {/* Profile/Account */}
           <Link href="/profile">
-            <a className="flex flex-col items-center justify-center py-2 focus:outline-none touch-manipulation active:opacity-70">
+            <div className="flex flex-col items-center justify-center py-2 focus:outline-none touch-manipulation active:opacity-70">
               <motion.div 
                 className="relative flex flex-col items-center"
                 initial="inactive"
@@ -169,13 +169,13 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
                   Profile
                 </span>
               </motion.div>
-            </a>
+            </div>
           </Link>
           
           {/* Admin panel (only visible to admins) */}
           {isAdmin && (
             <Link href="/admin">
-              <a className="flex flex-col items-center justify-center py-2 focus:outline-none touch-manipulation active:opacity-70">
+              <div className="flex flex-col items-center justify-center py-2 focus:outline-none touch-manipulation active:opacity-70">
                 <motion.div 
                   className="relative flex flex-col items-center"
                   initial="inactive"
@@ -194,7 +194,7 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
                     Admin
                   </span>
                 </motion.div>
-              </a>
+              </div>
             </Link>
           )}
         </div>
