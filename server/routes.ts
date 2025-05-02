@@ -31,6 +31,7 @@ import { sportsApiService } from "./sports-api-service";
 import { historicalDashboardRouter } from "./historical-dashboard-routes";
 import { setupAutomationRoutes } from "./automation/automation-routes";
 import { setupLiveScoreRoutes } from "./livescore-routes";
+import { userPreferencesRouter } from "./user-preferences-routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
@@ -62,6 +63,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up additional notification routes
   app.use(notificationRouter);
+  
+  // Set up user preferences routes
+  app.use(userPreferencesRouter);
   
   // Set up automation management routes
   setupAutomationRoutes(app);
