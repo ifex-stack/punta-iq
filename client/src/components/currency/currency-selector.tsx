@@ -88,13 +88,11 @@ export function PriceDisplay({
   amount: number, 
   className?: string 
 }) {
-  const { format, convert, currency } = useCurrency();
+  const { format, currency } = useCurrency();
   
-  // Convert from GBP (our base currency) to selected currency
-  const convertedAmount = convert(amount);
-  
-  // Log for debugging purposes
-  console.log(`Converting ${amount} GBP to ${currency.code}: ${convertedAmount} (rate: ${currency.rate})`);
+  // Calculate price in selected currency
+  // Since prices are stored in GBP, we need to apply the exchange rate 
+  const convertedAmount = amount * currency.rate;
   
   return (
     <span className={`font-medium ${className}`}>

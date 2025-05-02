@@ -243,16 +243,16 @@ export async function fetchCurrentExchangeRates(forceRefresh = false): Promise<b
       localStorage.removeItem('userCurrency');
       
       // Reset all currency rates to their defaults
-      currencies.GBP.rate = 1;       // Base currency
-      currencies.USD.rate = 1.27;    // 1 GBP = 1.27 USD
-      currencies.EUR.rate = 1.16;    // 1 GBP = 1.16 EUR
-      currencies.NGN.rate = 2088;    // 1 GBP = 2088 NGN
-      currencies.KES.rate = 169.3;   // 1 GBP = 169.3 KES
-      currencies.ZAR.rate = 23.82;   // 1 GBP = 23.82 ZAR
-      currencies.GHS.rate = 20.57;   // 1 GBP = 20.57 GHS
-      currencies.INR.rate = 105.97;  // 1 GBP = 105.97 INR
-      currencies.CAD.rate = 1.72;    // 1 GBP = 1.72 CAD
-      currencies.AUD.rate = 1.91;    // 1 GBP = 1.91 AUD
+      currencies.GBP.rate = 1.0;       // Base currency - ALWAYS EXACTLY 1.0
+      currencies.USD.rate = 1.27;      // 1 GBP = 1.27 USD
+      currencies.EUR.rate = 1.16;      // 1 GBP = 1.16 EUR
+      currencies.NGN.rate = 2088.0;    // 1 GBP = 2088 NGN
+      currencies.KES.rate = 169.3;     // 1 GBP = 169.3 KES
+      currencies.ZAR.rate = 23.82;     // 1 GBP = 23.82 ZAR
+      currencies.GHS.rate = 20.57;     // 1 GBP = 20.57 GHS
+      currencies.INR.rate = 105.97;    // 1 GBP = 105.97 INR
+      currencies.CAD.rate = 1.72;      // 1 GBP = 1.72 CAD
+      currencies.AUD.rate = 1.91;      // 1 GBP = 1.91 AUD
       
       console.log('Reset all currency rates to defaults');
       userCurrency = null; // Force re-detection
@@ -319,18 +319,18 @@ export async function fetchCurrentExchangeRates(forceRefresh = false): Promise<b
     
     console.log('Fetching fresh exchange rates from API...');
     
-    // Create API response data representing current rates
+    // Create API response data representing current rates with GBP as base (1.0)
     const rates: Record<string, number> = {
-      GBP: 1,      // Base currency
-      USD: 1.27,   // 1 GBP = 1.27 USD
-      EUR: 1.16,   // 1 GBP = 1.16 EUR
-      NGN: 2088,   // 1 GBP = 2088 NGN
-      KES: 169.3,  // 1 GBP = 169.3 KES
-      ZAR: 23.82,  // 1 GBP = 23.82 ZAR
-      GHS: 20.57,  // 1 GBP = 20.57 GHS
-      INR: 105.97, // 1 GBP = 105.97 INR
-      CAD: 1.72,   // 1 GBP = 1.72 CAD
-      AUD: 1.91    // 1 GBP = 1.91 AUD
+      GBP: 1.0,      // Base currency - always exactly 1
+      USD: 1.27,     // 1 GBP = 1.27 USD
+      EUR: 1.16,     // 1 GBP = 1.16 EUR
+      NGN: 2088.0,   // 1 GBP = 2088 NGN
+      KES: 169.3,    // 1 GBP = 169.3 KES
+      ZAR: 23.82,    // 1 GBP = 23.82 ZAR
+      GHS: 20.57,    // 1 GBP = 20.57 GHS
+      INR: 105.97,   // 1 GBP = 105.97 INR
+      CAD: 1.72,     // 1 GBP = 1.72 CAD
+      AUD: 1.91      // 1 GBP = 1.91 AUD
     };
     
     // Create a new cache with the rates
