@@ -69,6 +69,15 @@ export const users = pgTable("users", {
   referralStreak: integer("referral_streak").default(0).notNull(),
   lastReferralDate: timestamp("last_referral_date"),
   
+  // Authentication & security fields
+  lastLoginAt: timestamp("last_login_at"),
+  isActive: boolean("is_active").default(true).notNull(),
+  isEmailVerified: boolean("is_email_verified").default(false),
+  emailVerificationToken: text("email_verification_token"),
+  passwordResetToken: text("password_reset_token"),
+  passwordResetExpires: timestamp("password_reset_expires"),
+  notificationToken: text("notification_token"),
+  
   // Personalized onboarding properties
   userPreferences: json("user_preferences").default({
     favoriteSports: [],

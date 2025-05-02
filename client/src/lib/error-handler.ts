@@ -98,8 +98,25 @@ export const handleApiError = (error: unknown, fallbackMessage = 'An error occur
     
     // Handle different error types
     if (apiError.status === 401) {
-      // Don't show auth errors, they're handled by the auth system
-      console.log('Auth error suppressed:', apiError);
+      // Check for specific auth error codes to provide better UX
+      if (apiError.code === 'SESSION_INVALID' || apiError.code === 'INVALID_SESSION') {
+        // Session was valid but has expired - might want to show a login prompt
+        toast({
+          title: 'Session Expired',
+          description: 'Your session has expired. Please log in again.',
+          variant: 'default',
+        });
+      } else if (apiError.code === 'SESSION_ERROR' || apiError.code === 'SESSION_ERROR_AFTER_REGISTER') {
+        // Session creation failed - server issue
+        toast({
+          title: 'Authentication Error',
+          description: apiError.message || 'There was a problem with your session. Please try again.',
+          variant: 'destructive',
+        });
+      } else {
+        // Don't show generic auth errors, they're handled by the auth system
+        console.log('Auth error suppressed:', apiError);
+      }
     } else if (apiError.status === 403) {
       toast({
         title: 'Access Denied',

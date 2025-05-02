@@ -74,6 +74,14 @@ export function setupAuth(app: Express) {
               isTwoFactorEnabled: false,
               twoFactorSecret: null,
               referralCode: 'BETATEST',
+              role: 'admin',
+              lastLoginAt: new Date(),
+              isActive: true,
+              isEmailVerified: true,
+              emailVerificationToken: null,
+              passwordResetToken: null,
+              passwordResetExpires: null,
+              notificationToken: null,
               referredBy: null,
               stripeCustomerId: null,
               stripeSubscriptionId: null,
@@ -187,12 +195,7 @@ export function setupAuth(app: Express) {
           referralStreak: 3,
           lastReferralDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
           // Additional properties 
-          lastLoginAt: new Date(),
-          isActive: true,
-          isEmailVerified: true,
-          emailVerificationToken: null,
-          passwordResetToken: null,
-          passwordResetExpires: null,
+
           userPreferences: {
             favoriteSports: [1, 3, 5],
             favoriteLeagues: [39, 40, 61],
@@ -395,9 +398,43 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/logout", (req, res, next) => {
+    // Check if user is authenticated first
+    if (!req.isAuthenticated()) {
+      return res.status(200).json({
+        message: "Already logged out",
+        code: "ALREADY_LOGGED_OUT"
+      });
+    }
+    
     req.logout((err) => {
-      if (err) return next(err);
-      res.sendStatus(200);
+      if (err) {
+        console.error('Logout error:', err);
+        return res.status(500).json({
+          error: "Logout Error",
+          message: "Failed to log out. Please try again.",
+          code: "LOGOUT_ERROR"
+        });
+      }
+      // Destroy the session completely to ensure clean logout
+      if (req.session) {
+        req.session.destroy((sessionErr) => {
+          if (sessionErr) {
+            console.error('Session destroy error:', sessionErr);
+            // Even if session destroy fails, we've already logged out
+          }
+          // Clear any cookies
+          res.clearCookie('connect.sid');
+          res.status(200).json({
+            message: "Logged out successfully",
+            code: "LOGOUT_SUCCESS"
+          });
+        });
+      } else {
+        res.status(200).json({
+          message: "Logged out successfully",
+          code: "LOGOUT_SUCCESS"
+        });
+      }
     });
   });
 
@@ -432,30 +469,57 @@ export function setupAuth(app: Express) {
   
   // User preferences routes
   app.get("/api/user/preferences", async (req, res) => {
+    // Enhanced authentication check
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Unauthorized' });
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'You must be logged in to access your preferences',
+        code: 'NOT_AUTHENTICATED'
+      });
     }
     
     try {
       const user = await storage.getUser(req.user.id);
       if (!user) {
-        return res.status(404).json({ message: 'User not found' });
+        return res.status(404).json({
+          error: 'Not Found',
+          message: 'User not found',
+          code: 'USER_NOT_FOUND'
+        });
       }
       
       // Return user preferences or default empty object
       res.json(user.userPreferences || {});
     } catch (error) {
       console.error('Error fetching user preferences:', error);
-      res.status(500).json({ message: 'Failed to fetch user preferences' });
+      res.status(500).json({
+        error: 'Server Error',
+        message: 'Failed to fetch user preferences',
+        code: 'PREFERENCES_FETCH_ERROR'
+      });
     }
   });
   
   app.post("/api/user/preferences", async (req, res) => {
+    // Enhanced authentication check
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Unauthorized' });
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'You must be logged in to update your preferences',
+        code: 'NOT_AUTHENTICATED'
+      });
     }
     
     try {
+      // Validate that preferences is an object
+      if (!req.body || typeof req.body !== 'object') {
+        return res.status(400).json({
+          error: 'Bad Request',
+          message: 'Invalid preferences format',
+          code: 'INVALID_PREFERENCES'
+        });
+      }
+      
       const preferences = req.body;
       const userId = req.user.id;
       
@@ -472,7 +536,11 @@ export function setupAuth(app: Express) {
       res.json(updatedUser.userPreferences || {});
     } catch (error) {
       console.error('Error saving user preferences:', error);
-      res.status(500).json({ message: 'Failed to save user preferences' });
+      res.status(500).json({
+        error: 'Server Error',
+        message: 'Failed to save user preferences',
+        code: 'PREFERENCES_UPDATE_ERROR'
+      });
     }
   });
 }
