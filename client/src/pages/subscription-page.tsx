@@ -23,6 +23,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useCurrency } from "@/hooks/use-currency";
 import { CurrencySelector, PriceDisplay } from "@/components/currency/currency-selector";
 import { CurrencyUpdateInfo } from "@/components/currency/currency-info";
+import { CurrencyRecommendationContainer } from "@/components/currency/currency-recommendation-provider";
 import { 
   Select,
   SelectContent,
@@ -211,7 +212,7 @@ export default function SubscriptionPage() {
         </div>
       </div>
 
-      <div className="text-center mb-10">
+      <div className="text-center mb-4">
         <h2 className="text-2xl font-bold mb-4">Choose the Right Plan for You</h2>
         <p className="text-muted-foreground max-w-2xl mx-auto mb-3">
           Access our premium AI-powered sports predictions with a subscription that fits your strategy. 
@@ -224,6 +225,11 @@ export default function SubscriptionPage() {
         <div className="flex justify-center mt-2">
           <CurrencyUpdateInfo />
         </div>
+      </div>
+      
+      {/* Currency recommendation based on location */}
+      <div className="max-w-3xl mx-auto mb-8">
+        <CurrencyRecommendationContainer />
       </div>
       
       <div className="grid md:grid-cols-3 gap-6">

@@ -5,12 +5,16 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Star, Sliders, Activity, Clock } from "lucide-react";
+import { Star, Sliders, Activity, Clock, Globe } from "lucide-react";
+import { CurrencySelector } from "@/components/currency/currency-selector";
+import { CurrencyRecommendationContainer } from "@/components/currency/currency-recommendation-provider";
+import { useCurrencyRecommendation } from "@/components/currency/currency-recommendation-provider";
 import { getQueryFn } from "@/lib/queryClient";
 
 export function UserPreferences() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { resetRecommendation } = useCurrencyRecommendation();
   const [editMode, setEditMode] = useState(false);
   
   const { data: preferences, isLoading } = useQuery<any>({
@@ -105,7 +109,48 @@ export function UserPreferences() {
         </Button>
       </div>
       
+      {/* Currency recommendation banner */}
+      <div className="mb-6">
+        <CurrencyRecommendationContainer />
+      </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-purple-500" />
+              Currency Settings
+            </CardTitle>
+            <CardDescription>Customize your preferred currency</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center border-b pb-3">
+              <span className="text-muted-foreground">Preferred Currency:</span>
+              <CurrencySelector variant="outline" showLabel={true} />
+            </div>
+            <div className="flex justify-between border-b pb-3">
+              <span className="text-muted-foreground">Location Detection:</span>
+              <Badge variant="outline" className="px-3 py-1">Enabled</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Reset Currency Settings:</span>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  resetRecommendation();
+                  toast({
+                    title: "Currency settings reset",
+                    description: "Your currency preferences have been reset",
+                  });
+                }}
+              >
+                Reset
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
