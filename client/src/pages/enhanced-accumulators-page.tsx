@@ -806,9 +806,13 @@ export default function AccumulatorsPage() {
     queryKey: ['/api/accumulators-package', { sport: filterSport, risk: riskLevel, date: format(date, 'yyyy-MM-dd') }],
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     refetchOnWindowFocus: false,
-    retry: 0, // No automatic retries to prevent loop
+    retry: false, // Disable automatic retries
     retryDelay: 1000,
-    enabled: true
+    enabled: retryCount < 3, // Disable the query after 3 failures
+    refetchInterval: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    refetchIntervalInBackground: false,
   });
   
   // Create a dedicated retry function that intelligently handles retries
@@ -842,27 +846,46 @@ export default function AccumulatorsPage() {
     }
   }, [retryCount, toast, refetchAccumulators, errorHandled]);
   
+  // Auto-detect errors and show custom builder once
   React.useEffect(() => {
     if (accumulatorsError && !errorHandled.current) {
       console.error("Error fetching accumulators:", accumulatorsError);
-      // If the error is quota related, suggest custom builder right away
+      
+      // Show the custom builder immediately on any error
+      setShowCustomBuilder(true);
+      
+      // Display appropriate error message based on error type
       const errorAny = accumulatorsError as any;
-      if (
+      const isQuotaError = 
         errorAny.message?.includes("quota") || 
-        errorAny.status === 429 ||
-        errorAny.message?.includes("upcoming matches")
-      ) {
-        setShowCustomBuilder(true);
-        toast({
-          title: "API Quota Limit Reached",
-          description: "Our sports data API quota limit has been reached. You can create custom accumulators instead.",
-          variant: "destructive",
-        });
-        // Mark that we've handled this error
-        errorHandled.current = true;
+        errorAny.status === 429;
+      
+      const isMatchError = 
+        errorAny.message?.includes("upcoming matches") || 
+        errorAny.message?.includes("Not enough");
+      
+      toast({
+        title: isQuotaError ? "API Quota Limit Reached" : 
+              isMatchError ? "No Matches Available" : 
+              "Unable to Generate Accumulators",
+        description: isQuotaError ? 
+                    "Our sports data API quota limit has been reached. You can create custom accumulators instead." :
+                    isMatchError ? 
+                    "Not enough upcoming matches found. Try changing the date or create custom accumulators instead." :
+                    "We're having trouble generating accumulators. You can create custom ones instead.",
+        variant: "destructive",
+        duration: 5000,
+      });
+      
+      // Disable further API calls by increasing retry count
+      if (retryCount < 3) {
+        setRetryCount(3);
       }
+      
+      // Mark that we've handled this error
+      errorHandled.current = true;
     }
-  }, [accumulatorsError, toast]);
+  }, [accumulatorsError, toast, retryCount]);
   
   // Process accumulators from API response
   const accumulators = useMemo(() => {
@@ -1155,7 +1178,7 @@ export default function AccumulatorsPage() {
           {/* Tab content */}
           <TabsContent value="recommended" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {isLoading ? (
+              {isLoading && retryCount < 3 ? (
                 // Loading skeletons
                 Array(6).fill(0).map((_, index) => (
                   <Card key={index} className="overflow-hidden border border-muted/60">
@@ -1212,7 +1235,7 @@ export default function AccumulatorsPage() {
           
           <TabsContent value="saved" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {isLoading ? (
+              {isLoading && retryCount < 3 ? (
                 // Loading skeletons
                 Array(3).fill(0).map((_, index) => (
                   <Card key={index} className="overflow-hidden border border-muted/60">
@@ -1254,7 +1277,7 @@ export default function AccumulatorsPage() {
           
           <TabsContent value="all" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {isLoading ? (
+              {isLoading && retryCount < 3 ? (
                 // Loading skeletons
                 Array(6).fill(0).map((_, index) => (
                   <Card key={index} className="overflow-hidden border border-muted/60">
