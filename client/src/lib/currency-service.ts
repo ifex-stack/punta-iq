@@ -155,14 +155,14 @@ export function getCurrencyByCode(currencyCode: string): Currency {
 }
 
 /**
- * Convert price from USD to the specified currency
+ * Convert price from GBP to the specified currency
  */
-export function convertPrice(priceInUSD: number, toCurrency: string | Currency): number {
+export function convertPrice(priceInGBP: number, toCurrency: string | Currency): number {
   const currency = typeof toCurrency === 'string' 
     ? getCurrencyByCode(toCurrency) 
     : toCurrency;
   
-  return parseFloat((priceInUSD * currency.rate).toFixed(2));
+  return parseFloat((priceInGBP * currency.rate).toFixed(2));
 }
 
 /**
