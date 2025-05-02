@@ -155,10 +155,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Also invalidate other queries that depend on authentication
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user/preferences'] });
+      
+      // Check if this is a new user (first login) or returning user
+      const isFirstLogin = user.createdAt && new Date(user.createdAt).toDateString() === new Date().toDateString();
       
       toast({
-        title: "Login successful",
-        description: `Welcome back, ${user.username}!`,
+        title: isFirstLogin ? "Welcome to PuntaIQ!" : "Login successful",
+        description: isFirstLogin 
+          ? `Let's personalize your experience, ${user.username}!` 
+          : `Welcome back, ${user.username}!`,
       });
     },
     onError: (error: Error) => {
@@ -184,10 +190,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Invalidate queries that depend on auth
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user/preferences'] });
       
       toast({
         title: "Registration successful",
-        description: `Welcome, ${user.username}!`,
+        description: `Welcome to PuntaIQ, ${user.username}! Let's personalize your experience.`,
+        duration: 5000,
       });
     },
     onError: (error: Error) => {
