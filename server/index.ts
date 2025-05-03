@@ -6,7 +6,7 @@ import { setupCatchAllRoutes } from "./catch-all-routes";
 import { initializeFantasyData } from "./fantasy-data-init";
 import { initializeDatabase } from "./db-init";
 import { automationManager } from "./automation";
-import { startMicroserviceHealthCheck } from "./microservice-health-check";
+import { microserviceHealthMonitor } from "./microservice-health-check";
 import { analytics, AnalyticsEventType } from "./analytics-service";
 import { aiProxyMiddleware } from "./middleware/ai-proxy-middleware";
 import { spawn } from 'child_process';
@@ -195,7 +195,21 @@ app.use((req, res, next) => {
   // Then setup vite in development or static files in production
   if (app.get("env") === "development") {
     logger.info("Setting up Vite middleware for development SPA serving");
-    await setupVite(app, server);
+    try {
+      await setupVite(app, server);
+      logger.info("Vite middleware setup successful");
+    } catch (error) {
+      logger.error(`Failed to setup Vite middleware: ${error.message}`, { error });
+      
+      // Fallback to static serving if Vite middleware setup fails
+      logger.warn("Falling back to static file serving due to Vite setup failure");
+      try {
+        serveStatic(app);
+        logger.info("Static file serving fallback successful");
+      } catch (staticError) {
+        logger.error(`Failed to setup static file serving fallback: ${staticError.message}`, { error: staticError });
+      }
+    }
   } else {
     logger.info("Setting up static file serving for production");
     serveStatic(app);
@@ -398,7 +412,7 @@ app.use((req, res, next) => {
     // Start the microservice health check system
     try {
       appLogger.info('Starting AI microservice health check system');
-      startMicroserviceHealthCheck();
+      microserviceHealthMonitor.start();
       appLogger.info('AI microservice health check system started successfully');
     } catch (error) {
       appLogger.error('Failed to start AI microservice health check system', { error });

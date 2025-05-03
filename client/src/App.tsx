@@ -63,6 +63,14 @@ const Router: React.FC = () => {
   useEffect(() => {
     console.log(`Current location: ${location}`);
     console.log(`Current URL: ${window.location.href}`);
+    
+    // Check if we're on the root path and create a visible flag for debugging
+    if (location === '/') {
+      console.log('PuntaIQ: At root path - rendering main application components');
+      
+      // Add a flag to help with debugging and ensure we're at the right location
+      document.documentElement.dataset.puntalocation = 'root';
+    }
   }, [location]);
   
   // Set navigation state when location changes
@@ -149,7 +157,10 @@ const Router: React.FC = () => {
       <div className="flex-1 relative">
         <AppLayout>
           <Switch>
-            <ProtectedRoute path="/" component={NewPredictionsAndStatsPage} />
+            {/* Public landing page to ensure initial loading works */}
+            <Route path="/" component={HomePage} />
+            
+            {/* Protected routes requiring authentication */}
             <ProtectedRoute path="/predictions" component={NewPredictionsAndStatsPage} />
             <ProtectedRoute path="/stats" component={NewPredictionsAndStatsPage} />
             <ProtectedRoute path="/predictions/advanced" component={AdvancedPredictionsPage} />
@@ -162,7 +173,7 @@ const Router: React.FC = () => {
             <ProtectedRoute path="/fantasy/player-comparison" component={PlayerComparisonPage} />
             <ProtectedRoute path="/fantasy/player-analysis" component={PlayerAnalysisPage} />
             <ProtectedRoute path="/fantasy/player-performance" component={PlayerPerformancePage} />
-            <Route path="/fantasy" component={FantasyContestsPage} />
+            <ProtectedRoute path="/fantasy" component={FantasyContestsPage} />
             <ProtectedRoute path="/subscription" component={SubscriptionPage} />
             <ProtectedRoute path="/subscription-success" component={SubscriptionSuccessPage} />
             <ProtectedRoute path="/profile" component={ProfilePage} />
@@ -171,6 +182,8 @@ const Router: React.FC = () => {
             <ProtectedRoute path="/admin" component={AdminPage} />
             <ProtectedRoute path="/analytics-dashboard" component={AnalyticsDashboardPage} />
             <ProtectedRoute path="/user-demographics" component={UserDemographicsPage} />
+            
+            {/* Public routes accessible without authentication */}
             <Route path="/livescore" component={LiveScorePage} />
             <Route path="/ai-service-status" component={AIServiceStatusPage} />
             <Route path="/faq" component={FAQPage} />

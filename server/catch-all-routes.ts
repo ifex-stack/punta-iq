@@ -27,8 +27,12 @@ export function setupCatchAllRoutes(app: Express): void {
 
   // Handle SPA routes with priority - this must come AFTER API routes, but take precedence over all others
   app.use('*', (req: Request, res: Response, next: NextFunction) => {
-    // Skip if request is for an API route or includes a file extension (likely a static asset)
-    if (req.originalUrl.startsWith('/api/') || req.originalUrl.includes('.')) {
+    // Skip if request is for an API route, AI service route, or includes a file extension (likely a static asset)
+    if (
+      req.originalUrl.startsWith('/api/') || 
+      req.originalUrl.startsWith('/ai-service/') ||
+      req.originalUrl.includes('.')
+    ) {
       return next();
     }
     

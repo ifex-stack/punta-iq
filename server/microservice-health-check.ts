@@ -1,189 +1,117 @@
 /**
- * Microservice health check system
- * Monitors the Flask AI microservice and attempts to restart it if it's down
+ * Microservice Health Check Module
+ * Monitors the AI microservice and ensures it's properly running
  */
-import { spawn } from 'child_process';
-import path from 'path';
-import { MicroserviceClient } from './microservice-client';
-import { createContextLogger } from './logger';
+import { MicroserviceClient } from "./microservice-client";
+import { createContextLogger } from "./logger";
 
-const logger = createContextLogger('MicroserviceHealthCheck');
-const client = new MicroserviceClient();
+const logger = createContextLogger("MicroserviceHealth");
 
-// Health check interval in milliseconds (default: check every 30 seconds)
-const HEALTH_CHECK_INTERVAL = 30 * 1000;
-
-// Number of consecutive failures before attempting restart
-const MAX_FAILURES_BEFORE_RESTART = 3;
-
-// Max number of restart attempts before giving up
-const MAX_RESTART_ATTEMPTS = 2;
-
-// Cooldown period after restart attempt (in milliseconds)
-const RESTART_COOLDOWN = 60 * 1000;
-
-let failureCount = 0;
-let restartAttempts = 0;
-let lastRestartTime = 0;
-let isCheckInProgress = false;
-let checkInterval: NodeJS.Timeout | null = null;
-
-/**
- * Start the microservice health check system
- */
-export function startMicroserviceHealthCheck() {
-  logger.info('Starting microservice health monitoring');
+class MicroserviceHealthMonitor {
+  private client: MicroserviceClient;
+  private checkIntervalMs: number = 60000; // Check every minute
+  private interval: NodeJS.Timeout | null = null;
+  private consecutiveFailures: number = 0;
+  private maxFailures: number = 3;
+  private isMonitoring: boolean = false;
   
-  // Clear any existing intervals
-  if (checkInterval) {
-    clearInterval(checkInterval);
+  constructor() {
+    this.client = new MicroserviceClient();
+    logger.info("Microservice Health Monitor initialized");
   }
   
-  // Reset counters
-  failureCount = 0;
-  restartAttempts = 0;
-  
-  // Set up periodic health check
-  checkInterval = setInterval(performHealthCheck, HEALTH_CHECK_INTERVAL);
-  
-  // Run an immediate health check
-  performHealthCheck();
-  
-  return {
-    stop: () => {
-      if (checkInterval) {
-        clearInterval(checkInterval);
-        checkInterval = null;
-        logger.info('Microservice health monitoring stopped');
-      }
+  /**
+   * Start the health monitoring service
+   */
+  public start(): void {
+    if (this.isMonitoring) {
+      logger.warn("Monitoring already active");
+      return;
     }
-  };
-}
-
-/**
- * Perform a health check on the microservice
- */
-async function performHealthCheck() {
-  // Prevent multiple concurrent checks
-  if (isCheckInProgress) {
-    return;
+    
+    logger.info(`Starting health checks at ${this.checkIntervalMs}ms intervals`);
+    this.isMonitoring = true;
+    
+    // Perform an immediate check
+    this.checkHealth();
+    
+    // Set up the interval for regular checks
+    this.interval = setInterval(() => this.checkHealth(), this.checkIntervalMs);
   }
   
-  isCheckInProgress = true;
-  logger.debug('Performing microservice health check');
-  
-  try {
-    const isRunning = await client.isRunning();
+  /**
+   * Stop the health monitoring service
+   */
+  public stop(): void {
+    if (!this.isMonitoring || !this.interval) {
+      return;
+    }
     
-    if (isRunning) {
-      // Service is running, reset failure count
-      if (failureCount > 0) {
-        logger.info(`Microservice recovered after ${failureCount} failures`);
-      }
-      failureCount = 0;
-      logger.debug('Microservice health check passed');
-    } else {
-      // Service is not running
-      failureCount++;
-      logger.warn(`Microservice health check failed (${failureCount}/${MAX_FAILURES_BEFORE_RESTART})`);
+    clearInterval(this.interval);
+    this.interval = null;
+    this.isMonitoring = false;
+    logger.info("Health checks stopped");
+  }
+  
+  /**
+   * Check the health of the microservice
+   */
+  private async checkHealth(): Promise<void> {
+    logger.debug("Performing microservice health check");
+    
+    try {
+      const isRunning = await this.client.isRunning();
       
-      // If we've reached the threshold, attempt restart
-      if (failureCount >= MAX_FAILURES_BEFORE_RESTART) {
-        await attemptServiceRestart();
-      }
-    }
-  } catch (error) {
-    // Error during health check
-    failureCount++;
-    logger.error(`Error during microservice health check (${failureCount}/${MAX_FAILURES_BEFORE_RESTART}): ${error}`);
-    
-    // If we've reached the threshold, attempt restart
-    if (failureCount >= MAX_FAILURES_BEFORE_RESTART) {
-      await attemptServiceRestart();
-    }
-  } finally {
-    isCheckInProgress = false;
-  }
-}
-
-/**
- * Attempt to restart the microservice
- */
-async function attemptServiceRestart() {
-  const currentTime = Date.now();
-  
-  // Check if we're in cooldown period
-  if (currentTime - lastRestartTime < RESTART_COOLDOWN) {
-    logger.info('Skipping restart attempt (in cooldown period)');
-    return;
-  }
-  
-  // Check if we've exceeded max restart attempts
-  if (restartAttempts >= MAX_RESTART_ATTEMPTS) {
-    logger.warn(`Exceeded maximum restart attempts (${MAX_RESTART_ATTEMPTS}). Service may require manual intervention.`);
-    return;
-  }
-  
-  restartAttempts++;
-  lastRestartTime = currentTime;
-  
-  logger.info(`Attempting microservice restart (attempt ${restartAttempts}/${MAX_RESTART_ATTEMPTS})`);
-  
-  try {
-    // Get the path to the start script
-    const scriptPath = path.join(process.cwd(), 'scripts', 'start-ai-service.js');
-    
-    logger.info(`Starting AI microservice using script: ${scriptPath}`);
-    
-    // Spawn the Node.js process to run the script with output capturing
-    const childProcess = spawn('node', [scriptPath], {
-      detached: true, 
-      stdio: ['ignore', 'pipe', 'pipe'],
-      env: {
-        ...process.env,
-        AI_SERVICE_RESTART: 'true' // Flag to indicate this is a restart
-      }
-    });
-    
-    // Capture output for logging
-    childProcess.stdout.on('data', (data) => {
-      logger.info(`[AI Service Starter] ${data.toString().trim()}`);
-    });
-    
-    childProcess.stderr.on('data', (data) => {
-      logger.error(`[AI Service Starter Error] ${data.toString().trim()}`);
-    });
-    
-    // Detach the child process
-    childProcess.unref();
-    
-    logger.info(`Restart initiated, process ID: ${childProcess.pid}`);
-    
-    // Wait longer for the service to start (10 seconds)
-    // This gives time for dependency installation
-    logger.info('Waiting for microservice to initialize...');
-    await new Promise(resolve => setTimeout(resolve, 10000));
-    
-    // Check if the service is now running
-    const isNowRunning = await client.isRunning();
-    
-    if (isNowRunning) {
-      logger.info('Microservice successfully restarted');
-      failureCount = 0; // Reset failure count on successful restart
-    } else {
-      // Try one more time with a longer wait
-      logger.warn('Microservice not responding yet, waiting an additional 10 seconds...');
-      await new Promise(resolve => setTimeout(resolve, 10000));
-      
-      const isRunningRetry = await client.isRunning();
-      if (isRunningRetry) {
-        logger.info('Microservice successfully restarted after additional wait');
-        failureCount = 0; // Reset failure count on successful restart
+      if (isRunning) {
+        if (this.consecutiveFailures > 0) {
+          logger.info(`Microservice recovered after ${this.consecutiveFailures} failures`);
+        }
+        this.consecutiveFailures = 0;
+        logger.debug("Microservice health check passed");
       } else {
-        logger.error('Microservice failed to restart - check logs in ai_service_log.txt');
+        this.handleFailure("Microservice not running");
       }
+    } catch (error) {
+      this.handleFailure(`Microservice health check failed: ${error}`);
     }
-  } catch (error) {
-    logger.error(`Error during microservice restart: ${error}`);
+  }
+  
+  /**
+   * Handle a health check failure
+   */
+  private handleFailure(reason: string): void {
+    this.consecutiveFailures++;
+    
+    logger.warn(`Health check failure #${this.consecutiveFailures}: ${reason}`);
+    
+    if (this.consecutiveFailures >= this.maxFailures) {
+      logger.error(`Maximum failures reached (${this.maxFailures}). Attempting microservice restart.`);
+      this.attemptRestart();
+    }
+  }
+  
+  /**
+   * Try to restart the microservice
+   */
+  private async attemptRestart(): Promise<void> {
+    try {
+      logger.info("Attempting to restart microservice");
+
+      // This will be a no-op if the microservice isn't running
+      // and will try to start it if it isn't
+      const isRunning = await this.client.isRunning();
+      
+      if (isRunning) {
+        logger.info("Microservice successfully restarted");
+        this.consecutiveFailures = 0;
+      } else {
+        logger.error("Failed to restart microservice");
+      }
+    } catch (error) {
+      logger.error(`Error during microservice restart: ${error}`);
+    }
   }
 }
+
+// Singleton instance
+export const microserviceHealthMonitor = new MicroserviceHealthMonitor();

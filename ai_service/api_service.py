@@ -180,30 +180,61 @@ def check_sportsdb_api_status():
 @app.route('/api/sports', methods=['GET'])
 def get_sports():
     if not ODDS_API_KEY:
-        return jsonify({'error': 'API key not configured'}), 401
+        logger.warning("OddsAPI key not configured")
+        # Return a more helpful error message
+        return jsonify({
+            'error': 'OddsAPI key not configured',
+            'message': 'Please configure a valid OddsAPI key to access sports data',
+            'status': 'error'
+        }), 401
     
     try:
+        logger.info("Getting supported sports from OddsAPI")
         url = f"{ODDS_API_URL}/v4/sports?apiKey={ODDS_API_KEY}"
-        response = requests.get(url)
+        logger.info(f"Fetching sports data from URL: {url}")
+        response = requests.get(url, timeout=10)
         
         if response.status_code != 200:
-            return jsonify({'error': f'API responded with status code {response.status_code}'}), response.status_code
+            logger.warning(f"OddsAPI responded with status code {response.status_code}")
+            error_message = f'OddsAPI responded with status code {response.status_code}'
+            
+            # Add more context based on common error codes
+            if response.status_code == 401:
+                error_message = 'OddsAPI key is invalid or expired'
+            elif response.status_code == 429:
+                error_message = 'OddsAPI rate limit exceeded. Please try again later.'
+                
+            return jsonify({
+                'error': error_message,
+                'status': 'error'
+            }), response.status_code
         
         sports_data = response.json()
         
         # Update requests remaining
         if 'x-requests-remaining' in response.headers:
             STATUS_TRACKER['odds_api']['requests_remaining'] = response.headers['x-requests-remaining']
+            logger.info(f"OddsAPI requests remaining: {STATUS_TRACKER['odds_api']['requests_remaining']}")
         
         return jsonify(sports_data)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error fetching sports data: {str(e)}")
+        return jsonify({
+            'error': str(e),
+            'message': 'Failed to connect to OddsAPI. Please check your internet connection and try again.',
+            'status': 'error'
+        }), 500
 
 # Get odds for a specific sport
 @app.route('/api/odds/<sport>', methods=['GET'])
 def get_odds(sport):
     if not ODDS_API_KEY:
-        return jsonify({'error': 'API key not configured'}), 401
+        logger.warning("OddsAPI key not configured")
+        return jsonify({
+            'error': 'OddsAPI key not configured',
+            'message': 'Please configure a valid OddsAPI key to access odds data',
+            'status': 'error'
+        }), 401
     
     try:
         regions = request.args.get('regions', 'uk,us,eu')
@@ -211,6 +242,7 @@ def get_odds(sport):
         date_format = request.args.get('dateFormat', 'iso')
         odds_format = request.args.get('oddsFormat', 'decimal')
         
+        logger.info(f"Getting odds for sport: {sport}")
         url = f"{ODDS_API_URL}/v4/sports/{sport}/odds"
         params = {
             'apiKey': ODDS_API_KEY,
@@ -220,22 +252,42 @@ def get_odds(sport):
             'oddsFormat': odds_format
         }
         
-        response = requests.get(url, params=params)
+        logger.info(f"Fetching odds data from URL: {url}")
+        response = requests.get(url, params=params, timeout=10)
         
         if response.status_code != 200:
-            return jsonify({'error': f'API responded with status code {response.status_code}'}), response.status_code
+            logger.warning(f"OddsAPI responded with status code {response.status_code}")
+            error_message = f'OddsAPI responded with status code {response.status_code}'
+            
+            # Add more context based on common error codes
+            if response.status_code == 401:
+                error_message = 'OddsAPI key is invalid or expired'
+            elif response.status_code == 429:
+                error_message = 'OddsAPI rate limit exceeded. Please try again later.'
+            
+            return jsonify({
+                'error': error_message,
+                'status': 'error'
+            }), response.status_code
         
         odds_data = response.json()
+        logger.info(f"Successfully fetched odds data for {sport}")
         matches = convert_to_standardized_matches(odds_data, sport)
         
         # Update requests remaining
         if 'x-requests-remaining' in response.headers:
             STATUS_TRACKER['odds_api']['requests_remaining'] = response.headers['x-requests-remaining']
+            logger.info(f"OddsAPI requests remaining: {STATUS_TRACKER['odds_api']['requests_remaining']}")
         
         return jsonify(matches)
     except Exception as e:
+        logger.error(f"Error fetching odds data: {str(e)}")
         traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'error': str(e),
+            'message': 'Failed to connect to OddsAPI. Please check your internet connection and try again.',
+            'status': 'error'
+        }), 500
 
 def convert_to_standardized_matches(odds_data, sport):
     """Convert odds API data to standardized match objects"""
@@ -307,7 +359,8 @@ def get_livescore():
         
         # Initialize the combined data structure
         livescore_data = {
-            'events': []
+            'events': [],
+            'note': ''  # Initialize note as empty string
         }
         
         # Add past events if available
@@ -325,10 +378,10 @@ def get_livescore():
                 livescore_data['events'].extend(upcoming_data['events'])
         
         # Add a note about using free tier data
-        livescore_data['note'] = "Using past/upcoming events data from free API tier. For real-time scores, upgrade to premium."
-        
-        # If we have no events at all, return a clear error
-        if not livescore_data['events']:
+        if livescore_data['events']:
+            livescore_data['note'] = "Using past/upcoming events data from free API tier. For real-time scores, upgrade to premium."
+        else:
+            # If we have no events at all, add a clear message
             livescore_data['note'] = "No events data available for this league."
             
         return jsonify(livescore_data)
@@ -342,13 +395,11 @@ def get_league_fixtures(league_id):
     try:
         logger.info(f"Getting fixtures for league ID: {league_id}")
         
-        # Free tier endpoint is already correctly formatted
+        # Free tier endpoint is already correctly formatted with API key "3" in the URL
         url = f"{SPORTS_DB_API_URL}/eventsnextleague.php?id={league_id}"
         
-        # Premium key can still be used if available
-        if SPORTS_API_KEY:
-            logger.info("Using premium API key for fixtures data")
-            url = f"{url}&key={SPORTS_API_KEY}"
+        # The free tier API key "3" is already included in SPORTS_DB_API_URL
+        # Don't add the premium key as a parameter with the free tier URL
         
         logger.info(f"Fetching fixtures data from URL: {url}")
         response = requests.get(url, timeout=10)
@@ -369,13 +420,11 @@ def get_teams(league_id):
     try:
         logger.info(f"Getting teams for league ID: {league_id}")
         
-        # Free tier endpoint is already correctly formatted
+        # Free tier endpoint is already correctly formatted with API key "3" in the URL
         url = f"{SPORTS_DB_API_URL}/lookup_all_teams.php?id={league_id}"
         
-        # Premium key can still be used if available
-        if SPORTS_API_KEY:
-            logger.info("Using premium API key for teams data")
-            url = f"{url}&key={SPORTS_API_KEY}"
+        # The free tier API key "3" is already included in SPORTS_DB_API_URL
+        # Don't add the premium key as a parameter with the free tier URL
         
         logger.info(f"Fetching teams data from URL: {url}")
         response = requests.get(url, timeout=10)
@@ -396,13 +445,11 @@ def get_leagues():
     try:
         logger.info("Getting all leagues")
         
-        # Free tier endpoint is already correctly formatted
+        # Free tier endpoint is already correctly formatted with API key "3" in the URL
         url = f"{SPORTS_DB_API_URL}/all_leagues.php"
         
-        # Premium key can still be used if available
-        if SPORTS_API_KEY:
-            logger.info("Using premium API key for leagues data")
-            url = f"{url}?key={SPORTS_API_KEY}"
+        # The free tier API key "3" is already included in SPORTS_DB_API_URL
+        # Don't add the premium key as a parameter with the free tier URL
         
         logger.info(f"Fetching leagues data from URL: {url}")
         response = requests.get(url, timeout=10)

@@ -91,6 +91,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up analytics routes
   app.use('/api/analytics', analyticsRouter);
   
+  // Add a debug route to help diagnose issues
+  app.get('/api/debug/info', (req, res) => {
+    routesLogger.info('Debug info endpoint called');
+    res.json({
+      appMode: process.env.NODE_ENV || 'development',
+      aiServiceUrl: 'http://localhost:5000',
+      apiServerUrl: 'http://localhost:3000',
+      serverTime: new Date().toISOString(),
+      message: 'PuntaIQ API server is running correctly'
+    });
+  });
+  
   // Try to start the microservice at server initialization
   try {
     const microserviceClient = new MicroserviceClient();
@@ -3884,8 +3896,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     console.log(`SPA catch-all handling route: ${req.path}`);
     
-    // Send the index.html for all client-side routes
-    res.sendFile('index.html', { root: './client' });
+    // Try multiple potential locations for index.html in order of preference
+    const indexLocations = [
+      { root: './public' },           // 1. Check public folder (SPA fallback)
+      { root: './client' },           // 2. Check client folder (development)
+      { root: './client/dist' },      // 3. Check client/dist (production build)
+      { root: './client/public' },    // 4. Check client/public (some frameworks)
+      { root: '.' }                   // 5. Check project root as last resort
+    ];
+    
+    // Try each location until we find the index.html
+    let foundIndex = false;
+    
+    // Try the first location immediately
+    res.sendFile('index.html', indexLocations[0], (err) => {
+      if (!err) {
+        foundIndex = true;
+        return; // Successfully sent the file
+      }
+      
+      // If first location failed, try the remaining locations
+      let attemptIndex = 1;
+      const tryNextLocation = () => {
+        if (attemptIndex >= indexLocations.length) {
+          // If we've tried all locations and none worked, forward to next middleware
+          if (!foundIndex) {
+            console.error(`Could not find index.html in any location for route: ${req.path}`);
+            next();
+          }
+          return;
+        }
+        
+        res.sendFile('index.html', indexLocations[attemptIndex], (nextErr) => {
+          if (!nextErr) {
+            foundIndex = true;
+            return; // Successfully sent the file
+          }
+          
+          // Try next location
+          attemptIndex++;
+          tryNextLocation();
+        });
+      };
+      
+      tryNextLocation();
+    });
   });
 
   return httpServer;
