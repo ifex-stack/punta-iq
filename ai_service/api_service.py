@@ -32,11 +32,12 @@ app = Flask(__name__)
 
 # API URLs
 ODDS_API_URL = "https://api.the-odds-api.com"
-SPORTS_DB_API_URL = "https://www.thesportsdb.com/api/v1/json"
+# TheSportsDB free tier uses 3 as the API key in the URL
+SPORTS_DB_API_URL = "https://www.thesportsdb.com/api/v1/json/3"
 
 # API Keys
 ODDS_API_KEY = os.getenv('ODDS_API_KEY')
-SPORTS_API_KEY = os.getenv('API_SPORTS_KEY')
+SPORTS_API_KEY = os.getenv('API_SPORTS_KEY')  # Store this for future premium upgrade
 
 # Status tracker for external services
 STATUS_TRACKER = {
@@ -139,25 +140,39 @@ def check_sportsdb_api_status():
         return
     
     try:
-        # Simple leagues request to check API status
-        url = f"{SPORTS_DB_API_URL}/1/all_leagues.php"
+        # Simple leagues request to check API status - this endpoint works with free tier
+        url = f"{SPORTS_DB_API_URL}/all_leagues.php"
+        logger.info(f"Checking SportsDB API status with URL: {url}")
+        
         response = requests.get(url, timeout=5)
         
         if response.status_code == 200:
-            STATUS_TRACKER['sportsdb_api']['status'] = 'ok'
-            STATUS_TRACKER['sportsdb_api']['message'] = 'API is operational'
+            # Verify we got actual data back
+            data = response.json()
+            if data and 'leagues' in data and len(data['leagues']) > 0:
+                STATUS_TRACKER['sportsdb_api']['status'] = 'ok'
+                STATUS_TRACKER['sportsdb_api']['message'] = 'API is operational'
+                logger.info("SportsDB API check passed successfully")
+            else:
+                STATUS_TRACKER['sportsdb_api']['status'] = 'degraded'
+                STATUS_TRACKER['sportsdb_api']['message'] = 'API responded with empty data'
+                logger.warning("SportsDB API returned empty data")
         elif response.status_code == 401 or response.status_code == 403:
             STATUS_TRACKER['sportsdb_api']['status'] = 'error'
             STATUS_TRACKER['sportsdb_api']['message'] = 'API unauthorized'
+            logger.error(f"SportsDB API unauthorized: {response.status_code}")
         elif response.status_code == 429:
             STATUS_TRACKER['sportsdb_api']['status'] = 'degraded'
             STATUS_TRACKER['sportsdb_api']['message'] = 'Rate limited'
+            logger.warning("SportsDB API rate limited")
         else:
             STATUS_TRACKER['sportsdb_api']['status'] = 'degraded'
             STATUS_TRACKER['sportsdb_api']['message'] = f'API responded with status code {response.status_code}'
+            logger.warning(f"SportsDB API responded with status code {response.status_code}")
     except Exception as e:
         STATUS_TRACKER['sportsdb_api']['status'] = 'error'
         STATUS_TRACKER['sportsdb_api']['message'] = f'Connection error: {str(e)}'
+        logger.error(f"SportsDB API connection error: {str(e)}")
     
     STATUS_TRACKER['sportsdb_api']['last_check'] = datetime.now()
 
@@ -265,80 +280,141 @@ def convert_to_standardized_matches(odds_data, sport):
     
     return standardized_matches
 
-# Get live scores
+# Get live scores (using alternative endpoint in free tier)
 @app.route('/api/livescore', methods=['GET'])
 def get_livescore():
     try:
-        url = f"{SPORTS_DB_API_URL}/2/livescore.php"
+        # For free tier, we must use league event endpoints as livescore endpoint isn't available
+        # By default, we'll use English Premier League (ID: 4328)
+        league_id = request.args.get('league_id', '4328')
+        logger.info(f"Getting livescore data for league ID: {league_id}")
         
-        if SPORTS_API_KEY:
-            url = f"{url}?key={SPORTS_API_KEY}"
+        # With free tier (API key "3"), we can't access livescore.php directly
+        # We'll combine both past and upcoming matches to simulate a livescore feed
+        past_url = f"{SPORTS_DB_API_URL}/eventspastleague.php?id={league_id}"
+        upcoming_url = f"{SPORTS_DB_API_URL}/eventsnextleague.php?id={league_id}"
         
-        response = requests.get(url)
+        logger.info(f"Fetching past events from URL: {past_url}")
+        past_response = requests.get(past_url, timeout=10)
         
-        if response.status_code != 200:
-            return jsonify({'error': f'API responded with status code {response.status_code}'}), response.status_code
+        logger.info(f"Fetching upcoming events from URL: {upcoming_url}")
+        upcoming_response = requests.get(upcoming_url, timeout=10)
         
-        livescore_data = response.json()
+        # Check if both requests were successful
+        if past_response.status_code != 200 and upcoming_response.status_code != 200:
+            logger.warning(f"Both API requests failed with status codes {past_response.status_code} and {upcoming_response.status_code}")
+            return jsonify({'error': 'Failed to fetch event data'}), 500
+        
+        # Initialize the combined data structure
+        livescore_data = {
+            'events': []
+        }
+        
+        # Add past events if available
+        if past_response.status_code == 200:
+            past_data = past_response.json()
+            if 'events' in past_data and past_data['events']:
+                logger.info(f"Adding {len(past_data['events'])} past events")
+                livescore_data['events'].extend(past_data['events'])
+        
+        # Add upcoming events if available
+        if upcoming_response.status_code == 200:
+            upcoming_data = upcoming_response.json()
+            if 'events' in upcoming_data and upcoming_data['events']:
+                logger.info(f"Adding {len(upcoming_data['events'])} upcoming events")
+                livescore_data['events'].extend(upcoming_data['events'])
+        
+        # Add a note about using free tier data
+        livescore_data['note'] = "Using past/upcoming events data from free API tier. For real-time scores, upgrade to premium."
+        
+        # If we have no events at all, return a clear error
+        if not livescore_data['events']:
+            livescore_data['note'] = "No events data available for this league."
+            
         return jsonify(livescore_data)
     except Exception as e:
+        logger.error(f"Error fetching livescore data: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 # Get fixtures for a league
 @app.route('/api/fixtures/league/<league_id>', methods=['GET'])
 def get_league_fixtures(league_id):
     try:
-        url = f"{SPORTS_DB_API_URL}/1/eventsnextleague.php?id={league_id}"
+        logger.info(f"Getting fixtures for league ID: {league_id}")
         
+        # Free tier endpoint is already correctly formatted
+        url = f"{SPORTS_DB_API_URL}/eventsnextleague.php?id={league_id}"
+        
+        # Premium key can still be used if available
         if SPORTS_API_KEY:
+            logger.info("Using premium API key for fixtures data")
             url = f"{url}&key={SPORTS_API_KEY}"
         
-        response = requests.get(url)
+        logger.info(f"Fetching fixtures data from URL: {url}")
+        response = requests.get(url, timeout=10)
         
         if response.status_code != 200:
+            logger.warning(f"API responded with status code {response.status_code}")
             return jsonify({'error': f'API responded with status code {response.status_code}'}), response.status_code
         
         fixtures_data = response.json()
         return jsonify(fixtures_data)
     except Exception as e:
+        logger.error(f"Error fetching fixtures data: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 # Get teams in a league
 @app.route('/api/teams/league/<league_id>', methods=['GET'])
 def get_teams(league_id):
     try:
-        url = f"{SPORTS_DB_API_URL}/1/lookup_all_teams.php?id={league_id}"
+        logger.info(f"Getting teams for league ID: {league_id}")
         
+        # Free tier endpoint is already correctly formatted
+        url = f"{SPORTS_DB_API_URL}/lookup_all_teams.php?id={league_id}"
+        
+        # Premium key can still be used if available
         if SPORTS_API_KEY:
+            logger.info("Using premium API key for teams data")
             url = f"{url}&key={SPORTS_API_KEY}"
         
-        response = requests.get(url)
+        logger.info(f"Fetching teams data from URL: {url}")
+        response = requests.get(url, timeout=10)
         
         if response.status_code != 200:
+            logger.warning(f"API responded with status code {response.status_code}")
             return jsonify({'error': f'API responded with status code {response.status_code}'}), response.status_code
         
         teams_data = response.json()
         return jsonify(teams_data)
     except Exception as e:
+        logger.error(f"Error fetching teams data: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 # Get all leagues
 @app.route('/api/leagues', methods=['GET'])
 def get_leagues():
     try:
-        url = f"{SPORTS_DB_API_URL}/1/all_leagues.php"
+        logger.info("Getting all leagues")
         
+        # Free tier endpoint is already correctly formatted
+        url = f"{SPORTS_DB_API_URL}/all_leagues.php"
+        
+        # Premium key can still be used if available
         if SPORTS_API_KEY:
+            logger.info("Using premium API key for leagues data")
             url = f"{url}?key={SPORTS_API_KEY}"
         
-        response = requests.get(url)
+        logger.info(f"Fetching leagues data from URL: {url}")
+        response = requests.get(url, timeout=10)
         
         if response.status_code != 200:
+            logger.warning(f"API responded with status code {response.status_code}")
             return jsonify({'error': f'API responded with status code {response.status_code}'}), response.status_code
         
         leagues_data = response.json()
         return jsonify(leagues_data)
     except Exception as e:
+        logger.error(f"Error fetching leagues data: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':

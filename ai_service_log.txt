@@ -700,3 +700,339 @@ Error: AI Service failed to start properly: exit code 1
 [STDOUT] [2025-05-03 14:28:07,848] [INFO] 127.0.0.1 - - [03/May/2025 14:28:07] "GET /api/status HTTP/1.1" 200 -
 [STDOUT] [2025-05-03 14:28:07,875] [INFO] 127.0.0.1 - - [03/May/2025 14:28:07] "GET /api/status HTTP/1.1" 200 -
 [STDOUT] [2025-05-03 14:28:07,902] [INFO] 127.0.0.1 - - [03/May/2025 14:28:07] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:28:32,522] [INFO] 127.0.0.1 - - [03/May/2025 14:28:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:28:32,526] [INFO] 127.0.0.1 - - [03/May/2025 14:28:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:29:02,529] [INFO] 127.0.0.1 - - [03/May/2025 14:29:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:29:32,523] [INFO] 127.0.0.1 - - [03/May/2025 14:29:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:30:02,525] [INFO] 127.0.0.1 - - [03/May/2025 14:30:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:30:32,524] [INFO] 127.0.0.1 - - [03/May/2025 14:30:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:31:02,524] [INFO] 127.0.0.1 - - [03/May/2025 14:31:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:31:32,525] [INFO] 127.0.0.1 - - [03/May/2025 14:31:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:32:02,526] [INFO] 127.0.0.1 - - [03/May/2025 14:32:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:32:32,526] [INFO] 127.0.0.1 - - [03/May/2025 14:32:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:33:02,527] [INFO] 127.0.0.1 - - [03/May/2025 14:33:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:33:33,454] [INFO] 127.0.0.1 - - [03/May/2025 14:33:33] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:34:02,528] [INFO] 127.0.0.1 - - [03/May/2025 14:34:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:34:32,529] [INFO] 127.0.0.1 - - [03/May/2025 14:34:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:35:02,529] [INFO] 127.0.0.1 - - [03/May/2025 14:35:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:35:32,528] [INFO] 127.0.0.1 - - [03/May/2025 14:35:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:36:02,529] [INFO] 127.0.0.1 - - [03/May/2025 14:36:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:36:32,529] [INFO] 127.0.0.1 - - [03/May/2025 14:36:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:37:02,529] [INFO] 127.0.0.1 - - [03/May/2025 14:37:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:37:32,530] [INFO] 127.0.0.1 - - [03/May/2025 14:37:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:38:02,529] [INFO] 127.0.0.1 - - [03/May/2025 14:38:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:38:32,530] [INFO] 127.0.0.1 - - [03/May/2025 14:38:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:39:02,881] [INFO] 127.0.0.1 - - [03/May/2025 14:39:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:39:32,529] [INFO] 127.0.0.1 - - [03/May/2025 14:39:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:40:02,529] [INFO] 127.0.0.1 - - [03/May/2025 14:40:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:40:32,530] [INFO] 127.0.0.1 - - [03/May/2025 14:40:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:41:02,530] [INFO] 127.0.0.1 - - [03/May/2025 14:41:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:41:32,530] [INFO] 127.0.0.1 - - [03/May/2025 14:41:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:42:02,535] [INFO] 127.0.0.1 - - [03/May/2025 14:42:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:42:32,530] [INFO] 127.0.0.1 - - [03/May/2025 14:42:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:43:02,530] [INFO] 127.0.0.1 - - [03/May/2025 14:43:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:43:32,530] [INFO] 127.0.0.1 - - [03/May/2025 14:43:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:44:02,530] [INFO] 127.0.0.1 - - [03/May/2025 14:44:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:44:32,856] [INFO] 127.0.0.1 - - [03/May/2025 14:44:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:45:02,531] [INFO] 127.0.0.1 - - [03/May/2025 14:45:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:45:32,533] [INFO] 127.0.0.1 - - [03/May/2025 14:45:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:46:02,533] [INFO] 127.0.0.1 - - [03/May/2025 14:46:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:46:32,534] [INFO] 127.0.0.1 - - [03/May/2025 14:46:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:47:02,534] [INFO] 127.0.0.1 - - [03/May/2025 14:47:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:47:32,537] [INFO] 127.0.0.1 - - [03/May/2025 14:47:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:48:02,536] [INFO] 127.0.0.1 - - [03/May/2025 14:48:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:48:32,537] [INFO] 127.0.0.1 - - [03/May/2025 14:48:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:49:02,537] [INFO] 127.0.0.1 - - [03/May/2025 14:49:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:49:32,538] [INFO] 127.0.0.1 - - [03/May/2025 14:49:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:50:02,992] [INFO] 127.0.0.1 - - [03/May/2025 14:50:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:50:32,538] [INFO] 127.0.0.1 - - [03/May/2025 14:50:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:51:02,539] [INFO] 127.0.0.1 - - [03/May/2025 14:51:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:51:32,539] [INFO] 127.0.0.1 - - [03/May/2025 14:51:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:52:02,540] [INFO] 127.0.0.1 - - [03/May/2025 14:52:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:52:32,540] [INFO] 127.0.0.1 - - [03/May/2025 14:52:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:53:02,539] [INFO] 127.0.0.1 - - [03/May/2025 14:53:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:53:32,539] [INFO] 127.0.0.1 - - [03/May/2025 14:53:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:54:02,539] [INFO] 127.0.0.1 - - [03/May/2025 14:54:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:54:32,539] [INFO] 127.0.0.1 - - [03/May/2025 14:54:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:55:02,539] [INFO] 127.0.0.1 - - [03/May/2025 14:55:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:55:32,969] [INFO] 127.0.0.1 - - [03/May/2025 14:55:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:56:02,539] [INFO] 127.0.0.1 - - [03/May/2025 14:56:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:56:32,539] [INFO] 127.0.0.1 - - [03/May/2025 14:56:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:57:02,539] [INFO] 127.0.0.1 - - [03/May/2025 14:57:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:57:32,540] [INFO] 127.0.0.1 - - [03/May/2025 14:57:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:58:02,541] [INFO] 127.0.0.1 - - [03/May/2025 14:58:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:58:32,542] [INFO] 127.0.0.1 - - [03/May/2025 14:58:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:59:02,542] [INFO] 127.0.0.1 - - [03/May/2025 14:59:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 14:59:32,542] [INFO] 127.0.0.1 - - [03/May/2025 14:59:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:00:02,542] [INFO] 127.0.0.1 - - [03/May/2025 15:00:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:00:32,543] [INFO] 127.0.0.1 - - [03/May/2025 15:00:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:01:02,854] [INFO] 127.0.0.1 - - [03/May/2025 15:01:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:01:32,545] [INFO] 127.0.0.1 - - [03/May/2025 15:01:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:02:02,546] [INFO] 127.0.0.1 - - [03/May/2025 15:02:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:02:32,546] [INFO] 127.0.0.1 - - [03/May/2025 15:02:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:03:02,546] [INFO] 127.0.0.1 - - [03/May/2025 15:03:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:03:32,547] [INFO] 127.0.0.1 - - [03/May/2025 15:03:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:04:02,547] [INFO] 127.0.0.1 - - [03/May/2025 15:04:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:04:32,547] [INFO] 127.0.0.1 - - [03/May/2025 15:04:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:05:02,548] [INFO] 127.0.0.1 - - [03/May/2025 15:05:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:05:32,549] [INFO] 127.0.0.1 - - [03/May/2025 15:05:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:06:02,550] [INFO] 127.0.0.1 - - [03/May/2025 15:06:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:06:32,953] [INFO] 127.0.0.1 - - [03/May/2025 15:06:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:07:02,551] [INFO] 127.0.0.1 - - [03/May/2025 15:07:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:07:32,552] [INFO] 127.0.0.1 - - [03/May/2025 15:07:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:08:02,552] [INFO] 127.0.0.1 - - [03/May/2025 15:08:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:08:32,553] [INFO] 127.0.0.1 - - [03/May/2025 15:08:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:09:02,553] [INFO] 127.0.0.1 - - [03/May/2025 15:09:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:09:32,552] [INFO] 127.0.0.1 - - [03/May/2025 15:09:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:10:02,553] [INFO] 127.0.0.1 - - [03/May/2025 15:10:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:10:32,552] [INFO] 127.0.0.1 - - [03/May/2025 15:10:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:11:02,552] [INFO] 127.0.0.1 - - [03/May/2025 15:11:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:11:32,552] [INFO] 127.0.0.1 - - [03/May/2025 15:11:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:12:02,900] [INFO] 127.0.0.1 - - [03/May/2025 15:12:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:12:32,553] [INFO] 127.0.0.1 - - [03/May/2025 15:12:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:13:02,554] [INFO] 127.0.0.1 - - [03/May/2025 15:13:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:13:32,555] [INFO] 127.0.0.1 - - [03/May/2025 15:13:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:14:02,556] [INFO] 127.0.0.1 - - [03/May/2025 15:14:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:14:32,557] [INFO] 127.0.0.1 - - [03/May/2025 15:14:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:15:02,558] [INFO] 127.0.0.1 - - [03/May/2025 15:15:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:15:32,560] [INFO] 127.0.0.1 - - [03/May/2025 15:15:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:16:02,560] [INFO] 127.0.0.1 - - [03/May/2025 15:16:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:16:32,561] [INFO] 127.0.0.1 - - [03/May/2025 15:16:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:17:02,561] [INFO] 127.0.0.1 - - [03/May/2025 15:17:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:17:32,923] [INFO] 127.0.0.1 - - [03/May/2025 15:17:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:18:02,564] [INFO] 127.0.0.1 - - [03/May/2025 15:18:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:18:32,565] [INFO] 127.0.0.1 - - [03/May/2025 15:18:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:19:02,564] [INFO] 127.0.0.1 - - [03/May/2025 15:19:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:19:32,566] [INFO] 127.0.0.1 - - [03/May/2025 15:19:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:20:02,566] [INFO] 127.0.0.1 - - [03/May/2025 15:20:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:20:32,566] [INFO] 127.0.0.1 - - [03/May/2025 15:20:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:21:02,567] [INFO] 127.0.0.1 - - [03/May/2025 15:21:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:21:32,566] [INFO] 127.0.0.1 - - [03/May/2025 15:21:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:22:02,567] [INFO] 127.0.0.1 - - [03/May/2025 15:22:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:22:32,567] [INFO] 127.0.0.1 - - [03/May/2025 15:22:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:23:02,913] [INFO] 127.0.0.1 - - [03/May/2025 15:23:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:23:32,567] [INFO] 127.0.0.1 - - [03/May/2025 15:23:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:24:02,567] [INFO] 127.0.0.1 - - [03/May/2025 15:24:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:24:32,569] [INFO] 127.0.0.1 - - [03/May/2025 15:24:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:25:02,568] [INFO] 127.0.0.1 - - [03/May/2025 15:25:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:25:32,568] [INFO] 127.0.0.1 - - [03/May/2025 15:25:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:26:02,568] [INFO] 127.0.0.1 - - [03/May/2025 15:26:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:26:32,568] [INFO] 127.0.0.1 - - [03/May/2025 15:26:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:27:02,568] [INFO] 127.0.0.1 - - [03/May/2025 15:27:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:27:32,569] [INFO] 127.0.0.1 - - [03/May/2025 15:27:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:28:02,571] [INFO] 127.0.0.1 - - [03/May/2025 15:28:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:28:32,925] [INFO] 127.0.0.1 - - [03/May/2025 15:28:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:29:02,568] [INFO] 127.0.0.1 - - [03/May/2025 15:29:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:29:32,568] [INFO] 127.0.0.1 - - [03/May/2025 15:29:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:30:02,569] [INFO] 127.0.0.1 - - [03/May/2025 15:30:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:30:32,570] [INFO] 127.0.0.1 - - [03/May/2025 15:30:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:31:02,570] [INFO] 127.0.0.1 - - [03/May/2025 15:31:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:31:32,571] [INFO] 127.0.0.1 - - [03/May/2025 15:31:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:32:02,572] [INFO] 127.0.0.1 - - [03/May/2025 15:32:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:32:32,573] [INFO] 127.0.0.1 - - [03/May/2025 15:32:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:33:02,574] [INFO] 127.0.0.1 - - [03/May/2025 15:33:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:33:32,574] [INFO] 127.0.0.1 - - [03/May/2025 15:33:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:34:02,923] [INFO] 127.0.0.1 - - [03/May/2025 15:34:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:34:32,576] [INFO] 127.0.0.1 - - [03/May/2025 15:34:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:35:02,577] [INFO] 127.0.0.1 - - [03/May/2025 15:35:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:35:32,577] [INFO] 127.0.0.1 - - [03/May/2025 15:35:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:36:02,578] [INFO] 127.0.0.1 - - [03/May/2025 15:36:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:36:32,578] [INFO] 127.0.0.1 - - [03/May/2025 15:36:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:37:02,578] [INFO] 127.0.0.1 - - [03/May/2025 15:37:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:37:32,578] [INFO] 127.0.0.1 - - [03/May/2025 15:37:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:38:02,579] [INFO] 127.0.0.1 - - [03/May/2025 15:38:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:38:32,579] [INFO] 127.0.0.1 - - [03/May/2025 15:38:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:39:02,579] [INFO] 127.0.0.1 - - [03/May/2025 15:39:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:39:32,888] [INFO] 127.0.0.1 - - [03/May/2025 15:39:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:40:02,580] [INFO] 127.0.0.1 - - [03/May/2025 15:40:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:40:32,580] [INFO] 127.0.0.1 - - [03/May/2025 15:40:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:41:02,580] [INFO] 127.0.0.1 - - [03/May/2025 15:41:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:41:32,580] [INFO] 127.0.0.1 - - [03/May/2025 15:41:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:42:02,582] [INFO] 127.0.0.1 - - [03/May/2025 15:42:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:42:32,580] [INFO] 127.0.0.1 - - [03/May/2025 15:42:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:43:02,580] [INFO] 127.0.0.1 - - [03/May/2025 15:43:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:43:32,581] [INFO] 127.0.0.1 - - [03/May/2025 15:43:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:44:02,580] [INFO] 127.0.0.1 - - [03/May/2025 15:44:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:44:32,580] [INFO] 127.0.0.1 - - [03/May/2025 15:44:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:45:03,439] [INFO] 127.0.0.1 - - [03/May/2025 15:45:03] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:45:32,580] [INFO] 127.0.0.1 - - [03/May/2025 15:45:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:46:02,580] [INFO] 127.0.0.1 - - [03/May/2025 15:46:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:46:32,580] [INFO] 127.0.0.1 - - [03/May/2025 15:46:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:47:02,581] [INFO] 127.0.0.1 - - [03/May/2025 15:47:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:47:32,582] [INFO] 127.0.0.1 - - [03/May/2025 15:47:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:48:02,583] [INFO] 127.0.0.1 - - [03/May/2025 15:48:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:48:32,585] [INFO] 127.0.0.1 - - [03/May/2025 15:48:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:49:02,586] [INFO] 127.0.0.1 - - [03/May/2025 15:49:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:49:32,586] [INFO] 127.0.0.1 - - [03/May/2025 15:49:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:50:02,586] [INFO] 127.0.0.1 - - [03/May/2025 15:50:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:50:32,986] [INFO] 127.0.0.1 - - [03/May/2025 15:50:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:51:02,588] [INFO] 127.0.0.1 - - [03/May/2025 15:51:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:51:32,588] [INFO] 127.0.0.1 - - [03/May/2025 15:51:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:52:02,589] [INFO] 127.0.0.1 - - [03/May/2025 15:52:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:52:32,589] [INFO] 127.0.0.1 - - [03/May/2025 15:52:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:53:02,591] [INFO] 127.0.0.1 - - [03/May/2025 15:53:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:53:32,590] [INFO] 127.0.0.1 - - [03/May/2025 15:53:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:54:02,590] [INFO] 127.0.0.1 - - [03/May/2025 15:54:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:54:32,591] [INFO] 127.0.0.1 - - [03/May/2025 15:54:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:55:02,590] [INFO] 127.0.0.1 - - [03/May/2025 15:55:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:55:32,590] [INFO] 127.0.0.1 - - [03/May/2025 15:55:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:56:03,014] [INFO] 127.0.0.1 - - [03/May/2025 15:56:03] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:56:32,592] [INFO] 127.0.0.1 - - [03/May/2025 15:56:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:57:02,591] [INFO] 127.0.0.1 - - [03/May/2025 15:57:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:57:32,592] [INFO] 127.0.0.1 - - [03/May/2025 15:57:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:58:02,591] [INFO] 127.0.0.1 - - [03/May/2025 15:58:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:58:32,591] [INFO] 127.0.0.1 - - [03/May/2025 15:58:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:59:02,591] [INFO] 127.0.0.1 - - [03/May/2025 15:59:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 15:59:32,591] [INFO] 127.0.0.1 - - [03/May/2025 15:59:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:00:02,591] [INFO] 127.0.0.1 - - [03/May/2025 16:00:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:00:32,592] [INFO] 127.0.0.1 - - [03/May/2025 16:00:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:01:02,592] [INFO] 127.0.0.1 - - [03/May/2025 16:01:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:01:32,939] [INFO] 127.0.0.1 - - [03/May/2025 16:01:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:02:02,592] [INFO] 127.0.0.1 - - [03/May/2025 16:02:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:02:32,593] [INFO] 127.0.0.1 - - [03/May/2025 16:02:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:03:02,592] [INFO] 127.0.0.1 - - [03/May/2025 16:03:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:03:32,592] [INFO] 127.0.0.1 - - [03/May/2025 16:03:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:04:02,593] [INFO] 127.0.0.1 - - [03/May/2025 16:04:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:04:32,594] [INFO] 127.0.0.1 - - [03/May/2025 16:04:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:05:02,595] [INFO] 127.0.0.1 - - [03/May/2025 16:05:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:05:32,596] [INFO] 127.0.0.1 - - [03/May/2025 16:05:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:06:02,597] [INFO] 127.0.0.1 - - [03/May/2025 16:06:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:06:32,598] [INFO] 127.0.0.1 - - [03/May/2025 16:06:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:07:03,411] [INFO] 127.0.0.1 - - [03/May/2025 16:07:03] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:07:32,599] [INFO] 127.0.0.1 - - [03/May/2025 16:07:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:08:02,600] [INFO] 127.0.0.1 - - [03/May/2025 16:08:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:08:32,601] [INFO] 127.0.0.1 - - [03/May/2025 16:08:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:09:02,601] [INFO] 127.0.0.1 - - [03/May/2025 16:09:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:09:32,607] [INFO] 127.0.0.1 - - [03/May/2025 16:09:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:10:02,608] [INFO] 127.0.0.1 - - [03/May/2025 16:10:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:10:32,615] [INFO] 127.0.0.1 - - [03/May/2025 16:10:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:11:02,610] [INFO] 127.0.0.1 - - [03/May/2025 16:11:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:11:32,609] [INFO] 127.0.0.1 - - [03/May/2025 16:11:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:12:02,614] [INFO] 127.0.0.1 - - [03/May/2025 16:12:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:12:32,985] [INFO] 127.0.0.1 - - [03/May/2025 16:12:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:13:02,616] [INFO] 127.0.0.1 - - [03/May/2025 16:13:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:13:32,616] [INFO] 127.0.0.1 - - [03/May/2025 16:13:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:14:02,617] [INFO] 127.0.0.1 - - [03/May/2025 16:14:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:14:32,617] [INFO] 127.0.0.1 - - [03/May/2025 16:14:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:15:02,616] [INFO] 127.0.0.1 - - [03/May/2025 16:15:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:15:32,619] [INFO] 127.0.0.1 - - [03/May/2025 16:15:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:16:02,616] [INFO] 127.0.0.1 - - [03/May/2025 16:16:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:16:32,616] [INFO] 127.0.0.1 - - [03/May/2025 16:16:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:17:02,616] [INFO] 127.0.0.1 - - [03/May/2025 16:17:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:17:32,616] [INFO] 127.0.0.1 - - [03/May/2025 16:17:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:18:02,960] [INFO] 127.0.0.1 - - [03/May/2025 16:18:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:18:32,617] [INFO] 127.0.0.1 - - [03/May/2025 16:18:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:19:02,617] [INFO] 127.0.0.1 - - [03/May/2025 16:19:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:19:32,618] [INFO] 127.0.0.1 - - [03/May/2025 16:19:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:20:02,617] [INFO] 127.0.0.1 - - [03/May/2025 16:20:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:20:32,617] [INFO] 127.0.0.1 - - [03/May/2025 16:20:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:20:53,611] [INFO] 127.0.0.1 - - [03/May/2025 16:20:53] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:21:02,618] [INFO] 127.0.0.1 - - [03/May/2025 16:21:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:21:32,619] [INFO] 127.0.0.1 - - [03/May/2025 16:21:32] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-03T16:22:02.810Z on port 5000 ---
+[STDOUT] [2025-05-03 16:22:03,706] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-03 16:22:03,710] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.78:5000
+[STDOUT] [2025-05-03 16:22:03,710] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-03 16:22:04,215] [INFO] 172.31.128.78 - - [03/May/2025 16:22:04] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-03 16:22:05,973] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/1/all_leagues.php
+[STDOUT] [2025-05-03 16:22:06,077] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/1/all_leagues.php
+[STDOUT] [2025-05-03 16:22:06,107] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/1/all_leagues.php
+[STDOUT] [2025-05-03 16:22:06,249] [WARNING] SportsDB API responded with status code 404
+[STDOUT] [2025-05-03 16:22:06,251] [INFO] 127.0.0.1 - - [03/May/2025 16:22:06] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:22:06,286] [WARNING] SportsDB API responded with status code 404
+[STDOUT] [2025-05-03 16:22:06,289] [INFO] 127.0.0.1 - - [03/May/2025 16:22:06] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:22:06,334] [WARNING] SportsDB API responded with status code 404
+[STDOUT] [2025-05-03 16:22:06,337] [INFO] 127.0.0.1 - - [03/May/2025 16:22:06] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:22:07,476] [INFO] 127.0.0.1 - - [03/May/2025 16:22:07] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-03T16:22:21.036Z on port 5000 ---
+[STDOUT] [2025-05-03 16:22:21,402] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-03 16:22:21,405] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.78:5000
+[2025-05-03 16:22:21,405] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-03 16:22:21,577] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/1/all_leagues.php
+[STDOUT] [2025-05-03 16:22:21,755] [WARNING] SportsDB API responded with status code 404
+[STDOUT] [2025-05-03 16:22:21,759] [INFO] 127.0.0.1 - - [03/May/2025 16:22:21] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:22:22,315] [INFO] 172.31.128.78 - - [03/May/2025 16:22:22] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-03 16:22:22,416] [INFO] 172.31.128.78 - - [03/May/2025 16:22:22] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-03 16:22:23,483] [INFO] 127.0.0.1 - - [03/May/2025 16:22:23] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:22:24,045] [INFO] 127.0.0.1 - - [03/May/2025 16:22:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:22:49,819] [INFO] 127.0.0.1 - - [03/May/2025 16:22:49] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:22:49,823] [INFO] 127.0.0.1 - - [03/May/2025 16:22:49] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:23:19,819] [INFO] 127.0.0.1 - - [03/May/2025 16:23:19] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-03T16:23:32.634Z on port 5000 ---
+[STDOUT] [2025-05-03 16:23:33,157] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+[STDOUT]  * Debug mode: off
+[STDOUT] [2025-05-03 16:23:33,164] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.78:5000
+[STDOUT] [2025-05-03 16:23:33,165] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-03 16:23:34,181] [INFO] 172.31.128.78 - - [03/May/2025 16:23:34] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-03 16:23:35,266] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 16:23:35,275] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 16:23:35,449] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 16:23:35,451] [INFO] 127.0.0.1 - - [03/May/2025 16:23:35] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:23:35,553] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 16:23:35,556] [INFO] 127.0.0.1 - - [03/May/2025 16:23:35] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:23:35,645] [INFO] 127.0.0.1 - - [03/May/2025 16:23:35] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:23:37,577] [INFO] 127.0.0.1 - - [03/May/2025 16:23:37] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:23:41,070] [INFO] Getting livescore data for league ID: 4328
+[STDOUT] [2025-05-03 16:23:41,070] [INFO] Using premium API key for livescore data
+[2025-05-03 16:23:41,070] [INFO] Fetching livescore data from URL: https://www.thesportsdb.com/api/v1/json/2/livescore.php?key=439ed703a1cfcd2762bf154e3b871234
+[STDOUT] [2025-05-03 16:23:41,338] [WARNING] API responded with status code 404
+[STDOUT] [2025-05-03 16:23:41,341] [INFO] 127.0.0.1 - - [03/May/2025 16:23:41] "[33mGET /api/livescore HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-03 16:24:01,125] [INFO] 127.0.0.1 - - [03/May/2025 16:24:01] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:24:01,129] [INFO] 127.0.0.1 - - [03/May/2025 16:24:01] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-03T16:24:08.648Z on port 5000 ---
+[STDOUT] [2025-05-03 16:24:09,112] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+[STDOUT]  * Debug mode: off
+[STDOUT] [2025-05-03 16:24:09,119] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.78:5000
+[STDOUT] [2025-05-03 16:24:09,120] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-03 16:24:10,075] [INFO] 172.31.128.78 - - [03/May/2025 16:24:10] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-03 16:24:11,811] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 16:24:12,034] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 16:24:12,044] [INFO] 127.0.0.1 - - [03/May/2025 16:24:12] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:24:14,018] [INFO] 127.0.0.1 - - [03/May/2025 16:24:14] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:24:14,019] [INFO] 127.0.0.1 - - [03/May/2025 16:24:14] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:24:14,393] [INFO] Getting livescore data for league ID: 4328
+[STDOUT] [2025-05-03 16:24:14,393] [INFO] Fetching past events from URL: https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id=4328
+[STDOUT] [2025-05-03 16:24:14,615] [INFO] Fetching upcoming events from URL: https://www.thesportsdb.com/api/v1/json/3/eventsnextleague.php?id=4328
+[STDOUT] [2025-05-03 16:24:14,928] [INFO] Adding 15 past events
+[2025-05-03 16:24:14,929] [INFO] Adding 12 upcoming events
+[STDOUT] [2025-05-03 16:24:14,939] [INFO] 127.0.0.1 - - [03/May/2025 16:24:14] "GET /api/livescore HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-03T16:24:26.192Z on port 5000 ---
+[STDOUT] [2025-05-03 16:24:26,628] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-03 16:24:26,633] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.78:5000
+[STDOUT] [2025-05-03 16:24:26,634] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-03 16:24:27,490] [INFO] 172.31.128.78 - - [03/May/2025 16:24:27] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-03 16:24:28,022] [INFO] 172.31.128.78 - - [03/May/2025 16:24:28] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-03 16:24:29,348] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 16:24:29,625] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 16:24:29,627] [INFO] 127.0.0.1 - - [03/May/2025 16:24:29] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:24:29,637] [INFO] 172.31.128.78 - - [03/May/2025 16:24:29] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-03 16:24:29,927] [INFO] 127.0.0.1 - - [03/May/2025 16:24:29] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:24:29,933] [INFO] 127.0.0.1 - - [03/May/2025 16:24:29] "GET /api/status HTTP/1.1" 200 -
