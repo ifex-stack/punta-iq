@@ -8,6 +8,7 @@ import { initializeDatabase } from "./db-init";
 import { automationManager } from "./automation";
 import { startMicroserviceHealthCheck } from "./microservice-health-check";
 import { analytics, AnalyticsEventType } from "./analytics-service";
+import { aiProxyMiddleware } from "./middleware/ai-proxy-middleware";
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
@@ -15,6 +16,12 @@ import axios from 'axios';
 import cors from 'cors';
 
 const app = express();
+
+// Set up AI service proxy middleware first before any other middleware
+// This ensures requests to /ai-service/* are correctly forwarded
+app.use('/ai-service', aiProxyMiddleware);
+
+// Standard Express middleware setup
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -171,11 +178,8 @@ app.use((req, res, next) => {
     res.status(status).json(errorResponse);
   });
 
-  // Use our dedicated AI service proxy router
-  // Important: This must be registered before the catch-all route
-  logger.info("Setting up AI service proxy middleware using Express Router");
-  import { aiServiceRouter } from './ai-service-proxy';
-  app.use('/ai-service', aiServiceRouter);
+  // AI service proxy middleware is already registered at the top of the file
+  logger.info("AI service proxy middleware already set up");
   
   // Add catch-all routes for API 404s
   logger.info("Setting up API catch-all middleware");
