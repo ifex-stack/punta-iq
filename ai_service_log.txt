@@ -1927,3 +1927,50 @@ Error: AI Service failed to start properly: exit code 1
 [STDOUT] [2025-05-03 23:05:36,918] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
 [STDOUT] [2025-05-03 23:05:37,087] [INFO] SportsDB API check passed successfully
 [STDOUT] [2025-05-03 23:05:37,089] [INFO] 127.0.0.1 - - [03/May/2025 23:05:37] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-03T23:06:21.769Z on port 5000 ---
+[STDOUT] [2025-05-03 23:06:22,099] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-03 23:06:22,104] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.45:5000
+[STDOUT] [2025-05-03 23:06:22,104] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-03 23:06:24,913] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 23:06:25,086] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 23:06:25,088] [INFO] 127.0.0.1 - - [03/May/2025 23:06:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 23:06:28,415] [INFO] 172.31.128.45 - - [03/May/2025 23:06:28] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-03 23:06:29,532] [INFO] 172.31.128.45 - - [03/May/2025 23:06:29] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-03 23:07:19,975] [INFO] 127.0.0.1 - - [03/May/2025 23:07:19] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-03T23:07:35.313Z on port 5000 ---
+[STDOUT] [2025-05-03 23:07:35,702] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-03 23:07:35,705] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.45:5000
+[STDOUT] [2025-05-03 23:07:35,705] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-03 23:07:36,625] [INFO] 172.31.128.45 - - [03/May/2025 23:07:36] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-03 23:07:38,497] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 23:07:38,692] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 23:07:38,699] [INFO] 127.0.0.1 - - [03/May/2025 23:07:38] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 23:08:32,875] [INFO] 127.0.0.1 - - [03/May/2025 23:08:32] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 23:09:32,874] [INFO] 127.0.0.1 - - [03/May/2025 23:09:32] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-03T23:10:09.633Z on port 5000 ---
+[STDOUT] [2025-05-03 23:10:09,992] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-03 23:10:09,995] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.45:5000
+[STDOUT] [2025-05-03 23:10:09,995] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-03 23:10:12,790] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 23:10:13,063] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 23:10:13,066] [INFO] 127.0.0.1 - - [03/May/2025 23:10:13] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 23:10:16,234] [INFO] 172.31.128.45 - - [03/May/2025 23:10:16] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-03 23:10:17,298] [INFO] 172.31.128.45 - - [03/May/2025 23:10:17] "[33mGET / HTTP/1.1[0m" 404 -

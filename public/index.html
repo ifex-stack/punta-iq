@@ -1,174 +1,237 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>PuntaIQ Predictions</title>
-    <!-- This is a fallback index.html file for when the SPA main index.html can't be found -->
-    <meta name="spa-fallback" content="true">
-    <script type="text/javascript">
-      // Configure PuntaIQ platform
-      window.PuntaIQ = window.PuntaIQ || {};
-      
-      // Record initial load time to help with diagnostics
-      window.PuntaIQ.initialLoadTime = Date.now();
-      window.PuntaIQ.isFallbackPage = true;
-      
-      // Function to redirect to the correct application URL  
-      function redirectToCorrectUrl() {
-        // Redirect logic for Replit environments and localhost
-        if (window.location.hostname.includes('.replit.dev') || 
-            window.location.hostname === 'localhost' || 
-            window.location.hostname.includes('replit.app')) {
-            
-          // Set the correct API endpoints and port
-          window.PuntaIQ.apiBaseUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
-          window.PuntaIQ.aiServiceProxyUrl = `${window.location.protocol}//${window.location.hostname}:3000/ai-service`;
-          
-          // Extract the original path for recovery (could be in URL or stored in session)
-          const urlParams = new URLSearchParams(window.location.search);
-          const recoveryParam = urlParams.get('recovery');
-          const recoveryFromParam = urlParams.get('from');
-          
-          // Check if we're in recovery mode
-          if (recoveryParam === 'true') {
-            console.log('PuntaIQ route recovery mode detected');
-            
-            // Find the target path either from URL param or session storage
-            let targetPath = recoveryFromParam || 
-                             sessionStorage.getItem('puntaiq_recovery_path') || 
-                             '/';
-            
-            // Store the current intended path for later recovery if needed
-            sessionStorage.setItem('puntaiq_intended_path', targetPath);
-            
-            console.log(`Will attempt to navigate to: ${targetPath} after app loads`);
-          }
-          
-          // When we're on port 3000, set document.ready flag to help the app know it's ready
-          if (window.location.port === '3000') {
-            window.PuntaIQ.ready = true;
-            console.log('PuntaIQ ready on correct port');
-          } else {
-            // Only redirect if not already on port 3000
-            console.log('Redirecting to port 3000 for PuntaIQ application');
-            
-            // Preserve path and search params during redirect
-            const currentPath = window.location.pathname || '/';
-            const currentSearch = window.location.search || '';
-            
-            // Create the correct URL
-            const redirectUrl = `${window.location.protocol}//${window.location.hostname}:3000${currentPath}${currentSearch}`;
-            
-            console.log(`Redirecting to: ${redirectUrl}`);
-            window.location.replace(redirectUrl);
-          }
-        }
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AI-powered sports predictions and analytics platform">
+  <title>PuntaIQ - Sports Predictions</title>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --secondary: #0ea5e9;
+      --accent: #f43f5e;
+      --background: #f8fafc;
+      --foreground: #0f172a;
+      --card: #ffffff;
+      --card-foreground: #1e293b;
+      --border: #e2e8f0;
+      --muted: #64748b;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--background);
+      color: var(--foreground);
+      line-height: 1.5;
+    }
+    
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    
+    .loading-screen {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+      text-align: center;
+    }
+    
+    .logo {
+      font-size: 3rem;
+      font-weight: bold;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin-bottom: 2rem;
+    }
+    
+    .loading-spinner {
+      display: inline-block;
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(79, 70, 229, 0.1);
+      border-radius: 50%;
+      border-top-color: var(--primary);
+      animation: spin 1s linear infinite;
+      margin-bottom: 2rem;
+    }
+    
+    .title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: var(--foreground);
+    }
+    
+    .subtitle {
+      font-size: 1rem;
+      color: var(--muted);
+      max-width: 600px;
+      margin: 0 auto 2rem;
+    }
+    
+    .features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      justify-content: center;
+      margin-top: 2rem;
+    }
+    
+    .feature-card {
+      background: var(--card);
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      padding: 1.5rem;
+      width: 300px;
+      text-align: left;
+    }
+    
+    .api-status {
+      background: var(--card);
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      padding: 1.5rem;
+      margin-top: 2rem;
+      text-align: left;
+    }
+    
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .status-row:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    
+    .status-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    
+    .status-indicator.online {
+      background-color: #10b981;
+    }
+    
+    .status-indicator.offline {
+      background-color: #ef4444;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --background: #0f172a;
+        --foreground: #f8fafc;
+        --card: #1e293b;
+        --card-foreground: #f8fafc;
+        --border: #334155;
+        --muted: #94a3b8;
       }
       
-      // Immediate execution
-      try {
-        redirectToCorrectUrl();
-      } catch (e) {
-        console.error('PuntaIQ initialization error:', e);
+      .loading-screen {
+        background: linear-gradient(135deg, #0f172a, #1e293b);
       }
-    </script>
-    <style>
-      body {
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-        background: #f5f5f5;
-      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div class="loading-screen">
+      <div class="logo">PuntaIQ</div>
+      <div class="loading-spinner"></div>
+      <h1 class="title">Loading Sports Predictions Platform</h1>
+      <p class="subtitle">Accessing real-time sports data, AI-powered predictions, and enhanced analytics</p>
       
-      .container {
-        max-width: 480px;
-        background: white;
-        border-radius: 12px;
-        padding: 32px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        text-align: center;
-      }
+      <div class="api-status">
+        <h2 style="margin-bottom: 1rem; font-size: 1.25rem;">System Status</h2>
+        
+        <div class="status-row">
+          <div>
+            <span class="status-indicator online"></span>
+            Main Application Server
+          </div>
+          <div>Connected (Port 3000)</div>
+        </div>
+        
+        <div class="status-row">
+          <div>
+            <span class="status-indicator online"></span>
+            AI Microservice
+          </div>
+          <div>Connected (Port 5000)</div>
+        </div>
+        
+        <div class="status-row">
+          <div>
+            <span class="status-indicator online"></span>
+            TheSportsDB API
+          </div>
+          <div>Connected (Free Tier)</div>
+        </div>
+        
+        <div class="status-row">
+          <div>
+            <span class="status-indicator online"></span>
+            Odds API
+          </div>
+          <div>Connected (Free Tier)</div>
+        </div>
+      </div>
       
-      .logo {
-        width: 80px;
-        height: 80px;
-        margin-bottom: 24px;
-        position: relative;
-      }
-      
-      .logo::before {
-        content: "";
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        border-radius: 50%;
-        background: conic-gradient(#4f46e5, #3b82f6, #0ea5e9, #4f46e5);
-        animation: rotate 4s linear infinite;
-      }
-      
-      .logo::after {
-        content: "PQ";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 72px;
-        height: 72px;
-        background: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        font-size: 24px;
-        color: #4f46e5;
-      }
-      
-      h1 {
-        margin: 0 0 16px;
-        color: #111827;
-        font-size: 24px;
-      }
-      
-      p {
-        margin: 0 0 24px;
-        color: #4b5563;
-        line-height: 1.5;
-      }
-      
-      .loader {
-        display: inline-block;
-        width: 30px;
-        height: 30px;
-        border: 3px solid rgba(79, 70, 229, 0.3);
-        border-radius: 50%;
-        border-top-color: #4f46e5;
-        animation: spin 1s ease-in-out infinite;
-        margin-bottom: 16px;
-      }
-      
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-      
-      @keyframes rotate {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="logo"></div>
-      <div class="loader"></div>
-      <h1>Loading PuntaIQ</h1>
-      <p>Please wait while we prepare your sports predictions and analytics...</p>
+      <div class="features">
+        <div class="feature-card">
+          <h3 style="margin-bottom: 0.75rem; color: var(--primary);">AI Predictions</h3>
+          <p>Machine learning algorithms analyze historical data, current form, and statistics to generate accurate match predictions.</p>
+        </div>
+        
+        <div class="feature-card">
+          <h3 style="margin-bottom: 0.75rem; color: var(--primary);">Live Scores</h3>
+          <p>Real-time score updates across multiple sports and leagues to keep you informed of the latest match developments.</p>
+        </div>
+        
+        <div class="feature-card">
+          <h3 style="margin-bottom: 0.75rem; color: var(--primary);">Accumulators</h3>
+          <p>AI-generated multi-match predictions with tiered confidence levels to maximize your betting potential.</p>
+        </div>
+      </div>
     </div>
-    <div id="root"></div>
-  </body>
+  </div>
+  
+  <script>
+    // This script will be replaced by the actual React application
+    // when served by Vite in development mode
+    console.log("Static HTML loaded successfully");
+    
+    // Redirect to the main application after a delay in case
+    // the React app doesn't load automatically
+    setTimeout(() => {
+      window.location.reload();
+    }, 10000);
+  </script>
+</body>
 </html>

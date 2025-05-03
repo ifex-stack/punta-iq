@@ -1,12 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PuntaIQ Predictions</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/client/src/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AI-powered sports predictions and analysis from PuntaIQ">
+  <title>PuntaIQ - Sports Predictions Platform</title>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-light: #6366f1;
+      --primary-dark: #4338ca;
+      --secondary: #0ea5e9;
+      --background: #f8fafc;
+      --foreground: #0f172a;
+      --card: #ffffff;
+      --card-foreground: #1e293b;
+      --border: #e2e8f0;
+      --input: #e2e8f0;
+      --ring: #94a3b8;
+      --radius: 0.5rem;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--background);
+      color: var(--foreground);
+      line-height: 1.5;
+    }
+    
+    #root {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .loading-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      flex-direction: column;
+      gap: 1.5rem;
+      background: linear-gradient(to bottom right, #f1f5f9, #e2e8f0);
+    }
+    
+    .logo {
+      font-size: 2.5rem;
+      font-weight: bold;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin-bottom: 1rem;
+    }
+    
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(79, 70, 229, 0.1);
+      border-left-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    .loading-text {
+      font-size: 1.25rem;
+      color: var(--foreground);
+      text-align: center;
+    }
+    
+    .loading-subtitle {
+      font-size: 0.875rem;
+      color: #64748b;
+      text-align: center;
+      max-width: 24rem;
+      margin: 0 auto;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --background: #0f172a;
+        --foreground: #f8fafc;
+        --card: #1e293b;
+        --card-foreground: #f8fafc;
+        --border: #334155;
+        --input: #334155;
+        --ring: #94a3b8;
+      }
+      
+      .loading-container {
+        background: linear-gradient(to bottom right, #0f172a, #1e293b);
+      }
+      
+      .loading-subtitle {
+        color: #94a3b8;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div class="loading-container">
+      <div class="logo">PuntaIQ</div>
+      <div class="spinner"></div>
+      <div class="loading-text">Loading PuntaIQ Platform...</div>
+      <div class="loading-subtitle">AI-powered sports predictions, personalized insights, and enhanced betting analysis across multiple sports.</div>
+    </div>
+  </div>
+  <script type="module" src="/client/src/main.tsx"></script>
+</body>
 </html>

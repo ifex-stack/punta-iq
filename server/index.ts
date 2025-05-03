@@ -9,7 +9,7 @@ import { automationManager } from "./automation";
 import { microserviceHealthMonitor } from "./microservice-health-check";
 import { analytics, AnalyticsEventType } from "./analytics-service";
 import { aiProxyMiddleware } from "./middleware/ai-proxy-middleware";
-import { spaMiddleware } from "./spa-middleware";
+import spaMiddleware from "./spa-middleware";
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
@@ -182,22 +182,7 @@ app.use((req, res, next) => {
   // AI service proxy middleware is already registered at the top of the file
   logger.info("AI service proxy middleware already set up");
   
-  // Add catch-all routes for API 404s
-  logger.info("Setting up API catch-all middleware");
-  app.use('/api/*', (req: Request, res: Response) => {
-    logger.warn(`API 404: ${req.originalUrl}`);
-    res.status(404).json({
-      message: 'API endpoint not found. Please check the URL and try again.',
-      status: 404,
-      path: req.originalUrl
-    });
-  });
-  
-  // Add SPA middleware to handle frontend routes
-  logger.info("Setting up SPA middleware for frontend routes");
-  app.use(spaMiddleware);
-
-  // Then setup vite in development or static files in production
+  // First, set up Vite/static middleware to handle assets
   if (app.get("env") === "development") {
     logger.info("Setting up Vite middleware for development SPA serving");
     try {
@@ -219,6 +204,21 @@ app.use((req, res, next) => {
     logger.info("Setting up static file serving for production");
     serveStatic(app);
   }
+  
+  // Then add SPA middleware to handle frontend routes
+  logger.info("Setting up SPA middleware for frontend routes");
+  app.use(spaMiddleware);
+  
+  // Finally add catch-all routes for API 404s
+  logger.info("Setting up API catch-all middleware");
+  app.use('/api/*', (req: Request, res: Response) => {
+    logger.warn(`API 404: ${req.originalUrl}`);
+    res.status(404).json({
+      message: 'API endpoint not found. Please check the URL and try again.',
+      status: 404,
+      path: req.originalUrl
+    });
+  });
   
   // Add fall-through catch-all route to handle SPA routes
   app.use('*', (req: Request, res: Response) => {
