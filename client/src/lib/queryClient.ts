@@ -88,13 +88,28 @@ export async function apiRequest(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
     
-    // Ensure API calls are directed to port 3000 where our server is now running
+    // Ensure all API calls are properly routed through our server
     let apiUrl = url;
-    if (url.startsWith('/api')) {
-      // Always use port 3000 for API calls regardless of current port
+    
+    // Use PuntaIQ global configuration if available
+    if (window.PuntaIQ) {
+      if (url.startsWith('/api')) {
+        // Route to our main API on port 3000
+        apiUrl = `${window.PuntaIQ.apiBaseUrl || ''}${url}`;
+        console.log(`Routing API call to main server: ${apiUrl}`);
+      } 
+      else if (url.startsWith('/ai-service') || url.startsWith('/ai/')) {
+        // Route AI requests through our proxy
+        const proxyPath = url.replace(/^\/ai\//, '/ai-service/');
+        apiUrl = `${window.PuntaIQ.apiBaseUrl || ''}${proxyPath}`;
+        console.log(`Routing AI service call through proxy: ${apiUrl}`);
+      }
+    } 
+    // Fallback if window.PuntaIQ is not available
+    else if (url.startsWith('/api') || url.startsWith('/ai-service')) {
       const baseUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
       apiUrl = `${baseUrl}${url}`;
-      console.log(`Routing API call to server: ${apiUrl}`);
+      console.log(`Fallback routing to server: ${apiUrl}`);
     }
     
     const res = await fetch(apiUrl, {

@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { logger, createContextLogger } from "./logger";
+import { setupCatchAllRoutes } from "./catch-all-routes";
 import { initializeFantasyData } from "./fantasy-data-init";
 import { initializeDatabase } from "./db-init";
 import { automationManager } from "./automation";
@@ -9,6 +10,8 @@ import { startMicroserviceHealthCheck } from "./microservice-health-check";
 import { analytics, AnalyticsEventType } from "./analytics-service";
 import { spawn } from 'child_process';
 import path from 'path';
+import fs from 'fs';
+import axios from 'axios';
 import cors from 'cors';
 
 const app = express();
@@ -168,14 +171,130 @@ app.use((req, res, next) => {
     res.status(status).json(errorResponse);
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
+  // Use our dedicated AI service proxy router
+  // Important: This must be registered before the catch-all route
+  logger.info("Setting up AI service proxy middleware using Express Router");
+  import { aiServiceRouter } from './ai-service-proxy';
+  app.use('/ai-service', aiServiceRouter);
+  
+  // Add catch-all routes for API 404s
+  logger.info("Setting up API catch-all middleware");
+  app.use('/api/*', (req: Request, res: Response) => {
+    logger.warn(`API 404: ${req.originalUrl}`);
+    res.status(404).json({
+      message: 'API endpoint not found. Please check the URL and try again.',
+      status: 404,
+      path: req.originalUrl
+    });
+  });
+
+  // Then setup vite in development or static files in production
   if (app.get("env") === "development") {
+    logger.info("Setting up Vite middleware for development SPA serving");
     await setupVite(app, server);
   } else {
+    logger.info("Setting up static file serving for production");
     serveStatic(app);
   }
+  
+  // Add fall-through catch-all route to handle SPA routes
+  app.use('*', (req: Request, res: Response) => {
+    const originalUrl = req.originalUrl;
+    
+    // Skip API, AI service, and asset requests to avoid infinite loops
+    if (originalUrl.startsWith('/api/') || 
+        originalUrl.startsWith('/ai-service/') ||
+        originalUrl.includes('.') || 
+        originalUrl.startsWith('/assets/')) {
+      logger.warn(`Resource not found: ${originalUrl}`);
+      return res.status(404).send('Not Found');
+    }
+    
+    logger.info(`SPA fallback route handling: ${originalUrl}`);
+    
+    // Priority 1: Try to serve the index.html directly from client directory
+    const indexPath = path.resolve(process.cwd(), 'client', 'index.html');
+    
+    if (fs.existsSync(indexPath)) {
+      try {
+        logger.info(`Serving SPA index.html for ${originalUrl}`);
+        
+        // Read the file and inject a special meta tag to help detect routing issues
+        const htmlContent = fs.readFileSync(indexPath, 'utf8');
+        const modifiedHtml = htmlContent.replace(
+          '</head>',
+          `<meta name="route-recovery" content="true" data-original-url="${originalUrl}" />\n</head>`
+        );
+        
+        res.setHeader('Content-Type', 'text/html');
+        return res.send(modifiedHtml);
+      } catch (error) {
+        logger.error(`Error serving index.html: ${error.message}`);
+      }
+    }
+    
+    // Fallback to a static HTML with auto-redirect
+    logger.warn(`Using emergency SPA recovery for ${originalUrl}`);
+    const redirectScript = `
+      <script>
+        console.log("Emergency redirect for ${originalUrl}");
+        // Force browser to go to main application homepage
+        window.location.href = "/";
+      </script>
+    `;
+    
+    res.setHeader('Content-Type', 'text/html');
+    res.send(`<!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>PuntaIQ - Redirecting...</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+          }
+          .container {
+            text-align: center;
+            max-width: 500px;
+            padding: 2rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          }
+          h1 { color: #0066cc; margin-top: 0; }
+          p { line-height: 1.5; }
+          .loading {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(0,102,204,0.3);
+            border-radius: 50%;
+            border-top-color: #0066cc;
+            animation: spin 1s ease-in-out infinite;
+          }
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="loading"></div>
+          <h1>Redirecting to PuntaIQ</h1>
+          <p>Please wait while we redirect you to the application...</p>
+        </div>
+        ${redirectScript}
+      </body>
+    </html>`);
+  });
 
   // Use port 3000 for the main server to avoid conflict with the AI microservice on port 5000
   // The AI microservice will be on port 5000

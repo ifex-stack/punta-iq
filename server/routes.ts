@@ -3863,6 +3863,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message || "Failed to compare players" });
     }
   });
+  
+  // Add API catch-all route for proper error handling
+  app.use('/api/*', (req, res) => {
+    console.log(`API 404: ${req.originalUrl}`);
+    res.status(404).json({
+      message: 'API endpoint not found. Please check the URL and try again.',
+      status: 404,
+      path: req.originalUrl
+    });
+  });
+  
+  // Add a catch-all route for SPA client-side routing
+  // This must come AFTER all API routes but BEFORE Vite middleware
+  app.get('*', (req, res, next) => {
+    // Skip if this is an API request or a static file
+    if (req.path.startsWith('/api/') || req.path.includes('.')) {
+      return next();
+    }
+    
+    console.log(`SPA catch-all handling route: ${req.path}`);
+    
+    // Send the index.html for all client-side routes
+    res.sendFile('index.html', { root: './client' });
+  });
 
   return httpServer;
 }

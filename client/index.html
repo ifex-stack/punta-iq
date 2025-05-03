@@ -4,37 +4,70 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     <title>PuntaIQ Predictions</title>
-    <!-- Force client to use port 3000 for all requests in development mode -->
+    <!-- PuntaIQ Configuration & Port Detection Script -->
     <script type="text/javascript">
-      // Configuration script for PuntaIQ
+      // Configure PuntaIQ platform
       window.PuntaIQ = window.PuntaIQ || {};
       
-      // Set API port for development
-      if (window.location.hostname.includes('replit.dev') || window.location.hostname === 'localhost') {
-        window.PuntaIQ.apiBaseUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
-        window.PuntaIQ.aiServiceBaseUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
-        console.log(`PuntaIQ configured for development - API on port 3000, AI service on port 5000`);
+      // Detect when a 404 error page is loaded
+      function is404Page() {
+        return document.title.includes('404') || 
+               document.title.includes('Not Found') ||
+               (document.body && document.body.textContent && 
+                document.body.textContent.includes('Not Found'));
       }
       
-      // Handle direct navigation to ensure we're using the right server
-      if (window.location.port !== '3000' && 
-          (window.location.hostname.includes('replit.dev') || window.location.hostname === 'localhost')) {
-        console.log('Redirecting to correct port (3000) for client application');
+      // Function to redirect to the correct application URL  
+      function redirectToCorrectUrl() {
+        // Redirect logic for Replit environments and localhost
+        if (window.location.hostname.includes('.replit.dev') || 
+            window.location.hostname === 'localhost' || 
+            window.location.hostname.includes('replit.app')) {
+            
+          // Set the correct API endpoints regardless of port
+          window.PuntaIQ.apiBaseUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+          window.PuntaIQ.aiServiceBaseUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
+          window.PuntaIQ.aiServiceProxyUrl = `${window.location.protocol}//${window.location.hostname}:3000/ai-service`;
+          
+          console.log(`PuntaIQ configured - API on port 3000, AI service via proxy.`);
+          
+          // Only redirect if not already on port 3000
+          if (window.location.port !== '3000') {
+            console.log('Redirecting to port 3000 for PuntaIQ application');
+            
+            // Preserve path and search params during redirect
+            const currentPath = window.location.pathname || '/';
+            const currentSearch = window.location.search || '';
+            
+            // Create the correct URL
+            const redirectUrl = `${window.location.protocol}//${window.location.hostname}:3000${currentPath}${currentSearch}`;
+            
+            console.log(`Redirecting to: ${redirectUrl}`);
+            window.location.replace(redirectUrl);
+          }
+        }
+      }
+      
+      // Immediate execution
+      try {
+        redirectToCorrectUrl();
         
-        // Store the current path to redirect back to after port change
-        const currentPath = window.location.pathname;
-        const currentSearch = window.location.search;
-        
-        // First redirect to the base URL with the correct port to ensure proper loading
-        // Then the app will handle client-side routing to the correct path
-        window.location.href = `${window.location.protocol}//${window.location.hostname}:3000${currentPath}${currentSearch}`;
+        // Check for 404 error detection
+        window.addEventListener('DOMContentLoaded', () => {
+          if (is404Page()) {
+            console.error('404 page detected, attempting recovery...');
+            redirectToCorrectUrl();
+          }
+        });
+      } catch (e) {
+        console.error('PuntaIQ initialization error:', e);
       }
     </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
+    <!-- Replit development banner -->
     <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
   </body>
 </html>

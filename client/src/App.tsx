@@ -39,7 +39,7 @@ import ResponsibleGamblingPage from "@/pages/legal/responsible-gambling";
 import { UIShowcase } from "@/components/ui-showcase";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from 'next-themes';
-import { setNavigationState } from "./lib/error-handler";
+import { setNavigationState, attemptRouteRecovery } from "./lib/error-handler";
 import { CurrencyProvider } from "./hooks/use-currency";
 
 // New components
@@ -78,55 +78,55 @@ const Router: React.FC = () => {
     return () => clearTimeout(timeoutId);
   }, [location]);
   
-  // Enhanced 404 recovery mechanism
+  // Enhanced 404 recovery mechanism using our centralized recovery function
   useEffect(() => {
     const handleLocationChange = () => {
       // If we're at a 404 page from the server but we have an SPA route for it
-      // force a re-render by using the custom location hook to set it explicitly
+      // force a re-render by using the route recovery utility
       if ((document.title.includes('404') || document.body.textContent?.includes('Not Found')) && 
           location !== '/not-found') {
-        console.log('Detected 404 page - attempting route recovery');
+        console.log('Detected 404 page - attempting route recovery via utility');
         
-        // Force a client-side navigation to the current path
-        // This will trigger the SPA router instead of showing the server's 404 page
-        const currentPath = window.location.pathname;
-        console.log(`Attempting to recover path: ${currentPath}`);
-        
-        // Make sure we're on the right port first
-        if (window.location.port !== '3000' && 
-            (window.location.hostname.includes('replit.dev') || window.location.hostname === 'localhost')) {
-          // We need to redirect to port 3000 first
-          console.log('Redirecting to port 3000 before route recovery');
-          window.location.href = `${window.location.protocol}//${window.location.hostname}:3000${currentPath}`;
-          return;
-        }
-        
-        // If we're already on port 3000, try client-side navigation
-        window.history.replaceState(null, '', currentPath);
-        setNavigationState(true); // Suppress errors during recovery
+        // Use our centralized recovery function
+        attemptRouteRecovery(window.location.pathname);
         
         // Force a refresh after a short delay if we're still seeing a 404
         setTimeout(() => {
           if (document.title.includes('404') || document.body.textContent?.includes('Not Found')) {
-            console.log('Still on 404 page - forcing navigation to root');
+            console.log('Still on 404 page after recovery attempt - forcing navigation to root');
             window.location.href = `${window.location.protocol}//${window.location.hostname}:3000/`;
           }
-        }, 1000);
+        }, 1500);
       }
     };
     
     // Run once on mount
     handleLocationChange();
     
-    // Also listen for popstate events and other navigation events
+    // Also listen for navigation events to trigger recovery if needed
     window.addEventListener('popstate', handleLocationChange);
     window.addEventListener('navigate', handleLocationChange);
     window.addEventListener('load', handleLocationChange);
+    
+    // Set up global error handler for navigation errors
+    const handleError = (event: ErrorEvent) => {
+      if (event.error && event.error.message && 
+          (event.error.message.includes('navigation') || event.error.message.includes('404'))) {
+        console.log('Navigation error detected:', event.error.message);
+        attemptRouteRecovery(window.location.pathname);
+        // Prevent default error handling
+        event.preventDefault();
+      }
+    };
+    
+    // Add the error handler
+    window.addEventListener('error', handleError);
     
     return () => {
       window.removeEventListener('popstate', handleLocationChange);
       window.removeEventListener('navigate', handleLocationChange);
       window.removeEventListener('load', handleLocationChange);
+      window.removeEventListener('error', handleError);
     };
   }, [location]);
 
@@ -200,7 +200,8 @@ const Router: React.FC = () => {
 }
 
 // Custom location hook for Wouter to ensure proper routing
-const useCustomLocation = () => {
+// Type annotation fixes TypeScript error with Wouter's BaseLocationHook
+const useCustomLocation = (): [string, (to: string, ...args: any[]) => void] => {
   // Use state to force re-renders when needed
   const [location, setLocation] = useState(() => window.location.pathname);
   
@@ -228,12 +229,13 @@ const useCustomLocation = () => {
     // Also listen for hashchange events in case we're using those
     window.addEventListener('hashchange', handleLocationChange);
     
-    // Fix for direct URL navigation - if document title contains 404 but route exists
+    // Fix for direct URL navigation using our centralized recovery function
     const fixNonExistentRoutes = () => {
-      if (document.title.includes('404')) {
-        console.log('404 page detected - attempting SPA recovery');
-        // Force a client-side render
-        window.history.replaceState(null, '', window.location.pathname);
+      if (document.title.includes('404') || document.body.textContent?.includes('Not Found')) {
+        console.log('404 page detected in location hook - attempting SPA recovery');
+        // Use our centralized recovery function
+        attemptRouteRecovery(window.location.pathname);
+        // Update the location state to match current path
         setLocation(window.location.pathname);
       }
     };
@@ -248,9 +250,10 @@ const useCustomLocation = () => {
   }, []);
   
   // Return current path and a function to navigate
+  // Fix TypeScript error by making this compatible with the BaseLocationHook type
   return [
     location,
-    (to: string) => {
+    (to: string, ...args: any[]) => {
       console.log(`Navigation requested to: ${to}`);
       
       // Handle relative URLs
@@ -269,7 +272,7 @@ const useCustomLocation = () => {
       window.history.pushState(null, '', to);
       setLocation(to);
     }
-  ] as const;
+  ];
 };
 
 function App() {

@@ -56,6 +56,38 @@ export const setNavigationState = (navigating: boolean) => {
   }
 };
 
+// Advanced route recovery function for handling 404s and route errors
+export const attemptRouteRecovery = (path: string): void => {
+  console.log(`Attempting route recovery for path: ${path}`);
+  
+  // Don't try to recover API routes
+  if (path.startsWith('/api/')) {
+    console.log(`Not attempting recovery for API path: ${path}`);
+    return;
+  }
+  
+  // Make sure we're on the right port before attempting recovery
+  if (window.location.port !== '3000' && 
+      (window.location.hostname.includes('replit.dev') || window.location.hostname === 'localhost')) {
+    // We need to redirect to port 3000 first
+    console.log('Redirecting to port 3000 before route recovery');
+    window.location.href = `${window.location.protocol}//${window.location.hostname}:3000${path}`;
+    return;
+  }
+  
+  // Set navigation state to true to prevent error toasts during recovery
+  setNavigationState(true);
+  
+  // Try client-side navigation via history API
+  window.history.replaceState(null, '', path);
+  
+  // Dispatch events to trigger route listeners
+  window.dispatchEvent(new Event('popstate'));
+  window.dispatchEvent(new CustomEvent('routeRecovery', { detail: { path } }));
+  
+  console.log(`Route recovery attempted for: ${path}`);
+};
+
 // Handle API errors with appropriate UI feedback
 export const handleApiError = (error: unknown, fallbackMessage = 'An error occurred'): ApiError => {
   // If we're in the middle of navigation, suppress all errors
