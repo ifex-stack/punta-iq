@@ -61,14 +61,27 @@ export const attemptRouteRecovery = (path: string): void => {
   console.log(`Attempting route recovery for path: ${path}`);
   
   // Don't try to recover API routes
-  if (path.startsWith('/api/')) {
+  if (path.startsWith('/api/') || path.startsWith('/ai-service/')) {
     console.log(`Not attempting recovery for API path: ${path}`);
+    return;
+  }
+  
+  // Mark the global recovery status flag
+  window.__RECOVERY_ATTEMPTED = window.__RECOVERY_ATTEMPTED || {};
+  window.__RECOVERY_ATTEMPTED[path] = (window.__RECOVERY_ATTEMPTED[path] || 0) + 1;
+  
+  // After multiple failed attempts, force reload of the base app
+  if (window.__RECOVERY_ATTEMPTED[path] > 2) {
+    console.log(`Multiple recovery attempts for ${path} failed - forcing redirect to root`);
+    window.location.href = `${window.location.protocol}//${window.location.hostname}:3000/`;
     return;
   }
   
   // Make sure we're on the right port before attempting recovery
   if (window.location.port !== '3000' && 
-      (window.location.hostname.includes('replit.dev') || window.location.hostname === 'localhost')) {
+      (window.location.hostname.includes('replit.dev') || 
+       window.location.hostname === 'localhost' || 
+       window.location.hostname.includes('replit.app'))) {
     // We need to redirect to port 3000 first
     console.log('Redirecting to port 3000 before route recovery');
     window.location.href = `${window.location.protocol}//${window.location.hostname}:3000${path}`;
@@ -78,15 +91,41 @@ export const attemptRouteRecovery = (path: string): void => {
   // Set navigation state to true to prevent error toasts during recovery
   setNavigationState(true);
   
-  // Try client-side navigation via history API
-  window.history.replaceState(null, '', path);
-  
-  // Dispatch events to trigger route listeners
+  // Try a two-phase recovery approach:
+  // 1. First go to the root path to ensure the app is loaded correctly
+  console.log('Route recovery phase 1: Navigate to root');
+  window.history.pushState(null, '', '/');
   window.dispatchEvent(new Event('popstate'));
-  window.dispatchEvent(new CustomEvent('routeRecovery', { detail: { path } }));
   
-  console.log(`Route recovery attempted for: ${path}`);
+  // 2. Then after a short delay, attempt to navigate to the original path
+  setTimeout(() => {
+    console.log(`Route recovery phase 2: Navigate back to ${path}`);
+    window.history.pushState(null, '', path);
+    
+    // Dispatch events to trigger route listeners
+    window.dispatchEvent(new Event('popstate'));
+    window.dispatchEvent(new CustomEvent('routeRecovery', { detail: { path } }));
+    
+    console.log(`Two-phase route recovery completed for: ${path}`);
+    
+    // Final check - if after recovery we're still on a 404, try one more approach
+    setTimeout(() => {
+      if (document.title.includes('404') || 
+          (document.body?.textContent && document.body.textContent.includes('Not Found'))) {
+        console.log('Still on 404 page after recovery - trying window.location approach');
+        window.location.href = `${window.location.protocol}//${window.location.hostname}:3000${path}`;
+      }
+    }, 500);
+  }, 250);
 };
+
+// Add type definition for global recovery flag
+declare global {
+  interface Window {
+    __RECOVERY_ATTEMPTED?: Record<string, number>;
+    __IS_404_PAGE?: boolean;
+  }
+}
 
 // Handle API errors with appropriate UI feedback
 export const handleApiError = (error: unknown, fallbackMessage = 'An error occurred'): ApiError => {

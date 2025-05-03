@@ -54,23 +54,85 @@ import { fetchFeatureFlags } from "./lib/feature-flags";
 
 import AppLayout from "@/components/layout/app-layout";
 
+// Emergency SPA 404 recovery
+window.addEventListener('DOMContentLoaded', () => {
+  console.log("PuntaIQ App - DOMContentLoaded event");
+  
+  // Create a global flag to track 404 detection
+  window.__IS_404_PAGE = false;
+  
+  // Helper to detect 404 pages
+  const checkFor404 = () => {
+    if ((document.title && document.title.includes('404')) || 
+        (document.body && document.body.textContent && document.body.textContent.includes('Not Found'))) {
+      window.__IS_404_PAGE = true;
+      console.error('PuntaIQ - 404 page detected, attempting recovery');
+      
+      // Attempt route recovery
+      const currentPath = window.location.pathname;
+      const currentSearch = window.location.search;
+      
+      // First go to root
+      console.log('Going to root path for recovery');
+      window.history.pushState(null, '', '/');
+      
+      // Then after a short delay, try to go back to original path
+      setTimeout(() => {
+        console.log(`Attempting to navigate back to: ${currentPath}`);
+        window.history.pushState(null, '', currentPath + currentSearch);
+        window.dispatchEvent(new Event('popstate'));
+      }, 250);
+    }
+  };
+  
+  // Check immediately
+  checkFor404();
+  
+  // And check after a short delay to allow for async title changes
+  setTimeout(checkFor404, 1000);
+});
+
 // Create typed component definition to fix TypeScript errors
 const Router: React.FC = () => {
   // Track location changes to know when we're navigating
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
+  
+  // Check for stored route recovery path when landing on the homepage
+  useEffect(() => {
+    // Only run recovery on the homepage
+    if (location === '/') {
+      console.log('PuntaIQ: At root path - checking for recovery path');
+      
+      // Check if we're in a recovery scenario
+      const recoveryPath = sessionStorage.getItem('puntaiq_recovery_path');
+      const recoverySearch = sessionStorage.getItem('puntaiq_recovery_search') || '';
+      const isRecovery = new URLSearchParams(window.location.search).get('recovery') === 'true';
+      
+      if (recoveryPath && isRecovery) {
+        console.log(`Found recovery path: ${recoveryPath} - will navigate after app load`);
+        
+        // Brief delay to ensure app is fully loaded before navigation
+        setTimeout(() => {
+          console.log(`Navigating to recovery path: ${recoveryPath}`);
+          navigate(recoveryPath + recoverySearch);
+          
+          // Clear recovery data
+          sessionStorage.removeItem('puntaiq_recovery_path');
+          sessionStorage.removeItem('puntaiq_recovery_search');
+        }, 500);
+      } else {
+        console.log('No recovery path found - normal homepage render');
+      }
+      
+      // Add a flag to help with debugging and ensure we're at the right location
+      document.documentElement.dataset.puntalocation = 'root';
+    }
+  }, [location, navigate]);
   
   // Debug location - useful for troubleshooting routing issues
   useEffect(() => {
     console.log(`Current location: ${location}`);
     console.log(`Current URL: ${window.location.href}`);
-    
-    // Check if we're on the root path and create a visible flag for debugging
-    if (location === '/') {
-      console.log('PuntaIQ: At root path - rendering main application components');
-      
-      // Add a flag to help with debugging and ensure we're at the right location
-      document.documentElement.dataset.puntalocation = 'root';
-    }
   }, [location]);
   
   // Set navigation state when location changes

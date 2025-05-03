@@ -9,6 +9,7 @@ import { automationManager } from "./automation";
 import { microserviceHealthMonitor } from "./microservice-health-check";
 import { analytics, AnalyticsEventType } from "./analytics-service";
 import { aiProxyMiddleware } from "./middleware/ai-proxy-middleware";
+import { spaMiddleware } from "./spa-middleware";
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
@@ -191,6 +192,10 @@ app.use((req, res, next) => {
       path: req.originalUrl
     });
   });
+  
+  // Add SPA middleware to handle frontend routes
+  logger.info("Setting up SPA middleware for frontend routes");
+  app.use(spaMiddleware);
 
   // Then setup vite in development or static files in production
   if (app.get("env") === "development") {
@@ -230,88 +235,173 @@ app.use((req, res, next) => {
     
     logger.info(`SPA fallback route handling: ${originalUrl}`);
     
-    // Priority 1: Try to serve the index.html directly from client directory
-    const indexPath = path.resolve(process.cwd(), 'client', 'index.html');
-    
-    if (fs.existsSync(indexPath)) {
-      try {
-        logger.info(`Serving SPA index.html for ${originalUrl}`);
-        
-        // Read the file and inject a special meta tag to help detect routing issues
-        const htmlContent = fs.readFileSync(indexPath, 'utf8');
-        const modifiedHtml = htmlContent.replace(
-          '</head>',
-          `<meta name="route-recovery" content="true" data-original-url="${originalUrl}" />\n</head>`
-        );
-        
-        res.setHeader('Content-Type', 'text/html');
-        return res.send(modifiedHtml);
-      } catch (error) {
-        logger.error(`Error serving index.html: ${error.message}`);
+    // For direct SPA routes like /predictions, /stats, etc. we'll serve the app.html file
+    const serveClientIndexHtml = () => {
+      // Try to serve app.html first
+      const appHtmlPath = path.resolve(process.cwd(), 'public', 'app.html');
+      if (fs.existsSync(appHtmlPath)) {
+        try {
+          logger.info(`Serving app.html for ${originalUrl}`);
+          return res.sendFile(appHtmlPath);
+        } catch (error) {
+          logger.error(`Error serving app.html: ${error.message}`);
+          // Fall through to try other paths
+        }
       }
-    }
+      
+      // Try multiple possible locations for index.html as fallback
+      const possiblePaths = [
+        path.resolve(process.cwd(), 'client', 'index.html'),
+        path.resolve(process.cwd(), 'public', 'index.html'),
+        path.resolve(process.cwd(), 'client', 'dist', 'index.html'),
+        path.resolve(process.cwd(), 'dist', 'client', 'index.html')
+      ];
+      
+      // Find first existing index.html
+      for (const indexPath of possiblePaths) {
+        if (fs.existsSync(indexPath)) {
+          try {
+            logger.info(`Serving SPA index.html from ${indexPath} for ${originalUrl}`);
+            
+            // Read the file and inject special meta tags to help with SPA routing
+            const htmlContent = fs.readFileSync(indexPath, 'utf8');
+            const modifiedHtml = htmlContent
+              .replace(
+                '</head>',
+                `<meta name="route-recovery" content="true" data-original-url="${originalUrl}" />
+                <meta name="puntaiq-app-route" content="${originalUrl}" />
+                <meta name="puntaiq-server-time" content="${new Date().toISOString()}" />
+                <script>
+                  // Record the original URL to help with route recovery
+                  window.__PUNTAIQ_ORIGINAL_URL = "${originalUrl}";
+                  window.__PUNTAIQ_SERVER_PORT = "${req.socket.localPort}";
+                  
+                  // Store path for recovery if needed
+                  if (window.sessionStorage) {
+                    sessionStorage.setItem('puntaiq_recovery_path', "${originalUrl}");
+                  }
+
+                  // Force reload if we detect a 404 in the DOM after a delay
+                  setTimeout(function() {
+                    const isNotFoundPage = 
+                      (document.title && document.title.includes('404')) || 
+                      (document.body && document.body.textContent && document.body.textContent.includes('Not Found'));
+                    
+                    if (isNotFoundPage) {
+                      console.log('Detected 404 page, reloading app');
+                      window.location.href = "/";
+                    }
+                  }, 1000);
+                </script>
+                </head>`
+              );
+            
+            res.setHeader('Content-Type', 'text/html');
+            return res.send(modifiedHtml);
+          } catch (error) {
+            logger.error(`Error serving index.html from ${indexPath}: ${error.message}`);
+            // Continue to try next path
+          }
+        }
+      }
+      
+      // If none of the index.html files were found or could be served,
+      // use our redirect.html as a fallback
+      const redirectPath = path.resolve(process.cwd(), 'public', 'redirect.html');
+      if (fs.existsSync(redirectPath)) {
+        try {
+          logger.info(`Serving redirect.html for ${originalUrl} as fallback`);
+          return res.sendFile(redirectPath);
+        } catch (error) {
+          logger.error(`Error serving redirect.html: ${error.message}`);
+        }
+      }
+      
+      // If all else fails, generate an emergency HTML response
+      return serveEmergencyHtml();
+    };
     
-    // Fallback to a static HTML with auto-redirect
-    logger.warn(`Using emergency SPA recovery for ${originalUrl}`);
-    const redirectScript = `
-      <script>
-        console.log("Emergency redirect for ${originalUrl}");
-        // Force browser to go to main application homepage
-        window.location.href = "/";
-      </script>
-    `;
+    // Last resort emergency HTML with recovery scripts
+    const serveEmergencyHtml = () => {
+      logger.warn(`Using emergency SPA recovery for ${originalUrl}`);
+      const redirectScript = `
+        <script>
+          console.log("Emergency redirect for ${originalUrl}");
+          
+          // Store original path for recovery
+          if (window.sessionStorage) {
+            sessionStorage.setItem('puntaiq_recovery_path', "${originalUrl}");
+          }
+          
+          // Determine the correct port for redirection
+          const targetPort = "3000";  // Default to the main server port
+          const targetPath = "/";     // First go to the root path
+          
+          // Redirect to the correct URL
+          const redirectUrl = \`\${window.location.protocol}//\${window.location.hostname}:\${targetPort}\${targetPath}?recovery=true&from=\${encodeURIComponent("${originalUrl}")}\`;
+          console.log("Redirecting to:", redirectUrl);
+          
+          // Force browser to go to application homepage
+          window.location.href = redirectUrl;
+        </script>
+      `;
+      
+      res.setHeader('Content-Type', 'text/html');
+      res.send(`<!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>PuntaIQ - Redirecting...</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+              background: #f5f5f5;
+              color: #333;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+              margin: 0;
+            }
+            .container {
+              text-align: center;
+              max-width: 500px;
+              padding: 2rem;
+              background: white;
+              border-radius: 8px;
+              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            h1 { color: #0066cc; margin-top: 0; }
+            p { line-height: 1.5; }
+            .loading {
+              display: inline-block;
+              width: 30px;
+              height: 30px;
+              border: 3px solid rgba(0,102,204,0.3);
+              border-radius: 50%;
+              border-top-color: #0066cc;
+              animation: spin 1s ease-in-out infinite;
+            }
+            @keyframes spin {
+              to { transform: rotate(360deg); }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="loading"></div>
+            <h1>Redirecting to PuntaIQ</h1>
+            <p>Please wait while we redirect you to the application...</p>
+            <p><small>Original path: ${originalUrl}</small></p>
+          </div>
+          ${redirectScript}
+        </body>
+      </html>`);
+    };
     
-    res.setHeader('Content-Type', 'text/html');
-    res.send(`<!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>PuntaIQ - Redirecting...</title>
-        <style>
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: #f5f5f5;
-            color: #333;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-          }
-          .container {
-            text-align: center;
-            max-width: 500px;
-            padding: 2rem;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-          }
-          h1 { color: #0066cc; margin-top: 0; }
-          p { line-height: 1.5; }
-          .loading {
-            display: inline-block;
-            width: 30px;
-            height: 30px;
-            border: 3px solid rgba(0,102,204,0.3);
-            border-radius: 50%;
-            border-top-color: #0066cc;
-            animation: spin 1s ease-in-out infinite;
-          }
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="loading"></div>
-          <h1>Redirecting to PuntaIQ</h1>
-          <p>Please wait while we redirect you to the application...</p>
-        </div>
-        ${redirectScript}
-      </body>
-    </html>`);
+    // Execute the main index.html serving function
+    return serveClientIndexHtml();
   });
 
   // Use port 3000 for the main server to avoid conflict with the AI microservice on port 5000

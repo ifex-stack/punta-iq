@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PuntaIQ - Redirecting...</title>
+  <script>
+    // Capture the current path for recovery
+    const currentPath = window.location.pathname || '/';
+    const currentSearch = window.location.search || '';
+    
+    // Store in session storage for later recovery
+    if (window.sessionStorage) {
+      sessionStorage.setItem('puntaiq_recovery_path', currentPath);
+      if (currentSearch) {
+        sessionStorage.setItem('puntaiq_recovery_search', currentSearch);
+      }
+    }
+    
+    // Construct the redirect URL with recovery parameters
+    const redirectUrl = `${window.location.protocol}//${window.location.hostname}:3000/?recovery=true&from=${encodeURIComponent(currentPath)}`;
+    
+    // Log for debugging
+    console.log(`Redirecting to: ${redirectUrl}`);
+    
+    // Perform the redirect
+    window.location.replace(redirectUrl);
+  </script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      text-align: center;
+      max-width: 500px;
+      padding: 2rem;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 { color: #0066cc; margin-top: 0; }
+    p { line-height: 1.5; }
+    .loading {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      border: 3px solid rgba(0,102,204,0.3);
+      border-radius: 50%;
+      border-top-color: #0066cc;
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="loading"></div>
+    <h1>Redirecting to PuntaIQ</h1>
+    <p>Please wait while we redirect you to the application...</p>
+  </div>
+</body>
+</html>
