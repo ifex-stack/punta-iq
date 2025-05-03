@@ -1036,3 +1036,515 @@ Error: AI Service failed to start properly: exit code 1
 [STDOUT] [2025-05-03 16:24:29,637] [INFO] 172.31.128.78 - - [03/May/2025 16:24:29] "[33mGET / HTTP/1.1[0m" 404 -
 [STDOUT] [2025-05-03 16:24:29,927] [INFO] 127.0.0.1 - - [03/May/2025 16:24:29] "GET /api/status HTTP/1.1" 200 -
 [STDOUT] [2025-05-03 16:24:29,933] [INFO] 127.0.0.1 - - [03/May/2025 16:24:29] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:24:54,823] [INFO] 127.0.0.1 - - [03/May/2025 16:24:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:24:54,829] [INFO] 127.0.0.1 - - [03/May/2025 16:24:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:25:24,820] [INFO] 127.0.0.1 - - [03/May/2025 16:25:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:25:54,820] [INFO] 127.0.0.1 - - [03/May/2025 16:25:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:26:24,821] [INFO] 127.0.0.1 - - [03/May/2025 16:26:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:26:54,822] [INFO] 127.0.0.1 - - [03/May/2025 16:26:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:27:24,822] [INFO] 127.0.0.1 - - [03/May/2025 16:27:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:27:54,824] [INFO] 127.0.0.1 - - [03/May/2025 16:27:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:28:24,824] [INFO] 127.0.0.1 - - [03/May/2025 16:28:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:28:54,825] [INFO] 127.0.0.1 - - [03/May/2025 16:28:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:29:24,825] [INFO] 127.0.0.1 - - [03/May/2025 16:29:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:29:54,983] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 16:29:55,250] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 16:29:55,252] [INFO] 127.0.0.1 - - [03/May/2025 16:29:55] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:30:24,827] [INFO] 127.0.0.1 - - [03/May/2025 16:30:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:30:54,828] [INFO] 127.0.0.1 - - [03/May/2025 16:30:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:31:24,829] [INFO] 127.0.0.1 - - [03/May/2025 16:31:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:31:54,830] [INFO] 127.0.0.1 - - [03/May/2025 16:31:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:32:24,831] [INFO] 127.0.0.1 - - [03/May/2025 16:32:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:32:54,831] [INFO] 127.0.0.1 - - [03/May/2025 16:32:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:33:24,832] [INFO] 127.0.0.1 - - [03/May/2025 16:33:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:33:54,832] [INFO] 127.0.0.1 - - [03/May/2025 16:33:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:34:24,833] [INFO] 127.0.0.1 - - [03/May/2025 16:34:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:34:54,833] [INFO] 127.0.0.1 - - [03/May/2025 16:34:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:35:25,024] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 16:35:25,325] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 16:35:25,327] [INFO] 127.0.0.1 - - [03/May/2025 16:35:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:35:54,833] [INFO] 127.0.0.1 - - [03/May/2025 16:35:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:36:24,833] [INFO] 127.0.0.1 - - [03/May/2025 16:36:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:36:54,833] [INFO] 127.0.0.1 - - [03/May/2025 16:36:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:37:24,834] [INFO] 127.0.0.1 - - [03/May/2025 16:37:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:37:54,834] [INFO] 127.0.0.1 - - [03/May/2025 16:37:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:38:24,835] [INFO] 127.0.0.1 - - [03/May/2025 16:38:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:38:54,834] [INFO] 127.0.0.1 - - [03/May/2025 16:38:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:39:24,834] [INFO] 127.0.0.1 - - [03/May/2025 16:39:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:39:54,833] [INFO] 127.0.0.1 - - [03/May/2025 16:39:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:40:24,833] [INFO] 127.0.0.1 - - [03/May/2025 16:40:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:40:54,974] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 16:40:55,238] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 16:40:55,242] [INFO] 127.0.0.1 - - [03/May/2025 16:40:55] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:41:24,835] [INFO] 127.0.0.1 - - [03/May/2025 16:41:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:41:54,835] [INFO] 127.0.0.1 - - [03/May/2025 16:41:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:42:24,836] [INFO] 127.0.0.1 - - [03/May/2025 16:42:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:42:54,836] [INFO] 127.0.0.1 - - [03/May/2025 16:42:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:43:24,837] [INFO] 127.0.0.1 - - [03/May/2025 16:43:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:43:54,836] [INFO] 127.0.0.1 - - [03/May/2025 16:43:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:44:24,838] [INFO] 127.0.0.1 - - [03/May/2025 16:44:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:44:54,838] [INFO] 127.0.0.1 - - [03/May/2025 16:44:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:45:24,839] [INFO] 127.0.0.1 - - [03/May/2025 16:45:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:45:54,840] [INFO] 127.0.0.1 - - [03/May/2025 16:45:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:46:25,014] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 16:46:25,200] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 16:46:25,202] [INFO] 127.0.0.1 - - [03/May/2025 16:46:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:46:54,840] [INFO] 127.0.0.1 - - [03/May/2025 16:46:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:47:24,840] [INFO] 127.0.0.1 - - [03/May/2025 16:47:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:47:54,845] [INFO] 127.0.0.1 - - [03/May/2025 16:47:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:48:24,842] [INFO] 127.0.0.1 - - [03/May/2025 16:48:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:48:54,842] [INFO] 127.0.0.1 - - [03/May/2025 16:48:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:49:24,842] [INFO] 127.0.0.1 - - [03/May/2025 16:49:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:49:54,843] [INFO] 127.0.0.1 - - [03/May/2025 16:49:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:50:24,842] [INFO] 127.0.0.1 - - [03/May/2025 16:50:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:50:54,842] [INFO] 127.0.0.1 - - [03/May/2025 16:50:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:51:24,842] [INFO] 127.0.0.1 - - [03/May/2025 16:51:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:51:54,966] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 16:51:55,270] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 16:51:55,273] [INFO] 127.0.0.1 - - [03/May/2025 16:51:55] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:52:24,842] [INFO] 127.0.0.1 - - [03/May/2025 16:52:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:52:54,843] [INFO] 127.0.0.1 - - [03/May/2025 16:52:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:53:24,843] [INFO] 127.0.0.1 - - [03/May/2025 16:53:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:53:54,843] [INFO] 127.0.0.1 - - [03/May/2025 16:53:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:54:24,843] [INFO] 127.0.0.1 - - [03/May/2025 16:54:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:54:54,852] [INFO] 127.0.0.1 - - [03/May/2025 16:54:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:55:24,843] [INFO] 127.0.0.1 - - [03/May/2025 16:55:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:55:54,843] [INFO] 127.0.0.1 - - [03/May/2025 16:55:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:56:24,843] [INFO] 127.0.0.1 - - [03/May/2025 16:56:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:56:54,843] [INFO] 127.0.0.1 - - [03/May/2025 16:56:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:57:24,975] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 16:57:25,163] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 16:57:25,165] [INFO] 127.0.0.1 - - [03/May/2025 16:57:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:57:54,844] [INFO] 127.0.0.1 - - [03/May/2025 16:57:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:58:24,845] [INFO] 127.0.0.1 - - [03/May/2025 16:58:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:58:54,846] [INFO] 127.0.0.1 - - [03/May/2025 16:58:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:59:24,847] [INFO] 127.0.0.1 - - [03/May/2025 16:59:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 16:59:54,848] [INFO] 127.0.0.1 - - [03/May/2025 16:59:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:00:24,849] [INFO] 127.0.0.1 - - [03/May/2025 17:00:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:00:54,850] [INFO] 127.0.0.1 - - [03/May/2025 17:00:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:01:24,851] [INFO] 127.0.0.1 - - [03/May/2025 17:01:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:01:54,851] [INFO] 127.0.0.1 - - [03/May/2025 17:01:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:02:24,852] [INFO] 127.0.0.1 - - [03/May/2025 17:02:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:02:54,984] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 17:02:55,153] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 17:02:55,156] [INFO] 127.0.0.1 - - [03/May/2025 17:02:55] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:03:24,854] [INFO] 127.0.0.1 - - [03/May/2025 17:03:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:03:54,854] [INFO] 127.0.0.1 - - [03/May/2025 17:03:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:04:24,855] [INFO] 127.0.0.1 - - [03/May/2025 17:04:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:04:54,856] [INFO] 127.0.0.1 - - [03/May/2025 17:04:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:05:24,855] [INFO] 127.0.0.1 - - [03/May/2025 17:05:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:05:54,858] [INFO] 127.0.0.1 - - [03/May/2025 17:05:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:06:24,858] [INFO] 127.0.0.1 - - [03/May/2025 17:06:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:06:54,857] [INFO] 127.0.0.1 - - [03/May/2025 17:06:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:07:24,855] [INFO] 127.0.0.1 - - [03/May/2025 17:07:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:07:54,857] [INFO] 127.0.0.1 - - [03/May/2025 17:07:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:08:25,008] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 17:08:25,628] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 17:08:25,631] [INFO] 127.0.0.1 - - [03/May/2025 17:08:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:08:54,856] [INFO] 127.0.0.1 - - [03/May/2025 17:08:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:09:24,856] [INFO] 127.0.0.1 - - [03/May/2025 17:09:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:09:54,856] [INFO] 127.0.0.1 - - [03/May/2025 17:09:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:10:24,856] [INFO] 127.0.0.1 - - [03/May/2025 17:10:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:10:54,857] [INFO] 127.0.0.1 - - [03/May/2025 17:10:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:11:24,858] [INFO] 127.0.0.1 - - [03/May/2025 17:11:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:11:54,858] [INFO] 127.0.0.1 - - [03/May/2025 17:11:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:12:24,858] [INFO] 127.0.0.1 - - [03/May/2025 17:12:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:12:54,859] [INFO] 127.0.0.1 - - [03/May/2025 17:12:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:13:24,858] [INFO] 127.0.0.1 - - [03/May/2025 17:13:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:13:54,991] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 17:13:55,179] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 17:13:55,181] [INFO] 127.0.0.1 - - [03/May/2025 17:13:55] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:14:24,858] [INFO] 127.0.0.1 - - [03/May/2025 17:14:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:14:54,859] [INFO] 127.0.0.1 - - [03/May/2025 17:14:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:15:24,859] [INFO] 127.0.0.1 - - [03/May/2025 17:15:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:15:54,860] [INFO] 127.0.0.1 - - [03/May/2025 17:15:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:16:24,859] [INFO] 127.0.0.1 - - [03/May/2025 17:16:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:16:54,860] [INFO] 127.0.0.1 - - [03/May/2025 17:16:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:17:24,860] [INFO] 127.0.0.1 - - [03/May/2025 17:17:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:17:54,862] [INFO] 127.0.0.1 - - [03/May/2025 17:17:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:18:24,861] [INFO] 127.0.0.1 - - [03/May/2025 17:18:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:18:54,862] [INFO] 127.0.0.1 - - [03/May/2025 17:18:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:19:24,982] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 17:19:25,252] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 17:19:25,254] [INFO] 127.0.0.1 - - [03/May/2025 17:19:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:19:54,862] [INFO] 127.0.0.1 - - [03/May/2025 17:19:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:20:24,861] [INFO] 127.0.0.1 - - [03/May/2025 17:20:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:20:54,862] [INFO] 127.0.0.1 - - [03/May/2025 17:20:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:21:24,862] [INFO] 127.0.0.1 - - [03/May/2025 17:21:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:21:54,861] [INFO] 127.0.0.1 - - [03/May/2025 17:21:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:22:24,861] [INFO] 127.0.0.1 - - [03/May/2025 17:22:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:22:54,861] [INFO] 127.0.0.1 - - [03/May/2025 17:22:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:23:24,862] [INFO] 127.0.0.1 - - [03/May/2025 17:23:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:23:54,861] [INFO] 127.0.0.1 - - [03/May/2025 17:23:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:24:24,863] [INFO] 127.0.0.1 - - [03/May/2025 17:24:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:24:54,988] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 17:24:55,199] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 17:24:55,201] [INFO] 127.0.0.1 - - [03/May/2025 17:24:55] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:25:24,863] [INFO] 127.0.0.1 - - [03/May/2025 17:25:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:25:54,863] [INFO] 127.0.0.1 - - [03/May/2025 17:25:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:26:24,862] [INFO] 127.0.0.1 - - [03/May/2025 17:26:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:26:54,862] [INFO] 127.0.0.1 - - [03/May/2025 17:26:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:27:24,863] [INFO] 127.0.0.1 - - [03/May/2025 17:27:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:27:54,863] [INFO] 127.0.0.1 - - [03/May/2025 17:27:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:28:24,877] [INFO] 127.0.0.1 - - [03/May/2025 17:28:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:28:54,863] [INFO] 127.0.0.1 - - [03/May/2025 17:28:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:29:24,862] [INFO] 127.0.0.1 - - [03/May/2025 17:29:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:29:54,863] [INFO] 127.0.0.1 - - [03/May/2025 17:29:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:30:25,030] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 17:30:25,703] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 17:30:25,705] [INFO] 127.0.0.1 - - [03/May/2025 17:30:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:30:54,863] [INFO] 127.0.0.1 - - [03/May/2025 17:30:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:31:24,863] [INFO] 127.0.0.1 - - [03/May/2025 17:31:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:31:54,864] [INFO] 127.0.0.1 - - [03/May/2025 17:31:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:32:24,864] [INFO] 127.0.0.1 - - [03/May/2025 17:32:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:32:54,865] [INFO] 127.0.0.1 - - [03/May/2025 17:32:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:33:24,864] [INFO] 127.0.0.1 - - [03/May/2025 17:33:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:33:54,866] [INFO] 127.0.0.1 - - [03/May/2025 17:33:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:34:24,867] [INFO] 127.0.0.1 - - [03/May/2025 17:34:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:34:54,866] [INFO] 127.0.0.1 - - [03/May/2025 17:34:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:35:24,867] [INFO] 127.0.0.1 - - [03/May/2025 17:35:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:35:55,043] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 17:35:55,325] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 17:35:55,328] [INFO] 127.0.0.1 - - [03/May/2025 17:35:55] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:36:24,867] [INFO] 127.0.0.1 - - [03/May/2025 17:36:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:36:54,870] [INFO] 127.0.0.1 - - [03/May/2025 17:36:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:37:24,873] [INFO] 127.0.0.1 - - [03/May/2025 17:37:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:37:54,870] [INFO] 127.0.0.1 - - [03/May/2025 17:37:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:38:24,869] [INFO] 127.0.0.1 - - [03/May/2025 17:38:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:38:54,869] [INFO] 127.0.0.1 - - [03/May/2025 17:38:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:39:24,869] [INFO] 127.0.0.1 - - [03/May/2025 17:39:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:39:54,869] [INFO] 127.0.0.1 - - [03/May/2025 17:39:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:40:24,869] [INFO] 127.0.0.1 - - [03/May/2025 17:40:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:40:54,869] [INFO] 127.0.0.1 - - [03/May/2025 17:40:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:41:25,028] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 17:41:25,320] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 17:41:25,321] [INFO] 127.0.0.1 - - [03/May/2025 17:41:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:41:54,869] [INFO] 127.0.0.1 - - [03/May/2025 17:41:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:42:24,870] [INFO] 127.0.0.1 - - [03/May/2025 17:42:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:42:54,869] [INFO] 127.0.0.1 - - [03/May/2025 17:42:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:43:24,869] [INFO] 127.0.0.1 - - [03/May/2025 17:43:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:43:54,869] [INFO] 127.0.0.1 - - [03/May/2025 17:43:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:44:24,869] [INFO] 127.0.0.1 - - [03/May/2025 17:44:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:44:54,869] [INFO] 127.0.0.1 - - [03/May/2025 17:44:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:45:24,869] [INFO] 127.0.0.1 - - [03/May/2025 17:45:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:45:54,870] [INFO] 127.0.0.1 - - [03/May/2025 17:45:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:46:24,870] [INFO] 127.0.0.1 - - [03/May/2025 17:46:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:46:55,002] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 17:46:55,175] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 17:46:55,178] [INFO] 127.0.0.1 - - [03/May/2025 17:46:55] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:47:24,871] [INFO] 127.0.0.1 - - [03/May/2025 17:47:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:47:54,871] [INFO] 127.0.0.1 - - [03/May/2025 17:47:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:48:24,872] [INFO] 127.0.0.1 - - [03/May/2025 17:48:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:48:54,873] [INFO] 127.0.0.1 - - [03/May/2025 17:48:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:49:24,874] [INFO] 127.0.0.1 - - [03/May/2025 17:49:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:49:54,874] [INFO] 127.0.0.1 - - [03/May/2025 17:49:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:50:24,875] [INFO] 127.0.0.1 - - [03/May/2025 17:50:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:50:54,876] [INFO] 127.0.0.1 - - [03/May/2025 17:50:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:51:24,876] [INFO] 127.0.0.1 - - [03/May/2025 17:51:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:51:54,877] [INFO] 127.0.0.1 - - [03/May/2025 17:51:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:52:25,019] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 17:52:25,325] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 17:52:25,327] [INFO] 127.0.0.1 - - [03/May/2025 17:52:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:52:54,877] [INFO] 127.0.0.1 - - [03/May/2025 17:52:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:53:24,876] [INFO] 127.0.0.1 - - [03/May/2025 17:53:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:53:54,876] [INFO] 127.0.0.1 - - [03/May/2025 17:53:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:54:24,876] [INFO] 127.0.0.1 - - [03/May/2025 17:54:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:54:54,876] [INFO] 127.0.0.1 - - [03/May/2025 17:54:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:55:24,877] [INFO] 127.0.0.1 - - [03/May/2025 17:55:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:55:54,876] [INFO] 127.0.0.1 - - [03/May/2025 17:55:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:56:24,877] [INFO] 127.0.0.1 - - [03/May/2025 17:56:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:56:54,877] [INFO] 127.0.0.1 - - [03/May/2025 17:56:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:57:24,877] [INFO] 127.0.0.1 - - [03/May/2025 17:57:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:57:55,010] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 17:57:55,299] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 17:57:55,301] [INFO] 127.0.0.1 - - [03/May/2025 17:57:55] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:58:24,877] [INFO] 127.0.0.1 - - [03/May/2025 17:58:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:58:54,877] [INFO] 127.0.0.1 - - [03/May/2025 17:58:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:59:24,880] [INFO] 127.0.0.1 - - [03/May/2025 17:59:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 17:59:54,878] [INFO] 127.0.0.1 - - [03/May/2025 17:59:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:00:24,878] [INFO] 127.0.0.1 - - [03/May/2025 18:00:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:00:54,878] [INFO] 127.0.0.1 - - [03/May/2025 18:00:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:01:24,880] [INFO] 127.0.0.1 - - [03/May/2025 18:01:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:01:54,881] [INFO] 127.0.0.1 - - [03/May/2025 18:01:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:02:24,882] [INFO] 127.0.0.1 - - [03/May/2025 18:02:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:02:54,882] [INFO] 127.0.0.1 - - [03/May/2025 18:02:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:03:25,047] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 18:03:25,662] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 18:03:25,664] [INFO] 127.0.0.1 - - [03/May/2025 18:03:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:03:54,882] [INFO] 127.0.0.1 - - [03/May/2025 18:03:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:04:24,883] [INFO] 127.0.0.1 - - [03/May/2025 18:04:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:04:54,883] [INFO] 127.0.0.1 - - [03/May/2025 18:04:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:05:24,884] [INFO] 127.0.0.1 - - [03/May/2025 18:05:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:05:54,884] [INFO] 127.0.0.1 - - [03/May/2025 18:05:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:06:24,885] [INFO] 127.0.0.1 - - [03/May/2025 18:06:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:06:54,886] [INFO] 127.0.0.1 - - [03/May/2025 18:06:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:07:24,885] [INFO] 127.0.0.1 - - [03/May/2025 18:07:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:07:54,886] [INFO] 127.0.0.1 - - [03/May/2025 18:07:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:08:24,885] [INFO] 127.0.0.1 - - [03/May/2025 18:08:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:08:55,053] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 18:08:55,241] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 18:08:55,243] [INFO] 127.0.0.1 - - [03/May/2025 18:08:55] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:09:24,889] [INFO] 127.0.0.1 - - [03/May/2025 18:09:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:09:54,890] [INFO] 127.0.0.1 - - [03/May/2025 18:09:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:10:24,889] [INFO] 127.0.0.1 - - [03/May/2025 18:10:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:10:54,890] [INFO] 127.0.0.1 - - [03/May/2025 18:10:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:11:24,889] [INFO] 127.0.0.1 - - [03/May/2025 18:11:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:11:54,889] [INFO] 127.0.0.1 - - [03/May/2025 18:11:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:12:24,889] [INFO] 127.0.0.1 - - [03/May/2025 18:12:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:12:54,889] [INFO] 127.0.0.1 - - [03/May/2025 18:12:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:13:24,889] [INFO] 127.0.0.1 - - [03/May/2025 18:13:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:13:54,890] [INFO] 127.0.0.1 - - [03/May/2025 18:13:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:14:25,041] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 18:14:25,248] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 18:14:25,250] [INFO] 127.0.0.1 - - [03/May/2025 18:14:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:14:54,889] [INFO] 127.0.0.1 - - [03/May/2025 18:14:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:15:24,889] [INFO] 127.0.0.1 - - [03/May/2025 18:15:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:15:54,889] [INFO] 127.0.0.1 - - [03/May/2025 18:15:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:16:24,890] [INFO] 127.0.0.1 - - [03/May/2025 18:16:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:16:54,890] [INFO] 127.0.0.1 - - [03/May/2025 18:16:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:17:24,891] [INFO] 127.0.0.1 - - [03/May/2025 18:17:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:17:54,892] [INFO] 127.0.0.1 - - [03/May/2025 18:17:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:18:24,893] [INFO] 127.0.0.1 - - [03/May/2025 18:18:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:18:54,894] [INFO] 127.0.0.1 - - [03/May/2025 18:18:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:19:24,894] [INFO] 127.0.0.1 - - [03/May/2025 18:19:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:19:55,027] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 18:19:55,325] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 18:19:55,327] [INFO] 127.0.0.1 - - [03/May/2025 18:19:55] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:20:24,895] [INFO] 127.0.0.1 - - [03/May/2025 18:20:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:20:54,895] [INFO] 127.0.0.1 - - [03/May/2025 18:20:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:21:24,897] [INFO] 127.0.0.1 - - [03/May/2025 18:21:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:21:54,897] [INFO] 127.0.0.1 - - [03/May/2025 18:21:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:22:24,899] [INFO] 127.0.0.1 - - [03/May/2025 18:22:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:22:54,900] [INFO] 127.0.0.1 - - [03/May/2025 18:22:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:23:24,901] [INFO] 127.0.0.1 - - [03/May/2025 18:23:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:23:54,901] [INFO] 127.0.0.1 - - [03/May/2025 18:23:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:24:24,901] [INFO] 127.0.0.1 - - [03/May/2025 18:24:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:24:54,902] [INFO] 127.0.0.1 - - [03/May/2025 18:24:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:25:25,045] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 18:25:25,327] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 18:25:25,334] [INFO] 127.0.0.1 - - [03/May/2025 18:25:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:25:54,902] [INFO] 127.0.0.1 - - [03/May/2025 18:25:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:26:24,902] [INFO] 127.0.0.1 - - [03/May/2025 18:26:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:26:54,902] [INFO] 127.0.0.1 - - [03/May/2025 18:26:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:27:24,903] [INFO] 127.0.0.1 - - [03/May/2025 18:27:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:27:54,902] [INFO] 127.0.0.1 - - [03/May/2025 18:27:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:28:24,902] [INFO] 127.0.0.1 - - [03/May/2025 18:28:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:28:54,902] [INFO] 127.0.0.1 - - [03/May/2025 18:28:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:29:24,903] [INFO] 127.0.0.1 - - [03/May/2025 18:29:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:29:54,902] [INFO] 127.0.0.1 - - [03/May/2025 18:29:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:30:24,903] [INFO] 127.0.0.1 - - [03/May/2025 18:30:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:30:55,048] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 18:30:55,232] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 18:30:55,234] [INFO] 127.0.0.1 - - [03/May/2025 18:30:55] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:31:24,902] [INFO] 127.0.0.1 - - [03/May/2025 18:31:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:31:54,902] [INFO] 127.0.0.1 - - [03/May/2025 18:31:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:32:24,902] [INFO] 127.0.0.1 - - [03/May/2025 18:32:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:32:54,903] [INFO] 127.0.0.1 - - [03/May/2025 18:32:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:33:24,904] [INFO] 127.0.0.1 - - [03/May/2025 18:33:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:33:54,905] [INFO] 127.0.0.1 - - [03/May/2025 18:33:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:34:24,906] [INFO] 127.0.0.1 - - [03/May/2025 18:34:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:34:54,906] [INFO] 127.0.0.1 - - [03/May/2025 18:34:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:35:24,907] [INFO] 127.0.0.1 - - [03/May/2025 18:35:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:35:54,906] [INFO] 127.0.0.1 - - [03/May/2025 18:35:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:36:25,070] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 18:36:25,342] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 18:36:25,344] [INFO] 127.0.0.1 - - [03/May/2025 18:36:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:36:54,907] [INFO] 127.0.0.1 - - [03/May/2025 18:36:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:37:24,908] [INFO] 127.0.0.1 - - [03/May/2025 18:37:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:37:54,909] [INFO] 127.0.0.1 - - [03/May/2025 18:37:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:38:24,909] [INFO] 127.0.0.1 - - [03/May/2025 18:38:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:38:54,910] [INFO] 127.0.0.1 - - [03/May/2025 18:38:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:39:24,909] [INFO] 127.0.0.1 - - [03/May/2025 18:39:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:39:54,909] [INFO] 127.0.0.1 - - [03/May/2025 18:39:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:40:24,911] [INFO] 127.0.0.1 - - [03/May/2025 18:40:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:40:54,911] [INFO] 127.0.0.1 - - [03/May/2025 18:40:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:41:24,912] [INFO] 127.0.0.1 - - [03/May/2025 18:41:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:41:55,041] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 18:41:55,355] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 18:41:55,358] [INFO] 127.0.0.1 - - [03/May/2025 18:41:55] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:42:24,913] [INFO] 127.0.0.1 - - [03/May/2025 18:42:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:42:54,912] [INFO] 127.0.0.1 - - [03/May/2025 18:42:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:43:24,912] [INFO] 127.0.0.1 - - [03/May/2025 18:43:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:43:54,912] [INFO] 127.0.0.1 - - [03/May/2025 18:43:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:44:24,912] [INFO] 127.0.0.1 - - [03/May/2025 18:44:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:44:54,912] [INFO] 127.0.0.1 - - [03/May/2025 18:44:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:45:24,912] [INFO] 127.0.0.1 - - [03/May/2025 18:45:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:45:54,913] [INFO] 127.0.0.1 - - [03/May/2025 18:45:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:46:24,913] [INFO] 127.0.0.1 - - [03/May/2025 18:46:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:46:54,913] [INFO] 127.0.0.1 - - [03/May/2025 18:46:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:47:25,045] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 18:47:25,248] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 18:47:25,251] [INFO] 127.0.0.1 - - [03/May/2025 18:47:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:47:54,913] [INFO] 127.0.0.1 - - [03/May/2025 18:47:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:48:24,913] [INFO] 127.0.0.1 - - [03/May/2025 18:48:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:48:54,913] [INFO] 127.0.0.1 - - [03/May/2025 18:48:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:49:24,913] [INFO] 127.0.0.1 - - [03/May/2025 18:49:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:49:54,914] [INFO] 127.0.0.1 - - [03/May/2025 18:49:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:50:24,915] [INFO] 127.0.0.1 - - [03/May/2025 18:50:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:50:54,915] [INFO] 127.0.0.1 - - [03/May/2025 18:50:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:51:24,915] [INFO] 127.0.0.1 - - [03/May/2025 18:51:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:51:54,917] [INFO] 127.0.0.1 - - [03/May/2025 18:51:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:52:24,915] [INFO] 127.0.0.1 - - [03/May/2025 18:52:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:52:55,044] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 18:52:55,222] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 18:52:55,224] [INFO] 127.0.0.1 - - [03/May/2025 18:52:55] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:53:24,916] [INFO] 127.0.0.1 - - [03/May/2025 18:53:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:53:54,917] [INFO] 127.0.0.1 - - [03/May/2025 18:53:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:54:24,918] [INFO] 127.0.0.1 - - [03/May/2025 18:54:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:54:54,919] [INFO] 127.0.0.1 - - [03/May/2025 18:54:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:55:24,918] [INFO] 127.0.0.1 - - [03/May/2025 18:55:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:55:54,918] [INFO] 127.0.0.1 - - [03/May/2025 18:55:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:56:24,919] [INFO] 127.0.0.1 - - [03/May/2025 18:56:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:56:54,918] [INFO] 127.0.0.1 - - [03/May/2025 18:56:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:57:24,919] [INFO] 127.0.0.1 - - [03/May/2025 18:57:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:57:54,918] [INFO] 127.0.0.1 - - [03/May/2025 18:57:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:58:25,047] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 18:58:25,327] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 18:58:25,329] [INFO] 127.0.0.1 - - [03/May/2025 18:58:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:58:54,919] [INFO] 127.0.0.1 - - [03/May/2025 18:58:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:59:24,919] [INFO] 127.0.0.1 - - [03/May/2025 18:59:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 18:59:54,918] [INFO] 127.0.0.1 - - [03/May/2025 18:59:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:00:24,918] [INFO] 127.0.0.1 - - [03/May/2025 19:00:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:00:54,919] [INFO] 127.0.0.1 - - [03/May/2025 19:00:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:01:24,918] [INFO] 127.0.0.1 - - [03/May/2025 19:01:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:01:54,918] [INFO] 127.0.0.1 - - [03/May/2025 19:01:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:02:24,919] [INFO] 127.0.0.1 - - [03/May/2025 19:02:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:02:54,919] [INFO] 127.0.0.1 - - [03/May/2025 19:02:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:03:24,920] [INFO] 127.0.0.1 - - [03/May/2025 19:03:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:03:55,064] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 19:03:55,246] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 19:03:55,249] [INFO] 127.0.0.1 - - [03/May/2025 19:03:55] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:04:24,919] [INFO] 127.0.0.1 - - [03/May/2025 19:04:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:04:54,919] [INFO] 127.0.0.1 - - [03/May/2025 19:04:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:05:24,920] [INFO] 127.0.0.1 - - [03/May/2025 19:05:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:05:54,920] [INFO] 127.0.0.1 - - [03/May/2025 19:05:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:06:24,921] [INFO] 127.0.0.1 - - [03/May/2025 19:06:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:06:54,921] [INFO] 127.0.0.1 - - [03/May/2025 19:06:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:07:24,922] [INFO] 127.0.0.1 - - [03/May/2025 19:07:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:07:54,923] [INFO] 127.0.0.1 - - [03/May/2025 19:07:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:08:24,924] [INFO] 127.0.0.1 - - [03/May/2025 19:08:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:08:54,925] [INFO] 127.0.0.1 - - [03/May/2025 19:08:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:09:25,052] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 19:09:25,324] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 19:09:25,326] [INFO] 127.0.0.1 - - [03/May/2025 19:09:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:09:54,926] [INFO] 127.0.0.1 - - [03/May/2025 19:09:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:10:24,926] [INFO] 127.0.0.1 - - [03/May/2025 19:10:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:10:54,928] [INFO] 127.0.0.1 - - [03/May/2025 19:10:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:11:24,928] [INFO] 127.0.0.1 - - [03/May/2025 19:11:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:11:54,927] [INFO] 127.0.0.1 - - [03/May/2025 19:11:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:12:24,931] [INFO] 127.0.0.1 - - [03/May/2025 19:12:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:12:54,928] [INFO] 127.0.0.1 - - [03/May/2025 19:12:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:13:24,928] [INFO] 127.0.0.1 - - [03/May/2025 19:13:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:13:54,928] [INFO] 127.0.0.1 - - [03/May/2025 19:13:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:14:24,929] [INFO] 127.0.0.1 - - [03/May/2025 19:14:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:14:55,061] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 19:14:55,362] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 19:14:55,364] [INFO] 127.0.0.1 - - [03/May/2025 19:14:55] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:15:24,930] [INFO] 127.0.0.1 - - [03/May/2025 19:15:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:15:54,929] [INFO] 127.0.0.1 - - [03/May/2025 19:15:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:16:24,930] [INFO] 127.0.0.1 - - [03/May/2025 19:16:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:16:54,930] [INFO] 127.0.0.1 - - [03/May/2025 19:16:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:17:24,931] [INFO] 127.0.0.1 - - [03/May/2025 19:17:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:17:54,930] [INFO] 127.0.0.1 - - [03/May/2025 19:17:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:18:24,931] [INFO] 127.0.0.1 - - [03/May/2025 19:18:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:18:54,930] [INFO] 127.0.0.1 - - [03/May/2025 19:18:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:19:24,930] [INFO] 127.0.0.1 - - [03/May/2025 19:19:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:19:54,930] [INFO] 127.0.0.1 - - [03/May/2025 19:19:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:20:25,088] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 19:20:25,288] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 19:20:25,291] [INFO] 127.0.0.1 - - [03/May/2025 19:20:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:20:54,931] [INFO] 127.0.0.1 - - [03/May/2025 19:20:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:21:24,932] [INFO] 127.0.0.1 - - [03/May/2025 19:21:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:21:54,932] [INFO] 127.0.0.1 - - [03/May/2025 19:21:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:22:24,932] [INFO] 127.0.0.1 - - [03/May/2025 19:22:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:22:54,932] [INFO] 127.0.0.1 - - [03/May/2025 19:22:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:23:24,933] [INFO] 127.0.0.1 - - [03/May/2025 19:23:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:23:54,934] [INFO] 127.0.0.1 - - [03/May/2025 19:23:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:24:24,935] [INFO] 127.0.0.1 - - [03/May/2025 19:24:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:24:54,935] [INFO] 127.0.0.1 - - [03/May/2025 19:24:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:25:24,935] [INFO] 127.0.0.1 - - [03/May/2025 19:25:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:25:55,113] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 19:25:55,345] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 19:25:55,348] [INFO] 127.0.0.1 - - [03/May/2025 19:25:55] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:26:24,936] [INFO] 127.0.0.1 - - [03/May/2025 19:26:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:26:54,936] [INFO] 127.0.0.1 - - [03/May/2025 19:26:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:27:24,938] [INFO] 127.0.0.1 - - [03/May/2025 19:27:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:27:54,937] [INFO] 127.0.0.1 - - [03/May/2025 19:27:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:28:24,938] [INFO] 127.0.0.1 - - [03/May/2025 19:28:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:28:54,939] [INFO] 127.0.0.1 - - [03/May/2025 19:28:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:29:24,939] [INFO] 127.0.0.1 - - [03/May/2025 19:29:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:29:54,940] [INFO] 127.0.0.1 - - [03/May/2025 19:29:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:30:24,939] [INFO] 127.0.0.1 - - [03/May/2025 19:30:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:30:54,939] [INFO] 127.0.0.1 - - [03/May/2025 19:30:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:31:25,067] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 19:31:25,258] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 19:31:25,260] [INFO] 127.0.0.1 - - [03/May/2025 19:31:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:31:54,939] [INFO] 127.0.0.1 - - [03/May/2025 19:31:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:32:24,940] [INFO] 127.0.0.1 - - [03/May/2025 19:32:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:32:54,939] [INFO] 127.0.0.1 - - [03/May/2025 19:32:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:33:24,940] [INFO] 127.0.0.1 - - [03/May/2025 19:33:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:33:54,940] [INFO] 127.0.0.1 - - [03/May/2025 19:33:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:34:24,939] [INFO] 127.0.0.1 - - [03/May/2025 19:34:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:34:54,939] [INFO] 127.0.0.1 - - [03/May/2025 19:34:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:35:24,939] [INFO] 127.0.0.1 - - [03/May/2025 19:35:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:35:54,939] [INFO] 127.0.0.1 - - [03/May/2025 19:35:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:36:24,939] [INFO] 127.0.0.1 - - [03/May/2025 19:36:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:36:55,067] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 19:36:55,331] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 19:36:55,333] [INFO] 127.0.0.1 - - [03/May/2025 19:36:55] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:37:24,941] [INFO] 127.0.0.1 - - [03/May/2025 19:37:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:37:54,941] [INFO] 127.0.0.1 - - [03/May/2025 19:37:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:38:24,941] [INFO] 127.0.0.1 - - [03/May/2025 19:38:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:38:54,942] [INFO] 127.0.0.1 - - [03/May/2025 19:38:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:39:24,943] [INFO] 127.0.0.1 - - [03/May/2025 19:39:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:39:54,942] [INFO] 127.0.0.1 - - [03/May/2025 19:39:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:40:24,943] [INFO] 127.0.0.1 - - [03/May/2025 19:40:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:40:54,943] [INFO] 127.0.0.1 - - [03/May/2025 19:40:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:41:24,943] [INFO] 127.0.0.1 - - [03/May/2025 19:41:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:41:54,944] [INFO] 127.0.0.1 - - [03/May/2025 19:41:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:42:25,118] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 19:42:25,391] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 19:42:25,393] [INFO] 127.0.0.1 - - [03/May/2025 19:42:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:42:54,943] [INFO] 127.0.0.1 - - [03/May/2025 19:42:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:43:24,944] [INFO] 127.0.0.1 - - [03/May/2025 19:43:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:43:54,944] [INFO] 127.0.0.1 - - [03/May/2025 19:43:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:44:24,944] [INFO] 127.0.0.1 - - [03/May/2025 19:44:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:44:54,944] [INFO] 127.0.0.1 - - [03/May/2025 19:44:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:45:24,944] [INFO] 127.0.0.1 - - [03/May/2025 19:45:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:45:54,947] [INFO] 127.0.0.1 - - [03/May/2025 19:45:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:46:24,944] [INFO] 127.0.0.1 - - [03/May/2025 19:46:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:46:54,944] [INFO] 127.0.0.1 - - [03/May/2025 19:46:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:47:24,944] [INFO] 127.0.0.1 - - [03/May/2025 19:47:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:47:55,083] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 19:47:55,354] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 19:47:55,356] [INFO] 127.0.0.1 - - [03/May/2025 19:47:55] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:48:24,945] [INFO] 127.0.0.1 - - [03/May/2025 19:48:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:48:54,946] [INFO] 127.0.0.1 - - [03/May/2025 19:48:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:49:24,946] [INFO] 127.0.0.1 - - [03/May/2025 19:49:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:49:54,947] [INFO] 127.0.0.1 - - [03/May/2025 19:49:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:50:24,947] [INFO] 127.0.0.1 - - [03/May/2025 19:50:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:50:54,948] [INFO] 127.0.0.1 - - [03/May/2025 19:50:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:51:24,947] [INFO] 127.0.0.1 - - [03/May/2025 19:51:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:51:54,948] [INFO] 127.0.0.1 - - [03/May/2025 19:51:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:52:24,949] [INFO] 127.0.0.1 - - [03/May/2025 19:52:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:52:54,950] [INFO] 127.0.0.1 - - [03/May/2025 19:52:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:53:25,095] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 19:53:25,285] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 19:53:25,288] [INFO] 127.0.0.1 - - [03/May/2025 19:53:25] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:53:54,952] [INFO] 127.0.0.1 - - [03/May/2025 19:53:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:54:24,952] [INFO] 127.0.0.1 - - [03/May/2025 19:54:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:54:54,953] [INFO] 127.0.0.1 - - [03/May/2025 19:54:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:55:24,953] [INFO] 127.0.0.1 - - [03/May/2025 19:55:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:55:54,955] [INFO] 127.0.0.1 - - [03/May/2025 19:55:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:56:24,956] [INFO] 127.0.0.1 - - [03/May/2025 19:56:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:56:54,956] [INFO] 127.0.0.1 - - [03/May/2025 19:56:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:57:24,957] [INFO] 127.0.0.1 - - [03/May/2025 19:57:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:57:54,958] [INFO] 127.0.0.1 - - [03/May/2025 19:57:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:58:24,958] [INFO] 127.0.0.1 - - [03/May/2025 19:58:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:58:55,105] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-03 19:58:55,386] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-03 19:58:55,388] [INFO] 127.0.0.1 - - [03/May/2025 19:58:55] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:59:24,960] [INFO] 127.0.0.1 - - [03/May/2025 19:59:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 19:59:54,960] [INFO] 127.0.0.1 - - [03/May/2025 19:59:54] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 20:00:24,960] [INFO] 127.0.0.1 - - [03/May/2025 20:00:24] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-03 20:00:54,959] [INFO] 127.0.0.1 - - [03/May/2025 20:00:54] "GET /api/status HTTP/1.1" 200 -
