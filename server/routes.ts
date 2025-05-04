@@ -43,6 +43,7 @@ import { seedTestUser } from "./seed-user";
 import { hashPassword } from "./auth";
 import { eq } from "drizzle-orm";
 import { users } from "@shared/schema";
+import { db } from "./db";
 
 // Create logger for routes
 const routesLogger = createContextLogger("Routes");
