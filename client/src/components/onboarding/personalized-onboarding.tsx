@@ -141,32 +141,7 @@ export function PersonalizedOnboarding({ open, onOpenChange }: PersonalizedOnboa
   // Handle form submission
   const onSubmit = async (data: OnboardingFormValues) => {
     try {
-      // Check if user is logged in first
-      if (!user) {
-        // Not logged in - let's open the auth page
-        toast({
-          title: "Login required",
-          description: "Please sign in or register to save your preferences",
-          variant: "default",
-        });
-        
-        // Close the onboarding dialog
-        onOpenChange(false);
-        
-        // Redirect to auth page
-        window.location.href = "/auth";
-        return;
-      }
-      
-      // Add onboarding completed flag to the data
-      const completeData = {
-        ...data,
-        onboardingCompleted: true,
-        lastStep: ONBOARDING_STEPS.length - 1,
-        completedSteps: ONBOARDING_STEPS.map(step => step.id)
-      };
-      
-      const response = await apiRequest("POST", "/api/user/preferences", completeData);
+      const response = await apiRequest("POST", "/api/user/preferences", data);
       
       toast({
         title: "Preferences saved",
@@ -180,10 +155,9 @@ export function PersonalizedOnboarding({ open, onOpenChange }: PersonalizedOnboa
       // Close the onboarding dialog
       onOpenChange(false);
     } catch (error) {
-      console.error("Error saving preferences:", error);
       toast({
         title: "Error",
-        description: "Failed to save preferences. Please try again or log in if you're not already signed in.",
+        description: "Failed to save preferences. Please try again.",
         variant: "destructive",
       });
     }

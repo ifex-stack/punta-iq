@@ -10,7 +10,6 @@ import { setupMockGamificationRoutes } from "./mock-gamification";
 import { setupMLRoutes } from "./ml-routes";
 import { setupAiStatusRoutes } from "./ai-status-route";
 import { setupTestAiStatusRoute } from "./test-ai-status";
-import debugRoutes from "./debug-routes";
 import { storage } from "./storage";
 import { getFantasyStore } from "./fantasy-data-init";
 import { PushNotificationService } from "./push-notification-service";
@@ -34,20 +33,14 @@ import { setupAutomationRoutes } from "./automation/automation-routes";
 import { setupLiveScoreRoutes } from "./livescore-routes";
 import { userPreferencesRouter } from "./user-preferences-routes";
 import { microserviceRouter } from "./microservice-routes";
-// Remove unused imports
-import { analyticsRouter } from "./analytics-routes";
+import { aiStatusRouter } from "./ai-status-routes";
 import { MicroserviceClient } from "./microservice-client";
 import { createContextLogger } from "./logger";
-import { analytics, AnalyticsEventType } from "./analytics-service";
 
 // Create logger for routes
 const routesLogger = createContextLogger("Routes");
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Set up debug routes first for diagnostic tools
-  routesLogger.info("Registering debug routes at /debug/*");
-  app.use('/debug', debugRoutes);
-  
   // Set up authentication routes
   setupAuth(app);
   
@@ -90,29 +83,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up microservice routes for enhanced sports data
   app.use('/api/microservice', microserviceRouter);
   
-  // AI service status is already handled by setupAiStatusRoutes
-  
-  // Set up analytics routes
-  app.use('/api/analytics', analyticsRouter);
-  
-  // Set up all debug routes for comprehensive diagnostics
-  app.use('/api/debug', debugRoutes);
-  
-  // Add a legacy debug route for backward compatibility
-  app.get('/api/debug/info', (req, res) => {
-    routesLogger.info('Legacy debug info endpoint called');
-    res.json({
-      appMode: process.env.NODE_ENV || 'development',
-      aiServiceUrl: 'http://localhost:5000',
-      apiServerUrl: 'http://localhost:5000',
-      serverTime: new Date().toISOString(),
-      message: 'PuntaIQ API server is running correctly',
-      standalone: {
-        available: true,
-        launcherPath: 'launch-standalone.js'
-      }
-    });
-  });
+  // Set up AI status routes
+  app.use('/api/ai-status', aiStatusRouter);
   
   // Try to start the microservice at server initialization
   try {
@@ -3555,85 +3527,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
     }
   }
-  
-  // Health check endpoint for the main server
-  app.get('/api/server-status', (req, res) => {
-    routesLogger.debug("Server status check");
-    res.status(200).json({
-      status: 'ok',
-      message: 'Main server is running',
-      timestamp: new Date().toISOString(),
-      serverInfo: {
-        port: 5000,
-        version: process.env.npm_package_version || '1.0.0',
-        environment: process.env.NODE_ENV || 'development'
-      }
-    });
-  });
-
-  // API that explicitly checks AI microservice connection and reports detailed status
-  app.get('/api/system-status', async (req, res) => {
-    routesLogger.debug("System status check");
-    
-    // Create a fresh client to check AI microservice
-    const microserviceClient = new MicroserviceClient();
-    const isAiServiceRunning = await microserviceClient.isRunning();
-    
-    try {
-      // Get more detailed status from the AI service if it's running
-      const aiServiceDetails = isAiServiceRunning 
-        ? await microserviceClient.getStatus().catch(() => ({
-            overall: "degraded",
-            services: {},
-            timestamp: new Date().toISOString()
-          }))
-        : {
-            overall: "error",
-            services: {},
-            timestamp: new Date().toISOString()
-          };
-          
-      res.status(200).json({
-        main_server: {
-          status: "ok",
-          message: "Main server is running",
-          port: 3000
-        },
-        ai_service: {
-          status: isAiServiceRunning ? "ok" : "error",
-          message: isAiServiceRunning ? "AI service is running" : "AI service is not responding",
-          port: 5000,
-          details: aiServiceDetails
-        },
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      routesLogger.error("Error getting system status", { error });
-      res.status(500).json({
-        main_server: {
-          status: "ok",
-          message: "Main server is running but encountered an error checking AI service",
-          port: 3000
-        },
-        ai_service: {
-          status: "unknown",
-          message: "Error checking AI service status",
-          port: 5000
-        },
-        timestamp: new Date().toISOString(),
-        error: error.message
-      });
-    }
-  });
 
   const httpServer = createServer(app);
   
   // Create WebSocket server for real-time notifications
-  // Use path to differentiate WebSocket server from the AI microservice and Vite's HMR WebSocket
-  const wss = new WebSocketServer({ 
-    server: httpServer, 
-    path: '/ws' 
-  });
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
   
   wss.on('connection', (ws) => {
     console.log('WebSocket client connected');
@@ -3885,73 +3783,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error comparing players:", error);
       res.status(500).json({ message: error.message || "Failed to compare players" });
     }
-  });
-  
-  // Add API catch-all route for proper error handling
-  app.use('/api/*', (req, res) => {
-    console.log(`API 404: ${req.originalUrl}`);
-    res.status(404).json({
-      message: 'API endpoint not found. Please check the URL and try again.',
-      status: 404,
-      path: req.originalUrl
-    });
-  });
-  
-  // Add a catch-all route for SPA client-side routing
-  // This must come AFTER all API routes but BEFORE Vite middleware
-  app.get('*', (req, res, next) => {
-    // Skip if this is an API request or a static file
-    if (req.path.startsWith('/api/') || req.path.includes('.')) {
-      return next();
-    }
-    
-    console.log(`SPA catch-all handling route: ${req.path}`);
-    
-    // Try multiple potential locations for index.html in order of preference
-    const indexLocations = [
-      { root: './public' },           // 1. Check public folder (SPA fallback)
-      { root: './client' },           // 2. Check client folder (development)
-      { root: './client/dist' },      // 3. Check client/dist (production build)
-      { root: './client/public' },    // 4. Check client/public (some frameworks)
-      { root: '.' }                   // 5. Check project root as last resort
-    ];
-    
-    // Try each location until we find the index.html
-    let foundIndex = false;
-    
-    // Try the first location immediately
-    res.sendFile('index.html', indexLocations[0], (err) => {
-      if (!err) {
-        foundIndex = true;
-        return; // Successfully sent the file
-      }
-      
-      // If first location failed, try the remaining locations
-      let attemptIndex = 1;
-      const tryNextLocation = () => {
-        if (attemptIndex >= indexLocations.length) {
-          // If we've tried all locations and none worked, forward to next middleware
-          if (!foundIndex) {
-            console.error(`Could not find index.html in any location for route: ${req.path}`);
-            next();
-          }
-          return;
-        }
-        
-        res.sendFile('index.html', indexLocations[attemptIndex], (nextErr) => {
-          if (!nextErr) {
-            foundIndex = true;
-            return; // Successfully sent the file
-          }
-          
-          // Try next location
-          attemptIndex++;
-          tryNextLocation();
-        });
-      };
-      
-      tryNextLocation();
-    });
   });
 
   return httpServer;

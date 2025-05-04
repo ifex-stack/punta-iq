@@ -21,47 +21,18 @@ export function hasSessionCookie(): boolean {
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    // Try to parse API error from response
-    let error;
-    try {
-      // First try to parse as JSON
-      const contentType = res.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        const errorData = await res.json();
-        // Use server-provided error code and message if available
-        error = {
-          status: res.status,
-          message: errorData.message || errorData.error || `Request failed with status ${res.status}`,
-          code: errorData.code || `ERROR_${res.status}`
-        };
-      } else {
-        // If not JSON, use generic parsing
-        error = await parseApiError(res);
-      }
-    } catch (parseError) {
-      console.warn('Error parsing error response:', parseError);
-      // Fallback to generic error if parsing fails
-      error = await parseApiError(res);
-    }
+    const error = await parseApiError(res);
     
     // Add more context to authentication errors
     if (res.status === 401) {
       const hasSession = hasSessionCookie();
       
-      if (hasSession && (!error.code || error.code === 'ERROR_401')) {
+      if (hasSession) {
         console.warn('Session cookie exists but server returned 401 - session may be invalid or expired');
-        error.code = error.code || 'SESSION_INVALID';
-        // Enhance the generic message if using the default
-        if (error.message === `Request failed with status ${res.status}`) {
-          error.message = 'Your session appears to be invalid or expired. Please login again.';
-        }
-      } else if (!hasSession && (!error.code || error.code === 'ERROR_401')) {
+        error.code = 'SESSION_INVALID';
+      } else {
         console.warn('No session cookie found - user is not authenticated');
-        error.code = error.code || 'NO_SESSION';
-        // Enhance the generic message if using the default
-        if (error.message === `Request failed with status ${res.status}`) {
-          error.message = 'You need to log in to access this resource.';
-        }
+        error.code = 'NO_SESSION';
       }
     }
     
@@ -88,31 +59,7 @@ export async function apiRequest(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
     
-    // Ensure all API calls are properly routed through our server
-    let apiUrl = url;
-    
-    // Use PuntaIQ global configuration if available
-    if (window.PuntaIQ) {
-      if (url.startsWith('/api')) {
-        // Route to our main API on port 5000
-        apiUrl = `${window.PuntaIQ.apiBaseUrl || ''}${url}`;
-        console.log(`Routing API call to main server: ${apiUrl}`);
-      } 
-      else if (url.startsWith('/ai-service') || url.startsWith('/ai/')) {
-        // Route AI requests through our proxy
-        const proxyPath = url.replace(/^\/ai\//, '/ai-service/');
-        apiUrl = `${window.PuntaIQ.apiBaseUrl || ''}${proxyPath}`;
-        console.log(`Routing AI service call through proxy: ${apiUrl}`);
-      }
-    } 
-    // Fallback if window.PuntaIQ is not available
-    else if (url.startsWith('/api') || url.startsWith('/ai-service')) {
-      const baseUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
-      apiUrl = `${baseUrl}${url}`;
-      console.log(`Fallback routing to server: ${apiUrl}`);
-    }
-    
-    const res = await fetch(apiUrl, {
+    const res = await fetch(url, {
       method,
       headers: data ? { "Content-Type": "application/json" } : {},
       body: data ? JSON.stringify(data) : undefined,
@@ -184,15 +131,7 @@ export const getQueryFn: <T>(options: {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
       
-      // Ensure API calls are directed to port 5000 where our server is now running
-      let url = queryKey[0] as string;
-      if (url.startsWith('/api') && window.location.port !== '5000') {
-        // Replace current port with port 5000 if we're not already on port 5000
-        const baseUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
-        url = `${baseUrl}${url}`;
-      }
-      
-      const res = await fetch(url, {
+      const res = await fetch(queryKey[0] as string, {
         credentials: "include",
         signal: controller.signal
       });

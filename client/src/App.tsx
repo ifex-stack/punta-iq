@@ -1,5 +1,5 @@
-import { Route, Switch, useLocation, Router as WouterRouter } from "wouter";
-import { useEffect, useState } from "react";
+import { Route, Switch, useLocation } from "wouter";
+import { useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -31,15 +31,13 @@ import AccumulatorsPage from "@/pages/enhanced-accumulators-page"; // Using enha
 import LiveScorePage from "@/pages/livescore-page";
 import AIServiceStatusPage from "@/pages/ai-service-status-page";
 import TieredPredictionsPage from "@/pages/tiered-predictions-page"; // New tiered predictions page
-import AnalyticsDashboardPage from "@/pages/analytics-dashboard";
-import UserDemographicsPage from "@/pages/user-demographics-page";
 import PrivacyPolicyPage from "@/pages/legal/privacy-policy";
 import TermsOfServicePage from "@/pages/legal/terms-of-service";
 import ResponsibleGamblingPage from "@/pages/legal/responsible-gambling";
 import { UIShowcase } from "@/components/ui-showcase";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from 'next-themes';
-import { setNavigationState, attemptRouteRecovery } from "./lib/error-handler";
+import { setNavigationState } from "./lib/error-handler";
 import { CurrencyProvider } from "./hooks/use-currency";
 
 // New components
@@ -54,86 +52,10 @@ import { fetchFeatureFlags } from "./lib/feature-flags";
 
 import AppLayout from "@/components/layout/app-layout";
 
-// Emergency SPA 404 recovery
-window.addEventListener('DOMContentLoaded', () => {
-  console.log("PuntaIQ App - DOMContentLoaded event");
-  
-  // Create a global flag to track 404 detection
-  window.__IS_404_PAGE = false;
-  
-  // Helper to detect 404 pages
-  const checkFor404 = () => {
-    if ((document.title && document.title.includes('404')) || 
-        (document.body && document.body.textContent && document.body.textContent.includes('Not Found'))) {
-      window.__IS_404_PAGE = true;
-      console.error('PuntaIQ - 404 page detected, attempting recovery');
-      
-      // Attempt route recovery
-      const currentPath = window.location.pathname;
-      const currentSearch = window.location.search;
-      
-      // First go to root
-      console.log('Going to root path for recovery');
-      window.history.pushState(null, '', '/');
-      
-      // Then after a short delay, try to go back to original path
-      setTimeout(() => {
-        console.log(`Attempting to navigate back to: ${currentPath}`);
-        window.history.pushState(null, '', currentPath + currentSearch);
-        window.dispatchEvent(new Event('popstate'));
-      }, 250);
-    }
-  };
-  
-  // Check immediately
-  checkFor404();
-  
-  // And check after a short delay to allow for async title changes
-  setTimeout(checkFor404, 1000);
-});
-
 // Create typed component definition to fix TypeScript errors
 const Router: React.FC = () => {
   // Track location changes to know when we're navigating
-  const [location, navigate] = useLocation();
-  
-  // Check for stored route recovery path when landing on the homepage
-  useEffect(() => {
-    // Only run recovery on the homepage
-    if (location === '/') {
-      console.log('PuntaIQ: At root path - checking for recovery path');
-      
-      // Check if we're in a recovery scenario
-      const recoveryPath = sessionStorage.getItem('puntaiq_recovery_path');
-      const recoverySearch = sessionStorage.getItem('puntaiq_recovery_search') || '';
-      const isRecovery = new URLSearchParams(window.location.search).get('recovery') === 'true';
-      
-      if (recoveryPath && isRecovery) {
-        console.log(`Found recovery path: ${recoveryPath} - will navigate after app load`);
-        
-        // Brief delay to ensure app is fully loaded before navigation
-        setTimeout(() => {
-          console.log(`Navigating to recovery path: ${recoveryPath}`);
-          navigate(recoveryPath + recoverySearch);
-          
-          // Clear recovery data
-          sessionStorage.removeItem('puntaiq_recovery_path');
-          sessionStorage.removeItem('puntaiq_recovery_search');
-        }, 500);
-      } else {
-        console.log('No recovery path found - normal homepage render');
-      }
-      
-      // Add a flag to help with debugging and ensure we're at the right location
-      document.documentElement.dataset.puntalocation = 'root';
-    }
-  }, [location, navigate]);
-  
-  // Debug location - useful for troubleshooting routing issues
-  useEffect(() => {
-    console.log(`Current location: ${location}`);
-    console.log(`Current URL: ${window.location.href}`);
-  }, [location]);
+  const [location] = useLocation();
   
   // Set navigation state when location changes
   useEffect(() => {
@@ -148,58 +70,6 @@ const Router: React.FC = () => {
     return () => clearTimeout(timeoutId);
   }, [location]);
   
-  // Enhanced 404 recovery mechanism using our centralized recovery function
-  useEffect(() => {
-    const handleLocationChange = () => {
-      // If we're at a 404 page from the server but we have an SPA route for it
-      // force a re-render by using the route recovery utility
-      if ((document.title.includes('404') || document.body.textContent?.includes('Not Found')) && 
-          location !== '/not-found') {
-        console.log('Detected 404 page - attempting route recovery via utility');
-        
-        // Use our centralized recovery function
-        attemptRouteRecovery(window.location.pathname);
-        
-        // Force a refresh after a short delay if we're still seeing a 404
-        setTimeout(() => {
-          if (document.title.includes('404') || document.body.textContent?.includes('Not Found')) {
-            console.log('Still on 404 page after recovery attempt - forcing navigation to root');
-            window.location.href = `${window.location.protocol}//${window.location.hostname}:5000/`;
-          }
-        }, 1500);
-      }
-    };
-    
-    // Run once on mount
-    handleLocationChange();
-    
-    // Also listen for navigation events to trigger recovery if needed
-    window.addEventListener('popstate', handleLocationChange);
-    window.addEventListener('navigate', handleLocationChange);
-    window.addEventListener('load', handleLocationChange);
-    
-    // Set up global error handler for navigation errors
-    const handleError = (event: ErrorEvent) => {
-      if (event.error && event.error.message && 
-          (event.error.message.includes('navigation') || event.error.message.includes('404'))) {
-        console.log('Navigation error detected:', event.error.message);
-        attemptRouteRecovery(window.location.pathname);
-        // Prevent default error handling
-        event.preventDefault();
-      }
-    };
-    
-    // Add the error handler
-    window.addEventListener('error', handleError);
-    
-    return () => {
-      window.removeEventListener('popstate', handleLocationChange);
-      window.removeEventListener('navigate', handleLocationChange);
-      window.removeEventListener('load', handleLocationChange);
-      window.removeEventListener('error', handleError);
-    };
-  }, [location]);
-
   // Don't wrap auth page in AppLayout to prevent showing the bottom navigation bar
   if (location === '/auth') {
     return (
@@ -211,18 +81,12 @@ const Router: React.FC = () => {
     );
   }
   
-  // Add app debug info for troubleshooting
-  console.log(`Current app state: location=${location}, port=${window.location.port}, hostname=${window.location.hostname}`);
-  
   return (
     <div className="flex h-screen">
       <div className="flex-1 relative">
         <AppLayout>
           <Switch>
-            {/* Public landing page to ensure initial loading works */}
-            <Route path="/" component={HomePage} />
-            
-            {/* Protected routes requiring authentication */}
+            <ProtectedRoute path="/" component={NewPredictionsAndStatsPage} />
             <ProtectedRoute path="/predictions" component={NewPredictionsAndStatsPage} />
             <ProtectedRoute path="/stats" component={NewPredictionsAndStatsPage} />
             <ProtectedRoute path="/predictions/advanced" component={AdvancedPredictionsPage} />
@@ -235,17 +99,13 @@ const Router: React.FC = () => {
             <ProtectedRoute path="/fantasy/player-comparison" component={PlayerComparisonPage} />
             <ProtectedRoute path="/fantasy/player-analysis" component={PlayerAnalysisPage} />
             <ProtectedRoute path="/fantasy/player-performance" component={PlayerPerformancePage} />
-            <ProtectedRoute path="/fantasy" component={FantasyContestsPage} />
+            <Route path="/fantasy" component={FantasyContestsPage} />
             <ProtectedRoute path="/subscription" component={SubscriptionPage} />
             <ProtectedRoute path="/subscription-success" component={SubscriptionSuccessPage} />
             <ProtectedRoute path="/profile" component={ProfilePage} />
             <ProtectedRoute path="/referrals" component={ReferralsPage} />
             <ProtectedRoute path="/gamification" component={GamificationPage} />
             <ProtectedRoute path="/admin" component={AdminPage} />
-            <ProtectedRoute path="/analytics-dashboard" component={AnalyticsDashboardPage} />
-            <ProtectedRoute path="/user-demographics" component={UserDemographicsPage} />
-            
-            {/* Public routes accessible without authentication */}
             <Route path="/livescore" component={LiveScorePage} />
             <Route path="/ai-service-status" component={AIServiceStatusPage} />
             <Route path="/faq" component={FAQPage} />
@@ -254,8 +114,6 @@ const Router: React.FC = () => {
             <Route path="/legal/terms-of-service" component={TermsOfServicePage} />
             <Route path="/legal/responsible-gambling" component={ResponsibleGamblingPage} />
             <Route path="/ui-showcase" component={UIShowcase} />
-            <Route path="/not-found" component={NotFound} />
-            <Route path="/:path" component={NotFound} />
             <Route component={NotFound} />
           </Switch>
         </AppLayout>
@@ -273,82 +131,6 @@ const Router: React.FC = () => {
     </div>
   );
 }
-
-// Custom location hook for Wouter to ensure proper routing
-// Type annotation fixes TypeScript error with Wouter's BaseLocationHook
-const useCustomLocation = (): [string, (to: string, ...args: any[]) => void] => {
-  // Use state to force re-renders when needed
-  const [location, setLocation] = useState(() => window.location.pathname);
-  
-  // Debug initial location
-  useEffect(() => {
-    console.log(`Initial location hook path: ${window.location.pathname}`);
-    console.log(`Initial URL: ${window.location.href}`);
-    
-    // Handle case where we might be on a different port (development server vs. application server)
-    if (window.location.port !== '5000' && process.env.NODE_ENV === 'development') {
-      console.log('Development port mismatch detected - using client-side routing');
-    }
-  }, []);
-  
-  useEffect(() => {
-    // Listen for history changes
-    const handleLocationChange = () => {
-      console.log(`Location change detected: ${window.location.pathname}`);
-      setLocation(window.location.pathname);
-    };
-    
-    // Listen for popstate (back/forward navigation)
-    window.addEventListener('popstate', handleLocationChange);
-    
-    // Also listen for hashchange events in case we're using those
-    window.addEventListener('hashchange', handleLocationChange);
-    
-    // Fix for direct URL navigation using our centralized recovery function
-    const fixNonExistentRoutes = () => {
-      if (document.title.includes('404') || document.body.textContent?.includes('Not Found')) {
-        console.log('404 page detected in location hook - attempting SPA recovery');
-        // Use our centralized recovery function
-        attemptRouteRecovery(window.location.pathname);
-        // Update the location state to match current path
-        setLocation(window.location.pathname);
-      }
-    };
-    
-    // Check once on mount with a slight delay to ensure page has loaded
-    setTimeout(fixNonExistentRoutes, 300);
-    
-    return () => {
-      window.removeEventListener('popstate', handleLocationChange);
-      window.removeEventListener('hashchange', handleLocationChange);
-    };
-  }, []);
-  
-  // Return current path and a function to navigate
-  // Fix TypeScript error by making this compatible with the BaseLocationHook type
-  return [
-    location,
-    (to: string, ...args: any[]) => {
-      console.log(`Navigation requested to: ${to}`);
-      
-      // Handle relative URLs
-      if (to.startsWith('/')) {
-        // Ensure we're navigating to the right port in development
-        if (window.location.port !== '5000' && process.env.NODE_ENV === 'development') {
-          const baseUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
-          console.log(`Cross-port navigation to: ${baseUrl}${to}`);
-          window.location.href = `${baseUrl}${to}`;
-          return;
-        }
-      }
-      
-      // Standard navigation
-      console.log(`Standard navigation to: ${to}`);
-      window.history.pushState(null, '', to);
-      setLocation(to);
-    }
-  ];
-};
 
 function App() {
   // Fetch feature flags on app initialization
@@ -370,10 +152,7 @@ function App() {
                     <OnboardingProvider>
                       <Toaster />
                       <NotificationToastListener />
-                      {/* Use our custom router with fixed location handling */}
-                      <WouterRouter hook={useCustomLocation}>
-                        <Router />
-                      </WouterRouter>
+                      <Router />
                     </OnboardingProvider>
                   </NotificationProvider>
                 </NotificationsProvider>

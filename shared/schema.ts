@@ -11,7 +11,6 @@ export const badgeTierEnum = pgEnum('badge_tier', ['bronze', 'silver', 'gold', '
 export const leaderboardTypeEnum = pgEnum('leaderboard_type', ['weekly', 'monthly', 'seasonal', 'all_time', 'fantasy', 'prediction_accuracy']);
 export const newsTypeEnum = pgEnum('news_type', ['article', 'analysis', 'preview', 'recap', 'interview', 'opinion']);
 export const deviceTypeEnum = pgEnum('device_type', ['android', 'ios', 'web']);
-export const userRoleEnum = pgEnum('user_role', ['user', 'admin', 'analyst']);
 
 // Onboarding status enum
 export const onboardingStatusEnum = pgEnum('onboarding_status', ['not_started', 'in_progress', 'completed']);
@@ -29,7 +28,6 @@ export const users = pgTable("users", {
   referralCode: text("referral_code"), // Unique referral code for this user
   referredBy: integer("referred_by"), // ID of user who referred this user
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  role: userRoleEnum("role").default("user").notNull(), // Role for RBAC: 'user', 'admin', 'analyst'
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   subscriptionTier: text("subscription_tier").default("free"),
@@ -69,15 +67,6 @@ export const users = pgTable("users", {
   referralStreak: integer("referral_streak").default(0).notNull(),
   lastReferralDate: timestamp("last_referral_date"),
   
-  // Authentication & security fields
-  lastLoginAt: timestamp("last_login_at"),
-  isActive: boolean("is_active").default(true).notNull(),
-  isEmailVerified: boolean("is_email_verified").default(false),
-  emailVerificationToken: text("email_verification_token"),
-  passwordResetToken: text("password_reset_token"),
-  passwordResetExpires: timestamp("password_reset_expires"),
-  notificationToken: text("notification_token"),
-  
   // Personalized onboarding properties
   userPreferences: json("user_preferences").default({
     favoriteSports: [],
@@ -92,7 +81,7 @@ export const users = pgTable("users", {
     lastStep: 0,
     completedSteps: []
   }),
-  onboardingStatus: onboardingStatusEnum("onboarding_status").default('not_started'),
+  onboardingStatus: text("onboarding_status").default('not_started'),
   lastOnboardingStep: integer("last_onboarding_step").default(0),
 });
 
@@ -107,7 +96,7 @@ export const referrals = pgTable("referrals", {
   id: serial("id").primaryKey(),
   referrerId: integer("referrer_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   referredId: integer("referred_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  status: referralStatusEnum("status").default("pending").notNull(),
+  status: text("status").default("pending").notNull(), // pending, completed, rewarded, failed
   createdAt: timestamp("created_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
   rewardAmount: integer("reward_amount"),
@@ -160,10 +149,6 @@ export const insertUserSchema = createInsertSchema(users).pick({
   phoneNumber: true,
   referralCode: true,
   referredBy: true,
-  role: true,
-  isActive: true,
-  isEmailVerified: true,
-  lastLoginAt: true
 });
 
 // Sports table

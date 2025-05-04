@@ -8,7 +8,81 @@ import { insertUserSchema } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
-import { UserResponse } from "@/types/user";
+
+// Complete User type that matches server response structure
+// This ensures we handle all the properties correctly
+type UserResponse = {
+  id: number;
+  username: string;
+  email: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deviceImei: string | null;
+  phoneNumber: string | null;
+  isTwoFactorEnabled: boolean;
+  twoFactorSecret: string | null;
+  referralCode: string;
+  referredBy: number | null;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  subscriptionTier: string;
+  fantasyPoints: number;
+  totalContestsWon: number;
+  totalContestsEntered: number;
+  referralStreak: number;
+  lastReferralDate: string | null;
+  lastLoginAt: Date;
+  isActive: boolean;
+  isEmailVerified: boolean;
+  emailVerificationToken: string | null;
+  passwordResetToken: string | null;
+  passwordResetExpires: Date | null;
+  userPreferences: {
+    favoriteSports: number[];
+    favoriteLeagues: number[];
+    preferredTimeZone: string;
+    theme: string;
+    language: string;
+    currency: string;
+    bettingFrequency: string;
+    predictionTypes: string[];
+    riskTolerance: string;
+    preferredOddsFormat: string;
+    predictionsPerDay: number;
+    experienceLevel: string;
+    onboardingCompleted: boolean;
+  };
+  notificationSettings: {
+    general: {
+      predictions: boolean;
+      results: boolean;
+      promotions: boolean;
+    };
+    sports: {
+      football: boolean;
+      basketball: boolean;
+      tennis: boolean;
+      baseball: boolean;
+      hockey: boolean;
+      cricket: boolean;
+      formula1: boolean;
+      mma: boolean;
+      volleyball: boolean;
+      other: boolean;
+    };
+    metrics: {
+      notificationCount: number;
+      lastNotificationSent: Date;
+      clickThroughRate: number;
+      viewCount: number;
+      clickCount: number;
+      dismissCount: number;
+    };
+  };
+  notificationToken: string | null;
+  onboardingStatus: string;
+  lastOnboardingStep: number;
+};
 
 type AuthContextType = {
   user: UserResponse | null;
