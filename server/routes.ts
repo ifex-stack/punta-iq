@@ -34,7 +34,7 @@ import { setupAutomationRoutes } from "./automation/automation-routes";
 import { setupLiveScoreRoutes } from "./livescore-routes";
 import { userPreferencesRouter } from "./user-preferences-routes";
 import { microserviceRouter } from "./microservice-routes";
-import { aiStatusRouter } from "./ai-status-routes";
+// Remove unused imports
 import { analyticsRouter } from "./analytics-routes";
 import { MicroserviceClient } from "./microservice-client";
 import { createContextLogger } from "./logger";
@@ -90,8 +90,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up microservice routes for enhanced sports data
   app.use('/api/microservice', microserviceRouter);
   
-  // Set up AI status routes
-  app.use('/api/ai-status', aiStatusRouter);
+  // AI service status is already handled by setupAiStatusRoutes
   
   // Set up analytics routes
   app.use('/api/analytics', analyticsRouter);
