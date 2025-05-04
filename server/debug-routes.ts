@@ -31,7 +31,7 @@ router.get('/info', (req, res) => {
     memoryUsage: process.memoryUsage(),
     uptime: process.uptime(),
     env: process.env.NODE_ENV,
-    port: process.env.PORT || 3000,
+    port: process.env.PORT || 5000,
     serverTime: new Date().toISOString()
   };
   

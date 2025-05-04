@@ -3597,7 +3597,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         main_server: {
           status: "ok",
           message: "Main server is running",
-          port: 3000
+          port: 5000
         },
         ai_service: {
           status: isAiServiceRunning ? "ok" : "error",
@@ -3613,7 +3613,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         main_server: {
           status: "ok",
           message: "Main server is running but encountered an error checking AI service",
-          port: 3000
+          port: 5000
         },
         ai_service: {
           status: "unknown",
