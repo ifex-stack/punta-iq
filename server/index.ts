@@ -35,160 +35,7 @@ app.use(cors({
 import debugRoutes from './debug-routes';
 app.use('/api/debug', debugRoutes);
 
-// Important app routes handler
-const handleAppRoute = (req: Request, res: Response, title: string) => {
-  // Try to serve index.html from public directory first
-  const indexPath = path.resolve(process.cwd(), 'public', 'index.html');
-  if (fs.existsSync(indexPath)) {
-    console.log(`Serving index.html directly from public directory for ${req.path}`);
-    return res.sendFile(indexPath);
-  }
-  // If no index.html, send a basic HTML response
-  console.log(`No index.html found, serving inline HTML for ${req.path}`);
-  res.send(`
-    <!DOCTYPE html>
-    <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${title} - PuntaIQ</title>
-        <style>
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: #f5f5f5;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-          }
-          .container {
-            max-width: 800px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            padding: 2rem;
-            margin-top: 2rem;
-          }
-          h1 { 
-            color: #0066cc;
-            background: linear-gradient(to right, #0066cc, #8a3ffc);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-top: 0;
-          }
-          p { line-height: 1.6; }
-          .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            display: flex;
-            justify-content: space-around;
-            padding: 0.75rem 0;
-            box-shadow: 0 -1px 5px rgba(0,0,0,0.1);
-          }
-          .bottom-nav a {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            color: #333;
-            font-size: 0.75rem;
-          }
-          .nav-icon {
-            width: 24px;
-            height: 24px;
-            margin-bottom: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-          .status {
-            padding: 1rem;
-            border-radius: 4px;
-            background: #f0f0f0;
-            margin: 1rem 0;
-          }
-          .indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #24a148;
-            margin-right: 8px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <h1>PuntaIQ - ${title}</h1>
-          <p>Welcome to PuntaIQ, the next-generation AI-powered sports prediction platform.</p>
-          
-          <div class="status">
-            <div><span class="indicator"></span> Server Status: Online</div>
-            <div>Node.js Version: ${process.version}</div>
-            <div>Server Time: ${new Date().toISOString()}</div>
-          </div>
-          
-          <h2>${title} Page</h2>
-          <p>This is a placeholder for the ${title} page. The full web application will be available soon.</p>
-          
-          <h2>System Status</h2>
-          <p>All systems operational. The server is running in ${app.get('env')} mode.</p>
-        </div>
-        
-        <div class="bottom-nav">
-          <a href="/">
-            <div class="nav-icon">🏠</div>
-            Home
-          </a>
-          <a href="/predictions">
-            <div class="nav-icon">🎯</div>
-            Predictions
-          </a>
-          <a href="/livescore">
-            <div class="nav-icon">⚽</div>
-            Live Score
-          </a>
-          <a href="/account">
-            <div class="nav-icon">👤</div>
-            Account
-          </a>
-          <a href="/ai-status">
-            <div class="nav-icon">🤖</div>
-            AI Status
-          </a>
-        </div>
-      </body>
-    </html>
-  `);
-};
-
-// Special direct root route for the landing page
-app.get('/', (req, res) => {
-  handleAppRoute(req, res, 'Home');
-});
-
-// Add routes for other key app pages
-app.get('/predictions', (req, res) => {
-  handleAppRoute(req, res, 'Predictions');
-});
-
-app.get('/livescore', (req, res) => {
-  handleAppRoute(req, res, 'Live Scores');
-});
-
-app.get('/account', (req, res) => {
-  handleAppRoute(req, res, 'Account');
-});
-
-app.get('/ai-status', (req, res) => {
-  handleAppRoute(req, res, 'AI Service Status');
-});
+// No direct route handlers needed - let the SPA middleware handle client-side routing
 
 // Status routes for API health
 app.get('/status', (req, res) => {
@@ -445,10 +292,9 @@ app.use((req, res, next) => {
         }
       }
       
-      // If none of the index.html files were found or could be served,
-      // serve the main route handler with appropriate title
-      const routeTitle = originalUrl.substring(1).split('/')[0] || 'Home';
-      handleAppRoute(req, res, routeTitle.charAt(0).toUpperCase() + routeTitle.slice(1));
+      // If no index.html file was found anywhere, return a simple 404
+      logger.warn(`No index.html file found for route: ${originalUrl}`);
+      res.status(404).send('Not Found - No index.html file available');
     };
     
     // Serve the client-side HTML
