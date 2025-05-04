@@ -1,332 +1,346 @@
-from flask import Flask, jsonify, request
+"""
+Flask API service for PuntaIQ 
+Provides sports data and odds integrations
+"""
+
+from flask import Flask, jsonify, request, make_response
 import requests
 import os
+import sys
 import json
-from datetime import datetime, timedelta
+import time
+import logging
+from datetime import datetime
 from dotenv import load_dotenv
+import traceback
 
 # Load environment variables
 load_dotenv()
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] [%(levelname)s] %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger('PuntaIQ-Microservice')
+
+# Initialize Flask app
 app = Flask(__name__)
 
-# Constants
+# API URLs
+ODDS_API_URL = "https://api.the-odds-api.com"
+SPORTS_DB_API_URL = "https://www.thesportsdb.com/api/v1/json"
+
+# API Keys
 ODDS_API_KEY = os.getenv('ODDS_API_KEY')
-SPORTSDB_API_KEY = os.getenv('SPORTSDB_API_KEY')
-FIREBASE_API_KEY = os.getenv('FIREBASE_API_KEY')
-FIREBASE_PROJECT_ID = os.getenv('FIREBASE_PROJECT_ID')
+SPORTS_API_KEY = os.getenv('API_SPORTS_KEY')
 
-# --- OddsAPI Endpoints ---
-
-@app.route('/api/odds/<sport>', methods=['GET'])
-def get_odds(sport):
-    """
-    Get betting odds for a specific sport
-    Supported sports: soccer_epl, soccer_spain_la_liga, soccer_germany_bundesliga, etc.
-    """
-    days = request.args.get('days', 3, type=int)
-    region = request.args.get('region', 'uk,eu,us')
-    
-    url = f"https://api.the-odds-api.com/v4/sports/{sport}/odds"
-    params = {
-        'apiKey': ODDS_API_KEY,
-        'regions': region,
-        'markets': 'h2h,spreads,totals',
-        'oddsFormat': 'decimal',
-        'dateFormat': 'iso'
+# Status tracker for external services
+STATUS_TRACKER = {
+    'odds_api': {
+        'status': 'unknown',
+        'message': 'Not checked yet',
+        'last_check': None,
+        'requests_remaining': None
+    },
+    'sportsdb_api': {
+        'status': 'unknown',
+        'message': 'Not checked yet',
+        'last_check': None
     }
-    
-    try:
-        response = requests.get(url, params=params)
-        
-        if response.status_code != 200:
-            return jsonify({
-                'error': f"Failed to get odds: {response.status_code}",
-                'message': response.text
-            }), response.status_code
-        
-        # Filter for matches within the requested days
-        data = response.json()
-        
-        if not data:
-            return jsonify({
-                'events': [],
-                'count': 0,
-                'searchParams': {
-                    'days': days,
-                    'date': 'today',
-                    'region': region,
-                    'league': sport
-                }
-            })
-        
-        # Calculate the cutoff date
-        cutoff_date = (datetime.now() + timedelta(days=days)).isoformat()
-        
-        # Filter events by date
-        filtered_events = [
-            event for event in data
-            if event.get('commence_time', '') < cutoff_date
-        ]
-        
-        return jsonify({
-            'events': filtered_events,
-            'count': len(filtered_events),
-            'searchParams': {
-                'days': days,
-                'date': 'today',
-                'region': region,
-                'league': sport
-            }
-        })
-    
-    except Exception as e:
-        return jsonify({
-            'error': str(e),
-            'message': 'An error occurred while fetching odds data'
-        }), 500
+}
 
-@app.route('/api/odds/sports', methods=['GET'])
-def get_sports():
-    """Get all available sports from OddsAPI"""
-    url = "https://api.the-odds-api.com/v4/sports"
-    params = {'apiKey': ODDS_API_KEY}
-    
-    try:
-        response = requests.get(url, params=params)
-        
-        if response.status_code != 200:
-            return jsonify({
-                'error': f"Failed to get sports: {response.status_code}",
-                'message': response.text
-            }), response.status_code
-        
-        # Categorize sports by group
-        sports_data = response.json()
-        categories = {}
-        
-        for sport in sports_data:
-            group = sport.get('group', 'Other')
-            if group not in categories:
-                categories[group] = []
-            categories[group].append(sport)
-        
-        return jsonify({
-            'categories': categories,
-            'sports': sports_data,
-            'count': len(sports_data)
-        })
-    
-    except Exception as e:
-        return jsonify({
-            'error': str(e),
-            'message': 'An error occurred while fetching sports data'
-        }), 500
+# Add CORS headers
+@app.after_request
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+    response.headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,DELETE,OPTIONS'
+    return response
 
-# --- TheSportsDB Endpoints ---
-
-@app.route('/api/livescore', methods=['GET'])
-def get_livescore():
-    """Get live scores for soccer matches"""
-    url = f"https://www.thesportsdb.com/api/v1/json/{SPORTSDB_API_KEY}/livescore.php"
-    
-    try:
-        response = requests.get(url)
-        
-        if response.status_code != 200:
-            return jsonify({
-                'error': f"Failed to get livescores: {response.status_code}",
-                'message': response.text
-            }), response.status_code
-        
-        data = response.json()
-        events = data.get('events', [])
-        
-        return jsonify({
-            'events': events,
-            'count': len(events)
-        })
-    
-    except Exception as e:
-        return jsonify({
-            'error': str(e),
-            'message': 'An error occurred while fetching livescore data'
-        }), 500
-
-@app.route('/api/fixtures/league/<league_id>', methods=['GET'])
-def get_league_fixtures(league_id):
-    """Get fixtures for a specific league"""
-    # Get the next 14 days of fixtures
-    url = f"https://www.thesportsdb.com/api/v1/json/{SPORTSDB_API_KEY}/eventsnextleague.php"
-    params = {'id': league_id}
-    
-    try:
-        response = requests.get(url, params=params)
-        
-        if response.status_code != 200:
-            return jsonify({
-                'error': f"Failed to get fixtures: {response.status_code}",
-                'message': response.text
-            }), response.status_code
-        
-        data = response.json()
-        events = data.get('events', [])
-        
-        return jsonify({
-            'events': events,
-            'count': len(events),
-            'league': league_id
-        })
-    
-    except Exception as e:
-        return jsonify({
-            'error': str(e),
-            'message': 'An error occurred while fetching fixture data'
-        }), 500
-
-@app.route('/api/teams/<league_id>', methods=['GET'])
-def get_teams(league_id):
-    """Get all teams in a league"""
-    url = f"https://www.thesportsdb.com/api/v1/json/{SPORTSDB_API_KEY}/lookup_all_teams.php"
-    params = {'id': league_id}
-    
-    try:
-        response = requests.get(url, params=params)
-        
-        if response.status_code != 200:
-            return jsonify({
-                'error': f"Failed to get teams: {response.status_code}",
-                'message': response.text
-            }), response.status_code
-        
-        data = response.json()
-        teams = data.get('teams', [])
-        
-        return jsonify({
-            'teams': teams,
-            'count': len(teams),
-            'league': league_id
-        })
-    
-    except Exception as e:
-        return jsonify({
-            'error': str(e),
-            'message': 'An error occurred while fetching team data'
-        }), 500
-
-@app.route('/api/leagues', methods=['GET'])
-def get_all_leagues():
-    """Get all available leagues"""
-    url = f"https://www.thesportsdb.com/api/v1/json/{SPORTSDB_API_KEY}/all_leagues.php"
-    
-    try:
-        response = requests.get(url)
-        
-        if response.status_code != 200:
-            return jsonify({
-                'error': f"Failed to get leagues: {response.status_code}",
-                'message': response.text
-            }), response.status_code
-        
-        data = response.json()
-        leagues = data.get('leagues', [])
-        
-        # Organize by sport
-        leagues_by_sport = {}
-        for league in leagues:
-            sport = league.get('strSport', 'Other')
-            if sport not in leagues_by_sport:
-                leagues_by_sport[sport] = []
-            leagues_by_sport[sport].append(league)
-        
-        return jsonify({
-            'leagues': leagues,
-            'leagues_by_sport': leagues_by_sport,
-            'count': len(leagues)
-        })
-    
-    except Exception as e:
-        return jsonify({
-            'error': str(e),
-            'message': 'An error occurred while fetching league data'
-        }), 500
-
-# --- Service Status Endpoint ---
-
+# Health check endpoint
 @app.route('/api/status', methods=['GET'])
 def get_status():
-    """Check the status of all services"""
-    status = {
-        'timestamp': datetime.now().isoformat(),
+    # Update status if it's been more than 10 minutes
+    check_odds_api_status()
+    check_sportsdb_api_status()
+    
+    # Calculate overall status based on component statuses
+    overall = 'ok'
+    if STATUS_TRACKER['odds_api']['status'] == 'error' or STATUS_TRACKER['sportsdb_api']['status'] == 'error':
+        overall = 'error'
+    elif STATUS_TRACKER['odds_api']['status'] == 'degraded' or STATUS_TRACKER['sportsdb_api']['status'] == 'degraded':
+        overall = 'degraded'
+    
+    return jsonify({
+        'overall': overall,
         'services': {
             'odds_api': {
-                'status': 'unknown',
-                'message': ''
+                'status': STATUS_TRACKER['odds_api']['status'],
+                'message': STATUS_TRACKER['odds_api']['message'],
+                'requests_remaining': STATUS_TRACKER['odds_api']['requests_remaining']
             },
             'sportsdb_api': {
-                'status': 'unknown',
-                'message': ''
+                'status': STATUS_TRACKER['sportsdb_api']['status'],
+                'message': STATUS_TRACKER['sportsdb_api']['message']
             }
-        }
-    }
+        },
+        'timestamp': datetime.now().isoformat()
+    })
+
+def check_odds_api_status():
+    """Check The Odds API status and update the status tracker"""
+    # Only check if key is available
+    if not ODDS_API_KEY:
+        STATUS_TRACKER['odds_api']['status'] = 'error'
+        STATUS_TRACKER['odds_api']['message'] = 'API key not configured'
+        STATUS_TRACKER['odds_api']['last_check'] = datetime.now()
+        return
     
-    # Check OddsAPI
+    # Only check if it's been more than 5 minutes
+    if (STATUS_TRACKER['odds_api']['last_check'] and 
+        (datetime.now() - STATUS_TRACKER['odds_api']['last_check']).total_seconds() < 300):
+        return
+    
     try:
-        odds_url = "https://api.the-odds-api.com/v4/sports"
-        odds_params = {'apiKey': ODDS_API_KEY}
-        odds_response = requests.get(odds_url, params=odds_params)
+        # Simple sports list request to check API status
+        url = f"{ODDS_API_URL}/v4/sports?apiKey={ODDS_API_KEY}"
+        response = requests.get(url, timeout=5)
         
-        if odds_response.status_code == 200:
-            status['services']['odds_api'] = {
-                'status': 'ok',
-                'message': 'Service is operational'
-            }
+        if response.status_code == 200:
+            STATUS_TRACKER['odds_api']['status'] = 'ok'
+            STATUS_TRACKER['odds_api']['message'] = 'API is operational'
+            # Get requests remaining from headers if available
+            if 'x-requests-remaining' in response.headers:
+                STATUS_TRACKER['odds_api']['requests_remaining'] = response.headers['x-requests-remaining']
+        elif response.status_code == 401 or response.status_code == 403:
+            STATUS_TRACKER['odds_api']['status'] = 'error'
+            STATUS_TRACKER['odds_api']['message'] = 'API key unauthorized'
+        elif response.status_code == 429:
+            STATUS_TRACKER['odds_api']['status'] = 'degraded'
+            STATUS_TRACKER['odds_api']['message'] = 'Rate limited'
         else:
-            status['services']['odds_api'] = {
-                'status': 'error',
-                'message': f"Service returned status code {odds_response.status_code}"
-            }
+            STATUS_TRACKER['odds_api']['status'] = 'degraded'
+            STATUS_TRACKER['odds_api']['message'] = f'API responded with status code {response.status_code}'
     except Exception as e:
-        status['services']['odds_api'] = {
-            'status': 'error',
-            'message': f"Error connecting to service: {str(e)}"
-        }
+        STATUS_TRACKER['odds_api']['status'] = 'error'
+        STATUS_TRACKER['odds_api']['message'] = f'Connection error: {str(e)}'
     
-    # Check TheSportsDB
+    STATUS_TRACKER['odds_api']['last_check'] = datetime.now()
+
+def check_sportsdb_api_status():
+    """Check TheSportsDB API status and update the status tracker"""
+    # Only check if it's been more than 5 minutes
+    if (STATUS_TRACKER['sportsdb_api']['last_check'] and 
+        (datetime.now() - STATUS_TRACKER['sportsdb_api']['last_check']).total_seconds() < 300):
+        return
+    
     try:
-        sportsdb_url = f"https://www.thesportsdb.com/api/v1/json/{SPORTSDB_API_KEY}/all_leagues.php"
-        sportsdb_response = requests.get(sportsdb_url)
+        # Simple leagues request to check API status
+        url = f"{SPORTS_DB_API_URL}/1/all_leagues.php"
+        response = requests.get(url, timeout=5)
         
-        if sportsdb_response.status_code == 200:
-            status['services']['sportsdb_api'] = {
-                'status': 'ok',
-                'message': 'Service is operational'
-            }
+        if response.status_code == 200:
+            STATUS_TRACKER['sportsdb_api']['status'] = 'ok'
+            STATUS_TRACKER['sportsdb_api']['message'] = 'API is operational'
+        elif response.status_code == 401 or response.status_code == 403:
+            STATUS_TRACKER['sportsdb_api']['status'] = 'error'
+            STATUS_TRACKER['sportsdb_api']['message'] = 'API unauthorized'
+        elif response.status_code == 429:
+            STATUS_TRACKER['sportsdb_api']['status'] = 'degraded'
+            STATUS_TRACKER['sportsdb_api']['message'] = 'Rate limited'
         else:
-            status['services']['sportsdb_api'] = {
-                'status': 'error',
-                'message': f"Service returned status code {sportsdb_response.status_code}"
-            }
+            STATUS_TRACKER['sportsdb_api']['status'] = 'degraded'
+            STATUS_TRACKER['sportsdb_api']['message'] = f'API responded with status code {response.status_code}'
     except Exception as e:
-        status['services']['sportsdb_api'] = {
-            'status': 'error',
-            'message': f"Error connecting to service: {str(e)}"
+        STATUS_TRACKER['sportsdb_api']['status'] = 'error'
+        STATUS_TRACKER['sportsdb_api']['message'] = f'Connection error: {str(e)}'
+    
+    STATUS_TRACKER['sportsdb_api']['last_check'] = datetime.now()
+
+# Get supported sports
+@app.route('/api/sports', methods=['GET'])
+def get_sports():
+    if not ODDS_API_KEY:
+        return jsonify({'error': 'API key not configured'}), 401
+    
+    try:
+        url = f"{ODDS_API_URL}/v4/sports?apiKey={ODDS_API_KEY}"
+        response = requests.get(url)
+        
+        if response.status_code != 200:
+            return jsonify({'error': f'API responded with status code {response.status_code}'}), response.status_code
+        
+        sports_data = response.json()
+        
+        # Update requests remaining
+        if 'x-requests-remaining' in response.headers:
+            STATUS_TRACKER['odds_api']['requests_remaining'] = response.headers['x-requests-remaining']
+        
+        return jsonify(sports_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Get odds for a specific sport
+@app.route('/api/odds/<sport>', methods=['GET'])
+def get_odds(sport):
+    if not ODDS_API_KEY:
+        return jsonify({'error': 'API key not configured'}), 401
+    
+    try:
+        regions = request.args.get('regions', 'uk,us,eu')
+        markets = request.args.get('markets', 'h2h,spreads,totals')
+        date_format = request.args.get('dateFormat', 'iso')
+        odds_format = request.args.get('oddsFormat', 'decimal')
+        
+        url = f"{ODDS_API_URL}/v4/sports/{sport}/odds"
+        params = {
+            'apiKey': ODDS_API_KEY,
+            'regions': regions,
+            'markets': markets,
+            'dateFormat': date_format,
+            'oddsFormat': odds_format
         }
+        
+        response = requests.get(url, params=params)
+        
+        if response.status_code != 200:
+            return jsonify({'error': f'API responded with status code {response.status_code}'}), response.status_code
+        
+        odds_data = response.json()
+        matches = convert_to_standardized_matches(odds_data, sport)
+        
+        # Update requests remaining
+        if 'x-requests-remaining' in response.headers:
+            STATUS_TRACKER['odds_api']['requests_remaining'] = response.headers['x-requests-remaining']
+        
+        return jsonify(matches)
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+def convert_to_standardized_matches(odds_data, sport):
+    """Convert odds API data to standardized match objects"""
+    standardized_matches = []
     
-    # Overall status
-    if all(service['status'] == 'ok' for service in status['services'].values()):
-        status['overall'] = 'ok'
-    else:
-        status['overall'] = 'degraded'
+    for match in odds_data:
+        standardized_match = {
+            'id': match.get('id', ''),
+            'sport_key': match.get('sport_key', ''),
+            'sport_title': match.get('sport_title', ''),
+            'commence_time': match.get('commence_time', ''),
+            'home_team': match.get('home_team', ''),
+            'away_team': match.get('away_team', ''),
+            'bookmakers': []
+        }
+        
+        for bookmaker in match.get('bookmakers', []):
+            standardized_bookmaker = {
+                'key': bookmaker.get('key', ''),
+                'title': bookmaker.get('title', ''),
+                'markets': []
+            }
+            
+            for market in bookmaker.get('markets', []):
+                standardized_market = {
+                    'key': market.get('key', ''),
+                    'outcomes': []
+                }
+                
+                for outcome in market.get('outcomes', []):
+                    standardized_outcome = {
+                        'name': outcome.get('name', ''),
+                        'price': outcome.get('price', 0)
+                    }
+                    standardized_market['outcomes'].append(standardized_outcome)
+                
+                standardized_bookmaker['markets'].append(standardized_market)
+            
+            standardized_match['bookmakers'].append(standardized_bookmaker)
+        
+        standardized_matches.append(standardized_match)
     
-    return jsonify(status)
+    return standardized_matches
+
+# Get live scores
+@app.route('/api/livescore', methods=['GET'])
+def get_livescore():
+    try:
+        url = f"{SPORTS_DB_API_URL}/2/livescore.php"
+        
+        if SPORTS_API_KEY:
+            url = f"{url}?key={SPORTS_API_KEY}"
+        
+        response = requests.get(url)
+        
+        if response.status_code != 200:
+            return jsonify({'error': f'API responded with status code {response.status_code}'}), response.status_code
+        
+        livescore_data = response.json()
+        return jsonify(livescore_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Get fixtures for a league
+@app.route('/api/fixtures/league/<league_id>', methods=['GET'])
+def get_league_fixtures(league_id):
+    try:
+        url = f"{SPORTS_DB_API_URL}/1/eventsnextleague.php?id={league_id}"
+        
+        if SPORTS_API_KEY:
+            url = f"{url}&key={SPORTS_API_KEY}"
+        
+        response = requests.get(url)
+        
+        if response.status_code != 200:
+            return jsonify({'error': f'API responded with status code {response.status_code}'}), response.status_code
+        
+        fixtures_data = response.json()
+        return jsonify(fixtures_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Get teams in a league
+@app.route('/api/teams/league/<league_id>', methods=['GET'])
+def get_teams(league_id):
+    try:
+        url = f"{SPORTS_DB_API_URL}/1/lookup_all_teams.php?id={league_id}"
+        
+        if SPORTS_API_KEY:
+            url = f"{url}&key={SPORTS_API_KEY}"
+        
+        response = requests.get(url)
+        
+        if response.status_code != 200:
+            return jsonify({'error': f'API responded with status code {response.status_code}'}), response.status_code
+        
+        teams_data = response.json()
+        return jsonify(teams_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Get all leagues
+@app.route('/api/leagues', methods=['GET'])
+def get_leagues():
+    try:
+        url = f"{SPORTS_DB_API_URL}/1/all_leagues.php"
+        
+        if SPORTS_API_KEY:
+            url = f"{url}?key={SPORTS_API_KEY}"
+        
+        response = requests.get(url)
+        
+        if response.status_code != 200:
+            return jsonify({'error': f'API responded with status code {response.status_code}'}), response.status_code
+        
+        leagues_data = response.json()
+        return jsonify(leagues_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    # Check for API keys
-    if not ODDS_API_KEY:
-        print("WARNING: ODDS_API_KEY not set in environment variables")
-    if not SPORTSDB_API_KEY:
-        print("WARNING: SPORTSDB_API_KEY not set in environment variables")
-    
-    # Run the server
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    logger.info(f"Starting PuntaIQ API Service")
+    app.run(host='0.0.0.0', port=5000)

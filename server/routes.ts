@@ -32,6 +32,8 @@ import { historicalDashboardRouter } from "./historical-dashboard-routes";
 import { setupAutomationRoutes } from "./automation/automation-routes";
 import { setupLiveScoreRoutes } from "./livescore-routes";
 import { userPreferencesRouter } from "./user-preferences-routes";
+import { registerMicroserviceRoutes } from "./microservice-routes";
+import { MicroserviceClient } from "./microservice-client";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
@@ -72,6 +74,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up LiveScore routes for real-time match data
   setupLiveScoreRoutes(app);
+  
+  // Set up microservice routes for enhanced sports data
+  registerMicroserviceRoutes(app);
+  
+  // Try to start the microservice at server initialization
+  try {
+    const microserviceClient = new MicroserviceClient();
+    microserviceClient.isRunning().then(isRunning => {
+      if (isRunning) {
+        console.log('Successfully started the AI microservice');
+      } else {
+        console.warn('Failed to start the AI microservice - will start on demand');
+      }
+    });
+  } catch (error) {
+    console.warn('Error pre-starting the AI microservice:', error);
+  }
   
   // Direct trending topics API endpoint
   app.get("/api/direct-trending-topics", (req, res) => {

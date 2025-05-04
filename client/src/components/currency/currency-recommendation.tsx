@@ -24,7 +24,7 @@ export function CurrencyRecommendation({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Detect user's location on component mount
+  // Detect user's location on component mount - only run once
   useEffect(() => {
     async function detectLocation() {
       try {
@@ -49,7 +49,8 @@ export function CurrencyRecommendation({
           setRecommendedCurrency(recommended.code);
         } else {
           // If they already have the right currency, don't show recommendation
-          onDismiss();
+          // Use function reference instead of the callback from props
+          handleDismiss();
         }
       } catch (error) {
         console.error('Error detecting location:', error);
@@ -64,9 +65,12 @@ export function CurrencyRecommendation({
     if (!hasExplicitlyChosen) {
       detectLocation();
     } else {
-      onDismiss();
+      // Use a local function instead of the prop to avoid the dependency
+      handleDismiss();
     }
-  }, [currency.code, onDismiss]);
+    // Remove onDismiss from dependencies, only run on mount and currency code change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currency.code]);
   
   // Accept the recommendation
   const handleAccept = () => {
