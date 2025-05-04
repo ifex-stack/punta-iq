@@ -2352,3 +2352,18 @@ Error: AI Service failed to start properly: exit code 1
 [STDOUT] [2025-05-04 16:09:59,945] [INFO] 127.0.0.1 - - [04/May/2025 16:09:59] "GET /api/status HTTP/1.1" 200 -
 [STDOUT] [2025-05-04 16:10:04,580] [INFO] 172.31.128.35 - - [04/May/2025 16:10:04] "[33mGET /test.html HTTP/1.1[0m" 404 -
 [STDOUT] [2025-05-04 16:10:05,746] [INFO] 172.31.128.35 - - [04/May/2025 16:10:05] "[33mGET /test.html HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-04 16:10:59,944] [INFO] 127.0.0.1 - - [04/May/2025 16:10:59] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 16:11:59,945] [INFO] 127.0.0.1 - - [04/May/2025 16:11:59] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 16:12:59,945] [INFO] 127.0.0.1 - - [04/May/2025 16:12:59] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 16:13:59,945] [INFO] 127.0.0.1 - - [04/May/2025 16:13:59] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 16:15:00,077] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-04 16:15:00,252] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-04 16:15:00,254] [INFO] 127.0.0.1 - - [04/May/2025 16:15:00] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 16:15:59,944] [INFO] 127.0.0.1 - - [04/May/2025 16:15:59] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 16:16:59,945] [INFO] 127.0.0.1 - - [04/May/2025 16:16:59] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 16:17:59,946] [INFO] 127.0.0.1 - - [04/May/2025 16:17:59] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 16:18:59,947] [INFO] 127.0.0.1 - - [04/May/2025 16:18:59] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 16:19:59,949] [INFO] 127.0.0.1 - - [04/May/2025 16:19:59] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 16:21:00,095] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-04 16:21:00,270] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-04 16:21:00,272] [INFO] 127.0.0.1 - - [04/May/2025 16:21:00] "GET /api/status HTTP/1.1" 200 -
