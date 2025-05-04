@@ -200,20 +200,34 @@ app.use((req, res, next) => {
       appLogger.info('Initializing database tables');
       await initializeDatabase();
       appLogger.info('Database tables initialized successfully');
-      
-      // Create test user if needed
-      appLogger.info('Checking for test user account');
-      await seedTestUser();
     } catch (error) {
       appLogger.error('Failed to initialize database tables', { error });
       appLogger.warn('Using in-memory storage as fallback');
-      
-      // Try seeding test user with in-memory storage
-      try {
-        appLogger.info('Creating test user with in-memory storage');
+    }
+    
+    // Always try to create test user regardless of database initialization outcome
+    // This makes the test user creation more reliable
+    try {
+      appLogger.info('Checking for test user account');
+      const user = await seedTestUser();
+      if (user) {
+        appLogger.info(`Test user account ready: ${user.username}`, { userId: user.id });
+      } else {
+        appLogger.warn('Test user creation did not return a user object');
+        
+        // Force another attempt at creation if no user was returned
+        appLogger.info('Attempting forced test user creation');
         await seedTestUser();
-      } catch (seedError) {
-        appLogger.error('Failed to create test user', { error: seedError });
+      }
+    } catch (seedError) {
+      appLogger.error('Failed to create test user', { error: seedError });
+      
+      // One more attempt with explicit error handling
+      try {
+        appLogger.info('Making final attempt at test user creation');
+        await seedTestUser();
+      } catch (finalError) {
+        appLogger.error('All test user creation attempts failed', { error: finalError });
       }
     }
     

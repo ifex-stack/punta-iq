@@ -54,16 +54,76 @@ export async function seedTestUser() {
       const hashedPassword = await hashPassword('puntaiq_beta_test');
       
       // Try direct database insertion first
+      try {
+        // First try to retrieve the user again (double check)
+        const existingUser = await db.select().from(users).where(eq(users.username, 'beta_tester')).limit(1);
+        if (existingUser && existingUser.length > 0) {
+          logger.info('Test user found during second check, skipping creation');
+          return existingUser[0];
+        }
+      } catch (err) {
+        logger.warn('Error during second check for existing user', { error: err });
+        // Continue with insertion
+      }
+      
+      // Now try the insertion with all mandatory fields
       const [insertedUser] = await db.insert(users)
         .values({
           username: 'beta_tester',
           email: 'beta@puntaiq.com',
           password: hashedPassword,
-          // Remove role field as it's causing issues
+          role: 'user', // Explicitly set role to avoid issues with enum
           isActive: true,
           isEmailVerified: true,
           referralCode: 'BETATEST',
-          createdAt: new Date()
+          createdAt: new Date(),
+          notificationSettings: {
+            general: {
+              predictions: true,
+              results: true,
+              promotions: true,
+            },
+            sports: {
+              football: true,
+              basketball: true,
+              tennis: true,
+              baseball: true,
+              hockey: true,
+              cricket: true,
+              formula1: true,
+              mma: true,
+              volleyball: true,
+              other: true,
+            },
+            metrics: {
+              notificationCount: 0,
+              lastNotificationSent: null,
+              clickThroughRate: 0,
+              viewCount: 0,
+              clickCount: 0,
+              dismissCount: 0,
+            }
+          },
+          userPreferences: {
+            favoriteSports: ['football'],
+            favoriteLeagues: ['premier_league'],
+            bettingFrequency: 'weekly',
+            predictionTypes: ['singles', 'accumulators'],
+            riskTolerance: 'medium',
+            preferredOddsFormat: 'decimal',
+            predictionsPerDay: 5,
+            experienceLevel: 'intermediate',
+            onboardingCompleted: true,
+            lastStep: 5,
+            completedSteps: [1, 2, 3, 4, 5]
+          },
+          onboardingStatus: 'completed',
+          lastOnboardingStep: 5,
+          subscriptionTier: 'free',
+          fantasyPoints: 100,
+          totalContestsWon: 0,
+          totalContestsEntered: 0,
+          lastLoginAt: new Date()
         })
         .returning();
         
@@ -80,10 +140,26 @@ export async function seedTestUser() {
           username: 'beta_tester',
           email: 'beta@puntaiq.com',
           password: hashedPassword,
-          // Remove role field as it's causing issues
+          role: 'user', // Explicitly set role 
           isActive: true,
           isEmailVerified: true,
-          referralCode: 'BETATEST'
+          referralCode: 'BETATEST',
+          subscriptionTier: 'free',
+          onboardingStatus: 'completed',
+          lastOnboardingStep: 5,
+          userPreferences: {
+            favoriteSports: ['football'],
+            favoriteLeagues: ['premier_league'],
+            bettingFrequency: 'weekly',
+            predictionTypes: ['singles', 'accumulators'],
+            riskTolerance: 'medium',
+            preferredOddsFormat: 'decimal',
+            predictionsPerDay: 5,
+            experienceLevel: 'intermediate',
+            onboardingCompleted: true,
+            lastStep: 5,
+            completedSteps: [1, 2, 3, 4, 5]
+          }
         });
         
         logger.info('Test user created successfully via storage API', { userId: user.id });
@@ -102,10 +178,22 @@ export async function seedTestUser() {
             email: 'beta@puntaiq.com',
             password: await hashPassword('puntaiq_beta_test'),
             createdAt: new Date(),
-            // Remove role field as it's causing issues
+            role: 'user', // Explicitly set role
             isActive: true,
             isEmailVerified: true,
             referralCode: 'BETATEST',
+            lastLoginAt: new Date(),
+            subscriptionTier: 'free',
+            onboardingStatus: 'completed',
+            lastOnboardingStep: 5,
+            notificationSettings: {
+              general: { predictions: true, results: true, promotions: true },
+              sports: { football: true }
+            },
+            userPreferences: {
+              favoriteSports: ['football'],
+              onboardingCompleted: true
+            },
             fantasyPoints: 100,
             totalContestsWon: 0,
             totalContestsEntered: 0

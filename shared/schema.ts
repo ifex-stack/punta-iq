@@ -163,7 +163,15 @@ export const insertUserSchema = createInsertSchema(users).pick({
   role: true,
   isActive: true,
   isEmailVerified: true,
-  lastLoginAt: true
+  lastLoginAt: true,
+  subscriptionTier: true,
+  notificationSettings: true,
+  userPreferences: true,
+  onboardingStatus: true,
+  lastOnboardingStep: true,
+  fantasyPoints: true,
+  totalContestsWon: true,
+  totalContestsEntered: true
 });
 
 // Sports table
