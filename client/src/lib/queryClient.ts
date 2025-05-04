@@ -111,9 +111,8 @@ export async function apiRequest(
 type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
-  on403?: UnauthorizedBehavior;
 }) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior, on403 }) =>
+  ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     // Check if we're online first
     if (!checkOnlineStatus()) {
@@ -139,11 +138,6 @@ export const getQueryFn: <T>(options: {
       clearTimeout(timeoutId);
 
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        return null;
-      }
-      
-      // Handle forbidden error (403) similar to unauthorized if requested
-      if (on403 === "returnNull" && res.status === 403) {
         return null;
       }
 

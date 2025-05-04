@@ -36,92 +36,47 @@ class Predictor:
             models_dir = os.path.join(os.path.dirname(__file__), 'models')
             
             if not os.path.exists(models_dir):
-                logger.warning("Models directory not found. Creating models directory and using statistical predictions.")
-                os.makedirs(models_dir)
+                logger.warning("Models directory not found. Using statistical predictions.")
                 return
             
-            # Enhanced Football models with more prediction types
+            # Football models
             football_models = {
                 "1X2": "football_1X2.pkl",
                 "BTTS": "football_BTTS.pkl",
-                "Over_Under": "football_Over_Under.pkl",
-                "Correct_Score": "football_Correct_Score.pkl",
-                "First_Half": "football_First_Half.pkl",
-                "Cards": "football_Cards.pkl"
+                "Over_Under": "football_Over_Under.pkl"
             }
             
-            # Enhanced Basketball models
+            # Basketball models
             basketball_models = {
                 "Winner": "basketball_Winner.pkl",
-                "Total_Points": "basketball_Total_Points.pkl",
-                "Handicap": "basketball_Handicap.pkl",
-                "Quarter_Scores": "basketball_Quarter_Scores.pkl",
-                "Player_Props": "basketball_Player_Props.pkl"
+                "Total_Points": "basketball_Total_Points.pkl"
             }
             
-            # Load football models with calibration data for confidence
+            # Load football models
             self.models["football"] = {}
-            self.calibrators = {"football": {}}
-            
             for prediction_type, model_file in football_models.items():
                 model_path = os.path.join(models_dir, model_file)
-                calibrator_path = os.path.join(models_dir, f"calibrator_{prediction_type}.pkl")
-                
                 if os.path.exists(model_path):
                     try:
                         with open(model_path, 'rb') as f:
                             model = pickle.load(f)
                             self.models["football"][prediction_type] = model
                             logger.info(f"Loaded football {prediction_type} model")
-                            
-                        # Load calibrator if exists (for better confidence scoring)
-                        if os.path.exists(calibrator_path):
-                            with open(calibrator_path, 'rb') as f:
-                                calibrator = pickle.load(f)
-                                self.calibrators["football"][prediction_type] = calibrator
-                                logger.info(f"Loaded football {prediction_type} calibrator")
                     except Exception as e:
                         logger.error(f"Error loading football {prediction_type} model: {e}")
             
-            # Load basketball models with calibration data
+            # Load basketball models
             self.models["basketball"] = {}
-            self.calibrators = {"basketball": {}}
-            
             for prediction_type, model_file in basketball_models.items():
                 model_path = os.path.join(models_dir, model_file)
-                calibrator_path = os.path.join(models_dir, f"calibrator_{prediction_type}.pkl")
-                
                 if os.path.exists(model_path):
                     try:
                         with open(model_path, 'rb') as f:
                             model = pickle.load(f)
                             self.models["basketball"][prediction_type] = model
                             logger.info(f"Loaded basketball {prediction_type} model")
-                            
-                        # Load calibrator if exists
-                        if os.path.exists(calibrator_path):
-                            with open(calibrator_path, 'rb') as f:
-                                calibrator = pickle.load(f)
-                                self.calibrators["basketball"][prediction_type] = calibrator
-                                logger.info(f"Loaded basketball {prediction_type} calibrator")
                     except Exception as e:
                         logger.error(f"Error loading basketball {prediction_type} model: {e}")
-            
-            # Tracking model performance
-            self.model_performance = {
-                "football": {
-                    "predictions_made": 0,
-                    "correct_predictions": 0,
-                    "total_confidence": 0,
-                    "last_updated": datetime.now().isoformat()
-                },
-                "basketball": {
-                    "predictions_made": 0,
-                    "correct_predictions": 0,
-                    "total_confidence": 0,
-                    "last_updated": datetime.now().isoformat()
-                }
-            }
             
             logger.info(f"Loaded {len(self.models.get('football', {}))} football models and {len(self.models.get('basketball', {}))} basketball models")
             
@@ -619,100 +574,8 @@ class Predictor:
                 }
             }
     
-    def _calculate_confidence_score(self, probabilities, odds=None, historical_success_rate=None):
-        """
-        Calculate a more sophisticated confidence score based on multiple factors.
-        
-        Args:
-            probabilities (dict): Outcome probabilities from the model
-            odds (dict, optional): Bookmaker odds for the outcomes
-            historical_success_rate (float, optional): Historical success rate for this type of prediction
-            
-        Returns:
-            tuple: (confidence_score, confidence_level, explanation)
-        """
-        try:
-            # Get the highest probability
-            max_prob = max(probabilities.values())
-            
-            # Base confidence starts with the probability
-            confidence = max_prob * 100
-            
-            # Factors that affect confidence
-            certainty_factor = 1.0
-            
-            # 1. Margin between highest and second highest probability
-            sorted_probs = sorted(probabilities.values(), reverse=True)
-            if len(sorted_probs) > 1:
-                margin = sorted_probs[0] - sorted_probs[1]
-                # Higher margin increases confidence
-                margin_factor = 1 + (margin * 2)  # Up to 1.5x multiplier
-                certainty_factor *= margin_factor
-            
-            # 2. Agreement with bookmaker odds (if available)
-            if odds:
-                # Convert odds to implied probabilities
-                implied_probs = {k: 1/v for k, v in odds.items()}
-                # Normalize (bookies overround)
-                total_implied = sum(implied_probs.values())
-                implied_probs = {k: v/total_implied for k, v in implied_probs.items()}
-                
-                # Find highest implied probability
-                highest_outcome = max(probabilities, key=probabilities.get)
-                bookies_highest = max(implied_probs, key=implied_probs.get)
-                
-                # Agreement with bookmaker increases confidence
-                if highest_outcome == bookies_highest:
-                    certainty_factor *= 1.2
-                else:
-                    certainty_factor *= 0.9
-                
-                # Check if there's significant disagreement between model and bookies
-                model_prob = probabilities[highest_outcome]
-                bookies_prob = implied_probs.get(highest_outcome, 0)
-                disagreement = abs(model_prob - bookies_prob)
-                
-                if disagreement > 0.2:  # More than 20% difference
-                    certainty_factor *= 0.8
-            
-            # 3. Historical model performance (if available)
-            if historical_success_rate:
-                certainty_factor *= (0.5 + historical_success_rate/2)  # Scale between 0.5-1.5
-            
-            # Calculate final confidence score
-            adjusted_confidence = min(99.9, confidence * certainty_factor)
-            
-            # Classify confidence level
-            if adjusted_confidence >= 85:
-                confidence_level = "very high"
-            elif adjusted_confidence >= 70:
-                confidence_level = "high"
-            elif adjusted_confidence >= 55:
-                confidence_level = "medium"
-            elif adjusted_confidence >= 40:
-                confidence_level = "low"
-            else:
-                confidence_level = "very low"
-            
-            # Create explanation for confidence score
-            explanation = f"Based on prediction model ({confidence:.1f}%)"
-            if odds:
-                if highest_outcome == bookies_highest:
-                    explanation += f", matches bookmaker expectation"
-                else:
-                    explanation += f", differs from bookmaker expectation"
-            
-            if historical_success_rate:
-                explanation += f", historical accuracy: {historical_success_rate*100:.1f}%"
-            
-            return (round(adjusted_confidence, 1), confidence_level, explanation)
-            
-        except Exception as e:
-            logger.error(f"Error calculating confidence score: {e}")
-            return (60.0, "medium", "Using baseline confidence score due to calculation error")
-
     def _calculate_value_bet(self, predicted_result, home_prob, draw_prob, away_prob, odds):
-        """Calculate if there's value in the betting odds with tier classification."""
+        """Calculate if there's value in the betting odds."""
         try:
             outcome_probs = {
                 'H': home_prob,
@@ -731,47 +594,19 @@ class Predictor:
                     "edge": round(edge, 3),
                     "value": round(value_pct, 2),
                     "implied_probability": round(implied_prob * 100, 2),
-                    "our_probability": round(prob * 100, 2),
-                    "tier": "Tier 10"  # Default lowest tier
+                    "our_probability": round(prob * 100, 2)
                 }
-                
-                # Classify based on edge, value, and odds
-                if value_pct > 15 and edge > 0.15:  # Strong value
-                    if odds[outcome] < 2.0:
-                        values[outcome]["tier"] = "Tier 2"  # Lower odds = Tier 2
-                    elif odds[outcome] < 3.5:
-                        values[outcome]["tier"] = "Tier 2"  # Medium odds = Tier 2
-                    else:
-                        values[outcome]["tier"] = "Tier 5"  # Higher odds = Tier 5
-                elif value_pct > 10 and edge > 0.1:  # Good value
-                    if odds[outcome] < 2.5:
-                        values[outcome]["tier"] = "Tier 2"  # Lower odds = Tier 2
-                    elif odds[outcome] < 4.0:
-                        values[outcome]["tier"] = "Tier 5"  # Medium odds = Tier 5
-                    else:
-                        values[outcome]["tier"] = "Tier 10"  # Higher odds = Tier 10 (speculative)
-                elif value_pct > 5 and edge > 0.05:  # Some value
-                    if odds[outcome] < 3.0:
-                        values[outcome]["tier"] = "Tier 5"  # Lower odds = Tier 5
-                    else:
-                        values[outcome]["tier"] = "Tier 10"  # Higher odds = Tier 10
-                
-                # Exceptional value on strong favorites can be Tier 1
-                if value_pct > 20 and edge > 0.2 and odds[outcome] < 1.8:
-                    values[outcome]["tier"] = "Tier 1"
             
             # Find best value
             best_value = max(values.items(), key=lambda x: x[1]["value"])
             outcome, value_data = best_value
             
-            if value_data["value"] > 5:  # At least 5% value to return anything
+            if value_data["value"] > 10:  # At least 10% value
                 return {
                     "outcome": outcome,
                     "odds": odds[outcome],
                     "value": value_data["value"],
-                    "edge": value_data["edge"],
-                    "tier": value_data["tier"],
-                    "isRecommended": value_data["value"] > 10
+                    "isRecommended": True
                 }
             
             # If predicted outcome has any positive value, still show it
@@ -780,8 +615,6 @@ class Predictor:
                     "outcome": predicted_result,
                     "odds": odds[predicted_result],
                     "value": values[predicted_result]["value"],
-                    "edge": values[predicted_result]["edge"],
-                    "tier": values[predicted_result]["tier"],
                     "isRecommended": False
                 }
             
@@ -1001,15 +834,14 @@ class Predictor:
             logger.error(f"Error predicting {sport} matches: {e}")
             return []
     
-    def generate_accumulator(self, predictions, size=2, min_confidence=75, target_tier="Tier 10"):
+    def generate_accumulator(self, predictions, size=2, min_confidence=75):
         """
-        Generate accumulator predictions based on highest confidence matches and tier classification.
+        Generate accumulator predictions based on highest confidence matches.
         
         Args:
             predictions (list): List of match predictions
             size (int): Number of matches to include in accumulator
             min_confidence (int): Minimum confidence threshold
-            target_tier (str): Target tier level for accumulator (Tier 1, 2, 5, or 10)
             
         Returns:
             dict: Accumulator prediction
@@ -1018,17 +850,6 @@ class Predictor:
             # Filter predictions by confidence
             confident_predictions = [p for p in predictions if p.get('confidence', 0) >= min_confidence]
             
-            # Filter by value bets if target tier is specified
-            if target_tier != "Tier 10":
-                with_value = []
-                for pred in confident_predictions:
-                    value_bet = pred.get('valueBet', {})
-                    if value_bet and value_bet.get('tier', 'Tier 10') == target_tier:
-                        with_value.append(pred)
-                
-                if with_value:
-                    confident_predictions = with_value
-            
             # Sort by confidence (highest first)
             confident_predictions.sort(key=lambda x: x.get('confidence', 0), reverse=True)
             
@@ -1036,72 +857,36 @@ class Predictor:
             top_predictions = confident_predictions[:size]
             
             if len(top_predictions) < size:
-                # Try to relax confidence threshold
-                logger.warning(f"Not enough predictions for {target_tier} accumulator (size {size}), relaxing criteria")
-                
-                # If targeting tier 1 or 2, fall back to tier 5
-                if target_tier in ["Tier 1", "Tier 2"] and target_tier != "Tier 5":
-                    return self.generate_accumulator(predictions, size, min_confidence-5, "Tier 5")
-                # If targeting tier 5, fall back to tier 10
-                elif target_tier == "Tier 5":
-                    return self.generate_accumulator(predictions, size, min_confidence-5, "Tier 10")
-                # If already at tier 10, reduce confidence threshold
-                elif target_tier == "Tier 10" and min_confidence > 60:
-                    return self.generate_accumulator(predictions, size, min_confidence-10, "Tier 10")
-                else:
-                    logger.warning(f"Failed to generate {target_tier} accumulator of size {size}")
-                    return None
+                logger.warning(f"Not enough confident predictions for accumulator (size {size})")
+                return None
             
             # Calculate accumulator odds and total confidence
             acca_odds = 1.0
             total_confidence = 0.0
-            total_value = 0.0
-            total_edge = 0.0
             
             selections = []
             for pred in top_predictions:
                 outcome = pred.get('predictedOutcome')
                 sport = pred.get('sport', 'football')
                 match_odds = pred.get('predictions', {})
-                value_bet = pred.get('valueBet', {})
                 
-                # Get odds based on predicted outcome or value bet if available
-                odds = None
-                if value_bet and target_tier != "Tier 10":
-                    if value_bet.get('tier', 'Tier 10') == target_tier:
-                        outcome = value_bet.get('outcome')
-                        odds = value_bet.get('odds')
-                
-                if odds is None:
-                    if sport == "football":
-                        market = match_odds.get('1X2', {})
-                        if outcome == 'H':
-                            odds = market.get('homeWin', {}).get('odds', 2.0)
-                        elif outcome == 'D':
-                            odds = market.get('draw', {}).get('odds', 3.5)
-                        else:  # 'A'
-                            odds = market.get('awayWin', {}).get('odds', 4.0)
-                    else:  # basketball
-                        market = match_odds.get('Winner', {})
-                        if outcome == 'H':
-                            odds = market.get('homeWin', {}).get('odds', 1.8)
-                        else:  # 'A'
-                            odds = market.get('awayWin', {}).get('odds', 2.2)
+                if sport == "football":
+                    market = match_odds.get('1X2', {})
+                    if outcome == 'H':
+                        odds = market.get('homeWin', {}).get('odds', 2.0)
+                    elif outcome == 'D':
+                        odds = market.get('draw', {}).get('odds', 3.5)
+                    else:  # 'A'
+                        odds = market.get('awayWin', {}).get('odds', 4.0)
+                else:  # basketball
+                    market = match_odds.get('Winner', {})
+                    if outcome == 'H':
+                        odds = market.get('homeWin', {}).get('odds', 1.8)
+                    else:  # 'A'
+                        odds = market.get('awayWin', {}).get('odds', 2.2)
                 
                 acca_odds *= odds
                 total_confidence += pred.get('confidence', 0)
-                
-                # Track value metrics
-                if value_bet:
-                    total_value += value_bet.get('value', 0)
-                    total_edge += value_bet.get('edge', 0)
-                
-                # Determine confidence explanation
-                confidence_explanation = ""
-                if pred.get('confidence_explanation'):
-                    confidence_explanation = pred.get('confidence_explanation')
-                elif value_bet and value_bet.get('value', 0) > 10:
-                    confidence_explanation = f"Value bet with {value_bet.get('value')}% edge over market odds"
                 
                 # Create selection object
                 selection = {
@@ -1114,38 +899,20 @@ class Predictor:
                     "market": "1X2" if sport == "football" else "Winner",
                     "outcome": outcome,
                     "odds": odds,
-                    "confidence": pred.get('confidence'),
-                    "confidence_explanation": confidence_explanation,
-                    "tier": value_bet.get('tier', 'Tier 10') if value_bet else 'Tier 10'
+                    "confidence": pred.get('confidence')
                 }
                 
                 selections.append(selection)
             
-            # Classify accumulator tier based on individual selections
-            acca_tier = "Tier 10"  # Default
-            if all(s.get('tier', 'Tier 10') == 'Tier 1' for s in selections):
-                acca_tier = "Tier 1"
-            elif all(s.get('tier', 'Tier 10') in ['Tier 1', 'Tier 2'] for s in selections):
-                acca_tier = "Tier 2"
-            elif all(s.get('tier', 'Tier 10') in ['Tier 1', 'Tier 2', 'Tier 5'] for s in selections):
-                acca_tier = "Tier 5"
-            
-            # If target tier specified, use that as an override
-            if target_tier != "Tier 10":
-                acca_tier = target_tier
-            
             # Create accumulator object
             accumulator = {
-                "id": f"acca-{size}-{target_tier}-{int(time.time())}",
+                "id": f"acca-{size}-{int(time.time())}",
                 "createdAt": datetime.now().isoformat(),
                 "size": size,
-                "tier": acca_tier,
                 "totalOdds": round(acca_odds, 2),
                 "confidence": round(total_confidence / len(top_predictions), 2),
-                "averageValue": round(total_value / len(selections), 2) if total_value > 0 else 0,
-                "averageEdge": round(total_edge / len(selections), 3) if total_edge > 0 else 0,
                 "selections": selections,
-                "isPremium": acca_tier in ["Tier 1", "Tier 2"] or acca_odds > 10.0
+                "isPremium": acca_odds > 5.0  # Higher odds accumulators are premium
             }
             
             return accumulator
@@ -1156,21 +923,15 @@ class Predictor:
     
     def generate_accumulators(self, all_predictions):
         """
-        Generate various sized accumulators across all sports with tier classification.
+        Generate various sized accumulators across all sports.
         
         Args:
             all_predictions (dict): Dictionary with sport as key and predictions as value
             
         Returns:
-            dict: Various accumulators organized by size and tier
+            dict: Various accumulators
         """
         accumulators = {
-            "tier1": [],  # Premium, highest confidence (Tier 1)
-            "tier2": [],  # Premium, high confidence (Tier 2)
-            "tier5": [],  # Standard, medium confidence (Tier 5)
-            "tier10": [], # Free, lowest confidence (Tier 10)
-            
-            # Legacy categorization for backward compatibility
             "small": [],
             "medium": [],
             "large": [],
@@ -1183,65 +944,40 @@ class Predictor:
             for sport, predictions in all_predictions.items():
                 combined_predictions.extend(predictions)
             
-            # Tier 1 accumulators (premium, highest confidence, focus on value)
-            # Usually 2-3 selections with very strong value
-            acca = self.generate_accumulator(combined_predictions, size=2, min_confidence=85, target_tier="Tier 1")
+            # Generate different sized accumulators
+            # Small (2-3 selections, lower odds)
+            for _ in range(3):
+                acca = self.generate_accumulator(combined_predictions, size=2, min_confidence=80)
+                if acca:
+                    accumulators["small"].append(acca)
+                    
+                acca = self.generate_accumulator(combined_predictions, size=3, min_confidence=75)
+                if acca:
+                    accumulators["small"].append(acca)
+            
+            # Medium (4-5 selections)
+            for _ in range(2):
+                acca = self.generate_accumulator(combined_predictions, size=4, min_confidence=70)
+                if acca:
+                    accumulators["medium"].append(acca)
+                    
+                acca = self.generate_accumulator(combined_predictions, size=5, min_confidence=65)
+                if acca:
+                    accumulators["medium"].append(acca)
+            
+            # Large (6-8 selections)
+            acca = self.generate_accumulator(combined_predictions, size=6, min_confidence=60)
             if acca:
-                accumulators["tier1"].append(acca)
-                accumulators["small"].append(acca) # For backwards compatibility
-            
-            acca = self.generate_accumulator(combined_predictions, size=3, min_confidence=80, target_tier="Tier 1")
+                accumulators["large"].append(acca)
+                
+            acca = self.generate_accumulator(combined_predictions, size=8, min_confidence=55)
             if acca:
-                accumulators["tier1"].append(acca)
-                accumulators["small"].append(acca)
+                accumulators["large"].append(acca)
             
-            # Tier 2 accumulators (premium, high confidence)
-            # Usually 2-4 selections with good value
-            for size in [2, 3, 4]:
-                acca = self.generate_accumulator(combined_predictions, size=size, min_confidence=75, target_tier="Tier 2")
-                if acca:
-                    accumulators["tier2"].append(acca)
-                    if size <= 3:
-                        accumulators["small"].append(acca)
-                    else:
-                        accumulators["medium"].append(acca)
-            
-            # Tier 5 accumulators (standard, medium confidence)
-            # Usually 3-6 selections with reasonable value
-            for size in [3, 4, 5, 6]:
-                acca = self.generate_accumulator(combined_predictions, size=size, min_confidence=65, target_tier="Tier 5")
-                if acca:
-                    accumulators["tier5"].append(acca)
-                    if size <= 3:
-                        accumulators["small"].append(acca)
-                    elif size <= 5:
-                        accumulators["medium"].append(acca)
-                    else:
-                        accumulators["large"].append(acca)
-            
-            # Tier 10 accumulators (free, lower confidence)
-            # Usually 4-10 selections, more speculative
-            for size in [4, 6, 8, 10]:
-                min_conf = 75 if size <= 4 else 65 if size <= 6 else 55 if size <= 8 else 50
-                acca = self.generate_accumulator(combined_predictions, size=size, min_confidence=min_conf, target_tier="Tier 10")
-                if acca:
-                    accumulators["tier10"].append(acca)
-                    if size <= 5:
-                        accumulators["medium"].append(acca)
-                    elif size <= 8:
-                        accumulators["large"].append(acca)
-                    else:
-                        accumulators["mega"].append(acca)
-            
-            # Track metrics for generated accumulators
-            tiers_count = {
-                "tier1": len(accumulators["tier1"]),
-                "tier2": len(accumulators["tier2"]),
-                "tier5": len(accumulators["tier5"]),
-                "tier10": len(accumulators["tier10"])
-            }
-            
-            logger.info(f"Generated accumulators by tier: {tiers_count}")
+            # Mega (10+ selections, very high odds)
+            acca = self.generate_accumulator(combined_predictions, size=10, min_confidence=50)
+            if acca:
+                accumulators["mega"].append(acca)
             
             return accumulators
             

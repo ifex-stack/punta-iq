@@ -32,13 +32,6 @@ import { historicalDashboardRouter } from "./historical-dashboard-routes";
 import { setupAutomationRoutes } from "./automation/automation-routes";
 import { setupLiveScoreRoutes } from "./livescore-routes";
 import { userPreferencesRouter } from "./user-preferences-routes";
-import { microserviceRouter } from "./microservice-routes";
-import { aiStatusRouter } from "./ai-status-routes";
-import { MicroserviceClient } from "./microservice-client";
-import { createContextLogger } from "./logger";
-
-// Create logger for routes
-const routesLogger = createContextLogger("Routes");
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
@@ -51,7 +44,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupNotificationRoutes(app);
   
   // Set up mock gamification routes for badges & leaderboards
-  routesLogger.info('Setting up mock gamification routes');
+  console.log('Setting up mock gamification routes...');
   setupMockGamificationRoutes(app);
   
   // Set up AI status route (register this BEFORE the ML routes to prevent path conflicts)
@@ -80,29 +73,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up LiveScore routes for real-time match data
   setupLiveScoreRoutes(app);
   
-  // Set up microservice routes for enhanced sports data
-  app.use('/api/microservice', microserviceRouter);
-  
-  // Set up AI status routes
-  app.use('/api/ai-status', aiStatusRouter);
-  
-  // Try to start the microservice at server initialization
-  try {
-    const microserviceClient = new MicroserviceClient();
-    microserviceClient.isRunning().then(isRunning => {
-      if (isRunning) {
-        routesLogger.info('Successfully started the AI microservice');
-      } else {
-        routesLogger.warn('Failed to start the AI microservice - will start on demand');
-      }
-    });
-  } catch (error) {
-    routesLogger.error('Error pre-starting the AI microservice', { error });
-  }
-  
   // Direct trending topics API endpoint
   app.get("/api/direct-trending-topics", (req, res) => {
-    routesLogger.debug("Direct trending topics API endpoint called");
+    console.log("Direct trending topics API endpoint called");
     const trendingTopics = [
       {
         id: "team-liverpool",

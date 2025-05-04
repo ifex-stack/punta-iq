@@ -5,7 +5,6 @@ import { logger, createContextLogger } from "./logger";
 import { initializeFantasyData } from "./fantasy-data-init";
 import { initializeDatabase } from "./db-init";
 import { automationManager } from "./automation";
-import { startMicroserviceHealthCheck } from "./microservice-health-check";
 
 const app = express();
 app.use(express.json());
@@ -209,15 +208,6 @@ app.use((req, res, next) => {
       }
     } catch (error) {
       appLogger.error('Failed to initialize PuntaIQ automation system', { error });
-    }
-    
-    // Start the microservice health check system
-    try {
-      appLogger.info('Starting AI microservice health check system');
-      startMicroserviceHealthCheck();
-      appLogger.info('AI microservice health check system started successfully');
-    } catch (error) {
-      appLogger.error('Failed to start AI microservice health check system', { error });
     }
   });
 })();
