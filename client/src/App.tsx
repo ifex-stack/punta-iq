@@ -88,10 +88,10 @@ const Router: React.FC = () => {
     );
   }
   
-  // For mobile home page, don't use the app layout so we can use our custom mobile layout
-  if (isMobile && location === '/') {
-    return <MobileHomePage />;
-  }
+  // Comment out the mobile-specific logic until we fix the authentication issues
+  // if (isMobile && location === '/') {
+  //   return <MobileHomePage />;
+  // }
   
   return (
     <div className="flex h-screen">
