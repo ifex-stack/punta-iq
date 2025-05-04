@@ -164,7 +164,7 @@ const Router: React.FC = () => {
         setTimeout(() => {
           if (document.title.includes('404') || document.body.textContent?.includes('Not Found')) {
             console.log('Still on 404 page after recovery attempt - forcing navigation to root');
-            window.location.href = `${window.location.protocol}//${window.location.hostname}:3000/`;
+            window.location.href = `${window.location.protocol}//${window.location.hostname}:5000/`;
           }
         }, 1500);
       }
@@ -286,7 +286,7 @@ const useCustomLocation = (): [string, (to: string, ...args: any[]) => void] => 
     console.log(`Initial URL: ${window.location.href}`);
     
     // Handle case where we might be on a different port (development server vs. application server)
-    if (window.location.port !== '3000' && process.env.NODE_ENV === 'development') {
+    if (window.location.port !== '5000' && process.env.NODE_ENV === 'development') {
       console.log('Development port mismatch detected - using client-side routing');
     }
   }, []);
@@ -334,8 +334,8 @@ const useCustomLocation = (): [string, (to: string, ...args: any[]) => void] => 
       // Handle relative URLs
       if (to.startsWith('/')) {
         // Ensure we're navigating to the right port in development
-        if (window.location.port !== '3000' && process.env.NODE_ENV === 'development') {
-          const baseUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+        if (window.location.port !== '5000' && process.env.NODE_ENV === 'development') {
+          const baseUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
           console.log(`Cross-port navigation to: ${baseUrl}${to}`);
           window.location.href = `${baseUrl}${to}`;
           return;

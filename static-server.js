@@ -127,22 +127,22 @@ app.get('*', (req, res) => {
     
     <div class="status">
       <p>System Status: Secondary front-end server running on port 3001</p>
-      <p>Main application server running on port 5000</p>
+      <p>Main application server running on port 3000</p>
       <p>AI microservice running on port 5000</p>
       
-      <p><a href="http://localhost:5000">Go to Main Application Server</a></p>
+      <p><a href="http://localhost:3000">Go to Main Application Server</a></p>
     </div>
   </div>
   
   <script>
     // Configure for local development
     window.PuntaIQ = {
-      apiBaseUrl: 'http://localhost:5000',
-      aiServiceProxyUrl: 'http://localhost:5000/ai-service'
+      apiBaseUrl: 'http://localhost:3000',
+      aiServiceProxyUrl: 'http://localhost:3000/ai-service'
     };
     
     // Check API server status
-    fetch('http://localhost:5000/api/debug/info')
+    fetch('http://localhost:3000/api/debug/info')
       .then(response => response.json())
       .then(data => {
         console.log('API server status:', data);

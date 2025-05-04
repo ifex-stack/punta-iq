@@ -37,22 +37,14 @@ app.use('/api/debug', debugRoutes);
 
 // Important app routes handler
 const handleAppRoute = (req: Request, res: Response, title: string) => {
-  // First check for client/index.html which is the source for Vite
-  const clientIndexPath = path.resolve(process.cwd(), 'client', 'index.html');
-  if (fs.existsSync(clientIndexPath)) {
-    logger.info(`Serving client/index.html for ${req.path}`);
-    return res.sendFile(clientIndexPath);
-  }
-  
-  // Then try to serve index.html from public directory
+  // Try to serve index.html from public directory first
   const indexPath = path.resolve(process.cwd(), 'public', 'index.html');
   if (fs.existsSync(indexPath)) {
-    logger.info(`Serving index.html directly from public directory for ${req.path}`);
+    console.log(`Serving index.html directly from public directory for ${req.path}`);
     return res.sendFile(indexPath);
   }
-  
   // If no index.html, send a basic HTML response
-  logger.warn(`No index.html found, serving inline HTML for ${req.path}`);
+  console.log(`No index.html found, serving inline HTML for ${req.path}`);
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
@@ -88,20 +80,6 @@ const handleAppRoute = (req: Request, res: Response, title: string) => {
             margin-top: 0;
           }
           p { line-height: 1.6; }
-          .status {
-            padding: 1rem;
-            border-radius: 4px;
-            background: #f0f0f0;
-            margin: 1rem 0;
-          }
-          .indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #24a148;
-            margin-right: 8px;
-          }
           .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -121,52 +99,70 @@ const handleAppRoute = (req: Request, res: Response, title: string) => {
             color: #333;
             font-size: 0.75rem;
           }
-          .bottom-nav a.active {
-            color: #0066cc;
+          .nav-icon {
+            width: 24px;
+            height: 24px;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
-          .icon {
-            font-size: 1.5rem;
-            margin-bottom: 0.25rem;
+          .status {
+            padding: 1rem;
+            border-radius: 4px;
+            background: #f0f0f0;
+            margin: 1rem 0;
+          }
+          .indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #24a148;
+            margin-right: 8px;
           }
         </style>
       </head>
       <body>
         <div class="container">
-          <h1>${title}</h1>
+          <h1>PuntaIQ - ${title}</h1>
           <p>Welcome to PuntaIQ, the next-generation AI-powered sports prediction platform.</p>
           
           <div class="status">
             <div><span class="indicator"></span> Server Status: Online</div>
             <div>Node.js Version: ${process.version}</div>
             <div>Server Time: ${new Date().toISOString()}</div>
-            <div>Current Route: ${req.path}</div>
           </div>
           
-          <h2>AI-Powered Predictions</h2>
-          <p>Our advanced machine learning algorithms analyze thousands of data points to provide accurate predictions for upcoming matches.</p>
+          <h2>${title} Page</h2>
+          <p>This is a placeholder for the ${title} page. The full web application will be available soon.</p>
           
           <h2>System Status</h2>
           <p>All systems operational. The server is running in ${app.get('env')} mode.</p>
         </div>
         
-        <nav class="bottom-nav">
-          <a href="/" class="${req.path === '/' ? 'active' : ''}">
-            <div class="icon">🏠</div>
-            <span>Home</span>
+        <div class="bottom-nav">
+          <a href="/">
+            <div class="nav-icon">🏠</div>
+            Home
           </a>
-          <a href="/predictions" class="${req.path === '/predictions' ? 'active' : ''}">
-            <div class="icon">🎯</div>
-            <span>Predictions</span>
+          <a href="/predictions">
+            <div class="nav-icon">🎯</div>
+            Predictions
           </a>
-          <a href="/livescore" class="${req.path === '/livescore' ? 'active' : ''}">
-            <div class="icon">📊</div>
-            <span>Live Scores</span>
+          <a href="/livescore">
+            <div class="nav-icon">⚽</div>
+            Live Score
           </a>
-          <a href="/account" class="${req.path === '/account' ? 'active' : ''}">
-            <div class="icon">👤</div>
-            <span>Account</span>
+          <a href="/account">
+            <div class="nav-icon">👤</div>
+            Account
           </a>
-        </nav>
+          <a href="/ai-status">
+            <div class="nav-icon">🤖</div>
+            AI Status
+          </a>
+        </div>
       </body>
     </html>
   `);
@@ -203,8 +199,6 @@ app.get('/status', (req, res) => {
     version: '1.0.0'
   });
 });
-
-// Set up AI service proxy middleware for requests to /ai-service/*
 
 // Set up AI service proxy middleware for requests to /ai-service/*
 // This ensures requests to the AI microservice are properly forwarded
@@ -332,7 +326,7 @@ app.use((req, res, next) => {
     };
     
     if (status >= 500) {
-      errorLogger.critical(`${status} ${message}`, errorData);
+      errorLogger.error(`${status} ${message}`, errorData);
     } else if (status >= 400) {
       errorLogger.error(`${status} ${message}`, errorData);
     } else {
@@ -358,7 +352,7 @@ app.use((req, res, next) => {
   // First set up our API routes 
   logger.info("API routes already registered");
   
-  if (app.get("env") === "development" || process.env.NODE_ENV === "development") {
+  if (app.get("env") === "development") {
     // In development, use Vite middleware for hot module reloading
     logger.info("Setting up Vite middleware for development");
     try {
@@ -425,7 +419,7 @@ app.use((req, res, next) => {
           logger.info(`Serving app.html for ${originalUrl}`);
           return res.sendFile(appHtmlPath);
         } catch (error) {
-          logger.error(`Error serving app.html: ${error.message}`);
+          logger.error(`Error serving app.html: ${error instanceof Error ? error.message : String(error)}`);
           // Fall through to try other paths
         }
       }
@@ -443,250 +437,60 @@ app.use((req, res, next) => {
         if (fs.existsSync(indexPath)) {
           try {
             logger.info(`Serving SPA index.html from ${indexPath} for ${originalUrl}`);
-            
-            // Read the file and inject special meta tags to help with SPA routing
-            const htmlContent = fs.readFileSync(indexPath, 'utf8');
-            const modifiedHtml = htmlContent
-              .replace(
-                '</head>',
-                `<meta name="route-recovery" content="true" data-original-url="${originalUrl}" />
-                <meta name="puntaiq-app-route" content="${originalUrl}" />
-                <meta name="puntaiq-server-time" content="${new Date().toISOString()}" />
-                <script>
-                  // Record the original URL to help with route recovery
-                  window.__PUNTAIQ_ORIGINAL_URL = "${originalUrl}";
-                  window.__PUNTAIQ_SERVER_PORT = "${req.socket.localPort}";
-                  
-                  // Store path for recovery if needed
-                  if (window.sessionStorage) {
-                    sessionStorage.setItem('puntaiq_recovery_path', "${originalUrl}");
-                  }
-
-                  // Force reload if we detect a 404 in the DOM after a delay
-                  setTimeout(function() {
-                    const isNotFoundPage = 
-                      (document.title && document.title.includes('404')) || 
-                      (document.body && document.body.textContent && document.body.textContent.includes('Not Found'));
-                    
-                    if (isNotFoundPage) {
-                      console.log('Detected 404 page, reloading app');
-                      window.location.href = "/";
-                    }
-                  }, 1000);
-                </script>
-                </head>`
-              );
-            
-            res.setHeader('Content-Type', 'text/html');
-            return res.send(modifiedHtml);
+            return res.sendFile(indexPath);
           } catch (error) {
-            logger.error(`Error serving index.html from ${indexPath}: ${error.message}`);
+            logger.error(`Error serving index.html from ${indexPath}: ${error instanceof Error ? error.message : String(error)}`);
             // Continue to try next path
           }
         }
       }
       
       // If none of the index.html files were found or could be served,
-      // use our redirect.html as a fallback
-      const redirectPath = path.resolve(process.cwd(), 'public', 'redirect.html');
-      if (fs.existsSync(redirectPath)) {
-        try {
-          logger.info(`Serving redirect.html for ${originalUrl} as fallback`);
-          return res.sendFile(redirectPath);
-        } catch (error) {
-          logger.error(`Error serving redirect.html: ${error.message}`);
-        }
-      }
-      
-      // If all else fails, generate an emergency HTML response
-      return serveEmergencyHtml();
+      // serve the main route handler with appropriate title
+      const routeTitle = originalUrl.substring(1).split('/')[0] || 'Home';
+      handleAppRoute(req, res, routeTitle.charAt(0).toUpperCase() + routeTitle.slice(1));
     };
     
-    // Last resort emergency HTML with recovery scripts
-    const serveEmergencyHtml = () => {
-      logger.warn(`Using emergency SPA recovery for ${originalUrl}`);
-      const redirectScript = `
-        <script>
-          console.log("Emergency redirect for ${originalUrl}");
-          
-          // Store original path for recovery
-          if (window.sessionStorage) {
-            sessionStorage.setItem('puntaiq_recovery_path', "${originalUrl}");
-          }
-          
-          // Determine the correct port for redirection
-          const targetPort = "3000";  // Default to the main server port
-          const targetPath = "/";     // First go to the root path
-          
-          // Redirect to the correct URL
-          const redirectUrl = \`\${window.location.protocol}//\${window.location.hostname}:\${targetPort}\${targetPath}?recovery=true&from=\${encodeURIComponent("${originalUrl}")}\`;
-          console.log("Redirecting to:", redirectUrl);
-          
-          // Force browser to go to application homepage
-          window.location.href = redirectUrl;
-        </script>
-      `;
-      
-      res.setHeader('Content-Type', 'text/html');
-      res.send(`<!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>PuntaIQ - Redirecting...</title>
-          <style>
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-              background: #f5f5f5;
-              color: #333;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              height: 100vh;
-              margin: 0;
-            }
-            .container {
-              text-align: center;
-              max-width: 500px;
-              padding: 2rem;
-              background: white;
-              border-radius: 8px;
-              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            }
-            h1 { color: #0066cc; margin-top: 0; }
-            p { line-height: 1.5; }
-            .loading {
-              display: inline-block;
-              width: 30px;
-              height: 30px;
-              border: 3px solid rgba(0,102,204,0.3);
-              border-radius: 50%;
-              border-top-color: #0066cc;
-              animation: spin 1s ease-in-out infinite;
-            }
-            @keyframes spin {
-              to { transform: rotate(360deg); }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="loading"></div>
-            <h1>Redirecting to PuntaIQ</h1>
-            <p>Please wait while we redirect you to the application...</p>
-            <p><small>Original path: ${originalUrl}</small></p>
-          </div>
-          ${redirectScript}
-        </body>
-      </html>`);
-    };
-    
-    // Execute the main index.html serving function
-    return serveClientIndexHtml();
+    // Serve the client-side HTML
+    serveClientIndexHtml();
   });
 
-  // Use port 3000 for the main server to avoid conflict with the AI microservice on port 5000
-  // The AI microservice will be on port 5000
-  const port = 3000;
-  const appLogger = createContextLogger('APP');
+  // Setup health monitoring for the AI microservice
+  if (typeof microserviceHealthMonitor.startMonitoring === 'function') {
+    microserviceHealthMonitor.startMonitoring();
+  } else {
+    logger.info("Microservice health monitoring initialized via import");
+  }
   
-  appLogger.info('Application starting up', {
-    environment: app.get('env'),
-    nodeVersion: process.version,
-    timestamp: new Date().toISOString()
+  // Start any background automation tasks
+  if (typeof automationManager.initScheduledTasks === 'function') {
+    automationManager.initScheduledTasks();
+  } else {
+    logger.info("Automation manager initialized via import");
+  }
+  
+  // Initialize database if needed
+  try {
+    initializeDatabase();
+  } catch (error) {
+    logger.error(`Failed to initialize database: ${error instanceof Error ? error.message : String(error)}`, { error });
+  }
+  
+  // Initialize fantasy sports data
+  try {
+    initializeFantasyData();
+  } catch (error) {
+    logger.error(`Failed to initialize fantasy data: ${error instanceof Error ? error.message : String(error)}`, { error });
+  }
+  
+  // Start the server - Using port 5000 for Replit compatibility
+  const PORT = process.env.PORT || 5000;
+  server.listen(PORT, '0.0.0.0', () => {
+    logger.info(`Server running on http://0.0.0.0:${PORT} in ${app.get('env')} mode`);
+    logger.info(`API endpoints available at http://0.0.0.0:${PORT}/api/`);
+    logger.info(`AI Microservice proxy available at http://0.0.0.0:${PORT}/ai-service/`);
   });
   
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, async () => {
-    appLogger.info(`PuntaIQ server running on port ${port}`, {
-      port,
-      host: '0.0.0.0',
-      appVersion: process.env.npm_package_version || '1.0.0',
-    });
-    
-    // Keep old log format for compatibility
-    log(`serving on port ${port}`);
-    
-    // Initialize database tables with fallback mechanism
-    try {
-      appLogger.info('Initializing database tables');
-      await initializeDatabase();
-      appLogger.info('Database tables initialized successfully');
-    } catch (error) {
-      appLogger.error('Failed to initialize database tables', { error });
-      appLogger.warn('Using in-memory storage as fallback');
-    }
-    
-    // Initialize fantasy football data with fallback mechanism
-    try {
-      appLogger.info('Initializing fantasy football data');
-      await initializeFantasyData();
-      appLogger.info('Fantasy football data initialized successfully');
-    } catch (error) {
-      appLogger.error('Failed to initialize fantasy data', { error });
-      appLogger.warn('Using default fantasy data as fallback');
-    }
-    
-    // Initialize and start the automation system
-    try {
-      appLogger.info('Initializing PuntaIQ automation system');
-      await automationManager.initialize();
-      
-      if (process.env.NODE_ENV === 'production') {
-        await automationManager.startAll();
-        appLogger.info('PuntaIQ automation system started successfully');
-      } else {
-        appLogger.info('PuntaIQ automation system initialized but not started in development mode');
-      }
-    } catch (error) {
-      appLogger.error('Failed to initialize PuntaIQ automation system', { error });
-    }
-    
-    // Start the AI microservice proactively
-    try {
-      appLogger.info('Starting the AI microservice');
-      
-      // Get the path to the start script
-      const scriptPath = path.join(process.cwd(), 'scripts', 'start-ai-service.js');
-      
-      // Spawn the Node.js process to run the script with output capturing
-      const childProcess = spawn('node', [scriptPath], {
-        detached: true, 
-        stdio: ['ignore', 'pipe', 'pipe'],
-        env: {
-          ...process.env,
-          AI_SERVICE_PROACTIVE_START: 'true'
-        }
-      });
-      
-      // Capture output for better debugging
-      childProcess.stdout.on('data', (data) => {
-        appLogger.info(`[AI Service Starter] ${data.toString().trim()}`);
-      });
-      
-      childProcess.stderr.on('data', (data) => {
-        appLogger.error(`[AI Service Starter Error] ${data.toString().trim()}`);
-      });
-      
-      // Detach the child process so it runs independently
-      childProcess.unref();
-      
-      appLogger.info(`AI microservice startup initiated, process ID: ${childProcess.pid}`);
-    } catch (error) {
-      appLogger.error('Failed to start AI microservice', { error });
-      appLogger.warn('Failed to start the AI microservice - will start on demand');
-    }
-    
-    // Start the microservice health check system
-    try {
-      appLogger.info('Starting AI microservice health check system');
-      microserviceHealthMonitor.start();
-      appLogger.info('AI microservice health check system started successfully');
-    } catch (error) {
-      appLogger.error('Failed to start AI microservice health check system', { error });
-    }
-  });
+  // Export the server for testing
+  module.exports = server;
 })();

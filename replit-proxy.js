@@ -14,7 +14,7 @@ import fs from 'fs';
 const { createProxyServer } = httpProxy;
 
 // Configuration
-const PORT = process.env.PORT || 3000; // Port the workflow is expecting
+const PORT = process.env.PORT || 5000; // Port the workflow is expecting
 const TARGET_PORT = 3000; // Port where the actual application runs
 const TARGET_HOST = 'localhost';
 

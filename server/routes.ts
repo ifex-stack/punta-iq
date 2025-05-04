@@ -104,7 +104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({
       appMode: process.env.NODE_ENV || 'development',
       aiServiceUrl: 'http://localhost:5000',
-      apiServerUrl: 'http://localhost:3000',
+      apiServerUrl: 'http://localhost:5000',
       serverTime: new Date().toISOString(),
       message: 'PuntaIQ API server is running correctly',
       standalone: {
@@ -3597,7 +3597,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         main_server: {
           status: "ok",
           message: "Main server is running",
-          port: 5000
+          port: 3000
         },
         ai_service: {
           status: isAiServiceRunning ? "ok" : "error",
@@ -3613,7 +3613,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         main_server: {
           status: "ok",
           message: "Main server is running but encountered an error checking AI service",
-          port: 5000
+          port: 3000
         },
         ai_service: {
           status: "unknown",
