@@ -166,16 +166,38 @@ export function PersonalizedOnboarding({ open, onOpenChange }: PersonalizedOnboa
         completedSteps: ONBOARDING_STEPS.map(step => step.id)
       };
       
-      const response = await apiRequest("POST", "/api/user/preferences", completeData);
-      
-      toast({
-        title: "Preferences saved",
-        description: "Your personalized settings have been saved",
-        variant: "default",
-      });
-      
-      // Invalidate the preferences query to refresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/user/preferences"] });
+      try {
+        const response = await apiRequest("POST", "/api/user/preferences", completeData);
+        
+        if (response.ok) {
+          toast({
+            title: "Preferences saved",
+            description: "Your personalized settings have been saved",
+            variant: "default",
+          });
+          
+          // Invalidate the preferences query to refresh data
+          queryClient.invalidateQueries({ queryKey: ["/api/user/preferences"] });
+        } else {
+          // Check for unauthorized error
+          if (response.status === 401) {
+            toast({
+              title: "Authentication error",
+              description: "Please log in to save your preferences",
+              variant: "destructive",
+            });
+            
+            // Redirect to auth page
+            window.location.href = "/auth";
+            return;
+          } else {
+            throw new Error(`Failed to save preferences: ${response.status}`);
+          }
+        }
+      } catch (error) {
+        console.error("API request error:", error);
+        throw error; // Re-throw to be handled by the outer catch block
+      }
       
       // Close the onboarding dialog
       onOpenChange(false);
