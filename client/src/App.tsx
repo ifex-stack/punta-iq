@@ -134,6 +134,7 @@ const Router: React.FC = () => {
             <Route path="/mobile" component={MobileHomePage} />
             <Route path="/debug-auth" component={DebugAuthPage} />
             <Route path="/test-login" component={TestLoginPage} />
+            <Route path="/simple-login" component={SimpleLoginPage} />
             <Route component={NotFound} />
           </Switch>
         </AppLayout>

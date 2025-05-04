@@ -7,6 +7,7 @@ import { initializeDatabase } from "./db-init";
 import { automationManager } from "./automation";
 import { startMicroserviceHealthCheck } from "./microservice-health-check";
 import { analytics, AnalyticsEventType } from "./analytics-service";
+import { seedTestUser } from "./seed-user";
 import { spawn } from 'child_process';
 import path from 'path';
 
@@ -199,9 +200,21 @@ app.use((req, res, next) => {
       appLogger.info('Initializing database tables');
       await initializeDatabase();
       appLogger.info('Database tables initialized successfully');
+      
+      // Create test user if needed
+      appLogger.info('Checking for test user account');
+      await seedTestUser();
     } catch (error) {
       appLogger.error('Failed to initialize database tables', { error });
       appLogger.warn('Using in-memory storage as fallback');
+      
+      // Try seeding test user with in-memory storage
+      try {
+        appLogger.info('Creating test user with in-memory storage');
+        await seedTestUser();
+      } catch (seedError) {
+        appLogger.error('Failed to create test user', { error: seedError });
+      }
     }
     
     // Initialize fantasy football data with fallback mechanism
