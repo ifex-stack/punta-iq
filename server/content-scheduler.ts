@@ -8,9 +8,9 @@
 import { db } from './db';
 import { notifications, users, predictions } from '@shared/schema';
 import { eq, and, gte, lte } from 'drizzle-orm';
-import { getLogger } from './logger';
+import { logger, createContextLogger } from './logger';
 
-const logger = getLogger('content-scheduler');
+const contentLogger = createContextLogger('content-scheduler');
 
 interface ScheduleOptions {
   contentType: 'predictions' | 'results' | 'news' | 'promotions';
@@ -46,15 +46,15 @@ export async function scheduleContent(options: ScheduleOptions): Promise<number>
       end: endDate || new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000)) // Default to 7 days ahead
     };
     
-    logger.info(`Scheduling ${contentType} content from ${scheduleWindow.start.toISOString()} to ${scheduleWindow.end.toISOString()}`);
+    contentLogger.info(`Scheduling ${contentType} content from ${scheduleWindow.start.toISOString()} to ${scheduleWindow.end.toISOString()}`);
     
     // Get list of target users (either specific user or all users)
     const targetUsers = await getTargetUsers(userId);
-    logger.info(`Found ${targetUsers.length} target users for content scheduling`);
+    contentLogger.info(`Found ${targetUsers.length} target users for content scheduling`);
     
     // Get content to be scheduled
     const contentItems = await getContentForScheduling(contentType, scheduleWindow, targetUsers.map(u => u.id));
-    logger.info(`Found ${contentItems.length} content items to schedule`);
+    contentLogger.info(`Found ${contentItems.length} content items to schedule`);
     
     // Schedule each content item according to user preferences
     let scheduledCount = 0;
@@ -62,21 +62,21 @@ export async function scheduleContent(options: ScheduleOptions): Promise<number>
       const user = targetUsers.find(u => u.id === item.targetUserId);
       
       if (!user) {
-        logger.warn(`User ${item.targetUserId} not found for content item ${item.id}`);
+        contentLogger.warn(`User ${item.targetUserId} not found for content item ${item.id}`);
         continue;
       }
       
       // Get user preferences
       const preferences = user.userPreferences as any;
       if (!preferences) {
-        logger.warn(`No preferences found for user ${user.id}`);
+        contentLogger.warn(`No preferences found for user ${user.id}`);
         continue;
       }
       
       // Calculate delivery time based on user preferences
       const deliveryTime = calculateDeliveryTime(contentType, preferences, scheduleWindow);
       if (!deliveryTime) {
-        logger.warn(`Failed to calculate delivery time for user ${user.id}`);
+        contentLogger.warn(`Failed to calculate delivery time for user ${user.id}`);
         continue;
       }
       
@@ -85,10 +85,10 @@ export async function scheduleContent(options: ScheduleOptions): Promise<number>
       scheduledCount++;
     }
     
-    logger.info(`Successfully scheduled ${scheduledCount} content items`);
+    contentLogger.info(`Successfully scheduled ${scheduledCount} content items`);
     return scheduledCount;
   } catch (error) {
-    logger.error('Error scheduling content:', error);
+    contentLogger.error('Error scheduling content:', error);
     return 0;
   }
 }
@@ -108,7 +108,7 @@ async function getTargetUsers(specificUserId?: number): Promise<any[]> {
       return allUsers;
     }
   } catch (error) {
-    logger.error('Error getting target users:', error);
+    contentLogger.error('Error getting target users:', error);
     return [];
   }
 }
@@ -170,12 +170,12 @@ async function getContentForScheduling(
         break;
       
       default:
-        logger.warn(`Unknown content type: ${contentType}`);
+        contentLogger.warn(`Unknown content type: ${contentType}`);
     }
     
     return contentItems;
   } catch (error) {
-    logger.error('Error getting content for scheduling:', error);
+    contentLogger.error('Error getting content for scheduling:', error);
     return [];
   }
 }
@@ -205,7 +205,7 @@ async function isRelevantToUser(prediction: any, userId: number): Promise<boolea
     // If user has no sport preferences, consider it relevant
     return true;
   } catch (error) {
-    logger.error('Error checking if prediction is relevant to user:', error);
+    contentLogger.error('Error checking if prediction is relevant to user:', error);
     return false;
   }
 }
@@ -286,7 +286,7 @@ function calculateDeliveryTime(
     
     return deliveryDate;
   } catch (error) {
-    logger.error('Error calculating delivery time:', error);
+    contentLogger.error('Error calculating delivery time:', error);
     return null;
   }
 }
@@ -303,14 +303,14 @@ async function createScheduledNotification(contentItem: ContentItem, deliveryTim
       message: contentItem.message,
       type: contentItem.type,
       data: contentItem.data || null,
-      createdAt: new Date(),
+      timestamp: new Date(), // Use timestamp instead of createdAt to match schema
       scheduledFor: deliveryTime,
       isDelivered: false
     });
     
-    logger.debug(`Created scheduled notification for user ${contentItem.targetUserId} at ${deliveryTime.toISOString()}`);
+    contentLogger.debug(`Created scheduled notification for user ${contentItem.targetUserId} at ${deliveryTime.toISOString()}`);
   } catch (error) {
-    logger.error('Error creating scheduled notification:', error);
+    contentLogger.error('Error creating scheduled notification:', error);
   }
 }
 
@@ -329,7 +329,7 @@ export async function processScheduledNotifications(): Promise<number> {
       )
     );
     
-    logger.info(`Found ${dueNotifications.length} notifications due for delivery`);
+    contentLogger.info(`Found ${dueNotifications.length} notifications due for delivery`);
     
     // Process each notification
     let deliveredCount = 0;
@@ -350,10 +350,10 @@ export async function processScheduledNotifications(): Promise<number> {
       }
     }
     
-    logger.info(`Successfully delivered ${deliveredCount} notifications`);
+    contentLogger.info(`Successfully delivered ${deliveredCount} notifications`);
     return deliveredCount;
   } catch (error) {
-    logger.error('Error processing scheduled notifications:', error);
+    contentLogger.error('Error processing scheduled notifications:', error);
     return 0;
   }
 }
@@ -373,7 +373,7 @@ async function deliverNotification(notification: any): Promise<boolean> {
     // For now, just mark as delivered
     return true;
   } catch (error) {
-    logger.error('Error delivering notification:', error);
+    contentLogger.error('Error delivering notification:', error);
     return false;
   }
 }
