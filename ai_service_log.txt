@@ -2120,3 +2120,35 @@ Error: AI Service failed to start properly: exit code 1
 [STDOUT] [2025-05-04 08:02:38,277] [INFO] 127.0.0.1 - - [04/May/2025 08:02:38] "GET /api/status HTTP/1.1" 200 -
 [STDOUT] [2025-05-04 08:03:38,278] [INFO] 127.0.0.1 - - [04/May/2025 08:03:38] "GET /api/status HTTP/1.1" 200 -
 [STDOUT] [2025-05-04 08:04:38,278] [INFO] 127.0.0.1 - - [04/May/2025 08:04:38] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 08:05:38,279] [INFO] 127.0.0.1 - - [04/May/2025 08:05:38] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 08:06:38,280] [INFO] 127.0.0.1 - - [04/May/2025 08:06:38] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-04T08:07:40.897Z on port 5000 ---
+[STDOUT] [2025-05-04 08:07:41,194] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-04 08:07:41,197] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.55:5000
+[STDOUT] [2025-05-04 08:07:41,197] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-04 08:07:44,069] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-04 08:07:44,357] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-04 08:07:44,360] [INFO] 127.0.0.1 - - [04/May/2025 08:07:44] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 08:07:47,646] [INFO] 172.31.128.55 - - [04/May/2025 08:07:47] "[33mGET / HTTP/1.1[0m" 404 -
+
+--- Starting AI Microservice at 2025-05-04T08:08:03.748Z on port 5000 ---
+[STDOUT] [2025-05-04 08:08:04,120] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-04 08:08:04,123] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.55:5000
+[STDOUT] [2025-05-04 08:08:04,123] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-04 08:08:04,641] [INFO] 172.31.128.55 - - [04/May/2025 08:08:04] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-04 08:08:04,728] [INFO] 172.31.128.55 - - [04/May/2025 08:08:04] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-04 08:08:04,981] [INFO] 172.31.128.55 - - [04/May/2025 08:08:04] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-04 08:08:06,879] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-04 08:08:07,046] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-04 08:08:07,048] [INFO] 127.0.0.1 - - [04/May/2025 08:08:07] "GET /api/status HTTP/1.1" 200 -

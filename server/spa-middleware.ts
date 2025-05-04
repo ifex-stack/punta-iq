@@ -19,6 +19,7 @@ export default function spaMiddleware(req: Request, res: Response, next: NextFun
     req.path.startsWith('/assets/') ||
     req.method !== 'GET'
   ) {
+    logger.debug(`SPA middleware skipping route: ${req.path}`);
     return next();
   }
 
@@ -26,16 +27,62 @@ export default function spaMiddleware(req: Request, res: Response, next: NextFun
   
   // For all other routes, serve the index.html file to support SPA routing
   const indexPaths = [
+    path.resolve(process.cwd(), 'client', 'dist', 'index.html'),
+    path.resolve(process.cwd(), 'dist', 'client', 'index.html'),
     path.resolve(process.cwd(), 'public', 'index.html'),
     path.resolve(process.cwd(), 'client', 'index.html'),
     path.resolve(process.cwd(), 'index.html')
   ];
   
-  // Find the first existing index.html file
+  // Find the first existing index.html file and inject route recovery code
   for (const indexPath of indexPaths) {
     if (fs.existsSync(indexPath)) {
-      logger.info(`Serving SPA index.html from ${indexPath} for ${req.path}`);
-      return res.sendFile(indexPath);
+      logger.info(`Found SPA index.html at ${indexPath} for ${req.path}`);
+      
+      try {
+        // Read the file and inject route recovery code
+        const originalUrl = req.originalUrl;
+        const htmlContent = fs.readFileSync(indexPath, 'utf8');
+        
+        // Inject route recovery code
+        const modifiedHtml = htmlContent
+          .replace(
+            '</head>',
+            `<meta name="puntaiq-app-route" content="${originalUrl}" />
+            <script>
+              // Record the original URL to help with route recovery
+              window.__PUNTAIQ_ORIGINAL_URL = "${originalUrl}";
+              window.__PUNTAIQ_SERVER_PORT = "${req.socket.localPort}";
+              
+              // Store path for recovery if needed
+              if (window.sessionStorage) {
+                sessionStorage.setItem('puntaiq_recovery_path', "${originalUrl}");
+              }
+              
+              // For direct access to SPA routes like /predictions, ensure client-side routing works
+              document.addEventListener('DOMContentLoaded', function() {
+                // Check for SPA framework initialization
+                if (window.location.pathname !== '/' && 
+                    window.location.pathname !== '/index.html' && 
+                    !window.__PUNTAIQ_ROUTER_INITIALIZED) {
+                  console.log('PuntaIQ - Initializing SPA routing for direct route access:', window.location.pathname);
+                  
+                  // Create a flag to avoid multiple initializations
+                  window.__PUNTAIQ_ROUTER_INITIALIZED = true;
+                }
+              });
+            </script>
+            </head>`
+          );
+        
+        // Send the modified HTML
+        res.setHeader('Content-Type', 'text/html');
+        return res.send(modifiedHtml);
+      } catch (error) {
+        logger.error(`Error injecting route recovery code: ${error instanceof Error ? error.message : String(error)}`);
+        // Fall back to sending the file directly if modification fails
+        return res.sendFile(indexPath);
+      }
     }
   }
   

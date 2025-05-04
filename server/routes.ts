@@ -10,6 +10,7 @@ import { setupMockGamificationRoutes } from "./mock-gamification";
 import { setupMLRoutes } from "./ml-routes";
 import { setupAiStatusRoutes } from "./ai-status-route";
 import { setupTestAiStatusRoute } from "./test-ai-status";
+import debugRoutes from "./debug-routes";
 import { storage } from "./storage";
 import { getFantasyStore } from "./fantasy-data-init";
 import { PushNotificationService } from "./push-notification-service";
@@ -38,7 +39,6 @@ import { analyticsRouter } from "./analytics-routes";
 import { MicroserviceClient } from "./microservice-client";
 import { createContextLogger } from "./logger";
 import { analytics, AnalyticsEventType } from "./analytics-service";
-import debugRoutes from "./debug-routes";
 
 // Create logger for routes
 const routesLogger = createContextLogger("Routes");
