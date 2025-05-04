@@ -1,5 +1,5 @@
 import { format, addHours, subHours, isAfter, isBefore, parseISO } from 'date-fns';
-import { utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
 
 /**
  * Utility functions for timezone-based content scheduling
@@ -26,7 +26,7 @@ export function getUserTimezoneOffset(): number {
 export function toLocalTime(date: Date | string, timezone?: string): Date {
   const parsedDate = typeof date === 'string' ? new Date(date) : date;
   const userTz = timezone || getUserTimezone();
-  return utcToZonedTime(parsedDate, userTz);
+  return toZonedTime(parsedDate, userTz);
 }
 
 /**
@@ -35,7 +35,12 @@ export function toLocalTime(date: Date | string, timezone?: string): Date {
 export function toUTCTime(date: Date | string, timezone?: string): Date {
   const parsedDate = typeof date === 'string' ? new Date(date) : date;
   const userTz = timezone || getUserTimezone();
-  return zonedTimeToUtc(parsedDate, userTz);
+  
+  // Since date-fns-tz doesn't have a direct zonedTimeToUtc function,
+  // we need to calculate it manually
+  const tzDate = toZonedTime(parsedDate, userTz);
+  const offset = new Date().getTimezoneOffset() * 60000;
+  return new Date(tzDate.getTime() - offset);
 }
 
 /**
@@ -52,7 +57,7 @@ export function formatLocalTime(date: Date | string, formatStr: string = 'HH:mm'
 export function isMatchToday(matchDate: Date | string, timezone?: string): boolean {
   const now = new Date();
   const userTz = timezone || getUserTimezone();
-  const localNow = utcToZonedTime(now, userTz);
+  const localNow = toZonedTime(now, userTz);
   const localMatch = toLocalTime(matchDate, userTz);
   
   return (
@@ -85,7 +90,7 @@ export function isInTimeWindow(
 ): boolean {
   const userTz = timezone || getUserTimezone();
   const now = new Date();
-  const localNow = utcToZonedTime(now, userTz);
+  const localNow = toZonedTime(now, userTz);
   
   // Parse time strings (format: HH:mm)
   const [startHour, startMinute] = startTime.split(':').map(Number);
@@ -129,7 +134,7 @@ export function getMatchPriorityScore(
   
   // Is match in next 3 hours? Higher priority
   const now = new Date();
-  const localNow = utcToZonedTime(now, userTz);
+  const localNow = toZonedTime(now, userTz);
   const hoursUntilMatch = (localMatchTime.getTime() - localNow.getTime()) / (1000 * 60 * 60);
   
   if (hoursUntilMatch > 0 && hoursUntilMatch <= 3) {

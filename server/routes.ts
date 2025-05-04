@@ -38,6 +38,7 @@ import { analyticsRouter } from "./analytics-routes";
 import { MicroserviceClient } from "./microservice-client";
 import { createContextLogger } from "./logger";
 import { analytics, AnalyticsEventType } from "./analytics-service";
+import { timezoneRouter } from "./timezone-routes";
 
 // Create logger for routes
 const routesLogger = createContextLogger("Routes");
@@ -90,6 +91,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up analytics routes
   app.use('/api/analytics', analyticsRouter);
+  
+  // Set up timezone-based content scheduling routes
+  routesLogger.info('Setting up timezone-based content scheduling routes');
+  app.use(timezoneRouter);
   
   // Try to start the microservice at server initialization
   try {

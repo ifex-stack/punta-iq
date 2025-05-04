@@ -2,7 +2,7 @@ import express from 'express';
 import { createContextLogger } from './logger';
 import { db } from './db';
 import { format, addHours, subHours, parseISO } from 'date-fns';
-import { utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
 import { predictions } from '@shared/schema';
 import { and, eq, gt, lt, desc, asc } from 'drizzle-orm';
 
@@ -27,10 +27,13 @@ router.get('/api/timezones/predictions', async (req, res) => {
     
     // Get current time in the user's timezone
     const nowUtc = new Date();
-    const userLocalNow = utcToZonedTime(nowUtc, timezone);
+    const userLocalNow = toZonedTime(nowUtc, timezone);
     
     // Convert to UTC for database query (startTime is stored in UTC)
-    const startTime = zonedTimeToUtc(userLocalNow, timezone);
+    // Since date-fns-tz doesn't have a direct zonedTimeToUtc function,
+    // we need to calculate it manually
+    const offset = new Date().getTimezoneOffset() * 60000;
+    const startTime = new Date(userLocalNow.getTime() - offset);
     const endTime = addHours(startTime, timeWindow);
     
     // Query predictions happening within the time window
@@ -85,7 +88,7 @@ router.get('/api/timezones/predictions', async (req, res) => {
     // This requires transforming UTC times to user local time for comparison
     const filteredPredictions = timeRelevantPredictions.filter(prediction => {
       // Convert UTC startTime to user's local timezone
-      const localStartTime = utcToZonedTime(new Date(prediction.startTime), timezone);
+      const localStartTime = toZonedTime(new Date(prediction.startTime), timezone);
       const hour = localStartTime.getHours();
       
       if (preferredTimeOfDay === 'night') {
@@ -121,7 +124,7 @@ router.get('/api/timezones/recommendations', async (req, res) => {
     
     // Get current time in the user's timezone
     const nowUtc = new Date();
-    const userLocalNow = utcToZonedTime(nowUtc, timezone);
+    const userLocalNow = toZonedTime(nowUtc, timezone);
     const hour = userLocalNow.getHours();
     
     // Determine the current time window
@@ -178,7 +181,7 @@ router.get('/api/timezones/active-content', async (req, res) => {
     
     // Get current time in the user's timezone
     const nowUtc = new Date();
-    const userLocalNow = utcToZonedTime(nowUtc, timezone);
+    const userLocalNow = toZonedTime(nowUtc, timezone);
     const hour = userLocalNow.getHours();
     const minute = userLocalNow.getMinutes();
     
@@ -233,7 +236,7 @@ router.get('/api/timezones/user-time', (req, res) => {
     
     // Get current time in the user's timezone
     const nowUtc = new Date();
-    const userLocalNow = utcToZonedTime(nowUtc, timezone);
+    const userLocalNow = toZonedTime(nowUtc, timezone);
     
     // Get time window
     const hour = userLocalNow.getHours();
