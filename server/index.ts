@@ -6,6 +6,7 @@ import { initializeFantasyData } from "./fantasy-data-init";
 import { initializeDatabase } from "./db-init";
 import { automationManager } from "./automation";
 import { startMicroserviceHealthCheck } from "./microservice-health-check";
+import { startNotificationScheduler } from "./notification-scheduler";
 import { analytics, AnalyticsEventType } from "./analytics-service";
 import { spawn } from 'child_process';
 import path from 'path';
@@ -271,6 +272,15 @@ app.use((req, res, next) => {
       appLogger.info('AI microservice health check system started successfully');
     } catch (error) {
       appLogger.error('Failed to start AI microservice health check system', { error });
+    }
+    
+    // Start the notification scheduler for timezone-based content delivery
+    try {
+      appLogger.info('Starting timezone-based notification scheduler');
+      startNotificationScheduler();
+      appLogger.info('Timezone-based notification scheduler started successfully');
+    } catch (error) {
+      appLogger.error('Failed to start timezone-based notification scheduler', { error });
     }
   });
 })();
