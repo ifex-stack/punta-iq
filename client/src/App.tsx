@@ -129,6 +129,7 @@ const Router: React.FC = () => {
             <Route path="/legal/responsible-gambling" component={ResponsibleGamblingPage} />
             <Route path="/ui-showcase" component={UIShowcase} />
             <Route path="/mobile" component={MobileHomePage} />
+            <Route path="/debug-auth" component={() => import("./pages/debug-auth").then(mod => <mod.default />)} />
             <Route component={NotFound} />
           </Switch>
         </AppLayout>
