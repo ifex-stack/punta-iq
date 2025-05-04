@@ -13,6 +13,7 @@ import MobileHomePage from "@/pages/mobile-home-page"; // Import the mobile home
 import DebugAuthPage from "@/pages/debug-auth"; // Import the debug auth page
 import TestLoginPage from "@/pages/test-login"; // Import the test login page
 import SimpleLoginPage from "@/pages/simple-login"; // Import the simple login page
+import QuickLoginPage from "@/pages/quick-login"; // Import the quick login page
 import SubscriptionPage from "@/pages/subscription-page";
 import SubscriptionSuccessPage from "@/pages/subscription-success";
 import ProfilePage from "@/pages/profile-page";
@@ -135,6 +136,7 @@ const Router: React.FC = () => {
             <Route path="/debug-auth" component={DebugAuthPage} />
             <Route path="/test-login" component={TestLoginPage} />
             <Route path="/simple-login" component={SimpleLoginPage} />
+            <Route path="/quick-login" component={QuickLoginPage} />
             <Route component={NotFound} />
           </Switch>
         </AppLayout>

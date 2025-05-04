@@ -161,29 +161,58 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    logger.info(`Login attempt for username: ${req.body.username}`);
-    
-    passport.authenticate("local", (err, user, info) => {
-      if (err) {
-        logger.error("Login error:", { error: err });
-        return next(err);
+    try {
+      logger.info(`Login attempt for username: ${req.body.username}`);
+      
+      // Validate required fields
+      if (!req.body.username || !req.body.password) {
+        logger.warn("Login failed: Missing username or password");
+        return res.status(400).json({ message: "Username and password are required" });
       }
       
-      if (!user) {
-        logger.warn(`Login failed for user: ${req.body.username}`, { reason: info?.message });
-        return res.status(401).json({ message: info?.message || "Authentication failed" });
-      }
-      
-      req.login(user, (err) => {
+      passport.authenticate("local", (err: any, user: any, info: any) => {
         if (err) {
-          logger.error("Error during login session creation", { error: err });
-          return next(err);
+          logger.error("Login error:", { error: err.message || err });
+          return res.status(500).json({ 
+            message: "Internal authentication error", 
+            error: err.message || "Unknown error" 
+          });
         }
         
-        logger.info(`User logged in successfully: ${user.username}`, { userId: user.id });
-        return res.status(200).json(user);
-      });
-    })(req, res, next);
+        if (!user) {
+          logger.warn(`Login failed for user: ${req.body.username}`, { reason: info?.message });
+          return res.status(401).json({ message: info?.message || "Authentication failed" });
+        }
+        
+        req.login(user, (loginErr) => {
+          if (loginErr) {
+            logger.error("Error during login session creation", { error: loginErr.message || loginErr });
+            return res.status(500).json({ 
+              message: "Session creation failed", 
+              error: loginErr.message || "Unknown error" 
+            });
+          }
+          
+          logger.info(`User logged in successfully: ${user.username}`, { userId: user.id });
+          
+          // Return minimal user object with just the essential fields to avoid exposing sensitive data
+          const safeUser = {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            role: user.role || 'user',
+            subscriptionTier: user.subscriptionTier || 'free',
+            isActive: user.isActive || true,
+            lastLoginAt: new Date()
+          };
+          
+          return res.status(200).json(safeUser);
+        });
+      })(req, res, next);
+    } catch (error) {
+      logger.error("Unexpected error in login route:", { error });
+      res.status(500).json({ message: "An unexpected error occurred during login" });
+    }
   });
 
   app.post("/api/logout", (req, res, next) => {
@@ -203,10 +232,38 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.sendStatus(401);
+    try {
+      logger.debug("GET /api/user request received");
+      
+      if (!req.isAuthenticated()) {
+        logger.debug("GET /api/user failed: User not authenticated");
+        return res.status(401).json({ message: "Not authenticated", loginRequired: true });
+      }
+      
+      // Return a sanitized user object to avoid exposing sensitive data
+      const user = req.user;
+      const safeUser = {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role || 'user',
+        subscriptionTier: user.subscriptionTier || 'free',
+        isActive: user.isActive || true,
+        lastLoginAt: user.lastLoginAt || new Date(),
+        referralCode: user.referralCode,
+        userPreferences: user.userPreferences || {},
+        notificationSettings: user.notificationSettings || {},
+        fantasyPoints: user.fantasyPoints || 0,
+        totalContestsWon: user.totalContestsWon || 0,
+        totalContestsEntered: user.totalContestsEntered || 0
+      };
+      
+      logger.debug(`GET /api/user success for user ${user.id}`);
+      res.json(safeUser);
+    } catch (error) {
+      logger.error("Error in GET /api/user", { error });
+      res.status(500).json({ message: "Error retrieving user data" });
     }
-    res.json(req.user);
   });
   
   logger.info("Authentication setup complete");
