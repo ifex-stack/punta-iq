@@ -483,8 +483,8 @@ app.use((req, res, next) => {
     logger.error(`Failed to initialize fantasy data: ${error instanceof Error ? error.message : String(error)}`, { error });
   }
   
-  // Start the server
-  const PORT = process.env.PORT || 3000;
+  // Start the server - Using port 5000 for Replit compatibility
+  const PORT = process.env.PORT || 5000;
   server.listen(PORT, '0.0.0.0', () => {
     logger.info(`Server running on http://0.0.0.0:${PORT} in ${app.get('env')} mode`);
     logger.info(`API endpoints available at http://0.0.0.0:${PORT}/api/`);
