@@ -11,6 +11,7 @@ import AuthPage from "@/pages/auth-page";
 import HomePage from "@/pages/home-page";
 import MobileHomePage from "@/pages/mobile-home-page"; // Import the mobile home page
 import DebugAuthPage from "@/pages/debug-auth"; // Import the debug auth page
+import TestLoginPage from "@/pages/test-login"; // Import the test login page
 import SubscriptionPage from "@/pages/subscription-page";
 import SubscriptionSuccessPage from "@/pages/subscription-success";
 import ProfilePage from "@/pages/profile-page";
@@ -131,6 +132,7 @@ const Router: React.FC = () => {
             <Route path="/ui-showcase" component={UIShowcase} />
             <Route path="/mobile" component={MobileHomePage} />
             <Route path="/debug-auth" component={DebugAuthPage} />
+            <Route path="/test-login" component={TestLoginPage} />
             <Route component={NotFound} />
           </Switch>
         </AppLayout>
