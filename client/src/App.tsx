@@ -9,6 +9,7 @@ import { NotificationsProvider } from "@/hooks/use-notifications";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import HomePage from "@/pages/home-page";
+import MobileHomePage from "@/pages/mobile-home-page"; // Import the mobile home page
 import SubscriptionPage from "@/pages/subscription-page";
 import SubscriptionSuccessPage from "@/pages/subscription-success";
 import ProfilePage from "@/pages/profile-page";
@@ -41,6 +42,7 @@ import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from 'next-themes';
 import { setNavigationState } from "./lib/error-handler";
 import { CurrencyProvider } from "./hooks/use-currency";
+import { useMobileDetection } from "@/hooks/use-mobile-detection"; // Import mobile detection hook
 
 // New components
 import { OnboardingProvider, OnboardingReminderButton } from "@/components/onboarding/onboarding-provider";
@@ -56,6 +58,9 @@ import AppLayout from "@/components/layout/app-layout";
 
 // Create typed component definition to fix TypeScript errors
 const Router: React.FC = () => {
+  // Use mobile detection hook
+  const isMobile = useMobileDetection();
+  
   // Track location changes to know when we're navigating
   const [location] = useLocation();
   
@@ -83,12 +88,17 @@ const Router: React.FC = () => {
     );
   }
   
+  // For mobile home page, don't use the app layout so we can use our custom mobile layout
+  if (isMobile && location === '/') {
+    return <MobileHomePage />;
+  }
+  
   return (
     <div className="flex h-screen">
       <div className="flex-1 relative">
         <AppLayout>
           <Switch>
-            <ProtectedRoute path="/" component={NewPredictionsAndStatsPage} />
+            <ProtectedRoute path="/" component={isMobile ? MobileHomePage : NewPredictionsAndStatsPage} />
             <ProtectedRoute path="/predictions" component={NewPredictionsAndStatsPage} />
             <ProtectedRoute path="/stats" component={NewPredictionsAndStatsPage} />
             <ProtectedRoute path="/predictions/advanced" component={AdvancedPredictionsPage} />
