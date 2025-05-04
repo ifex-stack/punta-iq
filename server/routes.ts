@@ -39,6 +39,10 @@ import { MicroserviceClient } from "./microservice-client";
 import { createContextLogger } from "./logger";
 import { analytics, AnalyticsEventType } from "./analytics-service";
 import { timezoneRouter } from "./timezone-routes";
+import { seedTestUser } from "./seed-user";
+import { hashPassword } from "./auth";
+import { eq } from "drizzle-orm";
+import { users } from "@shared/schema";
 
 // Create logger for routes
 const routesLogger = createContextLogger("Routes");
@@ -95,6 +99,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up timezone-based content scheduling routes
   routesLogger.info('Setting up timezone-based content scheduling routes');
   app.use(timezoneRouter);
+  
+  // Development endpoint to manually create/reset the test user
+  if (process.env.NODE_ENV !== 'production') {
+    app.post('/api/create-test-user', async (req, res) => {
+      try {
+        routesLogger.info('Create test user endpoint called');
+        
+        // Try to find if user already exists
+        const existingUser = await db.select().from(users).where(eq(users.username, 'beta_tester')).limit(1);
+        
+        // If user exists, delete it first to ensure a clean reset
+        if (existingUser && existingUser.length > 0) {
+          routesLogger.info('Existing test user found, deleting for clean reset');
+          await db.delete(users).where(eq(users.id, existingUser[0].id));
+        }
+        
+        // Now create a fresh test user
+        const testUser = await seedTestUser();
+        
+        if (testUser) {
+          routesLogger.info('Test user created/reset successfully', { userId: testUser.id });
+          res.status(201).json({
+            success: true,
+            message: 'Test user created/reset successfully',
+            user: {
+              id: testUser.id,
+              username: testUser.username,
+              email: testUser.email
+            }
+          });
+        } else {
+          routesLogger.error('Failed to create test user');
+          res.status(500).json({
+            success: false,
+            message: 'Failed to create test user'
+          });
+        }
+      } catch (error) {
+        routesLogger.error('Error creating test user', { error });
+        res.status(500).json({
+          success: false,
+          message: 'Error creating test user',
+          error: error.message
+        });
+      }
+    });
+    
+    // Quick login endpoint for development
+    app.post('/api/quick-login', async (req, res) => {
+      try {
+        routesLogger.info('Quick login endpoint called');
+        
+        // Try to find test user
+        const testUser = await db.select().from(users).where(eq(users.username, 'beta_tester')).limit(1);
+        
+        if (!testUser || testUser.length === 0) {
+          // If user doesn't exist, create it
+          routesLogger.info('Test user not found, creating...');
+          const newUser = await seedTestUser();
+          
+          if (!newUser) {
+            throw new Error('Failed to create test user');
+          }
+          
+          // Set user in session
+          req.login(newUser, (err) => {
+            if (err) {
+              throw err;
+            }
+            
+            routesLogger.info('Test user created and logged in', { userId: newUser.id });
+            res.status(200).json({
+              success: true,
+              message: 'Test user created and logged in',
+              user: {
+                id: newUser.id,
+                username: newUser.username,
+                email: newUser.email
+              }
+            });
+          });
+        } else {
+          // User exists, log them in
+          req.login(testUser[0], (err) => {
+            if (err) {
+              throw err;
+            }
+            
+            routesLogger.info('Test user logged in', { userId: testUser[0].id });
+            res.status(200).json({
+              success: true,
+              message: 'Test user logged in',
+              user: {
+                id: testUser[0].id,
+                username: testUser[0].username,
+                email: testUser[0].email
+              }
+            });
+          });
+        }
+      } catch (error) {
+        routesLogger.error('Error in quick login', { error });
+        res.status(500).json({
+          success: false,
+          message: 'Error in quick login',
+          error: error.message
+        });
+      }
+    });
+  }
   
   // Try to start the microservice at server initialization
   try {

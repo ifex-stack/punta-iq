@@ -179,9 +179,128 @@ export default function QuickLoginPage() {
     }
   };
   
-  // Auto-login once when the page loads
+  // Function to call the direct test user API
+  const createTestUser = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      setStatusMessage("Creating/resetting test user...");
+      
+      console.log('Attempting to create/reset test user');
+      
+      const res = await fetch('/api/create-test-user', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      console.log('Create test user response status:', res.status);
+      
+      let data;
+      try {
+        data = await res.json();
+        console.log('Create test user response data:', data);
+        setResponse(data);
+      } catch (e) {
+        console.error('Error parsing JSON response:', e);
+        const textContent = await res.text();
+        console.log('Response as text:', textContent);
+        data = { error: 'Invalid response format', textContent }; 
+      }
+      
+      if (res.ok) {
+        setStatusMessage("Test user created/reset successfully!");
+        toast({
+          title: "Test user ready",
+          description: "Test user has been created or reset. Now try to login."
+        });
+      } else {
+        setStatusMessage("Failed to create/reset test user");
+        toast({
+          title: "User creation failed",
+          description: data.message || 'Could not create test user',
+          variant: "destructive",
+        });
+        setError(data.message || 'Failed to create test user');
+      }
+    } catch (err) {
+      console.error('Create test user error:', err);
+      setStatusMessage("Create test user error (see console)");
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Function to use the direct quick login API
+  const quickLogin = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      setStatusMessage("Using quick login API...");
+      
+      console.log('Attempting quick login API');
+      
+      const res = await fetch('/api/quick-login', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      console.log('Quick login response status:', res.status);
+      
+      let data;
+      try {
+        data = await res.json();
+        console.log('Quick login response data:', data);
+        setResponse(data);
+      } catch (e) {
+        console.error('Error parsing JSON response:', e);
+        const textContent = await res.text();
+        console.log('Response as text:', textContent);
+        data = { error: 'Invalid response format', textContent }; 
+      }
+      
+      if (res.ok) {
+        setStatusMessage("Quick login successful!");
+        toast({
+          title: "Quick login successful!",
+          description: "You are now logged in as " + data.user.username,
+        });
+        
+        // Redirect to the predictions page after 2 seconds
+        setTimeout(() => {
+          setLocation('/predictions');
+        }, 2000);
+      } else {
+        setStatusMessage("Quick login failed");
+        toast({
+          title: "Quick login failed",
+          description: data.message || 'Could not login',
+          variant: "destructive",
+        });
+        setError(data.message || 'Quick login failed');
+      }
+    } catch (err) {
+      console.error('Quick login error:', err);
+      setStatusMessage("Quick login error (see console)");
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Try direct test user API on load
   useEffect(() => {
-    handleLogin();
+    quickLogin();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -197,37 +316,73 @@ export default function QuickLoginPage() {
             <p className="text-sm">{statusMessage}</p>
           </div>
           
-          <div className="flex space-x-2">
-            <Button 
-              onClick={handleLogin} 
-              className="flex-1" 
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Logging in...
-                </>
-              ) : (
-                'Login Again'
-              )}
-            </Button>
+          <div className="space-y-2">
+            <div className="flex space-x-2">
+              <Button 
+                onClick={createTestUser} 
+                className="flex-1" 
+                disabled={loading}
+                variant="secondary"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create/Reset Test User'
+                )}
+              </Button>
+              
+              <Button 
+                onClick={quickLogin} 
+                className="flex-1" 
+                disabled={loading}
+                variant="default"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Quick Login...
+                  </>
+                ) : (
+                  'Direct Quick Login'
+                )}
+              </Button>
+            </div>
             
-            <Button 
-              onClick={handleRegister} 
-              className="flex-1" 
-              disabled={loading}
-              variant="outline"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Registering...
-                </>
-              ) : (
-                'Register Again'
-              )}
-            </Button>
+            <div className="flex space-x-2">
+              <Button 
+                onClick={handleLogin} 
+                className="flex-1" 
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Logging in...
+                  </>
+                ) : (
+                  'Standard Login'
+                )}
+              </Button>
+              
+              <Button 
+                onClick={handleRegister} 
+                className="flex-1" 
+                disabled={loading}
+                variant="outline"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Registering...
+                  </>
+                ) : (
+                  'Standard Register'
+                )}
+              </Button>
+            </div>
           </div>
           
           {error && (
