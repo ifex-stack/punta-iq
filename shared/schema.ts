@@ -90,7 +90,23 @@ export const users = pgTable("users", {
     experienceLevel: null, // 'beginner', 'intermediate', 'expert'
     onboardingCompleted: false,
     lastStep: 0,
-    completedSteps: []
+    completedSteps: [],
+    // Timezone preferences for smart content scheduling
+    timezone: null, // User's timezone (e.g., 'Europe/London', 'America/New_York')
+    autoDetectTimezone: true, // Whether to auto-detect timezone
+    preferredContentDeliveryTimes: {
+      predictions: '08:00', // Time when user prefers to receive prediction notifications
+      results: '22:00', // Time when user prefers to receive result notifications
+      news: '12:00', // Time when user prefers to receive news notifications
+      promotions: '18:00' // Time when user prefers to receive promotional notifications
+    },
+    schedulingPreferences: {
+      weekdays: true, // Whether to schedule content on weekdays
+      weekends: true, // Whether to schedule content on weekends
+      respectQuietHours: true, // Whether to respect quiet hours
+      quietHoursStart: '23:00', // Start of quiet hours
+      quietHoursEnd: '07:00' // End of quiet hours
+    }
   }),
   onboardingStatus: onboardingStatusEnum("onboarding_status").default('not_started'),
   lastOnboardingStep: integer("last_onboarding_step").default(0),
@@ -733,6 +749,14 @@ export const notifications = pgTable("notifications", {
   timestamp: timestamp("timestamp").defaultNow().notNull(),
   expiresAt: timestamp("expires_at"),
   data: json("data"), // Additional JSON data specific to the notification type
+  
+  // Smart scheduling fields
+  scheduledFor: timestamp("scheduled_for"), // When the notification is scheduled to be delivered
+  isDelivered: boolean("is_delivered").default(false), // Whether the notification has been delivered
+  deliveredAt: timestamp("delivered_at"), // When the notification was actually delivered
+  priority: integer("priority").default(1), // Priority level (1-5, with 5 being highest)
+  channel: text("channel").default("in-app"), // Delivery channel: 'in-app', 'push', 'email', 'sms'
+  timezoneOffset: integer("timezone_offset"), // User's timezone offset in minutes when scheduled
 });
 
 // Notifications relations
@@ -752,6 +776,13 @@ export const insertNotificationSchema = createInsertSchema(notifications).pick({
   icon: true,
   expiresAt: true,
   data: true,
+  // Smart scheduling fields
+  scheduledFor: true,
+  isDelivered: true,
+  deliveredAt: true,
+  priority: true,
+  channel: true,
+  timezoneOffset: true,
 });
 
 // Push tokens table for mobile and web push notifications
