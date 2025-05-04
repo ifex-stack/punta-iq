@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "./db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { storage } from "./storage";
 
 export const userPreferencesRouter = Router();
 
@@ -51,30 +52,40 @@ userPreferencesRouter.post("/api/user/preferences", async (req, res) => {
   
   try {
     const preferenceData = req.body;
+    const userId = req.user!.id;
     
     // Check if onboarding is completed in this update
     const onboardingCompleted = preferenceData.onboardingCompleted === true;
+    const lastStep = preferenceData.lastStep || 0;
     
-    // Update user record with new preferences
-    const [updatedUser] = await db
-      .update(users)
-      .set({
-        userPreferences: preferenceData,
-        onboardingStatus: onboardingCompleted ? 'completed' : 'in_progress',
-        lastOnboardingStep: preferenceData.lastStep || 0,
+    // Update preferences using the fixed storage method
+    const updatedUser = await storage.updateUserPreferences(userId, preferenceData);
+    
+    // If onboarding info is included, update it separately
+    if (preferenceData.onboardingCompleted !== undefined || preferenceData.lastStep !== undefined) {
+      const status = onboardingCompleted ? 'completed' : 'in_progress';
+      await storage.updateUserOnboardingStatus(userId, status, lastStep);
+    }
+    
+    // Get updated user to return complete status
+    const [user] = await db
+      .select({
+        userPreferences: users.userPreferences,
+        onboardingStatus: users.onboardingStatus,
+        lastOnboardingStep: users.lastOnboardingStep,
       })
-      .where(eq(users.id, req.user!.id))
-      .returning();
+      .from(users)
+      .where(eq(users.id, userId));
     
-    if (!updatedUser) {
+    if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
     
     // Return the updated preferences
-    const preferences = updatedUser.userPreferences as Record<string, any>;
+    const preferences = user.userPreferences as Record<string, any>;
     const onboardingInfo = {
-      onboardingStatus: updatedUser.onboardingStatus,
-      lastOnboardingStep: updatedUser.lastOnboardingStep,
+      onboardingStatus: user.onboardingStatus,
+      lastOnboardingStep: user.lastOnboardingStep,
     };
     
     res.json({
@@ -83,7 +94,10 @@ userPreferencesRouter.post("/api/user/preferences", async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating user preferences:", error);
-    res.status(500).json({ message: "Failed to update user preferences" });
+    res.status(500).json({ 
+      message: "Failed to save user preferences",
+      code: "PREFERENCES_UPDATE_ERROR"
+    });
   }
 });
 
@@ -94,6 +108,7 @@ userPreferencesRouter.post("/api/user/preferences/reset", async (req, res) => {
   }
   
   try {
+    const userId = req.user!.id;
     const defaultPreferences = {
       favoriteSports: [],
       favoriteLeagues: [],
@@ -108,20 +123,13 @@ userPreferencesRouter.post("/api/user/preferences/reset", async (req, res) => {
       completedSteps: []
     };
     
-    const [updatedUser] = await db
-      .update(users)
-      .set({
-        userPreferences: defaultPreferences,
-        onboardingStatus: 'not_started',
-        lastOnboardingStep: 0,
-      })
-      .where(eq(users.id, req.user!.id))
-      .returning();
+    // Update preferences using the fixed storage method
+    await storage.updateUserPreferences(userId, defaultPreferences);
     
-    if (!updatedUser) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    // Update onboarding status separately
+    await storage.updateUserOnboardingStatus(userId, 'not_started', 0);
     
+    // Return the reset preferences and status
     res.json({
       ...defaultPreferences,
       onboardingStatus: 'not_started',
@@ -129,6 +137,9 @@ userPreferencesRouter.post("/api/user/preferences/reset", async (req, res) => {
     });
   } catch (error) {
     console.error("Error resetting user preferences:", error);
-    res.status(500).json({ message: "Failed to reset user preferences" });
+    res.status(500).json({ 
+      message: "Failed to reset user preferences",
+      code: "PREFERENCES_RESET_ERROR"
+    });
   }
 });

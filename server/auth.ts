@@ -510,47 +510,10 @@ export function setupAuth(app: Express) {
     }
   });
   
-  app.post("/api/user/preferences", async (req, res) => {
-    // Enhanced authentication check
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({
-        error: 'Unauthorized',
-        message: 'You must be logged in to update your preferences',
-        code: 'NOT_AUTHENTICATED'
-      });
-    }
-    
-    try {
-      // Validate that preferences is an object
-      if (!req.body || typeof req.body !== 'object') {
-        return res.status(400).json({
-          error: 'Bad Request',
-          message: 'Invalid preferences format',
-          code: 'INVALID_PREFERENCES'
-        });
-      }
-      
-      const preferences = req.body;
-      const userId = req.user.id;
-      
-      // Save the preferences
-      const updatedUser = await storage.updateUserPreferences(userId, preferences);
-      
-      // Update onboarding status if included
-      if (preferences.onboardingCompleted !== undefined || preferences.lastStep !== undefined) {
-        const status = preferences.onboardingCompleted ? 'completed' : 'in_progress';
-        const lastStep = preferences.lastStep || 0;
-        await storage.updateUserOnboardingStatus(userId, status, lastStep);
-      }
-      
-      res.json(updatedUser.userPreferences || {});
-    } catch (error) {
-      console.error('Error saving user preferences:', error);
-      res.status(500).json({
-        error: 'Server Error',
-        message: 'Failed to save user preferences',
-        code: 'PREFERENCES_UPDATE_ERROR'
-      });
-    }
+  // Note: This endpoint is now managed by userPreferencesRouter
+  // This implementation is kept for backward compatibility only
+  app.post("/api/user/preferences", async (req, res, next) => {
+    // Allow the request to be handled by userPreferencesRouter
+    next();
   });
 }
