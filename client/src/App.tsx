@@ -98,7 +98,7 @@ const Router: React.FC = () => {
       <div className="flex-1 relative">
         <AppLayout>
           <Switch>
-            <ProtectedRoute path="/" component={isMobile ? MobileHomePage : NewPredictionsAndStatsPage} />
+            <ProtectedRoute path="/" component={NewPredictionsAndStatsPage} />
             <ProtectedRoute path="/predictions" component={NewPredictionsAndStatsPage} />
             <ProtectedRoute path="/stats" component={NewPredictionsAndStatsPage} />
             <ProtectedRoute path="/predictions/advanced" component={AdvancedPredictionsPage} />
@@ -128,6 +128,7 @@ const Router: React.FC = () => {
             <Route path="/legal/terms-of-service" component={TermsOfServicePage} />
             <Route path="/legal/responsible-gambling" component={ResponsibleGamblingPage} />
             <Route path="/ui-showcase" component={UIShowcase} />
+            <Route path="/mobile" component={MobileHomePage} />
             <Route component={NotFound} />
           </Switch>
         </AppLayout>
