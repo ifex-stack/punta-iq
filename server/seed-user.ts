@@ -59,7 +59,7 @@ export async function seedTestUser() {
           username: 'beta_tester',
           email: 'beta@puntaiq.com',
           password: hashedPassword,
-          role: 'admin',
+          // Remove role field as it's causing issues
           isActive: true,
           isEmailVerified: true,
           referralCode: 'BETATEST',
@@ -80,7 +80,7 @@ export async function seedTestUser() {
           username: 'beta_tester',
           email: 'beta@puntaiq.com',
           password: hashedPassword,
-          role: 'admin',
+          // Remove role field as it's causing issues
           isActive: true,
           isEmailVerified: true,
           referralCode: 'BETATEST'
@@ -102,7 +102,7 @@ export async function seedTestUser() {
             email: 'beta@puntaiq.com',
             password: await hashPassword('puntaiq_beta_test'),
             createdAt: new Date(),
-            role: 'admin',
+            // Remove role field as it's causing issues
             isActive: true,
             isEmailVerified: true,
             referralCode: 'BETATEST',
