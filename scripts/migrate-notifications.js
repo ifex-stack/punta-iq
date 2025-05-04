@@ -1,23 +1,7 @@
 /**
- * Update notifications table to add required columns for timezone-based scheduling
+ * Migrate notifications table - Add timezone-based scheduling columns 
  */
-import pg from 'pg';
-import dotenv from 'dotenv';
-
-const { Pool } = pg;
-
-// Load environment variables
-dotenv.config();
-
-if (!process.env.DATABASE_URL) {
-  console.error('DATABASE_URL environment variable is not set');
-  process.exit(1);
-}
-
-// Create a new database connection
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+import { pool } from '../server/db.js';
 
 async function addColumnsToNotificationsTable() {
   const client = await pool.connect();
