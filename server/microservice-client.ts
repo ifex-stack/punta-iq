@@ -115,13 +115,18 @@ export class MicroserviceClient {
   // Circuit breaker configuration
   private circuitState: CircuitState = CircuitState.CLOSED;
   private failureCount: number = 0;
-  private readonly failureThreshold: number = 5;
-  private readonly resetTimeout: number = 30000; // 30 seconds
+  private readonly failureThreshold: number = 3; // Lowered from 5 to 3 for faster response
+  private readonly resetTimeout: number = 15000; // 15 seconds (reduced from 30s)
   private nextRetryTime: number = 0;
+  private retryCount: number = 0;
+  private maxRetries: number = 3;
   
   // Cache configuration
   private cache: Map<string, {data: any, timestamp: number}> = new Map();
   private readonly cacheTimeout: number = 60000; // 1 minute
+  
+  // Connection settings
+  private connectionTimeoutMs: number = 5000; // 5 seconds
 
   constructor() {
     this.baseUrl = process.env.AI_SERVICE_URL || "http://localhost:5000";
@@ -384,7 +389,7 @@ export class MicroserviceClient {
   }
   
   /**
-   * Core request method with circuit breaker and caching
+   * Core request method with circuit breaker, retry logic, and caching
    */
   private async makeRequest<T>({
     method = 'get',
@@ -393,7 +398,8 @@ export class MicroserviceClient {
     timeout = 10000,
     cacheKey = '',
     cacheTTL = 0,
-    bypassCircuitBreaker = false
+    bypassCircuitBreaker = false,
+    retryAttempts = 0
   }: {
     method?: string;
     url: string;
@@ -402,6 +408,7 @@ export class MicroserviceClient {
     cacheKey?: string;
     cacheTTL?: number;
     bypassCircuitBreaker?: boolean;
+    retryAttempts?: number;
   }): Promise<T> {
     // Check circuit breaker unless bypassed
     if (!bypassCircuitBreaker) {
@@ -430,23 +437,40 @@ export class MicroserviceClient {
       // Build full URL with base
       const fullUrl = `${this.baseUrl}${url}`;
       
-      // Make the actual request
+      // Make the actual request with optimized timeout
       const response = await axios({
         method,
         url: fullUrl,
         data,
-        timeout
+        timeout: timeout || this.connectionTimeoutMs,
+        headers: {
+          'Connection': 'keep-alive',
+          'Keep-Alive': 'timeout=5, max=1000',
+          'Cache-Control': 'no-cache'
+        },
+        maxRedirects: 3,
+        validateStatus: (status) => status < 500 // Only treat 5xx as errors
       });
+      
+      // Handle non-200 responses but not 5xx
+      if (response.status !== 200) {
+        this.logger.warn(`Non-200 response (${response.status}) for ${url}: ${JSON.stringify(response.data)}`);
+        if (response.status === 429) {
+          // Rate limit - cache and return stale data if available
+          return this.getFromCacheOrFail<T>(cacheKey, `API rate limit exceeded. Please try again later.`);
+        }
+      }
       
       // If we're in HALF_OPEN and the request succeeded, close the circuit
       if (this.circuitState === CircuitState.HALF_OPEN) {
         this.logger.info(`Circuit test successful, closing circuit`);
         this.circuitState = CircuitState.CLOSED;
         this.failureCount = 0;
+        this.retryCount = 0;
       }
       
-      // Cache the result if caching is enabled
-      if (cacheKey && cacheTTL > 0) {
+      // Cache the result if caching is enabled - even cache HTTP 400s when appropriate
+      if (cacheKey && cacheTTL > 0 && response.data) {
         this.cache.set(cacheKey, {
           data: response.data,
           timestamp: Date.now()
@@ -455,6 +479,28 @@ export class MicroserviceClient {
       
       return response.data;
     } catch (error) {
+      // Check if we should retry
+      if (retryAttempts < this.maxRetries) {
+        const delay = Math.pow(2, retryAttempts) * 500; // Exponential backoff
+        this.logger.info(`Retry attempt ${retryAttempts + 1}/${this.maxRetries} for ${url} after ${delay}ms delay`);
+        
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        // Recursive retry with incremented attempt count
+        return this.makeRequest<T>({
+          method,
+          url,
+          data,
+          timeout: timeout * 1.5, // Increase timeout for retries
+          cacheKey,
+          cacheTTL,
+          bypassCircuitBreaker,
+          retryAttempts: retryAttempts + 1
+        });
+      }
+      
+      // If we've exhausted retries, proceed with error handling
       this.handleRequestError(error as Error, url);
       
       // Try to return from cache if available, otherwise throw
