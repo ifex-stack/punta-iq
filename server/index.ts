@@ -19,10 +19,6 @@ import cors from 'cors';
 
 const app = express();
 
-// Set up AI service proxy middleware first before any other middleware
-// This ensures requests to /ai-service/* are correctly forwarded
-app.use('/ai-service', aiProxyMiddleware);
-
 // Standard Express middleware setup
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -34,6 +30,10 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
+
+// Set up AI service proxy middleware ONLY for specific AI service paths
+// This ensures ONLY requests to /ai-service/* are forwarded to the microservice
+app.use('/ai-service', aiProxyMiddleware);
 
 // Create a logger specific to HTTP requests
 const httpLogger = createContextLogger('HTTP');

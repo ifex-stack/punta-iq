@@ -47,6 +47,12 @@ async function getAIServiceUrl(path: string): Promise<string> {
  * Middleware function to proxy requests to the AI microservice
  */
 export function aiProxyMiddleware(req: Request, res: Response, next: NextFunction) {
+  // Only handle /ai-service paths, let other paths fall through to next middleware
+  if (!req.originalUrl.startsWith('/ai-service')) {
+    logger.warn(`Non AI service path received in AI proxy middleware: ${req.originalUrl}`);
+    return next();
+  }
+  
   const path = req.originalUrl.replace(/^\/ai-service/, "");
   
   // Get the target URL dynamically

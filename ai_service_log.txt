@@ -2117,3 +2117,6 @@ Error: AI Service failed to start properly: exit code 1
 [STDOUT] [2025-05-04 08:01:45,777] [INFO] 172.31.128.55 - - [04/May/2025 08:01:45] "[33mGET /routing-test HTTP/1.1[0m" 404 -
 [STDOUT] [2025-05-04 08:01:45,835] [INFO] 172.31.128.55 - - [04/May/2025 08:01:45] "[33mGET /routing-test HTTP/1.1[0m" 404 -
 [STDOUT] [2025-05-04 08:01:46,460] [INFO] 172.31.128.55 - - [04/May/2025 08:01:46] "[33mGET /routing-test HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-04 08:02:38,277] [INFO] 127.0.0.1 - - [04/May/2025 08:02:38] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 08:03:38,278] [INFO] 127.0.0.1 - - [04/May/2025 08:03:38] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 08:04:38,278] [INFO] 127.0.0.1 - - [04/May/2025 08:04:38] "GET /api/status HTTP/1.1" 200 -
