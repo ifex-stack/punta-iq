@@ -110,6 +110,7 @@ const Router: React.FC = () => {
             <ProtectedRoute path="/admin" component={AdminPage} />
             <ProtectedRoute path="/analytics-dashboard" component={AnalyticsDashboardPage} />
             <ProtectedRoute path="/user-demographics" component={UserDemographicsPage} />
+            <ProtectedRoute path="/historical-dashboard" component={HistoricalDashboard} />
             <Route path="/livescore" component={LiveScorePage} />
             <Route path="/ai-service-status" component={AIServiceStatusPage} />
             <Route path="/faq" component={FAQPage} />
