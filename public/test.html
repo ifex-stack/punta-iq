@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PuntaIQ Test Page</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #f5f5f9;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 2rem;
+      text-align: center;
+    }
+    h1 {
+      color: #4f46e5;
+      margin-top: 0;
+    }
+    .status {
+      margin: 20px 0;
+      padding: 15px;
+      background: #f0f5ff;
+      border-radius: 4px;
+      text-align: left;
+    }
+    .status div {
+      margin: 5px 0;
+    }
+    .button {
+      display: inline-block;
+      background: #4f46e5;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 4px;
+      text-decoration: none;
+      margin-top: 20px;
+      transition: background 0.2s;
+    }
+    .button:hover {
+      background: #3730a3;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>PuntaIQ Test Page</h1>
+    <p>This is a basic test page to verify that the server can serve static HTML files.</p>
+    
+    <div class="status">
+      <div><strong>Current Path:</strong> <span id="path"></span></div>
+      <div><strong>Current Port:</strong> <span id="port"></span></div>
+      <div><strong>Browser URL:</strong> <span id="url"></span></div>
+      <div><strong>Server Time:</strong> <span id="time"></span></div>
+    </div>
+    
+    <a href="/" class="button">Go to Home Page</a>
+  </div>
+
+  <script>
+    // Update display with current information
+    document.getElementById('path').textContent = window.location.pathname;
+    document.getElementById('port').textContent = window.location.port || '(default)';
+    document.getElementById('url').textContent = window.location.href;
+    document.getElementById('time').textContent = new Date().toLocaleString();
+    
+    // Log diagnostic info
+    console.log('Test page loaded successfully');
+    console.log('Current URL:', window.location.href);
+    console.log('Current pathname:', window.location.pathname);
+    console.log('Current port:', window.location.port || '(default)');
+  </script>
+</body>
+</html>

@@ -36,15 +36,23 @@ import debugRoutes from './debug-routes';
 app.use('/api/debug', debugRoutes);
 
 // Important app routes handler
-const handleAppRoute = (req, res, title) => {
-  // Try to serve index.html from public directory first
+const handleAppRoute = (req: Request, res: Response, title: string) => {
+  // First check for client/index.html which is the source for Vite
+  const clientIndexPath = path.resolve(process.cwd(), 'client', 'index.html');
+  if (fs.existsSync(clientIndexPath)) {
+    logger.info(`Serving client/index.html for ${req.path}`);
+    return res.sendFile(clientIndexPath);
+  }
+  
+  // Then try to serve index.html from public directory
   const indexPath = path.resolve(process.cwd(), 'public', 'index.html');
   if (fs.existsSync(indexPath)) {
-    console.log(`Serving index.html directly from public directory for ${req.path}`);
+    logger.info(`Serving index.html directly from public directory for ${req.path}`);
     return res.sendFile(indexPath);
   }
+  
   // If no index.html, send a basic HTML response
-  console.log(`No index.html found, serving inline HTML for ${req.path}`);
+  logger.warn(`No index.html found, serving inline HTML for ${req.path}`);
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
@@ -350,7 +358,7 @@ app.use((req, res, next) => {
   // First set up our API routes 
   logger.info("API routes already registered");
   
-  if (app.get("env") === "development") {
+  if (app.get("env") === "development" || process.env.NODE_ENV === "development") {
     // In development, use Vite middleware for hot module reloading
     logger.info("Setting up Vite middleware for development");
     try {
