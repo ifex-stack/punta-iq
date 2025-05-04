@@ -180,8 +180,8 @@ export function PersonalizedOnboarding({ open, onOpenChange }: PersonalizedOnboa
       console.log("Saving user preferences:", completeData);
       
       try {
-        // Set a loading state toast
-        const loadingToast = toast({
+        // Show a loading toast without attempting to dismiss it later
+        toast({
           title: "Saving preferences...",
           description: "Please wait while we save your settings",
         });
@@ -189,9 +189,6 @@ export function PersonalizedOnboarding({ open, onOpenChange }: PersonalizedOnboa
         // Make the API request with better error handling
         const response = await apiRequest("POST", "/api/user/preferences", completeData);
         const responseData = await response.json().catch(() => ({}));
-        
-        // Remove the loading toast
-        toast.dismiss(loadingToast);
         
         if (response.ok) {
           toast({
