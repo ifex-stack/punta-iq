@@ -1,5 +1,5 @@
 import { Route, Switch, useLocation } from "wouter";
-import React, { useEffect, Suspense } from "react";
+import { useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -9,11 +9,6 @@ import { NotificationsProvider } from "@/hooks/use-notifications";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import HomePage from "@/pages/home-page";
-import MobileHomePage from "@/pages/mobile-home-page"; // Import the mobile home page
-import DebugAuthPage from "@/pages/debug-auth"; // Import the debug auth page
-import TestLoginPage from "@/pages/test-login"; // Import the test login page
-import SimpleLoginPage from "@/pages/simple-login"; // Import the simple login page
-import QuickLoginPage from "@/pages/quick-login"; // Import the quick login page
 import SubscriptionPage from "@/pages/subscription-page";
 import SubscriptionSuccessPage from "@/pages/subscription-success";
 import ProfilePage from "@/pages/profile-page";
@@ -46,7 +41,6 @@ import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from 'next-themes';
 import { setNavigationState } from "./lib/error-handler";
 import { CurrencyProvider } from "./hooks/use-currency";
-import { useMobileDetection } from "@/hooks/use-mobile-detection"; // Import mobile detection hook
 
 // New components
 import { OnboardingProvider, OnboardingReminderButton } from "@/components/onboarding/onboarding-provider";
@@ -62,9 +56,6 @@ import AppLayout from "@/components/layout/app-layout";
 
 // Create typed component definition to fix TypeScript errors
 const Router: React.FC = () => {
-  // Use mobile detection hook
-  const isMobile = useMobileDetection();
-  
   // Track location changes to know when we're navigating
   const [location] = useLocation();
   
@@ -91,11 +82,6 @@ const Router: React.FC = () => {
       </div>
     );
   }
-  
-  // Comment out the mobile-specific logic until we fix the authentication issues
-  // if (isMobile && location === '/') {
-  //   return <MobileHomePage />;
-  // }
   
   return (
     <div className="flex h-screen">
@@ -132,11 +118,6 @@ const Router: React.FC = () => {
             <Route path="/legal/terms-of-service" component={TermsOfServicePage} />
             <Route path="/legal/responsible-gambling" component={ResponsibleGamblingPage} />
             <Route path="/ui-showcase" component={UIShowcase} />
-            <Route path="/mobile" component={MobileHomePage} />
-            <Route path="/debug-auth" component={DebugAuthPage} />
-            <Route path="/test-login" component={TestLoginPage} />
-            <Route path="/simple-login" component={SimpleLoginPage} />
-            <Route path="/quick-login" component={QuickLoginPage} />
             <Route component={NotFound} />
           </Switch>
         </AppLayout>

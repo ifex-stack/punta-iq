@@ -5,21 +5,13 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { users, User } from "@shared/schema";
-import { createContextLogger } from "./logger";
+import { User as SelectUser, insertUserSchema } from "@shared/schema";
+import { z } from "zod";
+import createMemoryStore from "memorystore";
 
-const logger = createContextLogger("Auth");
-
-// Define the User type for Express sessions
 declare global {
   namespace Express {
-    // This is to add typing to req.user
-    interface User {
-      id: number;
-      username: string;
-      email: string;
-      // Add other properties as needed
-    }
+    interface User extends SelectUser {}
   }
 }
 
@@ -39,21 +31,22 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
-  logger.info("Setting up authentication...");
-  
   if (!process.env.SESSION_SECRET) {
-    logger.error("SESSION_SECRET environment variable is not set!");
     throw new Error("SESSION_SECRET environment variable is required");
   }
+  
+  // Create in-memory session store
+  const MemoryStore = createMemoryStore(session);
   
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    store: storage.sessionStore,
+    store: new MemoryStore({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    }),
     cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     }
   };
 
@@ -65,206 +58,462 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
-        logger.debug(`Attempting login for user: ${username}`);
-        const user = await storage.getUserByUsername(username);
-        
-        if (!user) {
-          logger.debug(`Login failed: User not found: ${username}`);
-          return done(null, false, { message: "Incorrect username or password" });
+        // Debug account for beta testing
+        // This allows testers to log in with a consistent account
+        if (process.env.NODE_ENV === 'development' && username === 'beta_tester') {
+          if (password === 'puntaiq_beta_test') {
+            // Create a complete debug user object with all required fields from the schema
+            const debugUser: SelectUser = {
+              id: 9999,
+              username: 'beta_tester',
+              email: 'beta@puntaiq.com',
+              password: 'hashed_password_placeholder',
+              createdAt: new Date(),
+              deviceImei: null,
+              phoneNumber: null,
+              isTwoFactorEnabled: false,
+              twoFactorSecret: null,
+              referralCode: 'BETATEST',
+              role: 'admin',
+              lastLoginAt: new Date(),
+              isActive: true,
+              isEmailVerified: true,
+              emailVerificationToken: null,
+              passwordResetToken: null,
+              passwordResetExpires: null,
+              notificationToken: null,
+              referredBy: null,
+              stripeCustomerId: null,
+              stripeSubscriptionId: null,
+              subscriptionTier: 'pro',
+              // Gamification properties
+              fantasyPoints: 1500,
+              totalContestsWon: 12,
+              totalContestsEntered: 25,
+              referralStreak: 3,
+              lastReferralDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+              // Additional properties 
+              userPreferences: {
+                favoriteSports: [1, 3, 5],
+                favoriteLeagues: [39, 40, 61],
+                preferredTimeZone: 'UTC',
+                theme: 'dark',
+                language: 'en',
+                currency: 'USD',
+                bettingFrequency: 'weekly',
+                predictionTypes: ['singles', 'accumulators'],
+                riskTolerance: 'medium',
+                preferredOddsFormat: 'decimal',
+                predictionsPerDay: 5,
+                experienceLevel: 'intermediate',
+                onboardingCompleted: true
+              },
+              notificationSettings: {
+                general: {
+                  predictions: true,
+                  results: true,
+                  promotions: true,
+                },
+                sports: {
+                  football: true,
+                  basketball: true,
+                  tennis: true,
+                  baseball: true,
+                  hockey: true,
+                  cricket: false,
+                  formula1: false,
+                  mma: true,
+                  volleyball: false,
+                  other: false
+                },
+                metrics: {
+                  notificationCount: 24,
+                  lastNotificationSent: new Date(),
+                  clickThroughRate: 0.65,
+                  viewCount: 42,
+                  clickCount: 27,
+                  dismissCount: 5
+                }
+              },
+              onboardingStatus: 'completed',
+              lastOnboardingStep: 5
+            };
+            return done(null, debugUser);
+          }
         }
         
-        const passwordMatches = await comparePasswords(password, user.password);
+        // Regular authentication logic
+        const isEmail = username.includes('@');
+        const user = isEmail 
+          ? await storage.getUserByEmail(username)
+          : await storage.getUserByUsername(username);
         
-        if (!passwordMatches) {
-          logger.debug(`Login failed: Password mismatch for user: ${username}`);
-          return done(null, false, { message: "Incorrect username or password" });
+        if (!user || !(await comparePasswords(password, user.password))) {
+          return done(null, false);
+        } else {
+          return done(null, user);
         }
-        
-        logger.info(`User authenticated successfully: ${username}`, { userId: user.id });
-        return done(null, user);
       } catch (error) {
-        logger.error(`Login error for user ${username}:`, { error });
+        console.error('Authentication error:', error);
         return done(error);
       }
     }),
   );
 
-  passport.serializeUser((user, done) => {
-    logger.debug(`Serializing user: ${user.username}`, { userId: user.id });
-    done(null, user.id);
-  });
-  
+  passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
     try {
-      logger.debug(`Deserializing user ID: ${id}`);
+      // Handle debug user for beta testing
+      if (id === 9999) {
+        // Create a complete debug user object with all required fields from the schema
+        const debugUser: SelectUser = {
+          id: 9999,
+          username: 'beta_tester',
+          email: 'beta@puntaiq.com',
+          password: 'hashed_password_placeholder',
+          createdAt: new Date(),
+          deviceImei: null,
+          phoneNumber: null,
+          isTwoFactorEnabled: false,
+          twoFactorSecret: null,
+          referralCode: 'BETATEST',
+          role: 'admin',
+          lastLoginAt: new Date(),
+          isActive: true,
+          isEmailVerified: true,
+          emailVerificationToken: null,
+          passwordResetToken: null,
+          passwordResetExpires: null,
+          notificationToken: null,
+          referredBy: null,
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+          subscriptionTier: 'pro',
+          // Gamification properties
+          fantasyPoints: 1500,
+          totalContestsWon: 12,
+          totalContestsEntered: 25,
+          referralStreak: 3,
+          lastReferralDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+          // Additional properties 
+
+          userPreferences: {
+            favoriteSports: [1, 3, 5],
+            favoriteLeagues: [39, 40, 61],
+            preferredTimeZone: 'UTC',
+            theme: 'dark',
+            language: 'en',
+            currency: 'USD',
+            bettingFrequency: 'weekly',
+            predictionTypes: ['singles', 'accumulators'],
+            riskTolerance: 'medium',
+            preferredOddsFormat: 'decimal',
+            predictionsPerDay: 5,
+            experienceLevel: 'intermediate',
+            onboardingCompleted: true
+          },
+          notificationSettings: {
+            general: {
+              predictions: true,
+              results: true,
+              promotions: true,
+            },
+            sports: {
+              football: true,
+              basketball: true,
+              tennis: true,
+              baseball: true,
+              hockey: true,
+              cricket: false,
+              formula1: false,
+              mma: true,
+              volleyball: false,
+              other: false
+            },
+            metrics: {
+              notificationCount: 24,
+              lastNotificationSent: new Date(),
+              clickThroughRate: 0.65,
+              viewCount: 42,
+              clickCount: 27,
+              dismissCount: 5
+            }
+          },
+          onboardingStatus: 'completed',
+          lastOnboardingStep: 5
+        };
+        return done(null, debugUser);
+      }
+      
+      // Normal user lookup from storage
       const user = await storage.getUser(id);
       if (!user) {
-        logger.warn(`User not found during deserialization: ${id}`);
-        return done(null, false);
+        // User not found, but don't throw an error
+        // This prevents the app from crashing when sessions reference users
+        // that no longer exist or when storage is in memory mode
+        return done(null, null);
       }
       done(null, user);
     } catch (error) {
-      logger.error(`Error deserializing user: ${id}`, { error });
-      done(error, null);
+      console.error('Error deserializing user:', error);
+      done(error);
     }
+  });
+
+  // Registration schema with additional validation
+  const registerSchema = insertUserSchema.extend({
+    email: z.string().email("Invalid email format"),
+    username: z.string().min(3, "Username must be at least 3 characters"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
   });
 
   app.post("/api/register", async (req, res, next) => {
     try {
-      logger.info(`Registration attempt for username: ${req.body.username}`);
-      
-      // Validate input
-      if (!req.body.username || !req.body.password || !req.body.email) {
-        logger.warn("Registration failed: Missing required fields");
-        return res.status(400).json({ message: "Username, password, and email are required" });
-      }
+      // Validate request body
+      const validatedData = registerSchema.parse(req.body);
       
       // Check if user already exists
-      const existingUser = await storage.getUserByUsername(req.body.username);
-      if (existingUser) {
-        logger.warn(`Registration failed: Username already exists: ${req.body.username}`);
-        return res.status(400).json({ message: "Username already exists" });
+      const existingUsername = await storage.getUserByUsername(validatedData.username);
+      if (existingUsername) {
+        return res.status(400).json({
+          error: 'Registration Failed',
+          message: "Username already exists",
+          code: 'USERNAME_EXISTS'
+        });
       }
       
-      // Hash password
-      const hashedPassword = await hashPassword(req.body.password);
-      
-      // Create user
-      // Only pass required and valid fields to createUser to avoid schema mismatches
+      const existingEmail = await storage.getUserByEmail(validatedData.email);
+      if (existingEmail) {
+        return res.status(400).json({
+          error: 'Registration Failed',
+          message: "Email already exists",
+          code: 'EMAIL_EXISTS'
+        });
+      }
+
+      // Create user with hashed password
       const user = await storage.createUser({
-        username: req.body.username,
-        email: req.body.email,
-        password: hashedPassword,
-        role: req.body.role || 'user',
-        isActive: true,
-        isEmailVerified: req.body.isEmailVerified || false,
-        // Only add referralCode if provided
-        ...(req.body.referralCode ? { referralCode: req.body.referralCode } : {}),
-        // Only add referredBy if provided
-        ...(req.body.referredBy ? { referredBy: req.body.referredBy } : {})
+        ...validatedData,
+        password: await hashPassword(validatedData.password),
       });
-      
-      logger.info(`User registered successfully: ${user.username}`, { userId: user.id });
-      
-      // Log in the new user
+
+      // Create welcome notification for the new user
+      try {
+        await storage.createNotification({
+          userId: user.id,
+          title: "Welcome to PuntaIQ!",
+          message: "Thanks for joining. Start exploring AI-powered sports predictions today!",
+          type: "success",
+          icon: "party-popper",
+          data: {
+            action: "onboarding",
+            section: "welcome"
+          }
+        });
+        console.log(`Created welcome notification for user ${user.id}`);
+      } catch (notificationError) {
+        console.error("Failed to create welcome notification:", notificationError);
+        // Continue with login despite notification error
+      }
+
+      // Log user in
       req.login(user, (err) => {
         if (err) {
-          logger.error("Error logging in new user after registration", { error: err });
-          return next(err);
+          console.error('Session creation error on registration:', err);
+          return res.status(500).json({
+            error: 'Session Error',
+            message: 'Account created but login failed. Please try logging in manually.',
+            code: 'SESSION_ERROR_AFTER_REGISTER'
+          });
         }
-        res.status(201).json(user);
+        // Remove password from response
+        const { password, ...userWithoutPassword } = user;
+        res.status(201).json(userWithoutPassword);
       });
     } catch (error) {
-      logger.error("Registration error:", { error });
-      next(error);
+      if (error instanceof z.ZodError) {
+        // Detailed validation error message
+        return res.status(400).json({
+          error: 'Validation Error',
+          message: error.errors[0].message,
+          code: 'VALIDATION_ERROR',
+          field: error.errors[0].path.join('.') // Return the field that failed validation
+        });
+      }
+      console.error('Registration error:', error);
+      res.status(500).json({
+        error: 'Server Error',
+        message: 'Failed to create account. Please try again later.',
+        code: 'REGISTRATION_ERROR'
+      });
     }
   });
 
   app.post("/api/login", (req, res, next) => {
-    try {
-      logger.info(`Login attempt for username: ${req.body.username}`);
-      
-      // Validate required fields
-      if (!req.body.username || !req.body.password) {
-        logger.warn("Login failed: Missing username or password");
-        return res.status(400).json({ message: "Username and password are required" });
+    // Validate input is present
+    if (!req.body.username || !req.body.password) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'Username and password are required',
+        code: 'MISSING_CREDENTIALS'
+      });
+    }
+
+    passport.authenticate("local", (err: any, user: SelectUser | false, info: any) => {
+      if (err) {
+        console.error('Authentication error:', err);
+        return res.status(500).json({
+          error: 'Server Error',
+          message: 'An error occurred during authentication. Please try again.',
+          code: 'AUTH_ERROR'
+        });
       }
       
-      passport.authenticate("local", (err: any, user: any, info: any) => {
-        if (err) {
-          logger.error("Login error:", { error: err.message || err });
-          return res.status(500).json({ 
-            message: "Internal authentication error", 
-            error: err.message || "Unknown error" 
+      if (!user) {
+        // Enhanced error response with clear messaging
+        return res.status(401).json({
+          error: 'Authentication Failed',
+          message: 'Invalid username or password. Please try again.',
+          code: 'INVALID_CREDENTIALS'
+        });
+      }
+      
+      req.login(user, async (loginErr) => {
+        if (loginErr) {
+          console.error('Session creation error:', loginErr);
+          return res.status(500).json({
+            error: 'Session Error',
+            message: 'Could not create a session. Please try again.',
+            code: 'SESSION_ERROR'
           });
         }
         
-        if (!user) {
-          logger.warn(`Login failed for user: ${req.body.username}`, { reason: info?.message });
-          return res.status(401).json({ message: info?.message || "Authentication failed" });
+        try {
+          // Update the last login timestamp
+          await storage.updateLastLogin(user.id);
+          
+          // Remove password from response
+          const { password, ...userWithoutPassword } = user;
+          
+          // Success - return user data
+          res.status(200).json(userWithoutPassword);
+        } catch (updateError) {
+          console.warn('Failed to update last login time, but login successful:', updateError);
+          // Still return user data even if updating last login fails
+          const { password, ...userWithoutPassword } = user;
+          res.status(200).json(userWithoutPassword);
         }
-        
-        req.login(user, (loginErr) => {
-          if (loginErr) {
-            logger.error("Error during login session creation", { error: loginErr.message || loginErr });
-            return res.status(500).json({ 
-              message: "Session creation failed", 
-              error: loginErr.message || "Unknown error" 
-            });
-          }
-          
-          logger.info(`User logged in successfully: ${user.username}`, { userId: user.id });
-          
-          // Return minimal user object with just the essential fields to avoid exposing sensitive data
-          const safeUser = {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            role: user.role || 'user',
-            subscriptionTier: user.subscriptionTier || 'free',
-            isActive: user.isActive || true,
-            lastLoginAt: new Date()
-          };
-          
-          return res.status(200).json(safeUser);
-        });
-      })(req, res, next);
-    } catch (error) {
-      logger.error("Unexpected error in login route:", { error });
-      res.status(500).json({ message: "An unexpected error occurred during login" });
-    }
+      });
+    })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {
-    if (req.user) {
-      logger.info(`Logout for user: ${(req.user as User).username}`, { userId: (req.user as User).id });
-    } else {
-      logger.warn("Logout attempted with no active session");
+    // Check if user is authenticated first
+    if (!req.isAuthenticated()) {
+      return res.status(200).json({
+        message: "Already logged out",
+        code: "ALREADY_LOGGED_OUT"
+      });
     }
     
     req.logout((err) => {
       if (err) {
-        logger.error("Error during logout", { error: err });
-        return next(err);
+        console.error('Logout error:', err);
+        return res.status(500).json({
+          error: "Logout Error",
+          message: "Failed to log out. Please try again.",
+          code: "LOGOUT_ERROR"
+        });
       }
-      res.sendStatus(200);
+      // Destroy the session completely to ensure clean logout
+      if (req.session) {
+        req.session.destroy((sessionErr) => {
+          if (sessionErr) {
+            console.error('Session destroy error:', sessionErr);
+            // Even if session destroy fails, we've already logged out
+          }
+          // Clear any cookies
+          res.clearCookie('connect.sid');
+          res.status(200).json({
+            message: "Logged out successfully",
+            code: "LOGOUT_SUCCESS"
+          });
+        });
+      } else {
+        res.status(200).json({
+          message: "Logged out successfully",
+          code: "LOGOUT_SUCCESS"
+        });
+      }
     });
   });
 
   app.get("/api/user", (req, res) => {
+    // Enhanced authentication check with detailed error responses
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'You must be logged in to access this resource',
+        code: 'NOT_AUTHENTICATED'
+      });
+    }
+    
+    // Check if session exists but user isn't valid
+    if (!req.user || !req.user.id) {
+      // Destroy the invalid session
+      req.logout((err) => {
+        if (err) console.error('Error destroying invalid session:', err);
+        return res.status(401).json({
+          error: 'Invalid Session',
+          message: 'Your session appears to be invalid. Please login again.',
+          code: 'INVALID_SESSION'
+        });
+      });
+      return;
+    }
+    
+    // Remove password from response
+    const { password, ...userWithoutPassword } = req.user;
+    res.json(userWithoutPassword);
+  });
+  
+  // User preferences routes
+  app.get("/api/user/preferences", async (req, res) => {
+    // Enhanced authentication check
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'You must be logged in to access your preferences',
+        code: 'NOT_AUTHENTICATED'
+      });
+    }
+    
     try {
-      logger.debug("GET /api/user request received");
-      
-      if (!req.isAuthenticated()) {
-        logger.debug("GET /api/user failed: User not authenticated");
-        return res.status(401).json({ message: "Not authenticated", loginRequired: true });
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(404).json({
+          error: 'Not Found',
+          message: 'User not found',
+          code: 'USER_NOT_FOUND'
+        });
       }
       
-      // Return a sanitized user object to avoid exposing sensitive data
-      const user = req.user;
-      const safeUser = {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role || 'user',
-        subscriptionTier: user.subscriptionTier || 'free',
-        isActive: user.isActive || true,
-        lastLoginAt: user.lastLoginAt || new Date(),
-        referralCode: user.referralCode,
-        userPreferences: user.userPreferences || {},
-        notificationSettings: user.notificationSettings || {},
-        fantasyPoints: user.fantasyPoints || 0,
-        totalContestsWon: user.totalContestsWon || 0,
-        totalContestsEntered: user.totalContestsEntered || 0
-      };
-      
-      logger.debug(`GET /api/user success for user ${user.id}`);
-      res.json(safeUser);
+      // Return user preferences or default empty object
+      res.json(user.userPreferences || {});
     } catch (error) {
-      logger.error("Error in GET /api/user", { error });
-      res.status(500).json({ message: "Error retrieving user data" });
+      console.error('Error fetching user preferences:', error);
+      res.status(500).json({
+        error: 'Server Error',
+        message: 'Failed to fetch user preferences',
+        code: 'PREFERENCES_FETCH_ERROR'
+      });
     }
   });
   
-  logger.info("Authentication setup complete");
+  // Note: This endpoint is now managed by userPreferencesRouter
+  // This implementation is kept for backward compatibility only
+  app.post("/api/user/preferences", async (req, res, next) => {
+    // Allow the request to be handled by userPreferencesRouter
+    next();
+  });
 }

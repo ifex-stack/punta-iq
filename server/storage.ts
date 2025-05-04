@@ -3931,14 +3931,10 @@ export class DatabaseStorage implements IStorage {
       const referralCode = insertUser.referralCode || 
         `${insertUser.username.replace(/\s+/g, '').substring(0, 5).toUpperCase()}${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
       
-      // Remove any fields that might not exist in the database schema
-      // to prevent errors like "column role of relation users does not exist"
-      const { role, ...safeInsertUser } = insertUser as any;
-      
       const [user] = await db
         .insert(users)
         .values({
-          ...safeInsertUser,
+          ...insertUser,
           referralCode,
           subscriptionTier: subscriptionTiers.FREE,
           notificationSettings: {
@@ -3966,15 +3962,18 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error creating user:", error);
       // Fall back to basic user creation if new fields aren't available
-      console.log("Attempting fallback user creation with simplified schema");
-      // When retrying, further simplify by only using the minimum required fields
       const [user] = await db
         .insert(users)
         .values({
           username: insertUser.username,
           email: insertUser.email,
-          password: insertUser.password
-          // Exclude all optional fields to avoid schema mismatches
+          password: insertUser.password,
+          subscriptionTier: subscriptionTiers.FREE,
+          notificationSettings: {
+            predictions: true,
+            results: true,
+            promotions: true,
+          }
         })
         .returning();
       return user;
