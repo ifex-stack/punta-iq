@@ -88,7 +88,9 @@ router.get('/api/timezones/predictions', async (req, res) => {
     // This requires transforming UTC times to user local time for comparison
     const filteredPredictions = timeRelevantPredictions.filter(prediction => {
       // Convert UTC startTime to user's local timezone
-      const localStartTime = toZonedTime(new Date(prediction.startTime), timezone);
+      // Handle potential null value safely
+      const startTime = prediction.startTime ? new Date(prediction.startTime) : new Date();
+      const localStartTime = toZonedTime(startTime, timezone);
       const hour = localStartTime.getHours();
       
       if (preferredTimeOfDay === 'night') {

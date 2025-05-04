@@ -182,7 +182,7 @@ export function getTimeRelevantMatches<T extends { startTime: string | Date }>(
 ): T[] {
   const userTz = timezone || getUserTimezone();
   const now = new Date();
-  const localNow = utcToZonedTime(now, userTz);
+  const localNow = toZonedTime(now, userTz);
   
   const windowEnd = addHours(localNow, timeWindow);
   
