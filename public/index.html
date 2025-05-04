@@ -54,7 +54,7 @@
       background: linear-gradient(90deg, var(--primary), var(--secondary));
       -webkit-background-clip: text;
       background-clip: text;
-      color: transparent;
+      -webkit-text-fill-color: transparent;
       margin-bottom: 2rem;
     }
     
@@ -223,15 +223,40 @@
   </div>
   
   <script>
-    // This script will be replaced by the actual React application
-    // when served by Vite in development mode
     console.log("Static HTML loaded successfully");
     
-    // Redirect to the main application after a delay in case
-    // the React app doesn't load automatically
-    setTimeout(() => {
-      window.location.reload();
-    }, 10000);
+    // For debugging purposes, display info about where we're being served from
+    document.addEventListener('DOMContentLoaded', function() {
+      const statusDiv = document.createElement('div');
+      statusDiv.style.padding = '1rem';
+      statusDiv.style.marginTop = '2rem';
+      statusDiv.style.background = 'rgba(0,0,0,0.05)';
+      statusDiv.style.borderRadius = '0.375rem';
+      statusDiv.style.fontSize = '0.875rem';
+      
+      // Add debugging info
+      statusDiv.innerHTML = `
+        <p>Page Loaded: ${new Date().toISOString()}</p>
+        <p>Current Path: ${window.location.pathname}</p>
+        <p>Server: ${window.location.host}</p>
+      `;
+      
+      // Display detailed microservice connection status
+      fetch('/api/debug/system-status')
+        .then(response => {
+          if (!response.ok) throw new Error('API request failed');
+          return response.json();
+        })
+        .then(data => {
+          statusDiv.innerHTML += `<p>API Status: Connected</p>`;
+        })
+        .catch(error => {
+          statusDiv.innerHTML += `<p>API Status: Error (${error.message})</p>`;
+        });
+        
+      // Append to bottom of the page
+      document.querySelector('.features').after(statusDiv);
+    });
   </script>
 </body>
 </html>

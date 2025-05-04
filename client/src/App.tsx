@@ -37,6 +37,7 @@ import PrivacyPolicyPage from "@/pages/legal/privacy-policy";
 import TermsOfServicePage from "@/pages/legal/terms-of-service";
 import ResponsibleGamblingPage from "@/pages/legal/responsible-gambling";
 import { UIShowcase } from "@/components/ui-showcase";
+import RoutingTestPage from "@/pages/routing-test-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from 'next-themes';
 import { setNavigationState, attemptRouteRecovery } from "./lib/error-handler";
@@ -254,6 +255,7 @@ const Router: React.FC = () => {
             <Route path="/legal/terms-of-service" component={TermsOfServicePage} />
             <Route path="/legal/responsible-gambling" component={ResponsibleGamblingPage} />
             <Route path="/ui-showcase" component={UIShowcase} />
+            <Route path="/routing-test" component={RoutingTestPage} />
             <Route path="/not-found" component={NotFound} />
             <Route path="/:path" component={NotFound} />
             <Route component={NotFound} />

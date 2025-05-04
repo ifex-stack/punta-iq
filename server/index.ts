@@ -10,6 +10,7 @@ import { microserviceHealthMonitor } from "./microservice-health-check";
 import { analytics, AnalyticsEventType } from "./analytics-service";
 import { aiProxyMiddleware } from "./middleware/ai-proxy-middleware";
 import spaMiddleware from "./spa-middleware";
+import { setupStaticFileServing, setupSpaFallback } from "./static-file-middleware";
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
@@ -182,32 +183,50 @@ app.use((req, res, next) => {
   // AI service proxy middleware is already registered at the top of the file
   logger.info("AI service proxy middleware already set up");
   
-  // First, set up Vite/static middleware to handle assets
-  if (app.get("env") === "development") {
-    logger.info("Setting up Vite middleware for development SPA serving");
-    try {
-      await setupVite(app, server);
-      logger.info("Vite middleware setup successful");
-    } catch (error) {
-      logger.error(`Failed to setup Vite middleware: ${error.message}`, { error });
-      
-      // Fallback to static serving if Vite middleware setup fails
-      logger.warn("Falling back to static file serving due to Vite setup failure");
+  // First, set up our enhanced Static File middleware to ensure root path works
+  try {
+    logger.info("Setting up enhanced static file middleware");
+    setupStaticFileServing(app);
+    logger.info("Enhanced static file middleware setup successful");
+  } catch (error) {
+    logger.error(`Failed to setup enhanced static file middleware: ${error.message}`, { error });
+    
+    // Fall back to Vite or standard static middleware if enhanced version fails
+    if (app.get("env") === "development") {
+      logger.info("Falling back to Vite middleware for development SPA serving");
       try {
-        serveStatic(app);
-        logger.info("Static file serving fallback successful");
-      } catch (staticError) {
-        logger.error(`Failed to setup static file serving fallback: ${staticError.message}`, { error: staticError });
+        await setupVite(app, server);
+        logger.info("Vite middleware fallback successful");
+      } catch (viteError) {
+        logger.error(`Failed to setup Vite middleware: ${viteError.message}`, { error: viteError });
+        
+        // Fallback to static serving if Vite middleware setup fails
+        logger.warn("Falling back to basic static file serving");
+        try {
+          serveStatic(app);
+          logger.info("Static file serving fallback successful");
+        } catch (staticError) {
+          logger.error(`Failed to setup static file serving fallback: ${staticError.message}`, { error: staticError });
+        }
       }
+    } else {
+      logger.info("Falling back to standard static file serving for production");
+      serveStatic(app);
     }
-  } else {
-    logger.info("Setting up static file serving for production");
-    serveStatic(app);
   }
   
   // Then add SPA middleware to handle frontend routes
-  logger.info("Setting up SPA middleware for frontend routes");
-  app.use(spaMiddleware);
+  logger.info("Setting up advanced SPA fallback middleware");
+  try {
+    setupSpaFallback(app);
+    logger.info("Advanced SPA fallback middleware setup successful");
+  } catch (error) {
+    logger.error(`Failed to setup advanced SPA fallback middleware: ${error.message}`, { error });
+    
+    // Fall back to original SPA middleware if enhanced version fails
+    logger.warn("Falling back to original SPA middleware");
+    app.use(spaMiddleware);
+  }
   
   // Finally add catch-all routes for API 404s
   logger.info("Setting up API catch-all middleware");

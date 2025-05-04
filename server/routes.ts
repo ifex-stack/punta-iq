@@ -38,11 +38,16 @@ import { analyticsRouter } from "./analytics-routes";
 import { MicroserviceClient } from "./microservice-client";
 import { createContextLogger } from "./logger";
 import { analytics, AnalyticsEventType } from "./analytics-service";
+import debugRoutes from "./debug-routes";
 
 // Create logger for routes
 const routesLogger = createContextLogger("Routes");
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up debug routes first for diagnostic tools
+  routesLogger.info("Registering debug routes at /debug/*");
+  app.use('/debug', debugRoutes);
+  
   // Set up authentication routes
   setupAuth(app);
   
@@ -91,15 +96,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up analytics routes
   app.use('/api/analytics', analyticsRouter);
   
-  // Add a debug route to help diagnose issues
+  // Set up all debug routes for comprehensive diagnostics
+  app.use('/api/debug', debugRoutes);
+  
+  // Add a legacy debug route for backward compatibility
   app.get('/api/debug/info', (req, res) => {
-    routesLogger.info('Debug info endpoint called');
+    routesLogger.info('Legacy debug info endpoint called');
     res.json({
       appMode: process.env.NODE_ENV || 'development',
       aiServiceUrl: 'http://localhost:5000',
       apiServerUrl: 'http://localhost:3000',
       serverTime: new Date().toISOString(),
-      message: 'PuntaIQ API server is running correctly'
+      message: 'PuntaIQ API server is running correctly',
+      standalone: {
+        available: true,
+        launcherPath: 'launch-standalone.js'
+      }
     });
   });
   
