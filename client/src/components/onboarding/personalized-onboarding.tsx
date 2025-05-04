@@ -158,54 +158,93 @@ export function PersonalizedOnboarding({ open, onOpenChange }: PersonalizedOnboa
         return;
       }
       
-      // Add onboarding completed flag to the data
+      // Prepare data for submission with the right structure to match schema
       const completeData = {
-        ...data,
+        // Include only the fields that match our schema and avoid nested objects
+        favoriteSports: data.favoriteSports || [],
+        experienceLevel: data.experienceLevel || "intermediate",
+        bettingFrequency: data.bettingFrequency || "weekly",
+        riskTolerance: data.riskTolerance || "medium",
+        preferredOddsFormat: data.preferredOddsFormat || "decimal",
+        predictionsPerDay: data.predictionsPerDay || 5,
+        analysisDepth: data.analysisDepth || "detailed",
+        marketPreferences: data.marketPreferences || [],
+        themes: data.themes || [],
+        
+        // Add onboarding status flags
         onboardingCompleted: true,
         lastStep: ONBOARDING_STEPS.length - 1,
         completedSteps: ONBOARDING_STEPS.map(step => step.id)
       };
       
+      console.log("Saving user preferences:", completeData);
+      
       try {
+        // Set a loading state toast
+        const loadingToast = toast({
+          title: "Saving preferences...",
+          description: "Please wait while we save your settings",
+        });
+        
+        // Make the API request with better error handling
         const response = await apiRequest("POST", "/api/user/preferences", completeData);
+        const responseData = await response.json().catch(() => ({}));
+        
+        // Remove the loading toast
+        toast.dismiss(loadingToast);
         
         if (response.ok) {
           toast({
             title: "Preferences saved",
-            description: "Your personalized settings have been saved",
+            description: "Your personalized settings have been saved successfully",
             variant: "default",
           });
           
+          // Update client-side currency if it changed
+          if (data.selectedCurrency && data.selectedCurrency !== currency.code) {
+            changeCurrency(data.selectedCurrency);
+          }
+          
           // Invalidate the preferences query to refresh data
           queryClient.invalidateQueries({ queryKey: ["/api/user/preferences"] });
+          
+          // Success - close the dialog
+          onOpenChange(false);
         } else {
-          // Check for unauthorized error
+          // Handle specific error cases
           if (response.status === 401) {
             toast({
               title: "Authentication error",
-              description: "Please log in to save your preferences",
+              description: "Your session has expired. Please log in again to save your preferences.",
               variant: "destructive",
             });
             
             // Redirect to auth page
-            window.location.href = "/auth";
+            setTimeout(() => {
+              window.location.href = "/auth";
+            }, 1500);
             return;
           } else {
-            throw new Error(`Failed to save preferences: ${response.status}`);
+            // Handle server error with details if available
+            const errorMessage = responseData?.details || responseData?.message || `Error code: ${response.status}`;
+            throw new Error(`Failed to save preferences: ${errorMessage}`);
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("API request error:", error);
-        throw error; // Re-throw to be handled by the outer catch block
+        
+        toast({
+          title: "Error saving preferences",
+          description: error.message || "An unexpected error occurred. Please try again.",
+          variant: "destructive",
+        });
       }
+    } catch (error: any) {
+      console.error("Error in onboarding form submission:", error);
       
-      // Close the onboarding dialog
-      onOpenChange(false);
-    } catch (error) {
-      console.error("Error saving preferences:", error);
       toast({
-        title: "Error",
-        description: "Failed to save preferences. Please try again or log in if you're not already signed in.",
+        title: "Form submission error",
+        description: "There was a problem with your submission. Please check your inputs and try again.",
         variant: "destructive",
       });
     }
