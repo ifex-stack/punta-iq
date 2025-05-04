@@ -21,18 +21,47 @@ export function hasSessionCookie(): boolean {
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const error = await parseApiError(res);
+    // Try to parse API error from response
+    let error;
+    try {
+      // First try to parse as JSON
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const errorData = await res.json();
+        // Use server-provided error code and message if available
+        error = {
+          status: res.status,
+          message: errorData.message || errorData.error || `Request failed with status ${res.status}`,
+          code: errorData.code || `ERROR_${res.status}`
+        };
+      } else {
+        // If not JSON, use generic parsing
+        error = await parseApiError(res);
+      }
+    } catch (parseError) {
+      console.warn('Error parsing error response:', parseError);
+      // Fallback to generic error if parsing fails
+      error = await parseApiError(res);
+    }
     
     // Add more context to authentication errors
     if (res.status === 401) {
       const hasSession = hasSessionCookie();
       
-      if (hasSession) {
+      if (hasSession && (!error.code || error.code === 'ERROR_401')) {
         console.warn('Session cookie exists but server returned 401 - session may be invalid or expired');
-        error.code = 'SESSION_INVALID';
-      } else {
+        error.code = error.code || 'SESSION_INVALID';
+        // Enhance the generic message if using the default
+        if (error.message === `Request failed with status ${res.status}`) {
+          error.message = 'Your session appears to be invalid or expired. Please login again.';
+        }
+      } else if (!hasSession && (!error.code || error.code === 'ERROR_401')) {
         console.warn('No session cookie found - user is not authenticated');
-        error.code = 'NO_SESSION';
+        error.code = error.code || 'NO_SESSION';
+        // Enhance the generic message if using the default
+        if (error.message === `Request failed with status ${res.status}`) {
+          error.message = 'You need to log in to access this resource.';
+        }
       }
     }
     

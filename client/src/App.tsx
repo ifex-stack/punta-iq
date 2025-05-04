@@ -31,6 +31,8 @@ import AccumulatorsPage from "@/pages/enhanced-accumulators-page"; // Using enha
 import LiveScorePage from "@/pages/livescore-page";
 import AIServiceStatusPage from "@/pages/ai-service-status-page";
 import TieredPredictionsPage from "@/pages/tiered-predictions-page"; // New tiered predictions page
+import AnalyticsDashboardPage from "@/pages/analytics-dashboard";
+import UserDemographicsPage from "@/pages/user-demographics-page";
 import PrivacyPolicyPage from "@/pages/legal/privacy-policy";
 import TermsOfServicePage from "@/pages/legal/terms-of-service";
 import ResponsibleGamblingPage from "@/pages/legal/responsible-gambling";
@@ -106,6 +108,8 @@ const Router: React.FC = () => {
             <ProtectedRoute path="/referrals" component={ReferralsPage} />
             <ProtectedRoute path="/gamification" component={GamificationPage} />
             <ProtectedRoute path="/admin" component={AdminPage} />
+            <ProtectedRoute path="/analytics-dashboard" component={AnalyticsDashboardPage} />
+            <ProtectedRoute path="/user-demographics" component={UserDemographicsPage} />
             <Route path="/livescore" component={LiveScorePage} />
             <Route path="/ai-service-status" component={AIServiceStatusPage} />
             <Route path="/faq" component={FAQPage} />

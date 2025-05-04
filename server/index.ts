@@ -6,6 +6,7 @@ import { initializeFantasyData } from "./fantasy-data-init";
 import { initializeDatabase } from "./db-init";
 import { automationManager } from "./automation";
 import { startMicroserviceHealthCheck } from "./microservice-health-check";
+import { analytics, AnalyticsEventType } from "./analytics-service";
 import { spawn } from 'child_process';
 import path from 'path';
 
@@ -62,6 +63,21 @@ app.use((req, res, next) => {
         if (responseForLog.apiKey) responseForLog.apiKey = '[REDACTED]';
         
         logData['response'] = responseForLog;
+      }
+      
+      // Track API performance for analytics
+      if (!path.startsWith('/api/analytics')) { // Avoid recursive tracking
+        analytics.trackApiPerformance(path, duration, statusCode, userId);
+      }
+      
+      // Track errors via analytics system
+      if (statusCode >= 400 && !path.startsWith('/api/analytics')) {
+        analytics.trackError(
+          `HTTP_${statusCode}`, 
+          capturedJsonResponse?.message || `HTTP error ${statusCode}`,
+          path,
+          userId
+        );
       }
       
       // Log with appropriate level based on status code

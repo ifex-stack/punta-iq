@@ -69,12 +69,19 @@ export function setupAuth(app: Express) {
               email: 'beta@puntaiq.com',
               password: 'hashed_password_placeholder',
               createdAt: new Date(),
-              updatedAt: new Date(),
               deviceImei: null,
               phoneNumber: null,
               isTwoFactorEnabled: false,
               twoFactorSecret: null,
               referralCode: 'BETATEST',
+              role: 'admin',
+              lastLoginAt: new Date(),
+              isActive: true,
+              isEmailVerified: true,
+              emailVerificationToken: null,
+              passwordResetToken: null,
+              passwordResetExpires: null,
+              notificationToken: null,
               referredBy: null,
               stripeCustomerId: null,
               stripeSubscriptionId: null,
@@ -86,12 +93,6 @@ export function setupAuth(app: Express) {
               referralStreak: 3,
               lastReferralDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
               // Additional properties 
-              lastLoginAt: new Date(),
-              isActive: true,
-              isEmailVerified: true,
-              emailVerificationToken: null,
-              passwordResetToken: null,
-              passwordResetExpires: null,
               userPreferences: {
                 favoriteSports: [1, 3, 5],
                 favoriteLeagues: [39, 40, 61],
@@ -134,7 +135,6 @@ export function setupAuth(app: Express) {
                   dismissCount: 5
                 }
               },
-              notificationToken: null,
               onboardingStatus: 'completed',
               lastOnboardingStep: 5
             };
@@ -172,12 +172,19 @@ export function setupAuth(app: Express) {
           email: 'beta@puntaiq.com',
           password: 'hashed_password_placeholder',
           createdAt: new Date(),
-          updatedAt: new Date(),
           deviceImei: null,
           phoneNumber: null,
           isTwoFactorEnabled: false,
           twoFactorSecret: null,
           referralCode: 'BETATEST',
+          role: 'admin',
+          lastLoginAt: new Date(),
+          isActive: true,
+          isEmailVerified: true,
+          emailVerificationToken: null,
+          passwordResetToken: null,
+          passwordResetExpires: null,
+          notificationToken: null,
           referredBy: null,
           stripeCustomerId: null,
           stripeSubscriptionId: null,
@@ -189,12 +196,7 @@ export function setupAuth(app: Express) {
           referralStreak: 3,
           lastReferralDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
           // Additional properties 
-          lastLoginAt: new Date(),
-          isActive: true,
-          isEmailVerified: true,
-          emailVerificationToken: null,
-          passwordResetToken: null,
-          passwordResetExpires: null,
+
           userPreferences: {
             favoriteSports: [1, 3, 5],
             favoriteLeagues: [39, 40, 61],
@@ -237,7 +239,6 @@ export function setupAuth(app: Express) {
               dismissCount: 5
             }
           },
-          notificationToken: null,
           onboardingStatus: 'completed',
           lastOnboardingStep: 5
         };
@@ -274,12 +275,20 @@ export function setupAuth(app: Express) {
       // Check if user already exists
       const existingUsername = await storage.getUserByUsername(validatedData.username);
       if (existingUsername) {
-        return res.status(400).json({ message: "Username already exists" });
+        return res.status(400).json({
+          error: 'Registration Failed',
+          message: "Username already exists",
+          code: 'USERNAME_EXISTS'
+        });
       }
       
       const existingEmail = await storage.getUserByEmail(validatedData.email);
       if (existingEmail) {
-        return res.status(400).json({ message: "Email already exists" });
+        return res.status(400).json({
+          error: 'Registration Failed',
+          message: "Email already exists",
+          code: 'EMAIL_EXISTS'
+        });
       }
 
       // Create user with hashed password
@@ -309,44 +318,160 @@ export function setupAuth(app: Express) {
 
       // Log user in
       req.login(user, (err) => {
-        if (err) return next(err);
+        if (err) {
+          console.error('Session creation error on registration:', err);
+          return res.status(500).json({
+            error: 'Session Error',
+            message: 'Account created but login failed. Please try logging in manually.',
+            code: 'SESSION_ERROR_AFTER_REGISTER'
+          });
+        }
         // Remove password from response
         const { password, ...userWithoutPassword } = user;
         res.status(201).json(userWithoutPassword);
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: error.errors[0].message });
+        // Detailed validation error message
+        return res.status(400).json({
+          error: 'Validation Error',
+          message: error.errors[0].message,
+          code: 'VALIDATION_ERROR',
+          field: error.errors[0].path.join('.') // Return the field that failed validation
+        });
       }
-      next(error);
+      console.error('Registration error:', error);
+      res.status(500).json({
+        error: 'Server Error',
+        message: 'Failed to create account. Please try again later.',
+        code: 'REGISTRATION_ERROR'
+      });
     }
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
-      if (err) return next(err);
-      if (!user) {
-        return res.status(401).json({ message: "Invalid credentials" });
+    // Validate input is present
+    if (!req.body.username || !req.body.password) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'Username and password are required',
+        code: 'MISSING_CREDENTIALS'
+      });
+    }
+
+    passport.authenticate("local", (err: any, user: SelectUser | false, info: any) => {
+      if (err) {
+        console.error('Authentication error:', err);
+        return res.status(500).json({
+          error: 'Server Error',
+          message: 'An error occurred during authentication. Please try again.',
+          code: 'AUTH_ERROR'
+        });
       }
       
-      req.login(user, (loginErr) => {
-        if (loginErr) return next(loginErr);
-        // Remove password from response
-        const { password, ...userWithoutPassword } = user;
-        res.status(200).json(userWithoutPassword);
+      if (!user) {
+        // Enhanced error response with clear messaging
+        return res.status(401).json({
+          error: 'Authentication Failed',
+          message: 'Invalid username or password. Please try again.',
+          code: 'INVALID_CREDENTIALS'
+        });
+      }
+      
+      req.login(user, async (loginErr) => {
+        if (loginErr) {
+          console.error('Session creation error:', loginErr);
+          return res.status(500).json({
+            error: 'Session Error',
+            message: 'Could not create a session. Please try again.',
+            code: 'SESSION_ERROR'
+          });
+        }
+        
+        try {
+          // Update the last login timestamp
+          await storage.updateLastLogin(user.id);
+          
+          // Remove password from response
+          const { password, ...userWithoutPassword } = user;
+          
+          // Success - return user data
+          res.status(200).json(userWithoutPassword);
+        } catch (updateError) {
+          console.warn('Failed to update last login time, but login successful:', updateError);
+          // Still return user data even if updating last login fails
+          const { password, ...userWithoutPassword } = user;
+          res.status(200).json(userWithoutPassword);
+        }
       });
     })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {
+    // Check if user is authenticated first
+    if (!req.isAuthenticated()) {
+      return res.status(200).json({
+        message: "Already logged out",
+        code: "ALREADY_LOGGED_OUT"
+      });
+    }
+    
     req.logout((err) => {
-      if (err) return next(err);
-      res.sendStatus(200);
+      if (err) {
+        console.error('Logout error:', err);
+        return res.status(500).json({
+          error: "Logout Error",
+          message: "Failed to log out. Please try again.",
+          code: "LOGOUT_ERROR"
+        });
+      }
+      // Destroy the session completely to ensure clean logout
+      if (req.session) {
+        req.session.destroy((sessionErr) => {
+          if (sessionErr) {
+            console.error('Session destroy error:', sessionErr);
+            // Even if session destroy fails, we've already logged out
+          }
+          // Clear any cookies
+          res.clearCookie('connect.sid');
+          res.status(200).json({
+            message: "Logged out successfully",
+            code: "LOGOUT_SUCCESS"
+          });
+        });
+      } else {
+        res.status(200).json({
+          message: "Logged out successfully",
+          code: "LOGOUT_SUCCESS"
+        });
+      }
     });
   });
 
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    // Enhanced authentication check with detailed error responses
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'You must be logged in to access this resource',
+        code: 'NOT_AUTHENTICATED'
+      });
+    }
+    
+    // Check if session exists but user isn't valid
+    if (!req.user || !req.user.id) {
+      // Destroy the invalid session
+      req.logout((err) => {
+        if (err) console.error('Error destroying invalid session:', err);
+        return res.status(401).json({
+          error: 'Invalid Session',
+          message: 'Your session appears to be invalid. Please login again.',
+          code: 'INVALID_SESSION'
+        });
+      });
+      return;
+    }
+    
     // Remove password from response
     const { password, ...userWithoutPassword } = req.user;
     res.json(userWithoutPassword);
@@ -354,30 +479,57 @@ export function setupAuth(app: Express) {
   
   // User preferences routes
   app.get("/api/user/preferences", async (req, res) => {
+    // Enhanced authentication check
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Unauthorized' });
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'You must be logged in to access your preferences',
+        code: 'NOT_AUTHENTICATED'
+      });
     }
     
     try {
       const user = await storage.getUser(req.user.id);
       if (!user) {
-        return res.status(404).json({ message: 'User not found' });
+        return res.status(404).json({
+          error: 'Not Found',
+          message: 'User not found',
+          code: 'USER_NOT_FOUND'
+        });
       }
       
       // Return user preferences or default empty object
       res.json(user.userPreferences || {});
     } catch (error) {
       console.error('Error fetching user preferences:', error);
-      res.status(500).json({ message: 'Failed to fetch user preferences' });
+      res.status(500).json({
+        error: 'Server Error',
+        message: 'Failed to fetch user preferences',
+        code: 'PREFERENCES_FETCH_ERROR'
+      });
     }
   });
   
   app.post("/api/user/preferences", async (req, res) => {
+    // Enhanced authentication check
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Unauthorized' });
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'You must be logged in to update your preferences',
+        code: 'NOT_AUTHENTICATED'
+      });
     }
     
     try {
+      // Validate that preferences is an object
+      if (!req.body || typeof req.body !== 'object') {
+        return res.status(400).json({
+          error: 'Bad Request',
+          message: 'Invalid preferences format',
+          code: 'INVALID_PREFERENCES'
+        });
+      }
+      
       const preferences = req.body;
       const userId = req.user.id;
       
@@ -394,7 +546,11 @@ export function setupAuth(app: Express) {
       res.json(updatedUser.userPreferences || {});
     } catch (error) {
       console.error('Error saving user preferences:', error);
-      res.status(500).json({ message: 'Failed to save user preferences' });
+      res.status(500).json({
+        error: 'Server Error',
+        message: 'Failed to save user preferences',
+        code: 'PREFERENCES_UPDATE_ERROR'
+      });
     }
   });
 }
