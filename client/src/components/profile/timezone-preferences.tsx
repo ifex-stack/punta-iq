@@ -323,7 +323,7 @@ export function TimezonePreferences() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-green-500" />
+              <Clock className="h-5 w-5 text-green-500" />
               Scheduled Days
             </CardTitle>
             <CardDescription>Choose which days to receive content</CardDescription>

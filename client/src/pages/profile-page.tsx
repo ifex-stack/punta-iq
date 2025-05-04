@@ -26,12 +26,14 @@ import {
   Sliders,
   Activity,
   Clock,
-  Zap
+  Zap,
+  Globe
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { BadgeCollection } from "@/components/gamification/badge-collection";
 import { LeaderboardSection } from "@/components/gamification/leaderboard-section";
 import { UserPreferences } from "@/components/profile/user-preferences";
+import { TimezonePreferences } from "@/components/profile/timezone-preferences";
 import { ProfileNotificationSettings } from "@/components/notifications/profile-notification-settings";
 import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -114,6 +116,10 @@ export default function ProfilePage() {
             <Star className="h-4 w-4 mr-2" />
             Preferences
           </TabsTrigger>
+          <TabsTrigger value="timezone">
+            <Globe className="h-4 w-4 mr-2" />
+            Timezone
+          </TabsTrigger>
           <TabsTrigger value="settings">
             <Settings className="h-4 w-4 mr-2" />
             Settings
@@ -181,6 +187,10 @@ export default function ProfilePage() {
         
         <TabsContent value="preferences">
           <UserPreferences />
+        </TabsContent>
+        
+        <TabsContent value="timezone">
+          <TimezonePreferences />
         </TabsContent>
         
         <TabsContent value="settings">

@@ -1,158 +1,83 @@
-import { Router } from "express";
+import { Request, Response, Router } from "express";
 import { db } from "./db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
-import { storage } from "./storage";
+import { logger, createContextLogger } from "./logger";
 
+// Create router for user preferences
 export const userPreferencesRouter = Router();
 
-// Get user preferences
-userPreferencesRouter.get("/api/user/preferences", async (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
-  
+// Define route endpoints
+userPreferencesRouter.get('/api/user/preferences', getUserPreferences);
+userPreferencesRouter.post('/api/user/preferences', updateUserPreferences);
+
+const preferencesLogger = createContextLogger('user-preferences');
+
+export async function getUserPreferences(req: Request, res: Response) {
   try {
-    const [user] = await db
-      .select({
-        userPreferences: users.userPreferences,
-        onboardingStatus: users.onboardingStatus,
-        lastOnboardingStep: users.lastOnboardingStep,
-      })
-      .from(users)
-      .where(eq(users.id, req.user!.id));
-    
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    // Check if user is authenticated
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ status: 401, message: "Unauthorized", code: "ERROR_401" });
     }
+
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(400).json({ status: 400, message: "User ID is required", code: "ERROR_400" });
+    }
+
+    // Get user from database
+    const userData = await db.select().from(users).where(eq(users.id, userId));
+    if (!userData.length) {
+      return res.status(404).json({ status: 404, message: "User not found", code: "ERROR_404" });
+    }
+
+    // Return user preferences
+    const preferences = userData[0].userPreferences || {};
     
-    const preferences = user.userPreferences as Record<string, any>;
-    
-    // Include additional onboarding status information
-    const onboardingInfo = {
-      onboardingStatus: user.onboardingStatus,
-      lastOnboardingStep: user.lastOnboardingStep,
-    };
-    
-    res.json({
-      ...preferences,
-      ...onboardingInfo,
-    });
+    preferencesLogger.info(`Fetched preferences for user ${userId}`);
+    return res.status(200).json(preferences);
   } catch (error) {
-    console.error("Error fetching user preferences:", error);
-    res.status(500).json({ message: "Failed to fetch user preferences" });
+    preferencesLogger.error("Error fetching user preferences:", error);
+    return res.status(500).json({ status: 500, message: "Internal server error", code: "ERROR_500" });
   }
-});
+}
 
-// Update user preferences
-userPreferencesRouter.post("/api/user/preferences", async (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ 
-      message: "Unauthorized", 
-      code: "ERROR_401" 
-    });
-  }
-  
+export async function updateUserPreferences(req: Request, res: Response) {
   try {
-    const preferenceData = req.body;
-    const userId = req.user!.id;
-    
-    // Log received preferences for debugging
-    console.log(`Updating preferences for user ${userId}:`, JSON.stringify(preferenceData));
-    
-    // Separate onboarding status fields from preference data
-    const onboardingCompleted = preferenceData.onboardingCompleted === true;
-    const lastStep = preferenceData.lastStep || 0;
-    
-    // Create a sanitized copy of preferences for DB storage
-    const sanitizedPreferences = { ...preferenceData };
-    
-    // Update user preferences first - our improved implementation handles errors gracefully
-    await storage.updateUserPreferences(userId, sanitizedPreferences);
-    
-    // Only update onboarding status if relevant fields are included in the request
-    if (preferenceData.onboardingCompleted !== undefined || preferenceData.lastStep !== undefined) {
-      const status = onboardingCompleted ? 'completed' : 'in_progress';
-      await storage.updateUserOnboardingStatus(userId, status, lastStep);
+    // Check if user is authenticated
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ status: 401, message: "Unauthorized", code: "ERROR_401" });
     }
-    
-    // Return a successful response without attempting another DB query that might fail
-    const combinedData = {
-      ...sanitizedPreferences,
-      onboardingStatus: onboardingCompleted ? 'completed' : 'in_progress',
-      lastOnboardingStep: lastStep
-    };
-    
-    // Log success
-    console.log(`Successfully updated preferences for user ${userId}`);
-    
-    // Return the updated preferences
-    res.json(combinedData);
-  } catch (error: any) {
-    console.error("Error updating user preferences:", error);
-    
-    // Return a more detailed error response
-    res.status(500).json({ 
-      message: "Failed to save user preferences",
-      code: "PREFERENCES_UPDATE_ERROR",
-      details: error.message || "Unknown error"
-    });
-  }
-});
 
-// Reset user preferences to defaults (for testing)
-userPreferencesRouter.post("/api/user/preferences/reset", async (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ 
-      message: "Unauthorized",
-      code: "ERROR_401"
-    });
-  }
-  
-  try {
-    const userId = req.user!.id;
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(400).json({ status: 400, message: "User ID is required", code: "ERROR_400" });
+    }
+
+    // Get user from database
+    const userData = await db.select().from(users).where(eq(users.id, userId));
+    if (!userData.length) {
+      return res.status(404).json({ status: 404, message: "User not found", code: "ERROR_404" });
+    }
+
+    // Get existing preferences
+    const existingPreferences = userData[0].userPreferences || {};
     
-    // Log the reset action for debugging
-    console.log(`Resetting preferences for user ${userId}`);
-    
-    // Define default preferences structure that matches schema
-    const defaultPreferences = {
-      favoriteSports: [],
-      favoriteLeagues: [],
-      bettingFrequency: null,
-      predictionTypes: [],
-      riskTolerance: null,
-      preferredOddsFormat: 'decimal',
-      predictionsPerDay: 5,
-      experienceLevel: null,
-      onboardingCompleted: false,
-      lastStep: 0,
-      completedSteps: []
+    // Merge existing preferences with new preferences
+    const updatedPreferences = {
+      ...existingPreferences,
+      ...req.body
     };
-    
-    // Update preferences using our improved storage method (handles errors gracefully)
-    await storage.updateUserPreferences(userId, defaultPreferences);
-    
-    // Update onboarding status separately
-    await storage.updateUserOnboardingStatus(userId, 'not_started', 0);
-    
-    // Log success
-    console.log(`Successfully reset preferences for user ${userId}`);
-    
-    // Return the reset preferences and status
-    res.json({
-      ...defaultPreferences,
-      onboardingStatus: 'not_started',
-      lastOnboardingStep: 0,
-    });
-  } catch (error: any) {
-    console.error("Error resetting user preferences:", error);
-    
-    // Return a more detailed error response
-    res.status(500).json({ 
-      message: "Failed to reset user preferences",
-      code: "PREFERENCES_RESET_ERROR",
-      details: error.message || "Unknown error"
-    });
+
+    // Update user preferences in database
+    await db.update(users)
+      .set({ userPreferences: updatedPreferences })
+      .where(eq(users.id, userId));
+
+    preferencesLogger.info(`Updated preferences for user ${userId}`);
+    return res.status(200).json(updatedPreferences);
+  } catch (error) {
+    preferencesLogger.error("Error updating user preferences:", error);
+    return res.status(500).json({ status: 500, message: "Internal server error", code: "ERROR_500" });
   }
-});
+}
