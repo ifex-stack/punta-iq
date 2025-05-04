@@ -130,9 +130,18 @@ export function setupAuth(app: Express) {
       const hashedPassword = await hashPassword(req.body.password);
       
       // Create user
+      // Only pass required and valid fields to createUser to avoid schema mismatches
       const user = await storage.createUser({
-        ...req.body,
+        username: req.body.username,
+        email: req.body.email,
         password: hashedPassword,
+        role: req.body.role || 'user',
+        isActive: true,
+        isEmailVerified: req.body.isEmailVerified || false,
+        // Only add referralCode if provided
+        ...(req.body.referralCode ? { referralCode: req.body.referralCode } : {}),
+        // Only add referredBy if provided
+        ...(req.body.referredBy ? { referredBy: req.body.referredBy } : {})
       });
       
       logger.info(`User registered successfully: ${user.username}`, { userId: user.id });
