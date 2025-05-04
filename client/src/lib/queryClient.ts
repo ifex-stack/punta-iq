@@ -94,7 +94,7 @@ export async function apiRequest(
     // Use PuntaIQ global configuration if available
     if (window.PuntaIQ) {
       if (url.startsWith('/api')) {
-        // Route to our main API on port 3000
+        // Route to our main API on port 5000
         apiUrl = `${window.PuntaIQ.apiBaseUrl || ''}${url}`;
         console.log(`Routing API call to main server: ${apiUrl}`);
       } 
@@ -107,7 +107,7 @@ export async function apiRequest(
     } 
     // Fallback if window.PuntaIQ is not available
     else if (url.startsWith('/api') || url.startsWith('/ai-service')) {
-      const baseUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+      const baseUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
       apiUrl = `${baseUrl}${url}`;
       console.log(`Fallback routing to server: ${apiUrl}`);
     }
@@ -184,11 +184,11 @@ export const getQueryFn: <T>(options: {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
       
-      // Ensure API calls are directed to port 3000 where our server is now running
+      // Ensure API calls are directed to port 5000 where our server is now running
       let url = queryKey[0] as string;
-      if (url.startsWith('/api') && window.location.port !== '3000') {
-        // Replace current port with port 3000 if we're not already on port 3000
-        const baseUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+      if (url.startsWith('/api') && window.location.port !== '5000') {
+        // Replace current port with port 5000 if we're not already on port 5000
+        const baseUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
         url = `${baseUrl}${url}`;
       }
       

@@ -164,7 +164,7 @@ const Router: React.FC = () => {
         setTimeout(() => {
           if (document.title.includes('404') || document.body.textContent?.includes('Not Found')) {
             console.log('Still on 404 page after recovery attempt - forcing navigation to root');
-            window.location.href = `${window.location.protocol}//${window.location.hostname}:3000/`;
+            window.location.href = `${window.location.protocol}//${window.location.hostname}:5000/`;
           }
         }, 1500);
       }
