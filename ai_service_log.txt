@@ -2152,3 +2152,95 @@ Error: AI Service failed to start properly: exit code 1
 [STDOUT] [2025-05-04 08:08:06,879] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
 [STDOUT] [2025-05-04 08:08:07,046] [INFO] SportsDB API check passed successfully
 [STDOUT] [2025-05-04 08:08:07,048] [INFO] 127.0.0.1 - - [04/May/2025 08:08:07] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 08:09:01,777] [INFO] 127.0.0.1 - - [04/May/2025 08:09:01] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-04T08:09:57.121Z on port 5000 ---
+[STDOUT] [2025-05-04 08:09:57,412] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+[STDOUT]  * Debug mode: off
+[STDOUT] [2025-05-04 08:09:57,415] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.55:5000
+[STDOUT] [2025-05-04 08:09:57,415] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-04 08:10:00,272] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-04 08:10:00,452] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-04 08:10:00,454] [INFO] 127.0.0.1 - - [04/May/2025 08:10:00] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 08:10:03,895] [INFO] 172.31.128.55 - - [04/May/2025 08:10:03] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-04 08:10:55,894] [INFO] 127.0.0.1 - - [04/May/2025 08:10:55] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-04T08:11:17.563Z on port 5000 ---
+[STDOUT] [2025-05-04 08:11:17,925] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-04 08:11:17,928] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.55:5000
+[STDOUT] [2025-05-04 08:11:17,928] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-04 08:11:18,867] [INFO] 172.31.128.55 - - [04/May/2025 08:11:18] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-04 08:11:20,702] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-04 08:11:20,970] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-04 08:11:20,972] [INFO] 127.0.0.1 - - [04/May/2025 08:11:20] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 08:12:15,913] [INFO] 127.0.0.1 - - [04/May/2025 08:12:15] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 08:13:15,912] [INFO] 127.0.0.1 - - [04/May/2025 08:13:15] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 08:13:21,984] [INFO] 127.0.0.1 - - [04/May/2025 08:13:21] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-04T08:13:48.997Z on port 5000 ---
+[STDOUT] [2025-05-04 08:13:49,269] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-04 08:13:49,276] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.55:5000
+[STDOUT] [2025-05-04 08:13:49,276] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-04 08:13:52,136] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-04 08:13:52,418] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-04 08:13:52,420] [INFO] 127.0.0.1 - - [04/May/2025 08:13:52] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-04T08:13:59.566Z on port 5000 ---
+[STDOUT] [2025-05-04 08:13:59,918] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+[STDOUT]  * Debug mode: off
+[STDOUT] [2025-05-04 08:13:59,921] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.55:5000
+[STDOUT] [2025-05-04 08:13:59,921] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-04 08:14:00,877] [INFO] 172.31.128.55 - - [04/May/2025 08:14:00] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-04 08:14:02,719] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-04 08:14:02,986] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-04 08:14:02,989] [INFO] 127.0.0.1 - - [04/May/2025 08:14:02] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 08:14:14,471] [INFO] 172.31.128.55 - - [04/May/2025 08:14:14] "[33mGET /api/debug/test-page HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-04 08:14:57,728] [INFO] 127.0.0.1 - - [04/May/2025 08:14:57] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-04T08:15:24.164Z on port 5000 ---
+[STDOUT] [2025-05-04 08:15:24,493] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+[STDOUT]  * Debug mode: off
+[STDOUT] [2025-05-04 08:15:24,505] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.55:5000
+[STDOUT] [2025-05-04 08:15:24,505] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-04 08:15:27,305] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-04 08:15:27,494] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-04 08:15:27,497] [INFO] 127.0.0.1 - - [04/May/2025 08:15:27] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 08:15:30,572] [INFO] 172.31.128.55 - - [04/May/2025 08:15:30] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-04 08:16:22,098] [INFO] 127.0.0.1 - - [04/May/2025 08:16:22] "GET /api/status HTTP/1.1" 200 -
+
+--- Starting AI Microservice at 2025-05-04T08:17:05.603Z on port 5000 ---
+[STDOUT] [2025-05-04 08:17:05,952] [INFO] Starting PuntaIQ API Service on port 5000
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-04 08:17:05,954] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.55:5000
+[STDOUT] [2025-05-04 08:17:05,954] [INFO] [33mPress CTRL+C to quit[0m
+[STDOUT] [2025-05-04 08:17:06,844] [INFO] 172.31.128.55 - - [04/May/2025 08:17:06] "[33mGET / HTTP/1.1[0m" 404 -
+[STDOUT] [2025-05-04 08:17:08,731] [INFO] Checking SportsDB API status with URL: https://www.thesportsdb.com/api/v1/json/3/all_leagues.php
+[STDOUT] [2025-05-04 08:17:08,902] [INFO] SportsDB API check passed successfully
+[STDOUT] [2025-05-04 08:17:08,905] [INFO] 127.0.0.1 - - [04/May/2025 08:17:08] "GET /api/status HTTP/1.1" 200 -
+[STDOUT] [2025-05-04 08:18:03,919] [INFO] 127.0.0.1 - - [04/May/2025 08:18:03] "GET /api/status HTTP/1.1" 200 -

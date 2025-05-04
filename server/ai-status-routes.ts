@@ -1,258 +1,247 @@
 /**
- * API routes for AI service status monitoring and display
+ * AI Status Routes
+ * 
+ * API endpoints for checking and managing the AI microservice status
  */
-import { Router, Request, Response } from 'express';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+
+import { Request, Response, Router } from 'express';
+import http from 'http';
+import { spawn } from 'child_process';
 import path from 'path';
-import { createContextLogger } from './logger';
 import fs from 'fs';
-import { MicroserviceClient } from './microservice-client';
+import { createContextLogger } from './logger';
 
-// Set up logging for this module
-const logger = createContextLogger('AIStatus');
+const router = Router();
+const logger = createContextLogger('AIStatusRoutes');
 
-// Setup async exec function
-const execAsync = promisify(exec);
+// Configure AI service URL
+const AI_SERVICE_PORT = process.env.AI_SERVICE_PORT || 5000;
+const AI_SERVICE_HOST = process.env.AI_SERVICE_HOST || 'localhost';
+const AI_SERVICE_BASE_URL = `http://${AI_SERVICE_HOST}:${AI_SERVICE_PORT}`;
 
-// Path to the scripts directory
-const scriptsDir = path.join(process.cwd(), 'scripts');
+// Track service status
+let lastStatusCheck = 0;
+let cachedStatus: any = null;
+const STATUS_CACHE_TTL = 10 * 1000; // 10 seconds
 
-// Create a microservice client for API communication
-const microserviceClient = new MicroserviceClient();
-
-export const aiStatusRouter = Router();
-
-// Track the status over time to detect patterns
-let consecutiveSuccesses = 0;
-let consecutiveFailures = 0;
-const MAX_TRACKING = 5; // Track up to 5 consecutive events
-let lastCheckTime = 0;
-let lastStatus = 'unknown';
-let responseTimeHistory: number[] = [];
-
-// Route to get AI service status with enhanced monitoring
-aiStatusRouter.get('/', async (req: Request, res: Response) => {
-  try {
-    logger.info('Checking AI service status');
-    
-    // Implement rate limiting for status checks (prevent hammering the service)
-    const now = Date.now();
-    const timeSinceLastCheck = now - lastCheckTime;
-    if (timeSinceLastCheck < 2000 && lastStatus !== 'unknown' && req.query.force !== 'true') {
-      // Return cached status if checked within last 2 seconds (unless force=true)
-      logger.debug('Returning cached status due to rate limiting');
-      const cachedStatus = {
-        status: lastStatus,
-        message: lastStatus === 'online' 
-          ? 'The AI sports prediction service is online and fully operational.'
-          : lastStatus === 'degraded'
-            ? 'The AI sports prediction service is running but with limited functionality.'
-            : 'The AI sports prediction service is currently offline.',
-        cached: true,
-        lastChecked: new Date(lastCheckTime).toISOString(),
-        responseTime: {
-          avg: responseTimeHistory.reduce((sum, time) => sum + time, 0) / responseTimeHistory.length,
-          history: responseTimeHistory
-        }
-      };
-      return res.json(cachedStatus);
-    }
-    
-    // Start timing the request for performance metrics
-    const startTime = Date.now();
-    
-    // Check if the service is running using our client (handles circuit breaker and error management)
-    const isRunning = await microserviceClient.isRunning();
-    
-    // Calculate response time
-    const responseTime = Date.now() - startTime;
-    
-    // Update response time history (max 10 items)
-    responseTimeHistory.push(responseTime);
-    if (responseTimeHistory.length > 10) {
-      responseTimeHistory.shift();
-    }
-    
-    // Update tracking variables
-    lastCheckTime = now;
-    
-    if (isRunning) {
-      try {
-        // If it's running, get detailed status
-        const statusData = await microserviceClient.getStatus();
-        
-        // Analyze the status
-        const isFullyOperational = statusData.overall === 'ok';
-        
-        // Update consecutive tracking counters
-        if (isFullyOperational) {
-          consecutiveSuccesses = Math.min(consecutiveSuccesses + 1, MAX_TRACKING);
-          consecutiveFailures = 0;
-        } else {
-          consecutiveFailures = Math.min(consecutiveFailures + 1, MAX_TRACKING);
-          consecutiveSuccesses = 0;
-        }
-        
-        // Determine status based on pattern recognition
-        let currentStatus = 'degraded';
-        if (isFullyOperational && consecutiveSuccesses >= 3) {
-          currentStatus = 'online';
-        }
-        
-        lastStatus = currentStatus;
-        logger.info('AI service status check successful', { status: currentStatus, responseTime });
-        
-        return res.json({
-          status: currentStatus,
-          message: currentStatus === 'online'
-            ? 'The AI sports prediction service is online and fully operational.'
-            : 'The AI sports prediction service is running but with limited functionality.',
-          detailed: {
-            overall: statusData.overall,
-            services: statusData.services,
-            timestamp: statusData.timestamp,
-            responseTime,
-            consecutiveSuccesses,
-            consecutiveFailures
-          }
-        });
-      } catch (statusError) {
-        // If we get here, the service is running but had an error fetching detailed status
-        consecutiveFailures = Math.min(consecutiveFailures + 1, MAX_TRACKING);
-        consecutiveSuccesses = 0;
-        lastStatus = 'degraded';
-        
-        logger.warn('Service is running but detailed status check failed', { error: statusError });
-        return res.json({
-          status: 'degraded',
-          message: 'The AI sports prediction service is running but with limited functionality.',
-          detailed: {
-            overall: 'degraded',
-            services: {
-              'status-api': { status: 'error', message: 'Status check failed' }
-            },
-            timestamp: new Date().toISOString(),
-            responseTime,
-            consecutiveSuccesses,
-            consecutiveFailures
-          }
-        });
-      }
-    } else {
-      // Service is not running
-      consecutiveFailures = Math.min(consecutiveFailures + 1, MAX_TRACKING);
-      consecutiveSuccesses = 0;
-      lastStatus = 'offline';
-      
-      return res.json({
-        status: 'offline',
-        message: 'The AI sports prediction service is currently offline.',
-        detailed: {
-          overall: 'offline',
-          services: {
-            'ai-predictions': { status: 'error', lastCheck: new Date().toISOString() },
-            'api-service': { status: 'error', lastCheck: new Date().toISOString() }
-          },
-          timestamp: new Date().toISOString(),
-          responseTime,
-          consecutiveSuccesses,
-          consecutiveFailures
-        }
-      });
-    }
-  } catch (error: unknown) {
-    // An unexpected error occurred
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error('Error checking AI service status', { error });
-    
-    return res.status(500).json({
-      status: 'error',
-      message: `Error checking service status: ${errorMessage}`,
-    });
+/**
+ * Checks if the AI service is running and returns its status
+ */
+async function getAIServiceStatus(): Promise<any> {
+  // Use cached status if available and recent
+  const now = Date.now();
+  if (cachedStatus && (now - lastStatusCheck < STATUS_CACHE_TTL)) {
+    return cachedStatus;
   }
-});
 
-// Route to start/restart the AI service
-aiStatusRouter.post('/start', async (req: Request, res: Response) => {
-  try {
-    logger.info('User requested AI service restart');
-    
-    // Ensure the user is authorized (optional, depends on your auth setup)
-    /* 
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
-    
-    const user = req.user;
-    if (user.role !== 'admin') {
-      return res.status(403).json({ message: 'Admin access required' });
-    }
-    */
-    
-    // Check if service is already running
-    const isRunning = await microserviceClient.isRunning();
-    if (isRunning) {
-      logger.info('AI service is already running, no restart needed');
-      return res.json({
-        message: 'AI service is already running, no restart needed.',
-        success: true,
-        timestamp: new Date().toISOString()
-      });
-    }
-    
-    // Get the path to the start script
-    const scriptPath = path.join(scriptsDir, 'start-ai-service.js');
-    
-    // Check if script exists
+  return new Promise<any>((resolve) => {
+    const testReq = http.request(
+      `${AI_SERVICE_BASE_URL}/api/status`,
+      { method: 'GET', timeout: 3000 },
+      (res) => {
+        if (res.statusCode === 200) {
+          // Service is running
+          let data = '';
+          res.on('data', (chunk) => {
+            data += chunk;
+          });
+          res.on('end', () => {
+            try {
+              const statusData = JSON.parse(data);
+              logger.info(`AI service is running, status: ${statusData.overall}`);
+              
+              // Cache the status
+              cachedStatus = {
+                running: true,
+                status: statusData.overall,
+                services: statusData.services,
+                lastChecked: new Date().toISOString()
+              };
+              lastStatusCheck = now;
+              
+              resolve(cachedStatus);
+            } catch (e) {
+              logger.warn('Failed to parse AI service status response');
+              
+              // Cache a simplified status
+              cachedStatus = {
+                running: true,
+                status: 'ok',
+                error: 'Could not parse status response',
+                lastChecked: new Date().toISOString()
+              };
+              lastStatusCheck = now;
+              
+              resolve(cachedStatus);
+            }
+          });
+        } else {
+          // Service responded but with an error
+          logger.warn(`AI service responded with status code ${res.statusCode}`);
+          
+          // Cache error status
+          cachedStatus = {
+            running: true,
+            status: 'error',
+            error: `Service responded with status code ${res.statusCode}`,
+            lastChecked: new Date().toISOString()
+          };
+          lastStatusCheck = now;
+          
+          resolve(cachedStatus);
+        }
+      }
+    );
+
+    testReq.on('error', (error) => {
+      // Service is not running
+      logger.warn(`AI service is not running: ${error.message}`);
+      
+      // Cache error status
+      cachedStatus = {
+        running: false,
+        status: 'error',
+        error: 'AI service is not running',
+        lastChecked: new Date().toISOString()
+      };
+      lastStatusCheck = now;
+      
+      resolve(cachedStatus);
+    });
+
+    testReq.on('timeout', () => {
+      logger.warn('AI service status check timed out');
+      testReq.destroy();
+      
+      // Cache timeout status
+      cachedStatus = {
+        running: false,
+        status: 'error',
+        error: 'Connection to AI service timed out',
+        lastChecked: new Date().toISOString()
+      };
+      lastStatusCheck = now;
+      
+      resolve(cachedStatus);
+    });
+
+    testReq.end();
+  });
+}
+
+/**
+ * Manually start the AI service
+ * @returns Promise that resolves to whether the service started successfully
+ */
+async function startAIService(): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    logger.info('Manually starting AI microservice...');
+
+    // Check if the python script exists
+    const scriptPath = path.resolve(process.cwd(), 'ai_service', 'api_service.py');
     if (!fs.existsSync(scriptPath)) {
-      throw new Error(`Start script not found at: ${scriptPath}`);
+      logger.error(`AI service script not found at: ${scriptPath}`);
+      resolve(false);
+      return;
     }
-    
-    logger.info(`Starting AI service using script: ${scriptPath}`);
-    
-    // Spawn the Node.js process to run the script with output capturing
-    const childProcess = exec(`node ${scriptPath}`, {
+
+    // Start the API microservice
+    const aiProcess = spawn('python', [scriptPath], {
+      cwd: path.resolve(process.cwd(), 'ai_service'),
       env: {
         ...process.env,
-        AI_SERVICE_MANUAL_START: 'true' // Flag to indicate this is a manual restart
-      }
+        PYTHONUNBUFFERED: '1'  // Force unbuffered output for logs
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+      detached: true  // Run in the background
     });
-    
-    // Capture output for better debugging
-    let stdoutChunks = '';
-    let stderrChunks = '';
-    
-    if (childProcess.stdout) {
-      childProcess.stdout.on('data', (data) => {
-        const output = data.toString();
-        stdoutChunks += output;
-        logger.info(`[AI Service Start] ${output.trim()}`);
+
+    // Unref the process to allow our process to exit independently
+    aiProcess.unref();
+
+    let startupTimeout = setTimeout(() => {
+      logger.warn('AI service startup timed out after 8 seconds');
+      resolve(false);
+    }, 8000);
+
+    // Capture output for debugging
+    if (aiProcess.stdout) {
+      aiProcess.stdout.on('data', (data) => {
+        const output = data.toString().trim();
+        logger.info(`[AI Service] ${output}`);
+        
+        // If we see a startup message, consider the service started
+        if (output.includes('Starting PuntaIQ API Service') || output.includes('Running on')) {
+          clearTimeout(startupTimeout);
+          resolve(true);
+        }
       });
     }
-    
-    if (childProcess.stderr) {
-      childProcess.stderr.on('data', (data) => {
-        const output = data.toString();
-        stderrChunks += output;
-        logger.error(`[AI Service Start Error] ${output.trim()}`);
+
+    if (aiProcess.stderr) {
+      aiProcess.stderr.on('data', (data) => {
+        logger.error(`[AI Service Error] ${data.toString().trim()}`);
       });
     }
-    
-    logger.info('AI service restart initiated successfully');
-    
-    // Respond immediately without waiting for the process to complete
-    return res.json({
-      message: 'AI service restart initiated successfully. This may take a moment to complete.',
-      success: true,
-      timestamp: new Date().toISOString()
+
+    aiProcess.on('error', (error) => {
+      logger.error(`Failed to start AI service: ${error.message}`);
+      clearTimeout(startupTimeout);
+      resolve(false);
     });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error('Error starting AI service', { error });
-    return res.status(500).json({
-      message: `Error starting AI service: ${errorMessage}`,
-      success: false
+  });
+}
+
+// Get AI service status
+router.get('/status', async (req: Request, res: Response) => {
+  try {
+    const status = await getAIServiceStatus();
+    res.json(status);
+  } catch (error) {
+    logger.error(`Error getting AI service status: ${error instanceof Error ? error.message : String(error)}`);
+    res.status(500).json({
+      error: 'Failed to check AI service status',
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });
+
+// Start AI service
+router.post('/start', async (req: Request, res: Response) => {
+  try {
+    // First check if it's already running
+    const status = await getAIServiceStatus();
+    
+    if (status.running) {
+      return res.json({
+        success: true,
+        message: 'AI service is already running',
+        status
+      });
+    }
+    
+    // Try to start the service
+    const started = await startAIService();
+    
+    if (started) {
+      res.json({
+        success: true,
+        message: 'AI service started successfully'
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to start AI service'
+      });
+    }
+  } catch (error) {
+    logger.error(`Error starting AI service: ${error instanceof Error ? error.message : String(error)}`);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to start AI service',
+      message: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+export const aiStatusRouter = router;

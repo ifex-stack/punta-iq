@@ -1,262 +1,417 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="AI-powered sports predictions and analytics platform">
-  <title>PuntaIQ - Sports Predictions</title>
-  <style>
-    :root {
-      --primary: #4f46e5;
-      --secondary: #0ea5e9;
-      --accent: #f43f5e;
-      --background: #f8fafc;
-      --foreground: #0f172a;
-      --card: #ffffff;
-      --card-foreground: #1e293b;
-      --border: #e2e8f0;
-      --muted: #64748b;
-    }
-    
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--background);
-      color: var(--foreground);
-      line-height: 1.5;
-    }
-    
-    .container {
-      width: 100%;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 2rem;
-    }
-    
-    .loading-screen {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
-      text-align: center;
-    }
-    
-    .logo {
-      font-size: 3rem;
-      font-weight: bold;
-      background: linear-gradient(90deg, var(--primary), var(--secondary));
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 2rem;
-    }
-    
-    .loading-spinner {
-      display: inline-block;
-      width: 50px;
-      height: 50px;
-      border: 4px solid rgba(79, 70, 229, 0.1);
-      border-radius: 50%;
-      border-top-color: var(--primary);
-      animation: spin 1s linear infinite;
-      margin-bottom: 2rem;
-    }
-    
-    .title {
-      font-size: 1.5rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
-      color: var(--foreground);
-    }
-    
-    .subtitle {
-      font-size: 1rem;
-      color: var(--muted);
-      max-width: 600px;
-      margin: 0 auto 2rem;
-    }
-    
-    .features {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1.5rem;
-      justify-content: center;
-      margin-top: 2rem;
-    }
-    
-    .feature-card {
-      background: var(--card);
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-      padding: 1.5rem;
-      width: 300px;
-      text-align: left;
-    }
-    
-    .api-status {
-      background: var(--card);
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-      padding: 1.5rem;
-      margin-top: 2rem;
-      text-align: left;
-    }
-    
-    .status-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 0.75rem;
-      padding-bottom: 0.75rem;
-      border-bottom: 1px solid var(--border);
-    }
-    
-    .status-row:last-child {
-      border-bottom: none;
-      margin-bottom: 0;
-      padding-bottom: 0;
-    }
-    
-    .status-indicator {
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      margin-right: 8px;
-    }
-    
-    .status-indicator.online {
-      background-color: #10b981;
-    }
-    
-    .status-indicator.offline {
-      background-color: #ef4444;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    @media (prefers-color-scheme: dark) {
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PuntaIQ - AI Sports Predictions</title>
+    <meta name="description" content="Advanced AI sports prediction platform with real-time analytics and interactive insights" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <style>
       :root {
-        --background: #0f172a;
-        --foreground: #f8fafc;
-        --card: #1e293b;
-        --card-foreground: #f8fafc;
-        --border: #334155;
-        --muted: #94a3b8;
+        --primary: #0066cc;
+        --primary-dark: #0052a3;
+        --primary-light: #4d94db;
+        --secondary: #8a3ffc;
+        --secondary-dark: #6929c4;
+        --secondary-light: #a56eff;
+        --success: #24a148;
+        --warning: #f1c21b;
+        --danger: #da1e28;
+        --background: #f4f7fb;
+        --foreground: #1a1a1a;
+        --card: #ffffff;
+        --card-foreground: #1a1a1a;
+        --border: #d0d7de;
+        --input: #ffffff;
+        --ring: rgba(0, 102, 204, 0.3);
       }
-      
-      .loading-screen {
-        background: linear-gradient(135deg, #0f172a, #1e293b);
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: var(--background);
+        color: var(--foreground);
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
       }
-    }
-  </style>
-</head>
-<body>
-  <div id="root">
-    <div class="loading-screen">
-      <div class="logo">PuntaIQ</div>
-      <div class="loading-spinner"></div>
-      <h1 class="title">Loading Sports Predictions Platform</h1>
-      <p class="subtitle">Accessing real-time sports data, AI-powered predictions, and enhanced analytics</p>
-      
-      <div class="api-status">
-        <h2 style="margin-bottom: 1rem; font-size: 1.25rem;">System Status</h2>
+
+      header {
+        background: var(--card);
+        border-bottom: 1px solid var(--border);
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .logo {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--primary);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .logo span {
+        background: linear-gradient(to right, var(--primary), var(--secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      main {
+        flex: 1;
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        width: 100%;
+      }
+
+      .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 50vh;
+      }
+
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 3px solid rgba(0, 102, 204, 0.3);
+        border-top-color: var(--primary);
+        animation: spin 1s infinite linear;
+        margin-bottom: 1rem;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .hero {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+        padding: 3rem 2rem;
+        border-radius: 0.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .hero h1 {
+        font-size: 2.5rem;
+        margin-top: 0;
+        margin-bottom: 1rem;
+      }
+
+      .hero p {
+        font-size: 1.2rem;
+        max-width: 600px;
+        margin: 0 0 1.5rem 0;
+      }
+
+      .button {
+        display: inline-block;
+        background: var(--card);
+        color: var(--primary);
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.25rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s;
+        cursor: pointer;
+      }
+
+      .button:hover {
+        background: rgba(255, 255, 255, 0.9);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .button-primary {
+        background: var(--primary);
+        color: white;
+      }
+
+      .button-primary:hover {
+        background: var(--primary-dark);
+      }
+
+      .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+      }
+
+      .feature {
+        background: var(--card);
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s;
+      }
+
+      .feature:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .feature h3 {
+        color: var(--primary);
+        margin-top: 0;
+      }
+
+      .feature p {
+        color: var(--foreground);
+        margin-bottom: 0;
+      }
+
+      .icon {
+        width: 48px;
+        height: 48px;
+        background: var(--primary-light);
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        color: white;
+        font-size: 1.5rem;
+      }
+
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--card);
+        display: flex;
+        justify-content: space-around;
+        padding: 0.75rem 0;
+        box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.1);
+        z-index: 10;
+      }
+
+      .bottom-nav a {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-decoration: none;
+        color: var(--foreground);
+        font-size: 0.75rem;
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+        transition: all 0.2s;
+      }
+
+      .bottom-nav a.active {
+        color: var(--primary);
+      }
+
+      .bottom-nav a:hover {
+        background: rgba(0, 0, 0, 0.05);
+      }
+
+      .bottom-nav i {
+        font-size: 1.5rem;
+        margin-bottom: 0.25rem;
+      }
+
+      footer {
+        background: var(--card);
+        border-top: 1px solid var(--border);
+        padding: 2rem 1rem 7rem;
+        text-align: center;
+        color: var(--foreground);
+      }
+
+      .status-box {
+        background: var(--card);
+        border: 1px solid var(--border);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 2rem;
+      }
+
+      .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+      }
+
+      .status-indicator.green {
+        background-color: var(--success);
+      }
+
+      .status-indicator.red {
+        background-color: var(--danger);
+      }
+
+      .status-indicator.yellow {
+        background-color: var(--warning);
+      }
+
+      .api-status {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 0.5rem;
+      }
+
+      .api-status div {
+        display: flex;
+        align-items: center;
+      }
+
+      /* Icons for bottom nav */
+      .icon-home::before { content: "🏠"; }
+      .icon-predictions::before { content: "🎯"; }
+      .icon-live::before { content: "📊"; }
+      .icon-account::before { content: "👤"; }
+
+      /* Responsive adjustments */
+      @media (max-width: 768px) {
+        .hero {
+          padding: 2rem 1.5rem;
+        }
         
-        <div class="status-row">
-          <div>
-            <span class="status-indicator online"></span>
-            Main Application Server
-          </div>
-          <div>Connected (Port 3000)</div>
-        </div>
+        .hero h1 {
+          font-size: 2rem;
+        }
         
-        <div class="status-row">
-          <div>
-            <span class="status-indicator online"></span>
-            AI Microservice
-          </div>
-          <div>Connected (Port 5000)</div>
-        </div>
-        
-        <div class="status-row">
-          <div>
-            <span class="status-indicator online"></span>
-            TheSportsDB API
-          </div>
-          <div>Connected (Free Tier)</div>
-        </div>
-        
-        <div class="status-row">
-          <div>
-            <span class="status-indicator online"></span>
-            Odds API
-          </div>
-          <div>Connected (Free Tier)</div>
-        </div>
-      </div>
-      
-      <div class="features">
-        <div class="feature-card">
-          <h3 style="margin-bottom: 0.75rem; color: var(--primary);">AI Predictions</h3>
-          <p>Machine learning algorithms analyze historical data, current form, and statistics to generate accurate match predictions.</p>
-        </div>
-        
-        <div class="feature-card">
-          <h3 style="margin-bottom: 0.75rem; color: var(--primary);">Live Scores</h3>
-          <p>Real-time score updates across multiple sports and leagues to keep you informed of the latest match developments.</p>
-        </div>
-        
-        <div class="feature-card">
-          <h3 style="margin-bottom: 0.75rem; color: var(--primary);">Accumulators</h3>
-          <p>AI-generated multi-match predictions with tiered confidence levels to maximize your betting potential.</p>
-        </div>
-      </div>
+        main {
+          padding: 1.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading" class="loading-container">
+      <div class="spinner"></div>
+      <p>Loading PuntaIQ...</p>
     </div>
-  </div>
-  
-  <script>
-    console.log("Static HTML loaded successfully");
-    
-    // For debugging purposes, display info about where we're being served from
-    document.addEventListener('DOMContentLoaded', function() {
-      const statusDiv = document.createElement('div');
-      statusDiv.style.padding = '1rem';
-      statusDiv.style.marginTop = '2rem';
-      statusDiv.style.background = 'rgba(0,0,0,0.05)';
-      statusDiv.style.borderRadius = '0.375rem';
-      statusDiv.style.fontSize = '0.875rem';
+
+    <div id="content" style="display: none;">
+      <header>
+        <a href="/" class="logo">
+          <span>PuntaIQ</span>
+        </a>
+        <div class="status-box">
+          <div>System Status: <span class="status-indicator green"></span> Operational</div>
+          <div class="api-status">
+            <div><span class="status-indicator green"></span> TheSportsDB</div>
+            <div><span class="status-indicator green"></span> OddsAPI</div>
+          </div>
+        </div>
+      </header>
       
-      // Add debugging info
-      statusDiv.innerHTML = `
-        <p>Page Loaded: ${new Date().toISOString()}</p>
-        <p>Current Path: ${window.location.pathname}</p>
-        <p>Server: ${window.location.host}</p>
-      `;
-      
-      // Display detailed microservice connection status
-      fetch('/api/debug/system-status')
-        .then(response => {
-          if (!response.ok) throw new Error('API request failed');
-          return response.json();
-        })
-        .then(data => {
-          statusDiv.innerHTML += `<p>API Status: Connected</p>`;
-        })
-        .catch(error => {
-          statusDiv.innerHTML += `<p>API Status: Error (${error.message})</p>`;
-        });
+      <main>
+        <div class="hero">
+          <h1>AI-Powered Sports Predictions</h1>
+          <p>
+            Experience the future of sports analytics with PuntaIQ's advanced AI prediction engine.
+            Get real-time insights, personalized recommendations, and data-driven analysis.
+          </p>
+          <a href="/predictions" class="button button-primary">View Predictions</a>
+          <a href="/livescore" class="button">Live Scores</a>
+        </div>
         
-      // Append to bottom of the page
-      document.querySelector('.features').after(statusDiv);
-    });
-  </script>
-</body>
+        <div class="features">
+          <div class="feature">
+            <div class="icon">🤖</div>
+            <h3>AI Predictions</h3>
+            <p>Our advanced AI analyzes thousands of data points to provide accurate match predictions across multiple sports.</p>
+          </div>
+          
+          <div class="feature">
+            <div class="icon">📊</div>
+            <h3>Real-time Analytics</h3>
+            <p>Track live scores, player performance, and match statistics as they happen with our real-time dashboard.</p>
+          </div>
+          
+          <div class="feature">
+            <div class="icon">🎯</div>
+            <h3>Multi-tier Accumulators</h3>
+            <p>Get personalized accumulator suggestions based on your risk preference and betting strategy.</p>
+          </div>
+        </div>
+      </main>
+      
+      <footer>
+        <p>© 2025 PuntaIQ. All rights reserved.</p>
+        <p><small>v1.0.0 - AI Sports Prediction Platform</small></p>
+      </footer>
+    </div>
+
+    <nav class="bottom-nav">
+      <a href="/" class="active">
+        <div class="icon-home"></div>
+        <span>Home</span>
+      </a>
+      <a href="/predictions">
+        <div class="icon-predictions"></div>
+        <span>Predictions</span>
+      </a>
+      <a href="/livescore">
+        <div class="icon-live"></div>
+        <span>Live Scores</span>
+      </a>
+      <a href="/account">
+        <div class="icon-account"></div>
+        <span>Account</span>
+      </a>
+    </nav>
+
+    <script>
+      // Show content after a short delay to simulate loading
+      setTimeout(() => {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('content').style.display = 'block';
+        console.log('Static HTML loaded successfully');
+      }, 300);
+
+      // Basic navigation handling
+      document.addEventListener('DOMContentLoaded', () => {
+        const navLinks = document.querySelectorAll('a');
+        
+        navLinks.forEach(link => {
+          link.addEventListener('click', (e) => {
+            // Skip external links
+            if (link.host !== window.location.host) return;
+            
+            e.preventDefault();
+            const path = link.pathname;
+            
+            // Update active state in bottom nav
+            if (link.closest('.bottom-nav')) {
+              document.querySelectorAll('.bottom-nav a').forEach(navLink => {
+                navLink.classList.remove('active');
+              });
+              link.classList.add('active');
+            }
+            
+            // Handle navigation
+            console.log(`Navigating to: ${path}`);
+            
+            // Simulate page transition
+            document.getElementById('content').style.display = 'none';
+            document.getElementById('loading').style.display = 'flex';
+            
+            // For static demo, just reload the current page
+            setTimeout(() => {
+              window.location.href = path;
+            }, 300);
+          });
+        });
+      });
+    </script>
+  </body>
 </html>

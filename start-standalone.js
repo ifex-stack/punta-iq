@@ -4,41 +4,28 @@
  */
 
 import { spawn } from 'child_process';
-import * as path from 'path';
+import path from 'path';
 import { fileURLToPath } from 'url';
-import * as fs from 'fs';
 
-// Get the directory name in ESM
+// Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-console.log('Starting PuntaIQ Standalone Server');
+console.log('Starting standalone PuntaIQ server...');
 
-// Define the standalone server script path
-const standaloneScriptPath = path.join(__dirname, 'standalone-server.js');
-
-// Check if the script exists
-if (!fs.existsSync(standaloneScriptPath)) {
-  console.error(`Error: standalone-server.js not found at ${standaloneScriptPath}`);
-  process.exit(1);
-}
-
-// Start the standalone server as a detached process
-const server = spawn('node', [standaloneScriptPath], {
-  detached: true,
+// Launch the standalone server
+const server = spawn('node', ['launch-standalone.js'], {
+  cwd: __dirname,
   stdio: 'inherit'
 });
 
-// Log server info and exit this script
-console.log(`Standalone server starting with PID: ${server.pid}`);
-console.log('This script will exit, but the server will continue running.');
-console.log('You can access the PuntaIQ application at: http://localhost:3000');
+// Handle server exit
+server.on('exit', (code) => {
+  if (code !== 0) {
+    console.error(`Standalone server exited with code ${code}`);
+  } else {
+    console.log('Standalone server exited gracefully');
+  }
+});
 
-// Don't wait for the child process
-server.unref();
-
-// Exit after a short delay
-setTimeout(() => {
-  console.log('Standalone server launch script complete.');
-  process.exit(0);
-}, 500);
+console.log('Started standalone server process. Press Ctrl+C to exit.');

@@ -1,209 +1,159 @@
 /**
- * Static file middleware for PuntaIQ
- * This handles serving static files and providing SPA fallbacks
+ * Enhanced Static File Middleware
+ * Custom middleware for serving static files and handling SPA requests
  */
 
-import express, { Express, Request, Response, NextFunction } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import fs from 'fs';
-import { logger } from './logger';
+import { createContextLogger } from './logger';
+
+const logger = createContextLogger('StaticMiddleware');
 
 /**
- * Find the best index.html file to serve for the SPA
+ * Sets up enhanced static file serving middleware
  */
-function findIndexHtml(): string | null {
-  // Try various possible locations for index.html
-  const possiblePaths = [
-    path.resolve(process.cwd(), 'client', 'index.html'),
-    path.resolve(process.cwd(), 'public', 'index.html'),
-    path.resolve(process.cwd(), 'client', 'dist', 'index.html'),
-    path.resolve(process.cwd(), 'dist', 'client', 'index.html'),
-    path.resolve(process.cwd(), 'index.html'),
+export function setupStaticFileServing(app: express.Express): void {
+  // Serve static files from the public directory with highest priority
+  console.log('Setting up static file middleware - public directory with highest priority');
+  app.use(express.static('public', { 
+    index: 'index.html', 
+    extensions: ['html'], 
+    maxAge: '1d'
+  }));
+  logger.info("Setting up enhanced static file middleware");
+
+  // Setup different static directories to try in order
+  const staticDirs = [
+    { path: 'public', virtual: '/' },
+    { path: 'client/public', virtual: '/' },
+    { path: 'client/dist', virtual: '/' },
+    { path: 'assets', virtual: '/assets' }
   ];
-  
-  for (const indexPath of possiblePaths) {
-    if (fs.existsSync(indexPath)) {
-      logger.info(`Found index.html at ${indexPath}`);
-      return indexPath;
+
+  // Iterate over and set up each static directory if it exists
+  for (const dir of staticDirs) {
+    const staticPath = path.resolve(process.cwd(), dir.path);
+    
+    if (fs.existsSync(staticPath)) {
+      logger.info(`Setting up static file serving from ${staticPath} at ${dir.virtual}`);
+      app.use(dir.virtual, express.static(staticPath, {
+        index: ['index.html', 'app.html'],
+        extensions: ['html', 'htm'],
+        fallthrough: true // Allow requests to continue if file not found
+      }));
+    } else {
+      logger.debug(`Static directory ${staticPath} does not exist, skipping`);
     }
   }
-  
-  logger.warn('No index.html found in any of the expected locations');
-  return null;
-}
 
-/**
- * Setup static file serving for the Express app
- */
-export function setupStaticFileServing(app: Express): void {
-  // Log which static directories we're going to try
-  logger.info('Setting up static file serving middleware');
-  
-  // Match various key file access patterns
-  app.get('/favicon.ico', (req: Request, res: Response) => {
-    const faviconPaths = [
-      path.resolve(process.cwd(), 'public', 'favicon.ico'),
-      path.resolve(process.cwd(), 'client', 'public', 'favicon.ico'),
-      path.resolve(process.cwd(), 'client', 'dist', 'favicon.ico'),
-      path.resolve(process.cwd(), 'dist', 'client', 'favicon.ico'),
-      path.resolve(process.cwd(), 'favicon.ico'),
-    ];
-    
+  // Configure special favicon serving
+  const faviconPaths = [
+    path.resolve(process.cwd(), 'public', 'favicon.png'),
+    path.resolve(process.cwd(), 'public', 'favicon.ico'),
+    path.resolve(process.cwd(), 'client', 'public', 'favicon.png'),
+    path.resolve(process.cwd(), 'client', 'public', 'favicon.ico')
+  ];
+
+  // Serve the favicon specifically
+  app.get('/favicon.ico', (req: Request, res: Response, next: NextFunction) => {
     for (const faviconPath of faviconPaths) {
       if (fs.existsSync(faviconPath)) {
         return res.sendFile(faviconPath);
       }
     }
-    
-    // If no favicon found, return 404
-    res.status(404).send('Not found');
+    next();
   });
-  
-  // Root path handler for index.html
-  app.get('/', (req: Request, res: Response) => {
-    const indexHtmlPath = findIndexHtml();
-    
-    if (indexHtmlPath) {
-      logger.info(`Serving index.html from ${indexHtmlPath} for root path`);
-      return res.sendFile(indexHtmlPath);
-    } else {
-      // Generate a basic HTML page if no index.html is found
-      logger.warn('No index.html found, generating fallback HTML');
-      
-      res.setHeader('Content-Type', 'text/html');
-      return res.send(`<!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>PuntaIQ</title>
-          <style>
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-              background: #f5f5f5;
-              color: #333;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              height: 100vh;
-              margin: 0;
-            }
-            .container {
-              text-align: center;
-              max-width: 500px;
-              padding: 2rem;
-              background: white;
-              border-radius: 8px;
-              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            }
-            h1 { color: #0066cc; margin-top: 0; }
-            p { line-height: 1.5; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h1>Welcome to PuntaIQ</h1>
-            <p>The AI-powered sports prediction platform</p>
-          </div>
-        </body>
-      </html>`);
-    }
-  });
-  
-  // Try multiple static directories
-  const staticDirs = [
-    { url: '/assets', dir: path.resolve(process.cwd(), 'client', 'dist', 'assets') },
-    { url: '/assets', dir: path.resolve(process.cwd(), 'dist', 'client', 'assets') },
-    { url: '/assets', dir: path.resolve(process.cwd(), 'public', 'assets') },
-    { url: '/assets', dir: path.resolve(process.cwd(), 'client', 'public', 'assets') },
-    { url: '/assets', dir: path.resolve(process.cwd(), 'assets') },
-    { url: '/public', dir: path.resolve(process.cwd(), 'public') },
-    { url: '/public', dir: path.resolve(process.cwd(), 'client', 'public') },
-  ];
-  
-  for (const { url, dir } of staticDirs) {
-    if (fs.existsSync(dir)) {
-      logger.info(`Setting up static directory: ${url} -> ${dir}`);
-      app.use(url, express.static(dir));
-    }
-  }
-  
-  // Handle direct asset requests to ensure they work
-  app.get('/favicon.png', (req, res) => {
-    const faviconPaths = [
-      path.resolve(process.cwd(), 'public', 'favicon.png'),
-      path.resolve(process.cwd(), 'client', 'public', 'favicon.png'),
-      path.resolve(process.cwd(), 'client', 'dist', 'favicon.png'),
-      path.resolve(process.cwd(), 'dist', 'client', 'favicon.png'),
-      path.resolve(process.cwd(), 'favicon.png'),
+
+  // Serve the root index.html file if it exists
+  app.get('/', (req: Request, res: Response, next: NextFunction) => {
+    const indexPaths = [
+      path.resolve(process.cwd(), 'public', 'index.html'),
+      path.resolve(process.cwd(), 'client', 'dist', 'index.html'),
+      path.resolve(process.cwd(), 'client', 'public', 'index.html'),
+      path.resolve(process.cwd(), 'index.html')
     ];
-    
-    for (const iconPath of faviconPaths) {
-      if (fs.existsSync(iconPath)) {
-        return res.sendFile(iconPath);
+
+    for (const indexPath of indexPaths) {
+      if (fs.existsSync(indexPath)) {
+        logger.info(`Serving root index.html from ${indexPath}`);
+        return res.sendFile(indexPath);
       }
     }
-    
-    res.status(404).send('Not found');
+
+    logger.warn('No index.html found for root path, falling through to next middleware');
+    next();
   });
-  
-  // Serve all client-side routes from our SPA's index.html
-  logger.info('Static file middleware setup complete');
 }
 
 /**
- * Set up SPA fallback middleware to handle client-side routes
+ * Sets up SPA fallback middleware for client-side routing
  */
-export function setupSpaFallback(app: Express): void {
-  logger.info('Setting up SPA fallback middleware');
-  
-  // This middleware handles all frontend routes by serving the SPA
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    // Skip API and AI service paths
-    if (req.path.startsWith('/api/') || 
-        req.path.startsWith('/ai-service/') ||
-        req.path.includes('.')) {
+export function setupSpaFallback(app: express.Express): void {
+  logger.info("Setting up SPA fallback middleware");
+
+  app.use('*', (req: Request, res: Response, next: NextFunction) => {
+    // Skip if this is not a GET request or is an API route or has a file extension
+    if (
+      req.method !== 'GET' ||
+      req.path.startsWith('/api/') ||
+      req.path.startsWith('/ai-service/') ||
+      req.path.includes('.') ||
+      req.path.startsWith('/assets/')
+    ) {
       return next();
     }
-    
-    logger.info(`SPA fallback handling: ${req.originalUrl}`);
-    
-    // Get index.html path
-    const indexHtmlPath = findIndexHtml();
-    
-    if (!indexHtmlPath) {
-      logger.warn(`No index.html found for SPA fallback for ${req.originalUrl}`);
-      return next();
+
+    logger.info(`SPA catch-all handling route: ${req.path}`);
+
+    // Try to find index.html
+    const indexPaths = [
+      path.resolve(process.cwd(), 'public', 'index.html'),
+      path.resolve(process.cwd(), 'client', 'dist', 'index.html'),
+      path.resolve(process.cwd(), 'client', 'public', 'index.html'),
+      path.resolve(process.cwd(), 'index.html')
+    ];
+
+    // Find and serve the first available index.html
+    for (const indexPath of indexPaths) {
+      if (fs.existsSync(indexPath)) {
+        logger.info(`Serving SPA index.html from ${indexPath} for path ${req.path}`);
+        return res.sendFile(indexPath);
+      }
     }
-    
-    // Serve the index.html with navigation recovery code
-    try {
-      const htmlContent = fs.readFileSync(indexHtmlPath, 'utf8');
-      
-      // Inject special meta tags and recovery script into the HTML
-      const modifiedHtml = htmlContent
-        .replace(
-          '</head>',
-          `<meta name="puntaiq-app-route" content="${req.originalUrl}" />
-          <script>
-            // Record the original URL to help with route recovery
-            window.__PUNTAIQ_ORIGINAL_URL = "${req.originalUrl}";
-            
-            // Store path for recovery if needed
-            if (window.sessionStorage) {
-              sessionStorage.setItem('puntaiq_recovery_path', "${req.originalUrl}");
-            }
-          </script>
-          </head>`
-        );
-      
-      res.setHeader('Content-Type', 'text/html');
-      res.send(modifiedHtml);
-    } catch (error) {
-      logger.error(`Error serving SPA fallback for ${req.originalUrl}: ${error instanceof Error ? error.message : String(error)}`);
-      next();
-    }
+
+    // If we get here, no index.html was found
+    logger.warn(`No index.html found for SPA route: ${req.path}, continuing to next middleware`);
+    next();
   });
-  
-  logger.info('SPA fallback middleware setup complete');
+}
+
+/**
+ * Simple Express static middleware setup
+ */
+export function serveStatic(app: express.Express): void {
+  logger.info("Setting up basic static file serving middleware");
+
+  // Set up standard public directory static serving
+  const publicDir = path.resolve(process.cwd(), 'public');
+  if (fs.existsSync(publicDir)) {
+    app.use(express.static(publicDir));
+    logger.info(`Serving static files from ${publicDir}`);
+  } else {
+    logger.warn(`Public directory ${publicDir} does not exist`);
+  }
+
+  // Fallback to client/public if it exists
+  const clientPublicDir = path.resolve(process.cwd(), 'client', 'public');
+  if (fs.existsSync(clientPublicDir)) {
+    app.use(express.static(clientPublicDir));
+    logger.info(`Serving static files from ${clientPublicDir}`);
+  }
+
+  // Fallback to client/dist if it exists (for production builds)
+  const clientDistDir = path.resolve(process.cwd(), 'client', 'dist');
+  if (fs.existsSync(clientDistDir)) {
+    app.use(express.static(clientDistDir));
+    logger.info(`Serving static files from ${clientDistDir}`);
+  }
 }

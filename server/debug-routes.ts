@@ -1,266 +1,357 @@
 /**
- * Debug Routes for PuntaIQ
- * These routes provide information about the application's configuration and serve as test endpoints
+ * Debug routes for PuntaIQ application
+ * These routes are used for testing and debugging purposes
  */
 
-import express, { Request, Response } from 'express';
-import fs from 'fs';
-import path from 'path';
-import { logger } from './logger';
+import express from 'express';
+import { createContextLogger } from './logger';
 
 const router = express.Router();
+const logger = createContextLogger('DebugRoutes');
 
-/**
- * GET /api/debug/server-info
- * Returns information about the server configuration
- */
-router.get('/server-info', (req: Request, res: Response) => {
-  // Scan for important directories and files
-  logger.info('Serving /api/debug/server-info');
+// Basic health check
+router.get('/health', (req, res) => {
+  logger.info('Health check requested');
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    service: 'puntaiq-api',
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Server information
+router.get('/info', (req, res) => {
+  logger.info('Debug info requested');
   
-  // Find all directories in the root directory
-  const rootPath = process.cwd();
-  const directories = [];
+  // Get basic information about the server
+  const info = {
+    nodeVersion: process.version,
+    platform: process.platform,
+    memoryUsage: process.memoryUsage(),
+    uptime: process.uptime(),
+    env: process.env.NODE_ENV,
+    port: process.env.PORT || 3000,
+    serverTime: new Date().toISOString()
+  };
+  
+  res.json(info);
+});
+
+// Test error handling
+router.get('/error-test', (req, res, next) => {
+  logger.warn('Error test route accessed');
   
   try {
-    const items = fs.readdirSync(rootPath);
-    for (const item of items) {
-      const itemPath = path.join(rootPath, item);
-      try {
-        if (fs.statSync(itemPath).isDirectory()) {
-          directories.push(item);
-        }
-      } catch (err) {
-        // Skip items with access issues
-      }
+    const statusCode = parseInt(req.query.code as string) || 500;
+    if (req.query.throw) {
+      throw new Error('Test error from debug route');
+    } else {
+      res.status(statusCode).json({
+        error: 'Test Error',
+        message: 'This is a test error response',
+        code: 'TEST_ERROR',
+        requestedCode: statusCode
+      });
     }
   } catch (err) {
-    logger.error(`Error reading root directory: ${err.message}`);
+    next(err);
   }
-  
-  // Check for index.html files
-  const indexHtmlFound = [];
-  const indexHtmlPaths = [
-    path.resolve(rootPath, 'client', 'index.html'),
-    path.resolve(rootPath, 'public', 'index.html'),
-    path.resolve(rootPath, 'client', 'dist', 'index.html'),
-    path.resolve(rootPath, 'dist', 'client', 'index.html'),
-    path.resolve(rootPath, 'index.html')
-  ];
-  
-  for (const indexPath of indexHtmlPaths) {
-    if (fs.existsSync(indexPath)) {
-      indexHtmlFound.push(indexPath);
-    }
-  }
-  
-  // Return server information
-  res.json({
-    success: true,
-    server: {
-      nodeVersion: process.version,
-      environment: process.env.NODE_ENV || 'unknown',
-      pid: process.pid,
-      uptime: process.uptime(),
-      memoryUsage: process.memoryUsage(),
-      mainPort: process.env.PORT || 3000,
-      aiServicePort: 5000,
-    },
-    filesystem: {
-      rootPath,
-      directories,
-      indexHtmlFound,
-      clientDir: fs.existsSync(path.join(rootPath, 'client')),
-      serverDir: fs.existsSync(path.join(rootPath, 'server')),
-      publicDir: fs.existsSync(path.join(rootPath, 'public')),
-    },
-    request: {
-      hostname: req.hostname,
-      ip: req.ip,
-      protocol: req.protocol,
-      secure: req.secure,
-      originalUrl: req.originalUrl,
-      xhr: req.xhr,
-      userAgent: req.headers['user-agent'],
-      port: req.socket.localPort
-    }
-  });
 });
 
-/**
- * GET /api/debug/static-check
- * Returns status of static file serving
- */
-router.get('/static-check', (req: Request, res: Response) => {
-  logger.info('Serving /api/debug/static-check');
+// Test page
+router.get('/test-page', (req, res) => {
+  logger.info('Test page requested');
   
-  // Check for important static files and directories
-  const rootPath = process.cwd();
-  const directories = [];
-  const indexHtmlFound = [];
-  
-  // Check various client asset directories
-  const assetDirs = [
-    path.join(rootPath, 'client', 'public'),
-    path.join(rootPath, 'public'),
-    path.join(rootPath, 'client', 'assets'),
-    path.join(rootPath, 'public', 'assets'),
-    path.join(rootPath, 'assets')
-  ];
-  
-  const assetDirsFound = assetDirs.filter(dir => fs.existsSync(dir));
-  
-  // Check for index.html files
-  const indexHtmlPaths = [
-    path.join(rootPath, 'client', 'index.html'),
-    path.join(rootPath, 'public', 'index.html'),
-    path.join(rootPath, 'index.html')
-  ];
-  
-  const indexFilesFound = indexHtmlPaths.filter(file => fs.existsSync(file));
-  
-  res.json({
-    success: true,
-    staticFilesCheck: {
-      assetDirsFound,
-      indexFilesFound,
-      publicDir: fs.existsSync(path.join(rootPath, 'public')),
-      clientDir: fs.existsSync(path.join(rootPath, 'client')),
-    },
-    request: {
-      hostname: req.hostname,
-      baseUrl: req.baseUrl,
-      originalUrl: req.originalUrl,
-      port: req.socket.localPort
-    }
-  });
-});
-
-/**
- * GET /api/debug/port-check
- * Checks if we're on the correct port (3000)
- */
-router.get('/port-check', (req: Request, res: Response) => {
-  logger.info('Serving /api/debug/port-check');
-  
-  const serverPort = 3000; // Expected port for the main server
-  const currentPort = req.socket.localPort;
-  const isCorrectPort = currentPort === serverPort;
-  
-  res.json({
-    success: true,
-    portCheck: {
-      expectedPort: serverPort,
-      currentPort,
-      isCorrectPort,
-      hostname: req.hostname,
-      protocol: req.protocol,
-      originalUrl: req.originalUrl
-    }
-  });
-});
-
-// HTML test page for debugging
-router.get('/test-page', (req: Request, res: Response) => {
-  logger.info('Serving /api/debug/test-page');
-  
-  res.setHeader('Content-Type', 'text/html');
+  // Send a basic HTML page for testing
   res.send(`
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>PuntaIQ Debug Test Page</title>
+        <title>PuntaIQ Debug Page</title>
         <style>
           body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: #f5f5f5;
-            color: #333;
+            background: linear-gradient(135deg, #0066cc, #004080);
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+          }
+          .container {
             max-width: 800px;
-            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
             padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            text-align: center;
           }
-          h1 { color: #0066cc; }
-          .info-block {
-            background: white;
+          h1 {
+            font-size: 2.5rem;
+            margin: 0 0 1rem;
+            background: linear-gradient(to right, #fff, #adf);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+          }
+          .status {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            background: #00cc66;
+            color: #fff;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+          }
+          .card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            padding: 1rem;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: left;
           }
-          .success { color: green; }
-          .error { color: red; }
+          h2 {
+            margin-top: 0;
+            font-size: 1.5rem;
+            color: #adf;
+          }
           button {
             background: #0066cc;
             color: white;
             border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
             cursor: pointer;
-            margin-right: 0.5rem;
-            margin-bottom: 0.5rem;
+            font-size: 1rem;
+            font-weight: bold;
+            margin: 0.5rem;
+            transition: all 0.2s;
           }
-          #results {
-            white-space: pre-wrap;
-            font-family: monospace;
-            font-size: 0.9rem;
-            background: #f1f1f1;
+          button:hover {
+            background: #0052a3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+          }
+          pre {
+            background: rgba(0, 0, 0, 0.2);
             padding: 1rem;
             border-radius: 4px;
-            margin-top: 1rem;
-            max-height: 300px;
-            overflow-y: auto;
+            overflow: auto;
+            white-space: pre-wrap;
+            color: #ddd;
+          }
+          .buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+          }
+          .label {
+            display: inline-block;
+            width: 150px;
+            font-weight: bold;
+            color: #adf;
+          }
+          .value {
+            color: #fff;
+          }
+          .api-status {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1.5rem;
+          }
+          .api-box {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+          }
+          .api-box.success {
+            border: 1px solid #00cc66;
+          }
+          .api-box.error {
+            border: 1px solid #cc0033;
+          }
+          .indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+          }
+          .indicator.success {
+            background: #00cc66;
+          }
+          .indicator.error {
+            background: #cc0033;
+          }
+          .indicator.pending {
+            background: #cccc00;
+          }
+          .routes {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+          }
+          .route-link {
+            display: block;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            text-decoration: none;
+            color: #fff;
+            transition: all 0.2s;
+          }
+          .route-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+          }
+          @media (max-width: 768px) {
+            h1 { font-size: 1.8rem; }
+            .api-status {
+              grid-template-columns: 1fr;
+            }
           }
         </style>
       </head>
       <body>
-        <h1>PuntaIQ Debug Test Page</h1>
-        <div class="info-block">
-          <p>Current Server: <strong>${req.hostname}:${req.socket.localPort}</strong></p>
-          <p>Request URL: <strong>${req.originalUrl}</strong></p>
-          <p>Request Protocol: <strong>${req.protocol}</strong></p>
-        </div>
-        
-        <div class="info-block">
-          <h2>API Tests</h2>
-          <button onclick="testApi('/api/debug/server-info')">Test Server Info</button>
-          <button onclick="testApi('/api/debug/static-check')">Test Static Files</button>
-          <button onclick="testApi('/api/debug/port-check')">Test Port</button>
-          <button onclick="testApi('/api/status')">Test API Status</button>
+        <div class="container">
+          <div class="status">Server Running</div>
+          <h1>PuntaIQ Debug Console</h1>
           
-          <h3>Results:</h3>
-          <div id="results">Test results will appear here...</div>
-        </div>
-        
-        <div class="info-block">
-          <h2>Navigation Tests</h2>
-          <p>Click these links to test navigation to various parts of the app</p>
-          <button onclick="window.location.href='/'">Home</button>
-          <button onclick="window.location.href='/predictions'">Predictions</button>
-          <button onclick="window.location.href='/livescore'">Live Scores</button>
-          <button onclick="window.location.href='/accumulators'">Accumulators</button>
-          <button onclick="window.location.href='/profile'">Profile</button>
+          <div class="card">
+            <h2>Server Status</h2>
+            <div><span class="label">Server Time:</span> <span class="value" id="server-time">${new Date().toLocaleString()}</span></div>
+            <div><span class="label">Environment:</span> <span class="value">${process.env.NODE_ENV || 'development'}</span></div>
+            <div><span class="label">Node Version:</span> <span class="value">${process.version}</span></div>
+            <div><span class="label">Platform:</span> <span class="value">${process.platform}</span></div>
+            <div><span class="label">Uptime:</span> <span class="value" id="uptime">${Math.floor(process.uptime())} seconds</span></div>
+            <div><span class="label">Memory Usage:</span> <span class="value">${Math.round(process.memoryUsage().rss / 1024 / 1024)} MB</span></div>
+          </div>
+          
+          <div class="buttons">
+            <button id="check-api">Check Express API</button>
+            <button id="check-ai">Check AI Service</button>
+            <button id="check-routes">Check System Routes</button>
+          </div>
+          
+          <div class="api-status">
+            <div class="api-box" id="api-status">
+              <div><span class="indicator pending"></span> Express API Status</div>
+              <div id="api-status-message">Waiting for check...</div>
+            </div>
+            <div class="api-box" id="ai-status">
+              <div><span class="indicator pending"></span> AI Service Status</div>
+              <div id="ai-status-message">Waiting for check...</div>
+            </div>
+          </div>
+          
+          <div id="results" style="margin-top: 1.5rem; display: none;">
+            <h2>API Response</h2>
+            <pre id="response-data"></pre>
+          </div>
+          
+          <div class="routes" id="routes-container" style="display: none;">
+            <h2 style="grid-column: 1 / -1;">Available Debug Routes</h2>
+            <a href="/api/debug/health" class="route-link">/api/debug/health</a>
+            <a href="/api/debug/info" class="route-link">/api/debug/info</a>
+            <a href="/api/debug/error-test" class="route-link">/api/debug/error-test</a>
+            <a href="/api/debug/test-page" class="route-link">/api/debug/test-page</a>
+          </div>
         </div>
         
         <script>
-          // Function to test API endpoints
-          async function testApi(endpoint) {
-            const resultsEl = document.getElementById('results');
-            resultsEl.textContent = 'Loading...';
+          // Update server time and uptime periodically
+          setInterval(() => {
+            document.getElementById('server-time').textContent = new Date().toLocaleString();
+            const uptimeEl = document.getElementById('uptime');
+            const currentUptime = parseInt(uptimeEl.textContent.split(' ')[0]) + 1;
+            uptimeEl.textContent = currentUptime + ' seconds';
+          }, 1000);
+          
+          // Check Express API
+          document.getElementById('check-api').addEventListener('click', async () => {
+            const apiStatusBox = document.getElementById('api-status');
+            const apiStatusMessage = document.getElementById('api-status-message');
+            const indicator = apiStatusBox.querySelector('.indicator');
+            
+            indicator.className = 'indicator pending';
+            apiStatusMessage.textContent = 'Checking...';
             
             try {
-              const response = await fetch(endpoint);
+              const response = await fetch('/api/debug/health');
               const data = await response.json();
-              resultsEl.textContent = JSON.stringify(data, null, 2);
+              
+              indicator.className = 'indicator success';
+              apiStatusMessage.textContent = 'Connected';
+              apiStatusBox.className = 'api-box success';
+              
+              // Show the response data
+              document.getElementById('results').style.display = 'block';
+              document.getElementById('response-data').textContent = JSON.stringify(data, null, 2);
             } catch (error) {
-              resultsEl.textContent = 'Error: ' + error.message;
+              indicator.className = 'indicator error';
+              apiStatusMessage.textContent = 'Connection failed';
+              apiStatusBox.className = 'api-box error';
+              
+              document.getElementById('results').style.display = 'block';
+              document.getElementById('response-data').textContent = 'Error: ' + error.message;
             }
-          }
+          });
           
-          // Check the server info on page load
-          window.addEventListener('DOMContentLoaded', function() {
-            testApi('/api/debug/server-info');
+          // Check AI Service
+          document.getElementById('check-ai').addEventListener('click', async () => {
+            const aiStatusBox = document.getElementById('ai-status');
+            const aiStatusMessage = document.getElementById('ai-status-message');
+            const indicator = aiStatusBox.querySelector('.indicator');
+            
+            indicator.className = 'indicator pending';
+            aiStatusMessage.textContent = 'Checking...';
+            
+            try {
+              const response = await fetch('/ai-service/api/status');
+              const data = await response.json();
+              
+              indicator.className = 'indicator success';
+              aiStatusMessage.textContent = 'Connected';
+              aiStatusBox.className = 'api-box success';
+              
+              // Show the response data
+              document.getElementById('results').style.display = 'block';
+              document.getElementById('response-data').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+              indicator.className = 'indicator error';
+              aiStatusMessage.textContent = 'Connection failed';
+              aiStatusBox.className = 'api-box error';
+              
+              // Try direct connection
+              try {
+                const directResponse = await fetch('http://localhost:5000/api/status');
+                const directData = await directResponse.json();
+                
+                document.getElementById('results').style.display = 'block';
+                document.getElementById('response-data').textContent = 'Direct connection succeeded but proxy failed. AI service is running but not accessible through the proxy.\n\nDirect response:\n' + JSON.stringify(directData, null, 2);
+              } catch (directError) {
+                document.getElementById('results').style.display = 'block';
+                document.getElementById('response-data').textContent = 'Error: ' + error.message + '\n\nDirect connection also failed: ' + directError.message;
+              }
+            }
+          });
+          
+          // Show available routes
+          document.getElementById('check-routes').addEventListener('click', () => {
+            const routesContainer = document.getElementById('routes-container');
+            routesContainer.style.display = 'grid';
           });
         </script>
       </body>
@@ -268,7 +359,4 @@ router.get('/test-page', (req: Request, res: Response) => {
   `);
 });
 
-/**
- * Export the router
- */
 export default router;
