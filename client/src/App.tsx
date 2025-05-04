@@ -1,5 +1,5 @@
 import { Route, Switch, useLocation } from "wouter";
-import { useEffect } from "react";
+import React, { useEffect, Suspense } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -10,6 +10,7 @@ import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import HomePage from "@/pages/home-page";
 import MobileHomePage from "@/pages/mobile-home-page"; // Import the mobile home page
+import DebugAuthPage from "@/pages/debug-auth"; // Import the debug auth page
 import SubscriptionPage from "@/pages/subscription-page";
 import SubscriptionSuccessPage from "@/pages/subscription-success";
 import ProfilePage from "@/pages/profile-page";
@@ -129,7 +130,7 @@ const Router: React.FC = () => {
             <Route path="/legal/responsible-gambling" component={ResponsibleGamblingPage} />
             <Route path="/ui-showcase" component={UIShowcase} />
             <Route path="/mobile" component={MobileHomePage} />
-            <Route path="/debug-auth" component={() => import("./pages/debug-auth").then(mod => <mod.default />)} />
+            <Route path="/debug-auth" component={DebugAuthPage} />
             <Route component={NotFound} />
           </Switch>
         </AppLayout>
