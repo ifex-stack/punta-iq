@@ -29,9 +29,25 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
     enabled: !!user,
   });
   
+  // Track a flag for when onboarding was manually dismissed
+  // Initialize from localStorage if available
+  const [manuallyDismissed, setManuallyDismissed] = useState(() => {
+    try {
+      return localStorage.getItem('onboardingDismissed') === 'true';
+    } catch (error) {
+      return false;
+    }
+  });
+  
   useEffect(() => {
     // If user is logged in and we have preferences data
     if (user && !isLoading) {
+      // Check if onboarding was explicitly marked as completed in preferences
+      if (preferences?.onboardingCompleted) {
+        setHasCompletedOnboarding(true);
+        return;
+      }
+      
       // Consider onboarding incomplete if no preferences are set
       // or if favoriteSports is empty
       const onboardingIncomplete = !preferences || 
@@ -40,14 +56,14 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
       
       setHasCompletedOnboarding(!onboardingIncomplete);
       
-      // Auto show onboarding for new users
-      if (onboardingIncomplete && !isOpen) {
+      // Auto show onboarding for new users, but only if not manually dismissed
+      if (onboardingIncomplete && !isOpen && !manuallyDismissed) {
         // Small delay to ensure auth is fully loaded
         const timer = setTimeout(() => setIsOpen(true), 1000);
         return () => clearTimeout(timer);
       }
     }
-  }, [user, preferences, isLoading, isOpen]);
+  }, [user, preferences, isLoading, isOpen, manuallyDismissed]);
   
   // Listen for manual trigger to open onboarding
   useEffect(() => {
@@ -73,12 +89,18 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
         open={isOpen} 
         onOpenChange={(open) => {
           setIsOpen(open);
-          // If dialog is closed, refresh the completion status
+          
+          // If dialog is closed by the user
           if (!open && user) {
-            // Refetch preferences after a short delay
-            setTimeout(() => {
-              // Refetch will happen automatically due to cache invalidation in PersonalizedOnboarding
-            }, 500);
+            // Mark as manually dismissed to prevent auto-reappearing
+            setManuallyDismissed(true);
+            
+            // Save this state to localStorage to persist across refreshes
+            try {
+              localStorage.setItem('onboardingDismissed', 'true');
+            } catch (error) {
+              console.error('Failed to save onboarding state to localStorage:', error);
+            }
           }
         }} 
       />
