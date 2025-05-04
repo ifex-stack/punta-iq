@@ -104,7 +104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({
       appMode: process.env.NODE_ENV || 'development',
       aiServiceUrl: 'http://localhost:5000',
-      apiServerUrl: 'http://localhost:5000',
+      apiServerUrl: 'http://localhost:3000',
       serverTime: new Date().toISOString(),
       message: 'PuntaIQ API server is running correctly',
       standalone: {
