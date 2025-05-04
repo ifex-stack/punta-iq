@@ -30,6 +30,7 @@ import AdvancedAnalysisPage from "@/pages/advanced-analysis-page";
 import AccumulatorsPage from "@/pages/enhanced-accumulators-page"; // Using enhanced version with animations and improved UX
 import LiveScorePage from "@/pages/livescore-page";
 import AIServiceStatusPage from "@/pages/ai-service-status-page";
+import TieredPredictionsPage from "@/pages/tiered-predictions-page"; // New tiered predictions page
 import PrivacyPolicyPage from "@/pages/legal/privacy-policy";
 import TermsOfServicePage from "@/pages/legal/terms-of-service";
 import ResponsibleGamblingPage from "@/pages/legal/responsible-gambling";
@@ -91,6 +92,7 @@ const Router: React.FC = () => {
             <ProtectedRoute path="/predictions/advanced" component={AdvancedPredictionsPage} />
             <ProtectedRoute path="/advanced-analysis" component={AdvancedAnalysisPage} />
             <ProtectedRoute path="/accumulators" component={AccumulatorsPage} />
+            <ProtectedRoute path="/predictions/tiered" component={TieredPredictionsPage} />
             <ProtectedRoute path="/fantasy/contests" component={FantasyContestsPage} />
             <ProtectedRoute path="/fantasy/contests/create" component={FantasyContestCreatePage} />
             <ProtectedRoute path="/fantasy/teams/:teamId/build" component={FantasyTeamBuildPage} />

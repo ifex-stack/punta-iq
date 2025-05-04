@@ -1,11 +1,13 @@
 /**
  * Script to start the AI microservice
+ * Enhanced with better error handling and dependency checking
  */
 import { exec, spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { fileURLToPath } from 'url';
+import http from 'http';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,23 +16,76 @@ const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(path.join(__dirname, '..'));
 const AI_SERVICE_DIR = path.join(ROOT_DIR, 'ai_service');
 const API_SERVICE_PATH = path.join(AI_SERVICE_DIR, 'api_service.py');
+const LOG_PATH = path.join(ROOT_DIR, 'ai_service_log.txt');
 
-function checkPythonDependencies() {
+// Port that the AI microservice runs on
+const AI_SERVICE_PORT = process.env.AI_SERVICE_PORT || 5000;
+
+/**
+ * Check if the Python executable exists
+ */
+function checkPythonInstallation() {
   return new Promise((resolve, reject) => {
-    console.log('Checking Python dependencies...');
+    exec('python --version', (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Python is not installed or not in PATH: ${error.message}`);
+        reject(error);
+        return;
+      }
+      
+      const version = stdout.trim() || stderr.trim();
+      console.log(`Found Python: ${version}`);
+      resolve(version);
+    });
+  });
+}
+
+/**
+ * Check if the AI service is already running
+ */
+function checkServiceRunning() {
+  return new Promise((resolve) => {
+    const request = http.get(`http://localhost:${AI_SERVICE_PORT}/api/status`, (response) => {
+      if (response.statusCode === 200) {
+        console.log('AI microservice is already running');
+        resolve(true);
+      } else {
+        resolve(false);
+      }
+    });
     
-    // List of required packages
+    request.on('error', () => {
+      // Error means service is not running
+      resolve(false);
+    });
+    
+    // Set a short timeout
+    request.setTimeout(2000, () => {
+      request.destroy();
+      resolve(false);
+    });
+  });
+}
+
+/**
+ * Install Python dependencies
+ */
+function installPythonDependencies() {
+  return new Promise((resolve, reject) => {
+    console.log('Installing Python dependencies...');
+    
+    // List of required packages with versions to ensure compatibility
     const requiredPackages = [
-      'flask',
-      'requests',
-      'python-dotenv'
+      'flask==2.2.3',
+      'requests==2.31.0',
+      'python-dotenv==1.0.0'
     ];
     
     // Create a temporary requirements file
-    const tempRequirementsPath = path.join(os.tmpdir(), 'temp_requirements.txt');
+    const tempRequirementsPath = path.join(os.tmpdir(), 'puntaiq_requirements.txt');
     fs.writeFileSync(tempRequirementsPath, requiredPackages.join('\n'));
     
-    // Install dependencies
+    // Install dependencies with pip
     const installCmd = `pip install -r ${tempRequirementsPath}`;
     
     exec(installCmd, (error, stdout, stderr) => {
@@ -42,6 +97,7 @@ function checkPythonDependencies() {
       }
       
       console.log('Python dependencies installed successfully');
+      console.log(stdout);
       
       // Clean up the temporary file
       try {
@@ -55,37 +111,118 @@ function checkPythonDependencies() {
   });
 }
 
+/**
+ * Start the AI microservice with proper logging
+ */
 function startMicroservice() {
-  console.log('Starting AI microservice...');
-  
-  // Check if the service file exists
-  if (!fs.existsSync(API_SERVICE_PATH)) {
-    console.error(`API service file not found at: ${API_SERVICE_PATH}`);
-    process.exit(1);
-  }
-  
-  // Start the Python process
-  const pythonProcess = spawn('python', [API_SERVICE_PATH], {
-    detached: true,
-    stdio: 'ignore',
-    cwd: AI_SERVICE_DIR
+  return new Promise((resolve, reject) => {
+    console.log('Starting AI microservice...');
+    
+    // Check if the service file exists
+    if (!fs.existsSync(API_SERVICE_PATH)) {
+      console.error(`API service file not found at: ${API_SERVICE_PATH}`);
+      reject(new Error(`API service file not found at: ${API_SERVICE_PATH}`));
+      return;
+    }
+    
+    // Create log file stream
+    const logStream = fs.createWriteStream(LOG_PATH, { flags: 'a' });
+    logStream.write(`\n--- Starting AI Microservice at ${new Date().toISOString()} ---\n`);
+    
+    // Start the Python process with output logging
+    const pythonProcess = spawn('python', [API_SERVICE_PATH], {
+      detached: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      cwd: AI_SERVICE_DIR,
+      env: {
+        ...process.env,
+        PYTHONUNBUFFERED: '1', // Ensure Python output is not buffered
+      }
+    });
+    
+    // Log process output
+    pythonProcess.stdout.on('data', (data) => {
+      const output = data.toString();
+      logStream.write(`[STDOUT] ${output}`);
+      console.log(`[AI Service] ${output.trim()}`);
+    });
+    
+    pythonProcess.stderr.on('data', (data) => {
+      const output = data.toString();
+      logStream.write(`[STDERR] ${output}`);
+      console.error(`[AI Service Error] ${output.trim()}`);
+    });
+    
+    // Handle process exit
+    pythonProcess.on('exit', (code, signal) => {
+      const message = `AI Service exited with code ${code} and signal ${signal}`;
+      logStream.write(`[EXIT] ${message}\n`);
+      console.log(message);
+      
+      if (code !== 0) {
+        reject(new Error(`AI Service failed to start properly: exit code ${code}`));
+      }
+    });
+    
+    // Check if the service is running after a short delay
+    setTimeout(async () => {
+      try {
+        const isRunning = await checkServiceRunning();
+        if (isRunning) {
+          console.log('AI microservice successfully started and responding');
+          resolve(true);
+        } else {
+          reject(new Error('AI microservice started but is not responding to HTTP requests'));
+        }
+      } catch (error) {
+        reject(new Error(`Failed to verify microservice status: ${error.message}`));
+      }
+    }, 3000);
+    
+    // Unref the process so the parent can exit independently
+    pythonProcess.unref();
+    
+    console.log(`AI microservice starting with PID: ${pythonProcess.pid}`);
   });
-  
-  // Unref the process so the parent can exit independently
-  pythonProcess.unref();
-  
-  console.log(`AI microservice started with PID: ${pythonProcess.pid}`);
 }
 
-// Main execution
+/**
+ * Main execution function
+ */
 async function main() {
   try {
-    await checkPythonDependencies();
-    startMicroservice();
+    console.log('==== PuntaIQ AI Microservice Starter ====');
+    
+    // Check if service is already running
+    const isRunning = await checkServiceRunning();
+    if (isRunning) {
+      console.log('AI microservice is already running, no action needed');
+      return;
+    }
+    
+    // Check Python installation
+    await checkPythonInstallation();
+    
+    // Install dependencies
+    await installPythonDependencies();
+    
+    // Start the microservice
+    await startMicroservice();
+    
+    console.log('==== AI Microservice startup complete ====');
   } catch (error) {
-    console.error('Failed to start AI microservice:', error);
+    console.error('Failed to start AI microservice:', error.message);
+    
+    // Write to log file
+    try {
+      fs.appendFileSync(LOG_PATH, `\n--- ERROR starting AI Microservice at ${new Date().toISOString()} ---\n${error.stack || error.message}\n`);
+    } catch (logError) {
+      console.error('Additionally, failed to write to log file:', logError.message);
+    }
+    
     process.exit(1);
   }
 }
 
+// Execute main function
 main();

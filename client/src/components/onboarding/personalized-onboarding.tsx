@@ -141,7 +141,32 @@ export function PersonalizedOnboarding({ open, onOpenChange }: PersonalizedOnboa
   // Handle form submission
   const onSubmit = async (data: OnboardingFormValues) => {
     try {
-      const response = await apiRequest("POST", "/api/user/preferences", data);
+      // Check if user is logged in first
+      if (!user) {
+        // Not logged in - let's open the auth page
+        toast({
+          title: "Login required",
+          description: "Please sign in or register to save your preferences",
+          variant: "default",
+        });
+        
+        // Close the onboarding dialog
+        onOpenChange(false);
+        
+        // Redirect to auth page
+        window.location.href = "/auth";
+        return;
+      }
+      
+      // Add onboarding completed flag to the data
+      const completeData = {
+        ...data,
+        onboardingCompleted: true,
+        lastStep: ONBOARDING_STEPS.length - 1,
+        completedSteps: ONBOARDING_STEPS.map(step => step.id)
+      };
+      
+      const response = await apiRequest("POST", "/api/user/preferences", completeData);
       
       toast({
         title: "Preferences saved",
@@ -155,9 +180,10 @@ export function PersonalizedOnboarding({ open, onOpenChange }: PersonalizedOnboa
       // Close the onboarding dialog
       onOpenChange(false);
     } catch (error) {
+      console.error("Error saving preferences:", error);
       toast({
         title: "Error",
-        description: "Failed to save preferences. Please try again.",
+        description: "Failed to save preferences. Please try again or log in if you're not already signed in.",
         variant: "destructive",
       });
     }
@@ -258,29 +284,41 @@ export function PersonalizedOnboarding({ open, onOpenChange }: PersonalizedOnboa
                         Choose the sports you want to receive predictions for
                       </FormDescription>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
-                        {SPORTS_LIST.map((sport) => (
-                          <FormItem
-                            key={sport.id}
-                            className="flex items-center space-x-3 space-y-0 border rounded-md p-3 cursor-pointer hover:bg-muted/50"
-                            onClick={() => {
-                              const updated = field.value.includes(sport.id)
-                                ? field.value.filter((id) => id !== sport.id)
-                                : [...field.value, sport.id];
-                              field.onChange(updated);
-                            }}
-                          >
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value.includes(sport.id)}
-                                onCheckedChange={() => {}}
-                              />
-                            </FormControl>
-                            <div className="flex items-center space-x-2">
-                              <span className="text-lg">{sport.icon}</span>
-                              <span>{sport.name}</span>
-                            </div>
-                          </FormItem>
-                        ))}
+                        {SPORTS_LIST.map((sport) => {
+                          const isSelected = field.value.includes(sport.id);
+                          return (
+                            <FormItem
+                              key={sport.id}
+                              className="flex items-center space-x-3 space-y-0 border rounded-md p-3 cursor-pointer hover:bg-muted/50"
+                            >
+                              <FormControl>
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={(checked) => {
+                                    // Only update the array when the checkbox state actually changes
+                                    const newValue = checked 
+                                      ? [...field.value, sport.id]
+                                      : field.value.filter(id => id !== sport.id);
+                                    field.onChange(newValue);
+                                  }}
+                                />
+                              </FormControl>
+                              <div 
+                                className="flex items-center space-x-2"
+                                onClick={() => {
+                                  // Handle click on label separately
+                                  const newValue = isSelected
+                                    ? field.value.filter(id => id !== sport.id)
+                                    : [...field.value, sport.id];
+                                  field.onChange(newValue);
+                                }}
+                              >
+                                <span className="text-lg">{sport.icon}</span>
+                                <span>{sport.name}</span>
+                              </div>
+                            </FormItem>
+                          );
+                        })}
                       </div>
                       <FormMessage />
                     </FormItem>
