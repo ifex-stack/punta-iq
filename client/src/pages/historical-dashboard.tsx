@@ -725,7 +725,7 @@ export default function HistoricalDashboard() {
                       <CardContent className="p-4">
                         <div className="text-sm text-muted-foreground">Avg. Odds</div>
                         <div className="text-2xl font-bold mt-1">
-                          {metrics.averageOdds.toFixed(2)}
+                          {metrics.averageOdds?.toFixed(2) || "0.00"}
                         </div>
                       </CardContent>
                     </Card>
@@ -781,7 +781,7 @@ export default function HistoricalDashboard() {
                         </div>
                         <Separator className="my-3" />
                         <div className="flex justify-between text-sm">
-                          <div>Avg. Odds: <span className="font-medium">{historicalStats.football.averageOdds.toFixed(2)}</span></div>
+                          <div>Avg. Odds: <span className="font-medium">{historicalStats.football.averageOdds?.toFixed(2) || "0.00"}</span></div>
                           <div>ROI: <span className={cn("font-medium", getStatValueColor(historicalStats.football.roi, false))}>
                             {historicalStats.football.roi}%
                           </span></div>
@@ -833,7 +833,7 @@ export default function HistoricalDashboard() {
                           <div className="flex justify-between mt-2 text-sm text-muted-foreground">
                             <div>{month.predictions} predictions</div>
                             <div>ROI: <span className="font-medium">
-                              {(month.successRate / 3).toFixed(1)}%
+                              {month.successRate ? (month.successRate / 3).toFixed(1) : "0.0"}%
                             </span></div>
                           </div>
                           <div className="h-2 w-full bg-muted rounded-full mt-3 overflow-hidden">
@@ -868,7 +868,7 @@ export default function HistoricalDashboard() {
                           </div>
                           <div className="grid grid-cols-2 mt-2 text-sm text-muted-foreground">
                             <div>Total: <span className="font-medium">{stats.totalPredictions}</span></div>
-                            <div>Avg. Odds: <span className="font-medium">{stats.averageOdds.toFixed(2)}</span></div>
+                            <div>Avg. Odds: <span className="font-medium">{stats.averageOdds?.toFixed(2) || "0.00"}</span></div>
                             <div>Won: <span className="text-green-500 font-medium">{stats.wonCount}</span></div>
                             <div>Lost: <span className="text-red-500 font-medium">{stats.lostCount}</span></div>
                           </div>
@@ -919,7 +919,7 @@ export default function HistoricalDashboard() {
                                 </div>
                                 <div className="mr-4">
                                   <span className="text-muted-foreground">Odds:</span>{" "}
-                                  <span className="font-medium">{prediction.odds.toFixed(2)}</span>
+                                  <span className="font-medium">{prediction.odds?.toFixed(2) || "0.00"}</span>
                                 </div>
                                 <div>
                                   <span className="text-muted-foreground">Confidence:</span>{" "}
@@ -971,7 +971,7 @@ export default function HistoricalDashboard() {
                         </div>
                         <div className="flex justify-between mt-1 text-sm text-muted-foreground">
                           <div>{prediction.prediction}</div>
-                          <div>Odds: {prediction.odds}</div>
+                          <div>Odds: {prediction.odds?.toFixed(2) || "0.00"}</div>
                         </div>
                       </CardContent>
                     </Card>
