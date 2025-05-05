@@ -252,3 +252,23 @@ Error: AI Service failed to start properly: exit code 1
  * Running on http://127.0.0.1:5001
  * Running on http://172.31.128.6:5001
 [2025-05-05 07:23:40,877] [INFO] [33mPress CTRL+C to quit[0m
+
+--- Starting AI Microservice at 2025-05-05T07:45:09.220Z on port 5001 ---
+[STDOUT] [2025-05-05 07:45:10,093] [INFO] Starting PuntaIQ API Service on port 5001
+[STDOUT]  * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-05 07:45:10,096] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://172.31.128.6:5001
+[STDOUT] [2025-05-05 07:45:10,096] [INFO] [33mPress CTRL+C to quit[0m
+
+--- Starting AI Microservice at 2025-05-05T07:45:34.866Z on port 5001 ---
+[STDOUT] [2025-05-05 07:45:35,319] [INFO] Starting PuntaIQ API Service on port 5001
+ * Serving Flask app 'api_service'
+ * Debug mode: off
+[STDOUT] [2025-05-05 07:45:35,325] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://172.31.128.6:5001
+[2025-05-05 07:45:35,325] [INFO] [33mPress CTRL+C to quit[0m
