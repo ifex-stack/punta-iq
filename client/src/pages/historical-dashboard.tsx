@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,11 +20,13 @@ import {
   TrendingUp,
   Check,
   X,
-  AlertTriangle
+  AlertTriangle,
+  RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { getQueryFn } from "@/lib/queryClient";
 import SportsTabs from "@/components/predictions/sports-tabs";
 
 // Define types for historical dashboard API response
@@ -109,7 +111,7 @@ export default function HistoricalDashboard() {
   const effectiveFromDate = fromDate ? fromDate.toISOString().split('T')[0] : undefined;
   const effectiveToDate = toDate ? toDate.toISOString().split('T')[0] : undefined;
   
-  // Fetch historical dashboard data
+  // Fetch historical dashboard data with improved error handling
   const { data: dashboardData, isLoading, isError, error, refetch } = useQuery<HistoricalDashboardResponse>({
     queryKey: [
       '/api/historical-dashboard', 
@@ -122,18 +124,24 @@ export default function HistoricalDashboard() {
         toDate: effectiveToDate
       }
     ],
-    enabled: !!user,
-    retry: 2,
+    enabled: !!user, // Only fetch if user is logged in
+    retry: 3, // Retry 3 times on failure
+    retryDelay: attempt => Math.min(attempt > 1 ? 2000 : 1000, 30 * 1000),
     staleTime: 5 * 60 * 1000, // 5 minutes
-    retryDelay: attempt => Math.min(attempt > 1 ? 2000 : 1000, 30 * 1000)
+    refetchOnWindowFocus: false, // Don't refetch when window gains focus
+    queryFn: getQueryFn({ on401: "throw" }), // Explicitly handle 401 errors
   });
   
-  // Log error for debugging
+  // Debug logs for any authentication or data issues
   useEffect(() => {
     if (isError) {
       console.error("Failed to fetch historical dashboard data:", error);
+      // Add additional debug info
+      if (!user) {
+        console.error("User is not authenticated - this may be causing the error");
+      }
     }
-  }, [isError, error]);
+  }, [isError, error, user]);
   
   // Sample data for development/demo
   const historicalStats = {
@@ -655,7 +663,7 @@ export default function HistoricalDashboard() {
               <SportsTabs 
                 sports={Object.keys(historicalStats).filter(sport => sport !== "overall")}
                 selectedSport={selectedSport === "all" ? undefined : selectedSport}
-                onSelect={(sport) => setSelectedSport(sport === selectedSport ? "all" : sport)}
+                onSelect={(sport: string) => setSelectedSport(sport === selectedSport ? "all" : sport)}
                 sportMetrics={Object.entries(historicalStats)
                   .filter(([key]) => key !== "overall")
                   .map(([key, stats]) => ({
@@ -952,9 +960,9 @@ export default function HistoricalDashboard() {
                       <CardContent className="p-3">
                         <div className="flex justify-between items-center">
                           <div className="font-medium">
-                            {prediction.homeTeam ? `${prediction.homeTeam} vs ${prediction.awayTeam}` : prediction.match}
+                            {prediction.match}
                           </div>
-                          {getResultBadge(prediction.result || (prediction.isCorrect === true ? 'won' : prediction.isCorrect === false ? 'lost' : 'pending'))}
+                          {getResultBadge(prediction.result)}
                         </div>
                         <div className="flex justify-between mt-1 text-sm text-muted-foreground">
                           <div>{prediction.prediction}</div>
