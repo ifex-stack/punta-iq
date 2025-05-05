@@ -121,6 +121,51 @@ const Router: React.FC = () => {
             <Route path="/legal/terms-of-service" component={TermsOfServicePage} />
             <Route path="/legal/responsible-gambling" component={ResponsibleGamblingPage} />
             <Route path="/ui-showcase" component={UIShowcase} />
+            <Route 
+              path="/login-test"
+              component={() => {
+                const { user, loginMutation, isLoading } = useAuth();
+                
+                const handleLogin = () => {
+                  loginMutation.mutate({
+                    username: 'beta_tester',
+                    password: 'puntaiq_beta_test'
+                  });
+                };
+                
+                return (
+                  <div className="p-8">
+                    <h1 className="text-2xl font-bold mb-4">Authentication Test</h1>
+                    {isLoading ? (
+                      <p>Loading...</p>
+                    ) : user ? (
+                      <div>
+                        <p>Logged in as: {user.username}</p>
+                        <pre className="mt-4 p-4 bg-muted rounded overflow-auto">
+                          {JSON.stringify(user, null, 2)}
+                        </pre>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="mb-4">Not logged in</p>
+                        <button 
+                          className="bg-primary text-white px-4 py-2 rounded"
+                          onClick={handleLogin}
+                          disabled={loginMutation.isPending}
+                        >
+                          {loginMutation.isPending ? 'Logging in...' : 'Log in as beta_tester'}
+                        </button>
+                      </div>
+                    )}
+                    {loginMutation.error && (
+                      <div className="mt-4 p-4 bg-destructive/10 text-destructive rounded">
+                        <p>Error: {loginMutation.error.message}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              }}
+            />
             <Route component={NotFound} />
           </Switch>
         </AppLayout>
