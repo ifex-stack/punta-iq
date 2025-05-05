@@ -12,12 +12,6 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ path, component }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
 
-  // TEMPORARY FIX: Special handling for ALL protected routes for testing
-  // This bypasses authentication check for all protected routes
-  console.log(`Bypassing auth check for protected route: ${path}`);
-  return <Route path={path} component={component} />;
-
-  /* Authentication logic disabled temporarily for testing
   if (isLoading) {
     return (
       <Route path={path}>
@@ -37,5 +31,4 @@ export function ProtectedRoute({ path, component }: ProtectedRouteProps) {
   }
 
   return <Route path={path} component={component} />;
-  */
 }
