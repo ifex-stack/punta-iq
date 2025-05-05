@@ -209,6 +209,17 @@ const TopBar = () => {
             <span className="ml-1">AI Status</span>
           </Button>
         </Link>
+        
+        <Link href="/metrics">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+          >
+            <BarChart className="h-4 w-4" />
+            <span className="ml-1">Metrics</span>
+          </Button>
+        </Link>
 
         <ThemeToggle variant="ghost" />
         
@@ -386,6 +397,16 @@ const TopBar = () => {
                   >
                     <BarChart className="mr-3 h-5 w-5" />
                     <span>Expert Predictions</span>
+                  </Button>
+                </Link>
+                
+                <Link href="/metrics">
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start h-12 text-base rounded-lg mb-1 touch-manipulation active:scale-95 transition-transform"
+                  >
+                    <BarChart className="mr-3 h-5 w-5" />
+                    <span>Betting Success Metrics</span>
                   </Button>
                 </Link>
               </div>
