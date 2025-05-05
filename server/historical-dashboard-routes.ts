@@ -13,6 +13,15 @@ export const historicalDashboardRouter = Router();
  * Supports filtering by sport, date range, result type, and more
  */
 historicalDashboardRouter.get("/api/historical-dashboard", async (req, res) => {
+  // Check if user is authenticated
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({
+      error: 'Unauthorized',
+      message: 'You must be logged in to access historical dashboard data',
+      code: 'NOT_AUTHENTICATED'
+    });
+  }
+  
   try {
     const querySchema = z.object({
       sport: z.string().optional().default("all"),
@@ -361,6 +370,15 @@ async function getSportPerformance() {
  * Returns CSV formatted data for download
  */
 historicalDashboardRouter.get("/api/historical-dashboard/export", async (req, res) => {
+  // Check if user is authenticated
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({
+      error: 'Unauthorized',
+      message: 'You must be logged in to export historical dashboard data',
+      code: 'NOT_AUTHENTICATED'
+    });
+  }
+  
   try {
     const querySchema = z.object({
       sport: z.string().optional().default("all"),
