@@ -110,7 +110,7 @@ export default function HistoricalDashboard() {
   const effectiveToDate = toDate ? toDate.toISOString().split('T')[0] : undefined;
   
   // Fetch historical dashboard data
-  const { data: dashboardData, isLoading, isError } = useQuery<HistoricalDashboardResponse>({
+  const { data: dashboardData, isLoading, isError, error, refetch } = useQuery<HistoricalDashboardResponse>({
     queryKey: [
       '/api/historical-dashboard', 
       { 
@@ -122,8 +122,18 @@ export default function HistoricalDashboard() {
         toDate: effectiveToDate
       }
     ],
-    enabled: !!user
+    enabled: !!user,
+    retry: 2,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retryDelay: attempt => Math.min(attempt > 1 ? 2000 : 1000, 30 * 1000)
   });
+  
+  // Log error for debugging
+  useEffect(() => {
+    if (isError) {
+      console.error("Failed to fetch historical dashboard data:", error);
+    }
+  }, [isError, error]);
   
   // Sample data for development/demo
   const historicalStats = {
@@ -372,6 +382,76 @@ export default function HistoricalDashboard() {
     }
   };
 
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <div className="container py-8 max-w-6xl">
+        <div className="mb-6 flex items-center">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => navigate("/")}
+            className="mr-2"
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+          <h1 className="text-3xl font-bold">Historical Dashboard</h1>
+        </div>
+        <div className="flex items-center justify-center min-h-[60vh] w-full">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
+            <p className="text-muted-foreground">Loading historical dashboard data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle error state
+  if (isError) {
+    return (
+      <div className="container py-8 max-w-6xl">
+        <div className="mb-6 flex items-center">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => navigate("/")}
+            className="mr-2"
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+          <h1 className="text-3xl font-bold">Historical Dashboard</h1>
+        </div>
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="flex items-center text-destructive">
+              <AlertTriangle className="h-5 w-5 mr-2" />
+              Error Loading Dashboard
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4">We encountered an error while loading your historical prediction data. This could be due to:</p>
+            <ul className="list-disc pl-5 mb-4 space-y-1">
+              <li>Connection issues with our prediction database</li>
+              <li>No historical prediction data available for your account</li>
+              <li>Temporary server issue</li>
+            </ul>
+            <Button onClick={() => refetch()} className="mr-2">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/")}>
+              Return to Home
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // We have data, render the dashboard
   return (
     <div className="container py-8 max-w-6xl">
       <div className="mb-6 flex items-center justify-between">
@@ -389,6 +469,15 @@ export default function HistoricalDashboard() {
         </div>
         
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => refetch()}
+            className="mr-2"
+          >
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Refresh
+          </Button>
           <Button 
             variant="outline" 
             size="sm"
