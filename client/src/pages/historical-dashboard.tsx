@@ -708,8 +708,8 @@ export default function HistoricalDashboard() {
                     <Card>
                       <CardContent className="p-4">
                         <div className="text-sm text-muted-foreground">Success Rate</div>
-                        <div className={cn("text-2xl font-bold mt-1", getStatValueColor(historicalStats.overall.successRate))}>
-                          {historicalStats.overall.successRate}%
+                        <div className={cn("text-2xl font-bold mt-1", getStatValueColor(metrics.successRate))}>
+                          {metrics.successRate}%
                         </div>
                       </CardContent>
                     </Card>
@@ -717,7 +717,7 @@ export default function HistoricalDashboard() {
                       <CardContent className="p-4">
                         <div className="text-sm text-muted-foreground">Predictions</div>
                         <div className="text-2xl font-bold mt-1">
-                          {historicalStats.overall.totalPredictions}
+                          {metrics.totalPredictions}
                         </div>
                       </CardContent>
                     </Card>
@@ -725,15 +725,15 @@ export default function HistoricalDashboard() {
                       <CardContent className="p-4">
                         <div className="text-sm text-muted-foreground">Avg. Odds</div>
                         <div className="text-2xl font-bold mt-1">
-                          {historicalStats.overall.averageOdds.toFixed(2)}
+                          {metrics.averageOdds.toFixed(2)}
                         </div>
                       </CardContent>
                     </Card>
                     <Card>
                       <CardContent className="p-4">
                         <div className="text-sm text-muted-foreground">ROI</div>
-                        <div className={cn("text-2xl font-bold mt-1", getStatValueColor(historicalStats.overall.roi, false))}>
-                          {historicalStats.overall.roi}%
+                        <div className={cn("text-2xl font-bold mt-1", getStatValueColor(metrics.roi, false))}>
+                          {metrics.roi}%
                         </div>
                       </CardContent>
                     </Card>
