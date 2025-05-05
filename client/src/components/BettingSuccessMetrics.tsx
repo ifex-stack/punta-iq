@@ -74,13 +74,12 @@ const BettingSuccessMetrics: React.FC<BettingSuccessMetricsProps> = ({
               {monthlySuccessRate}%
             </span>
           </div>
-          <Progress 
-            value={monthlySuccessRate} 
-            max={100} 
-            className="h-2"
-            // Using inline style instead of indicatorClassName
-            style={{ '--progress-foreground': getProgressColor(monthlySuccessRate) } as React.CSSProperties}
-          />
+          <div className="relative w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div 
+              className={`absolute top-0 left-0 h-full ${getProgressColor(monthlySuccessRate)}`} 
+              style={{ width: `${monthlySuccessRate}%` }}
+            />
+          </div>
         </div>
 
         {/* Yearly Success Rate */}
@@ -93,13 +92,12 @@ const BettingSuccessMetrics: React.FC<BettingSuccessMetricsProps> = ({
               {yearlySuccessRate}%
             </span>
           </div>
-          <Progress 
-            value={yearlySuccessRate} 
-            max={100} 
-            className="h-2"
-            // Using inline style instead of indicatorClassName
-            style={{ '--progress-foreground': getProgressColor(yearlySuccessRate) } as React.CSSProperties}
-          />
+          <div className="relative w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div 
+              className={`absolute top-0 left-0 h-full ${getProgressColor(yearlySuccessRate)}`} 
+              style={{ width: `${yearlySuccessRate}%` }}
+            />
+          </div>
         </div>
 
         {/* Additional Stats */}
