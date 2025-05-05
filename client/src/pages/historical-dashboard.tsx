@@ -674,17 +674,8 @@ export default function HistoricalDashboard() {
             </CardHeader>
             <CardContent>
               <SportsTabs 
-                sports={Object.keys(historicalStats).filter(sport => sport !== "overall")}
-                selectedSport={selectedSport === "all" ? "" : selectedSport}
-                onSelect={(sport: string) => setSelectedSport(sport === selectedSport ? "all" : sport)}
-                sportMetrics={Object.entries(historicalStats)
-                  .filter(([key]) => key !== "overall")
-                  .map(([key, stats]) => ({
-                    id: key,
-                    name: key.charAt(0).toUpperCase() + key.slice(1),  // Capitalize sport name
-                    successRate: stats.successRate,
-                    predictions: stats.totalPredictions
-                  }))}
+                selectedSport={selectedSport}
+                onSelectSport={(sport: string) => setSelectedSport(sport === selectedSport ? "all" : sport)}
               />
             </CardContent>
           </Card>
