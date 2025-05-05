@@ -124,12 +124,13 @@ export default function HistoricalDashboard() {
         toDate: effectiveToDate
       }
     ],
-    enabled: !!user, // Only fetch if user is logged in
+    // TEMPORARY FIX: Always enable the query regardless of auth status
+    enabled: true, 
     retry: 3, // Retry 3 times on failure
     retryDelay: attempt => Math.min(attempt > 1 ? 2000 : 1000, 30 * 1000),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes 
     refetchOnWindowFocus: false, // Don't refetch when window gains focus
-    queryFn: getQueryFn({ on401: "throw" }), // Explicitly handle 401 errors
+    queryFn: getQueryFn({ on401: "returnNull" }), // Allow unauthenticated requests for testing
   });
   
   // Debug logs for any authentication or data issues
@@ -459,7 +460,13 @@ export default function HistoricalDashboard() {
     );
   }
 
-  // We have data, render the dashboard
+  // If server data is not available, use sample data
+  const metrics = dashboardData?.metrics || historicalStats.overall;
+  const sportPerformanceData = dashboardData?.sportPerformance || historicalStats;
+  const monthlyPerformanceData = dashboardData?.monthlyPerformance || monthlyPerformance;
+  const predictions = dashboardData?.predictions || filteredPredictions;
+  
+  // We have data (either from server or fallback), render the dashboard
   return (
     <div className="container py-8 max-w-6xl">
       <div className="mb-6 flex items-center justify-between">
@@ -474,6 +481,12 @@ export default function HistoricalDashboard() {
             Back
           </Button>
           <h1 className="text-3xl font-bold">Historical Dashboard</h1>
+          {!dashboardData && (
+            <Badge variant="outline" className="ml-2 text-amber-500 border-amber-500">
+              <AlertTriangle className="h-3 w-3 mr-1" /> 
+              Demo Mode
+            </Badge>
+          )}
         </div>
         
         <div className="flex gap-2">
@@ -662,12 +675,13 @@ export default function HistoricalDashboard() {
             <CardContent>
               <SportsTabs 
                 sports={Object.keys(historicalStats).filter(sport => sport !== "overall")}
-                selectedSport={selectedSport === "all" ? undefined : selectedSport}
+                selectedSport={selectedSport === "all" ? "" : selectedSport}
                 onSelect={(sport: string) => setSelectedSport(sport === selectedSport ? "all" : sport)}
                 sportMetrics={Object.entries(historicalStats)
                   .filter(([key]) => key !== "overall")
                   .map(([key, stats]) => ({
                     id: key,
+                    name: key.charAt(0).toUpperCase() + key.slice(1),  // Capitalize sport name
                     successRate: stats.successRate,
                     predictions: stats.totalPredictions
                   }))}
