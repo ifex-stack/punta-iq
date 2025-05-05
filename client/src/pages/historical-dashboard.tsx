@@ -749,17 +749,17 @@ export default function HistoricalDashboard() {
                           <div className="h-10 w-full bg-muted rounded-full overflow-hidden">
                             <div 
                               className="h-full bg-green-500" 
-                              style={{ width: `${historicalStats.overall.successRate}%` }}
+                              style={{ width: `${metrics.successRate}%` }}
                             />
                           </div>
-                          <div className="text-sm whitespace-nowrap">{historicalStats.overall.successRate}%</div>
+                          <div className="text-sm whitespace-nowrap">{metrics.successRate}%</div>
                         </div>
                         <div className="flex justify-between mt-2 text-sm">
                           <div>
-                            <span className="text-green-500 font-medium">{historicalStats.overall.wonCount}</span> Won
+                            <span className="text-green-500 font-medium">{metrics.wonCount}</span> Won
                           </div>
                           <div>
-                            <span className="text-red-500 font-medium">{historicalStats.overall.lostCount}</span> Lost
+                            <span className="text-red-500 font-medium">{metrics.lostCount}</span> Lost
                           </div>
                         </div>
                       </CardContent>
