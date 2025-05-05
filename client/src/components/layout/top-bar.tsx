@@ -188,7 +188,7 @@ const TopBar = () => {
       
       {/* Desktop Navigation */}
       <div className="hidden md:flex items-center gap-2">
-        <Link href="/history">
+        <Link href="/historical-dashboard">
           <Button
             variant="outline"
             size="sm"
@@ -370,7 +370,7 @@ const TopBar = () => {
               </div>
               
               <div className="flex flex-col gap-2 my-4">
-                <Link href="/history">
+                <Link href="/historical-dashboard">
                   <Button 
                     variant="ghost" 
                     className="w-full justify-start h-12 text-base rounded-lg mb-1 touch-manipulation active:scale-95 transition-transform"
