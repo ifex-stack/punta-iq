@@ -1,5 +1,5 @@
 import { Route, Switch, useLocation } from "wouter";
-import { useEffect } from "react";
+import React, { useEffect, Suspense } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -88,86 +88,48 @@ const Router: React.FC = () => {
     <div className="flex h-screen">
       <div className="flex-1 relative">
         <AppLayout>
-          <Switch>
-            <ProtectedRoute path="/" component={NewPredictionsAndStatsPage} />
-            <ProtectedRoute path="/predictions" component={NewPredictionsAndStatsPage} />
-            <ProtectedRoute path="/stats" component={NewPredictionsAndStatsPage} />
-            <ProtectedRoute path="/predictions/advanced" component={AdvancedPredictionsPage} />
-            <ProtectedRoute path="/advanced-analysis" component={AdvancedAnalysisPage} />
-            <ProtectedRoute path="/accumulators" component={AccumulatorsPage} />
-            <ProtectedRoute path="/predictions/tiered" component={TieredPredictionsPage} />
-            <ProtectedRoute path="/fantasy/contests" component={FantasyContestsPage} />
-            <ProtectedRoute path="/fantasy/contests/create" component={FantasyContestCreatePage} />
-            <ProtectedRoute path="/fantasy/teams/:teamId/build" component={FantasyTeamBuildPage} />
-            <ProtectedRoute path="/fantasy/player-comparison" component={PlayerComparisonPage} />
-            <ProtectedRoute path="/fantasy/player-analysis" component={PlayerAnalysisPage} />
-            <ProtectedRoute path="/fantasy/player-performance" component={PlayerPerformancePage} />
-            <Route path="/fantasy" component={FantasyContestsPage} />
-            <ProtectedRoute path="/subscription" component={SubscriptionPage} />
-            <ProtectedRoute path="/subscription-success" component={SubscriptionSuccessPage} />
-            <ProtectedRoute path="/profile" component={ProfilePage} />
-            <ProtectedRoute path="/referrals" component={ReferralsPage} />
-            <ProtectedRoute path="/gamification" component={GamificationPage} />
-            <ProtectedRoute path="/admin" component={AdminPage} />
-            <ProtectedRoute path="/analytics-dashboard" component={AnalyticsDashboardPage} />
-            <ProtectedRoute path="/user-demographics" component={UserDemographicsPage} />
-            <Route path="/historical-dashboard" component={HistoricalDashboard} />
-            <ProtectedRoute path="/metrics" component={MetricsPage} />
-            <Route path="/livescore" component={LiveScorePage} />
-            <Route path="/ai-service-status" component={AIServiceStatusPage} />
-            <Route path="/faq" component={FAQPage} />
-            <Route path="/feedback" component={FeedbackPage} />
-            <Route path="/legal/privacy-policy" component={PrivacyPolicyPage} />
-            <Route path="/legal/terms-of-service" component={TermsOfServicePage} />
-            <Route path="/legal/responsible-gambling" component={ResponsibleGamblingPage} />
-            <Route path="/ui-showcase" component={UIShowcase} />
-            <Route 
-              path="/login-test"
-              component={() => {
-                const { user, loginMutation, isLoading } = useAuth();
-                
-                const handleLogin = () => {
-                  loginMutation.mutate({
-                    username: 'beta_tester',
-                    password: 'puntaiq_beta_test'
-                  });
-                };
-                
-                return (
-                  <div className="p-8">
-                    <h1 className="text-2xl font-bold mb-4">Authentication Test</h1>
-                    {isLoading ? (
-                      <p>Loading...</p>
-                    ) : user ? (
-                      <div>
-                        <p>Logged in as: {user.username}</p>
-                        <pre className="mt-4 p-4 bg-muted rounded overflow-auto">
-                          {JSON.stringify(user, null, 2)}
-                        </pre>
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="mb-4">Not logged in</p>
-                        <button 
-                          className="bg-primary text-white px-4 py-2 rounded"
-                          onClick={handleLogin}
-                          disabled={loginMutation.isPending}
-                        >
-                          {loginMutation.isPending ? 'Logging in...' : 'Log in as beta_tester'}
-                        </button>
-                      </div>
-                    )}
-                    {loginMutation.error && (
-                      <div className="mt-4 p-4 bg-destructive/10 text-destructive rounded">
-                        <p>Error: {loginMutation.error.message}</p>
-                      </div>
-                    )}
-                  </div>
-                );
-              }}
-            />
-            <Route component={NotFound} />
-          </Switch>
+          <React.Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen">
+              <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full"></div>
+            </div>
+          }>
+            <Switch>
+              <ProtectedRoute path="/" component={NewPredictionsAndStatsPage} />
+              <ProtectedRoute path="/predictions" component={NewPredictionsAndStatsPage} />
+              <ProtectedRoute path="/stats" component={NewPredictionsAndStatsPage} />
+              <ProtectedRoute path="/predictions/advanced" component={AdvancedPredictionsPage} />
+              <ProtectedRoute path="/advanced-analysis" component={AdvancedAnalysisPage} />
+              <ProtectedRoute path="/accumulators" component={AccumulatorsPage} />
+              <ProtectedRoute path="/predictions/tiered" component={TieredPredictionsPage} />
+              <ProtectedRoute path="/fantasy/contests" component={FantasyContestsPage} />
+              <ProtectedRoute path="/fantasy/contests/create" component={FantasyContestCreatePage} />
+              <ProtectedRoute path="/fantasy/teams/:teamId/build" component={FantasyTeamBuildPage} />
+              <ProtectedRoute path="/fantasy/player-comparison" component={PlayerComparisonPage} />
+              <ProtectedRoute path="/fantasy/player-analysis" component={PlayerAnalysisPage} />
+              <ProtectedRoute path="/fantasy/player-performance" component={PlayerPerformancePage} />
+              <Route path="/fantasy" component={FantasyContestsPage} />
+              <ProtectedRoute path="/subscription" component={SubscriptionPage} />
+              <ProtectedRoute path="/subscription-success" component={SubscriptionSuccessPage} />
+              <ProtectedRoute path="/profile" component={ProfilePage} />
+              <ProtectedRoute path="/referrals" component={ReferralsPage} />
+              <ProtectedRoute path="/gamification" component={GamificationPage} />
+              <ProtectedRoute path="/admin" component={AdminPage} />
+              <ProtectedRoute path="/analytics-dashboard" component={AnalyticsDashboardPage} />
+              <ProtectedRoute path="/user-demographics" component={UserDemographicsPage} />
+              <Route path="/historical-dashboard" component={HistoricalDashboard} />
+              <ProtectedRoute path="/metrics" component={MetricsPage} />
+              <Route path="/livescore" component={LiveScorePage} />
+              <Route path="/ai-service-status" component={AIServiceStatusPage} />
+              <Route path="/faq" component={FAQPage} />
+              <Route path="/feedback" component={FeedbackPage} />
+              <Route path="/legal/privacy-policy" component={PrivacyPolicyPage} />
+              <Route path="/legal/terms-of-service" component={TermsOfServicePage} />
+              <Route path="/legal/responsible-gambling" component={ResponsibleGamblingPage} />
+              <Route path="/ui-showcase" component={UIShowcase} />
+              <Route path="/login-test" component={React.lazy(() => import('./pages/login-test-page'))} />
+              <Route component={NotFound} />
+            </Switch>
+          </React.Suspense>
         </AppLayout>
         
         {/* Positioned notification dropdown */}
