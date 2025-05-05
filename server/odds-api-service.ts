@@ -77,9 +77,10 @@ export class OddsAPIService {
   };
   
   constructor() {
-    // Check if required API key is available
+    // Check if required API key is available - reduced logging for deployment
     if (!process.env.ODDS_API_KEY) {
-      logger.error('OddsAPIService', 'ODDS_API_KEY environment variable is not set. Sports odds functionality will be limited.');
+      // Just log once at startup instead of repeatedly
+      logger.warn('OddsAPIService', 'ODDS_API_KEY environment variable is not set. Using fallback data.');
     }
     
     this.config = {
@@ -92,7 +93,7 @@ export class OddsAPIService {
       const keyPrefix = this.config.apiKey.substring(0, 3);
       logger.info('OddsAPIService', `Service initialized with API key: ${keyPrefix}***`);
     } else {
-      logger.warn('OddsAPIService', 'Service initialized without API key - using fallback data');
+      logger.info('OddsAPIService', 'Service initialized using fallback data mode');
     }
   }
   
@@ -168,13 +169,14 @@ export class OddsAPIService {
   async fetchEvents(sportKey: string, regions: string = 'us', markets: string = 'h2h'): Promise<OddsAPIEvent[]> {
     // Check if API key is available before attempting to fetch from API
     if (!this.config.apiKey) {
-      logger.warn('OddsAPIService', `No API key available - using fallback data for ${sportKey}`);
+      // Use info level instead of warn to reduce log noise
+      logger.info('OddsAPIService', `Using fallback data for ${sportKey} (no API key)`);
       return this.getFallbackEvents(sportKey);
     }
     
     try {
       const url = `${this.config.baseUrl}/sports/${sportKey}/odds`;
-      logger.info('OddsAPIService', `Fetching events for ${sportKey} from ${url}`);
+      logger.info('OddsAPIService', `Fetching events for ${sportKey}`);
       
       const response = await axios.get(url, {
         params: {
@@ -190,19 +192,23 @@ export class OddsAPIService {
       
       // If we get no events from the API, use fallback data
       if (events.length === 0) {
-        logger.warn('OddsAPIService', `No events found for ${sportKey} - using fallback data`);
+        logger.info('OddsAPIService', `No events found for ${sportKey} - using fallback data`);
         return this.getFallbackEvents(sportKey);
       }
       
       return events;
     } catch (error: any) {
-      logger.error('OddsAPIService', `Error fetching events for ${sportKey}: ${error.message}`);
-      if (error.response) {
-        logger.error('OddsAPIService', `Status: ${error.response.status}, Data: ${JSON.stringify(error.response.data)}`);
+      // Only log the error message, not the full error details
+      const isRateLimitError = error.response?.status === 429;
+      const status = error.response?.status || 'unknown';
+      
+      if (isRateLimitError) {
+        logger.info('OddsAPIService', `Rate limit reached for API - using fallback data for ${sportKey}`);
+      } else {
+        logger.info('OddsAPIService', `API error (${status}) - using fallback data for ${sportKey}`);
       }
       
       // Return fallback events on API error
-      logger.warn('OddsAPIService', `API error - using fallback data for ${sportKey}`);
       return this.getFallbackEvents(sportKey);
     }
   }
@@ -471,7 +477,8 @@ export class OddsAPIService {
       // Convert to standardized format
       return this.convertToStandardizedMatches(todayEvents, sportKey);
     } catch (error: any) {
-      logger.error('OddsAPIService', `Error getting today's events for ${sportKey}: ${error.message}`);
+      // Avoid filling logs with error messages
+      logger.info('OddsAPIService', `Could not get today's events for ${sportKey} - using empty list`);
       return [];
     }
   }
@@ -592,7 +599,8 @@ export class OddsAPIService {
       // Convert to standardized format
       return this.convertToStandardizedMatches(upcomingEvents, sportKey);
     } catch (error: any) {
-      logger.error('OddsAPIService', `Error getting upcoming events for ${sportKey}: ${error.message}`);
+      // Avoid error spam in logs
+      logger.info('OddsAPIService', `Using empty list for upcoming events (${sportKey})`);
       return [];
     }
   }
