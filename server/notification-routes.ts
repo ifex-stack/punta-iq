@@ -473,6 +473,43 @@ notificationRouter.put('/api/notifications/:id/read', async (req, res) => {
   }
 });
 
+// Get notification metrics
+notificationRouter.get('/api/notifications/metrics', async (req, res) => {
+  try {
+    // Check if user is authenticated
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const userId = req.user!.id;
+    
+    // Get current metrics from user
+    const currentSettings = req.user!.notificationSettings || {};
+    const metrics = currentSettings.metrics || {
+      notificationCount: 0,
+      lastNotificationSent: null,
+      clickThroughRate: 0,
+      viewCount: 0,
+      dismissCount: 0,
+      clickCount: 0
+    };
+    
+    // Return metrics
+    res.json({
+      metrics,
+      // Include additional aggregated metrics
+      totalNotifications: metrics.notificationCount,
+      engagementRate: metrics.notificationCount > 0 
+        ? ((metrics.clickCount || 0) / metrics.notificationCount) * 100 
+        : 0,
+      mostRecentActivity: metrics.lastNotificationSent
+    });
+  } catch (error) {
+    logger.error('[NotificationRoutes]', 'Error fetching notification metrics:', error);
+    res.status(500).json({ error: 'Failed to fetch notification metrics' });
+  }
+});
+
 // Track notification metrics
 notificationRouter.post('/api/notifications/metrics', async (req, res) => {
   try {
