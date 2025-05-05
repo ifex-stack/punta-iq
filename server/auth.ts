@@ -52,8 +52,9 @@ export function setupAuth(app: Express) {
         pruneSessionInterval: 60 * 60 // Prune expired sessions every hour
       });
       logger.info('Auth', 'Using PostgreSQL session store for persistent sessions');
-    } catch (error) {
-      logger.error('Auth', `Failed to initialize PostgreSQL session store: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Auth', `Failed to initialize PostgreSQL session store: ${errorMessage}`);
       logger.warn('Auth', 'Falling back to in-memory session store. Sessions will be lost on server restart.');
       
       // Fall back to memory store
@@ -166,7 +167,7 @@ export function setupAuth(app: Express) {
                   dismissCount: 5
                 }
               },
-              onboardingStatus: 'completed',
+              onboardingStatus: 'completed' as const,
               lastOnboardingStep: 5
             };
             return done(null, debugUser);
@@ -270,7 +271,7 @@ export function setupAuth(app: Express) {
               dismissCount: 5
             }
           },
-          onboardingStatus: 'completed',
+          onboardingStatus: 'completed' as const,
           lastOnboardingStep: 5
         };
         return done(null, debugUser);
@@ -484,7 +485,7 @@ export function setupAuth(app: Express) {
     // This will create a mock session with a beta_tester user
     if (process.env.NODE_ENV === 'development' && req.query.beta_login === 'true') {
       // Create a complete debug user object with all required fields from the schema
-      const debugUser = {
+      const debugUser: SelectUser = {
         id: 9999,
         username: 'beta_tester',
         email: 'beta@puntaiq.com',
@@ -495,7 +496,7 @@ export function setupAuth(app: Express) {
         isTwoFactorEnabled: false,
         twoFactorSecret: null,
         referralCode: 'BETATEST',
-        role: 'admin',
+        role: 'admin' as const,
         lastLoginAt: new Date(),
         isActive: true,
         isEmailVerified: true,
@@ -556,7 +557,7 @@ export function setupAuth(app: Express) {
             dismissCount: 5
           }
         },
-        onboardingStatus: 'completed',
+        onboardingStatus: 'completed' as const,
         lastOnboardingStep: 5
       };
       
