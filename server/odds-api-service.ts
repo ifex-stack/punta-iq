@@ -657,7 +657,7 @@ export class OddsAPIService {
       // Add a few matches per sport with appropriate status indicators
       if (sport === 'football' || sportKey === 'all') {
         fallbackMatches.push({
-          id: `football-fallback-1`,
+          id: `football-fallback-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
           sport: 'football',
           league: 'API Quota Exceeded',
           country: 'Worldwide',
@@ -676,7 +676,7 @@ export class OddsAPIService {
       
       if (sport === 'basketball' || sportKey === 'all') {
         fallbackMatches.push({
-          id: `basketball-fallback-1`,
+          id: `basketball-fallback-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
           sport: 'basketball',
           league: 'API Quota Exceeded',
           country: 'Worldwide',
