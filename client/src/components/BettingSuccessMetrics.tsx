@@ -27,7 +27,7 @@ const BettingSuccessMetrics: React.FC<BettingSuccessMetricsProps> = ({
     return "text-red-500";
   };
 
-  // Function to determine progress bar color based on success rate
+  // Function to determine progress bar color class
   const getProgressColor = (rate: number) => {
     if (rate >= 70) return "bg-green-500";
     if (rate >= 55) return "bg-amber-500";
@@ -56,12 +56,12 @@ const BettingSuccessMetrics: React.FC<BettingSuccessMetricsProps> = ({
               {recentSuccessRate}%
             </span>
           </div>
-          <Progress 
-            value={recentSuccessRate} 
-            max={100} 
-            className="h-2"
-            indicatorClassName={getProgressColor(recentSuccessRate)} 
-          />
+          <div className="relative w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div 
+              className={`absolute top-0 left-0 h-full ${getProgressColor(recentSuccessRate)}`} 
+              style={{ width: `${recentSuccessRate}%` }}
+            />
+          </div>
         </div>
 
         {/* Monthly Success Rate */}
@@ -78,7 +78,8 @@ const BettingSuccessMetrics: React.FC<BettingSuccessMetricsProps> = ({
             value={monthlySuccessRate} 
             max={100} 
             className="h-2"
-            indicatorClassName={getProgressColor(monthlySuccessRate)} 
+            // Using inline style instead of indicatorClassName
+            style={{ '--progress-foreground': getProgressColor(monthlySuccessRate) } as React.CSSProperties}
           />
         </div>
 
@@ -95,8 +96,9 @@ const BettingSuccessMetrics: React.FC<BettingSuccessMetricsProps> = ({
           <Progress 
             value={yearlySuccessRate} 
             max={100} 
-            className="h-2" 
-            indicatorClassName={getProgressColor(yearlySuccessRate)}
+            className="h-2"
+            // Using inline style instead of indicatorClassName
+            style={{ '--progress-foreground': getProgressColor(yearlySuccessRate) } as React.CSSProperties}
           />
         </div>
 
