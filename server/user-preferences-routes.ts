@@ -63,11 +63,32 @@ export async function updateUserPreferences(req: Request, res: Response) {
     // Get existing preferences
     const existingPreferences = userData[0].userPreferences || {};
     
+    // Sanitize the input data
+    const { 
+      onboardingCompleted,
+      lastStep,
+      completedSteps,
+      ...otherPrefs 
+    } = req.body;
+    
     // Merge existing preferences with new preferences
     const updatedPreferences = {
       ...existingPreferences,
-      ...req.body
+      ...otherPrefs
     };
+    
+    // Handle onboarding specific fields separately
+    if (onboardingCompleted !== undefined) {
+      updatedPreferences.onboardingCompleted = onboardingCompleted;
+    }
+    
+    if (lastStep !== undefined) {
+      updatedPreferences.lastStep = lastStep;
+    }
+    
+    if (completedSteps !== undefined) {
+      updatedPreferences.completedSteps = completedSteps;
+    }
 
     // Log the preferences being saved (for debugging)
     preferencesLogger.info(`Saving preferences for user ${userId}:`, JSON.stringify(updatedPreferences));
@@ -75,9 +96,14 @@ export async function updateUserPreferences(req: Request, res: Response) {
     try {
       // Update user preferences in database - only update the userPreferences field
       await db.update(users)
-        .set({ userPreferences: updatedPreferences })
+        .set({ 
+          userPreferences: updatedPreferences,
+          // If onboarding is completed, also update the onboarding status
+          ...(onboardingCompleted ? { onboardingStatus: 'completed' } : {}),
+          ...(lastStep !== undefined ? { lastOnboardingStep: lastStep } : {})
+        })
         .where(eq(users.id, userId));
-    } catch (updateError) {
+    } catch (updateError: any) {
       preferencesLogger.error(`Error in SQL update: ${updateError.message}`);
       throw updateError;
     }
