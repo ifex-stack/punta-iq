@@ -69,10 +69,18 @@ export async function updateUserPreferences(req: Request, res: Response) {
       ...req.body
     };
 
-    // Update user preferences in database
-    await db.update(users)
-      .set({ userPreferences: updatedPreferences })
-      .where(eq(users.id, userId));
+    // Log the preferences being saved (for debugging)
+    preferencesLogger.info(`Saving preferences for user ${userId}:`, JSON.stringify(updatedPreferences));
+    
+    try {
+      // Update user preferences in database - only update the userPreferences field
+      await db.update(users)
+        .set({ userPreferences: updatedPreferences })
+        .where(eq(users.id, userId));
+    } catch (updateError) {
+      preferencesLogger.error(`Error in SQL update: ${updateError.message}`);
+      throw updateError;
+    }
 
     preferencesLogger.info(`Updated preferences for user ${userId}`);
     return res.status(200).json(updatedPreferences);

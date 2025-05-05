@@ -4123,8 +4123,8 @@ export class DatabaseStorage implements IStorage {
         password: "", // This will never be returned to the client
         createdAt: new Date(),
         isActive: true,
-        isEmailVerified: false,
-        role: "user"
+        isEmailVerified: false
+        // Don't include role field as it's causing SQL update issues
       } as User;
       
       return fallbackUser;
