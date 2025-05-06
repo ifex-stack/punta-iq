@@ -171,7 +171,7 @@ app.use((req, res, next) => {
 
   // Try to use port 5000 first, but fall back to 3000 if 5000 is in use
   // this serves both the API and the client.
-  const port = process.env.PORT ? parseInt(process.env.PORT) : 5001;
+  const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
   const appLogger = createContextLogger('APP');
   
   appLogger.info('Application starting up', {
