@@ -12,7 +12,6 @@ import HomePage from "@/pages/home-page";
 import SubscriptionPage from "@/pages/subscription-page";
 import SubscriptionSuccessPage from "@/pages/subscription-success";
 import ProfilePage from "@/pages/profile-page";
-import SettingsPage from "@/pages/settings-page";
 import FAQPage from "@/pages/faq-page";
 import HistoricalDashboard from "@/pages/historical-dashboard";
 import FantasyContestsPage from "@/pages/fantasy-contests-page";
@@ -112,7 +111,6 @@ const Router: React.FC = () => {
               <ProtectedRoute path="/subscription" component={SubscriptionPage} />
               <ProtectedRoute path="/subscription-success" component={SubscriptionSuccessPage} />
               <ProtectedRoute path="/profile" component={ProfilePage} />
-              <ProtectedRoute path="/settings" component={SettingsPage} />
               <ProtectedRoute path="/referrals" component={ReferralsPage} />
               <ProtectedRoute path="/gamification" component={GamificationPage} />
               <ProtectedRoute path="/admin" component={AdminPage} />
@@ -129,43 +127,6 @@ const Router: React.FC = () => {
               <Route path="/legal/responsible-gambling" component={ResponsibleGamblingPage} />
               <Route path="/ui-showcase" component={UIShowcase} />
               <Route path="/login-test" component={React.lazy(() => import('./pages/login-test-page'))} />
-              
-              {/* Direct test page route - no auth required */}
-              <Route path="/public-test">
-                <div className="p-8 max-w-4xl mx-auto">
-                  <h1 className="text-3xl font-bold mb-6">PuntaIQ Public Test Page</h1>
-                  <p className="mb-4">This is a public test page that doesn't require authentication.</p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-8">
-                    <div className="border border-gray-700 rounded-lg p-4 bg-gray-800 hover:bg-gray-700 transition-colors">
-                      <h2 className="text-xl font-semibold mb-2">API Status</h2>
-                      <p>Check if the backend APIs are online and responding.</p>
-                      <button 
-                        className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white" 
-                        onClick={() => window.location.href = '/api/ai-status'}
-                      >
-                        Check API Status
-                      </button>
-                    </div>
-                    
-                    <div className="border border-gray-700 rounded-lg p-4 bg-gray-800 hover:bg-gray-700 transition-colors">
-                      <h2 className="text-xl font-semibold mb-2">Navigation Page</h2>
-                      <p>Go to the navigation page with links to all sections.</p>
-                      <button 
-                        className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white" 
-                        onClick={() => window.location.href = '/navigation'}
-                      >
-                        Visit Navigation
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-8 p-4 border border-green-600 rounded-lg bg-green-900/20">
-                    <h2 className="text-xl font-semibold mb-2">React Application Working</h2>
-                    <p>If you can see this page, the React application is working correctly.</p>
-                  </div>
-                </div>
-              </Route>
               <Route component={NotFound} />
             </Switch>
           </React.Suspense>
@@ -192,42 +153,6 @@ function App() {
       .then(() => console.log("Feature flags loaded"))
       .catch(err => console.error("Failed to load feature flags:", err));
   }, []);
-
-  // Add a direct navigation URL parameter check to bypass authentication and the providers for troubleshooting
-  if (window.location.search.includes('showNav=true')) {
-    return (
-      <div className="p-8 max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">PuntaIQ Navigation</h1>
-        <p className="mb-8">Use the links below to navigate to different parts of the application.</p>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="border border-gray-700 rounded-lg p-4 bg-gray-800">
-            <h2 className="text-xl font-semibold mb-4">Main Pages</h2>
-            <ul className="space-y-2">
-              <li><a href="/auth" className="text-blue-400 hover:underline">Authentication Page</a></li>
-              <li><a href="/predictions" className="text-blue-400 hover:underline">Predictions Page</a></li>
-              <li><a href="/public-test" className="text-blue-400 hover:underline">Public Test Page</a></li>
-              <li><a href="/historical-dashboard" className="text-blue-400 hover:underline">Historical Dashboard</a></li>
-            </ul>
-          </div>
-          
-          <div className="border border-gray-700 rounded-lg p-4 bg-gray-800">
-            <h2 className="text-xl font-semibold mb-4">API Status</h2>
-            <ul className="space-y-2">
-              <li><a href="/api/ai-status" className="text-blue-400 hover:underline">AI Service Status</a></li>
-              <li><a href="/api/predictions/football" className="text-blue-400 hover:underline">Football Predictions API</a></li>
-              <li><a href="/api/predictions/basketball" className="text-blue-400 hover:underline">Basketball Predictions API</a></li>
-            </ul>
-          </div>
-        </div>
-        
-        <div className="mt-8 p-4 bg-green-900/20 border border-green-600 rounded-lg">
-          <h2 className="text-xl font-semibold mb-2">React Application Working</h2>
-          <p>If you can see this page, the React application is working correctly in direct navigation mode.</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <QueryClientProvider client={queryClient}>

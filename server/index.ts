@@ -137,7 +137,7 @@ app.use((req, res, next) => {
     };
     
     if (status >= 500) {
-      errorLogger.error(`CRITICAL: ${status} ${message}`, errorData);
+      errorLogger.critical(`${status} ${message}`, errorData);
     } else if (status >= 400) {
       errorLogger.error(`${status} ${message}`, errorData);
     } else {
@@ -160,9 +160,6 @@ app.use((req, res, next) => {
     res.status(status).json(errorResponse);
   });
 
-  // Add middleware to serve static files from the root directory (before Vite middleware)
-  app.use(express.static(process.cwd()));
-  
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
@@ -172,9 +169,10 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Try to use port 5000 first, but fall back to 3001 if 5000 is in use
+  // ALWAYS serve the app on port 5000
   // this serves both the API and the client.
-  const port = process.env.PORT ? parseInt(process.env.PORT) : 3001;
+  // It is the only port that is not firewalled.
+  const port = 5000;
   const appLogger = createContextLogger('APP');
   
   appLogger.info('Application starting up', {

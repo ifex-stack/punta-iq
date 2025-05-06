@@ -1,55 +1,17 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify
 from flask_cors import CORS
 import datetime
 import os
-import logging
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger('puntaiq_ai_service')
 
 app = Flask(__name__)
 CORS(app)
 
-# Root endpoint - redirect to main application
-@app.route('/', methods=['GET'])
-def root():
-    from flask import redirect
-    logger.info("Root endpoint accessed - redirecting to main application")
-    return redirect("http://localhost:3001/", code=302)
-
-# Navigation page - redirect to main application
-@app.route('/navigation', methods=['GET'])
-def navigation():
-    from flask import redirect
-    logger.info("Navigation endpoint accessed - redirecting to main application")
-    return redirect("http://localhost:3001/navigation", code=302)
-
-# Public test page - redirect to main application
-@app.route('/public-test', methods=['GET'])
-def public_test():
-    from flask import redirect
-    logger.info("Public test endpoint accessed - redirecting to main application")
-    return redirect("http://localhost:3001/public-test", code=302)
-
-# Remove the easy-access route from the AI service
-# The route below was causing a redirect loop
-
 @app.route('/api/status', methods=['GET'])
 def status():
-    logger.info("Status endpoint accessed")
     return jsonify({
         "status": "online",
         "message": "The AI sports prediction service is running",
-        "timestamp": datetime.datetime.now().isoformat(),
-        "overall": "ok",
-        "services": {
-            "odds_api": {"status": "ok", "message": "Service operational", "requests_remaining": "1000"},
-            "sportsdb_api": {"status": "ok", "message": "Service operational"}
-        }
+        "timestamp": datetime.datetime.now().isoformat()
     })
 
 @app.route('/api/sports', methods=['GET'])
@@ -116,6 +78,5 @@ def soccer_predictions():
     })
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    logger.info(f"Starting AI service on port {port}")
+    port = int(os.environ.get('PORT', 5001))
     app.run(host='0.0.0.0', port=port, debug=True)

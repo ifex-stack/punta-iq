@@ -98,7 +98,6 @@ export interface IStorage {
   updateUserSubscription(userId: number, tier: string): Promise<User>;
   updateUserStripeInfo(userId: number, info: { stripeCustomerId?: string, stripeSubscriptionId?: string }): Promise<User>;
   updateUserNotificationSettings(userId: number, settings: any): Promise<User>;
-  getUserPreferences(userId: number): Promise<any>;
   updateUserPreferences(userId: number, preferences: any): Promise<User>;
   updateUserOnboardingStatus(userId: number, status: string, lastStep: number): Promise<User>;
   updateLastLogin(userId: number): Promise<User>;
@@ -546,13 +545,6 @@ export class MemStorage implements IStorage {
     };
     this.usersMap.set(userId, updatedUser);
     return updatedUser;
-  }
-  
-  async getUserPreferences(userId: number): Promise<any> {
-    const user = await this.getUser(userId);
-    if (!user) return null;
-    
-    return user.userPreferences || {};
   }
   
   async updateUserPreferences(userId: number, preferences: any): Promise<User> {

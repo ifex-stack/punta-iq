@@ -1,8 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
-import fs from "fs";
-import path from "path";
 import { setupAuth } from "./auth";
 import { setupPredictionRoutes } from "./predictions";
 import { setupNotificationRoutes } from "./notifications";
@@ -39,7 +37,6 @@ import { aiStatusRouter } from "./ai-status-routes";
 import { aiPredictionRouter } from "./ai-prediction-routes";
 import { analyticsRouter } from "./analytics-routes";
 import { bettingMetricsRouter } from "./betting-metrics-routes";
-import { aiAutoTunerRouter } from "./ai-autotuner-routes";
 import { MicroserviceClient } from "./microservice-client";
 import { createContextLogger } from "./logger";
 import { analytics, AnalyticsEventType } from "./analytics-service";
@@ -137,97 +134,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Test routing helper page for debugging the application interface
-  app.get('/test-routing', (req, res) => {
-    routesLogger.info('Test routing page accessed');
-    
-    const htmlPath = path.join(process.cwd(), 'test-routing.html');
-    if (fs.existsSync(htmlPath)) {
-      res.sendFile(htmlPath);
-    } else {
-      res.send('Test routing file not found. Please create test-routing.html in the root directory.');
-    }
-  });
-  
-  // Public test page - accessible to everyone for testing
-  app.get('/public-test', (req, res) => {
-    routesLogger.info('Public test page accessed');
-    
-    const htmlPath = path.join(process.cwd(), 'public-test.html');
-    if (fs.existsSync(htmlPath)) {
-      res.sendFile(htmlPath);
-    } else {
-      res.send('Public test file not found.');
-    }
-  });
-  
-  // Navigation page - accessible to everyone
-  app.get('/navigation', (req, res) => {
-    routesLogger.info('Navigation page accessed');
-    
-    const htmlPath = path.join(process.cwd(), 'navigation.html');
-    if (fs.existsSync(htmlPath)) {
-      res.sendFile(htmlPath);
-    } else {
-      res.send('Navigation file not found.');
-    }
-  });
-  
-  // Easy access page - a simple launcher for all app components
-  app.get('/easy-access', (req, res) => {
-    routesLogger.info('Easy access page accessed');
-    
-    const htmlPath = path.join(process.cwd(), 'easy-access.html');
-    if (fs.existsSync(htmlPath)) {
-      res.sendFile(htmlPath);
-    } else {
-      res.send('Easy access file not found. Please create easy-access.html in the root directory.');
-    }
-  });
-  
-  // Simple access page - a guaranteed solution without routing conflicts
-  app.get('/simple-access', (req, res) => {
-    routesLogger.info('Simple access page accessed');
-    
-    const htmlPath = path.join(process.cwd(), 'simple-access.html');
-    if (fs.existsSync(htmlPath)) {
-      res.sendFile(htmlPath);
-    } else {
-      res.send('Simple access file not found. Please create simple-access.html in the root directory.');
-    }
-  });
-  
-  // Easy access shortcut on root
-  app.get('/', (req, res) => {
-    routesLogger.info('Root route accessed - checking for access parameters');
-    
-    // Check if the user is trying to access with easy access parameter
-    if (req.query.access === 'easy') {
-      routesLogger.info('Easy access parameter detected - redirecting to easy access page');
-      return res.redirect('/easy-access');
-    }
-    
-    // Check if the user is trying to access with simple access parameter
-    if (req.query.access === 'simple') {
-      routesLogger.info('Simple access parameter detected - redirecting to simple access page');
-      return res.redirect('/simple-access');
-    }
-    
-    // Otherwise serve login page as normal
-    routesLogger.info('Root route accessed - serving login page');
-    
-    const loginPath = path.join(process.cwd(), 'login.html');
-    
-    // First try to directly send the file
-    res.sendFile(loginPath, (err) => {
-      if (err) {
-        // If there's an error, redirect to /auth instead
-        routesLogger.error(`Failed to serve login.html: ${err.message}`);
-        res.redirect('/auth');
-      }
-    });
-  });
-  
   // Set up automation management routes
   setupAutomationRoutes(app);
   
@@ -248,9 +154,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up betting metrics routes
   app.use('/api/betting-metrics', bettingMetricsRouter);
-  
-  // Set up AI auto-tuner routes
-  app.use(aiAutoTunerRouter);
   
   // Try to start the microservice at server initialization
   try {
