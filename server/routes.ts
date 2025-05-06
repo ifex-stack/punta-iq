@@ -173,6 +173,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Easy access page - a simple launcher for all app components
+  app.get('/easy-access', (req, res) => {
+    routesLogger.info('Easy access page accessed');
+    
+    const htmlPath = path.join(process.cwd(), 'easy-access.html');
+    if (fs.existsSync(htmlPath)) {
+      res.sendFile(htmlPath);
+    } else {
+      res.send('Easy access file not found. Please create easy-access.html in the root directory.');
+    }
+  });
+  
   // Root route - serve the login page
   app.get('/', (req, res) => {
     routesLogger.info('Root route accessed - serving login page');

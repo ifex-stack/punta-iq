@@ -35,6 +35,13 @@ def public_test():
     logger.info("Public test endpoint accessed - redirecting to main application")
     return redirect("http://localhost:3001/public-test", code=302)
 
+# Easy access page - redirect to main application's easy access page
+@app.route('/easy-access', methods=['GET'])
+def easy_access():
+    from flask import redirect
+    logger.info("Easy access endpoint accessed - redirecting to main application")
+    return redirect("http://localhost:3001/easy-access", code=302)
+
 @app.route('/api/status', methods=['GET'])
 def status():
     logger.info("Status endpoint accessed")

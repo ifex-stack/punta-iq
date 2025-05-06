@@ -1586,3 +1586,45 @@ ERROR: 2025-05-06 18:12:43,625 - puntaiq_ai_service - INFO - Status endpoint acc
 ERROR: 2025-05-06 18:12:43,626 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:12:43] "GET /api/status HTTP/1.1" 200 -
 ERROR: 2025-05-06 18:12:43,631 - puntaiq_ai_service - INFO - Status endpoint accessed
 ERROR: 2025-05-06 18:12:43,632 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:12:43] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:13:12,493 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:13:12,494 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:13:12] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:13:42,493 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:13:42,494 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:13:42] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:14:12,494 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:14:12,494 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:14:12] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:14:15,091 - werkzeug - INFO -  * Detected change in '/home/runner/workspace/ai_service/minimal_flask.py', reloading
+ERROR: 2025-05-06 18:14:15,120 - werkzeug - INFO -  * Restarting with stat
+ERROR: 2025-05-06 18:14:15,391 - puntaiq_ai_service - INFO - Starting AI service on port 5000
+ERROR: 2025-05-06 18:14:15,435 - werkzeug - WARNING -  * Debugger is active!
+ERROR: 2025-05-06 18:14:15,453 - werkzeug - INFO -  * Debugger PIN: 485-542-022
+ERROR: 2025-05-06 18:14:17,596 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:14:17,596 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:14:17] "GET /api/status HTTP/1.1" 200 -
+
+
+2025-05-06T18:14:23.931Z - AI Service starting
+ERROR: 2025-05-06 18:14:24,187 - puntaiq_ai_service - INFO - Starting AI service on port 5000
+ * Serving Flask app 'minimal_flask'
+ * Debug mode: on
+ERROR: 2025-05-06 18:14:24,233 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.36:5000
+ERROR: 2025-05-06 18:14:24,233 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+ERROR: 2025-05-06 18:14:24,234 - werkzeug - INFO -  * Restarting with stat
+ERROR: 2025-05-06 18:14:24,488 - puntaiq_ai_service - INFO - Starting AI service on port 5000
+ERROR: 2025-05-06 18:14:24,520 - werkzeug - WARNING -  * Debugger is active!
+ERROR: 2025-05-06 18:14:24,527 - werkzeug - INFO -  * Debugger PIN: 116-300-591
+ERROR: 2025-05-06 18:14:24,625 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:14:24,626 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:14:24] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:14:24,628 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:14:24,628 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:14:24] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:14:30,783 - puntaiq_ai_service - INFO - Easy access endpoint accessed - redirecting to main application
+ERROR: 2025-05-06 18:14:30,784 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 18:14:30] "[32mGET /easy-access HTTP/1.1[0m" 302 -
+ERROR: 2025-05-06 18:14:30,816 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:14:30,817 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:14:30] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:14:30,820 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:14:30,821 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:14:30] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:14:30,824 - puntaiq_ai_service - INFO - Status endpoint accessed
+2025-05-06 18:14:30,824 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:14:30] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:14:32,041 - puntaiq_ai_service - INFO - Easy access endpoint accessed - redirecting to main application
+ERROR: 2025-05-06 18:14:32,041 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 18:14:32] "[32mGET /easy-access HTTP/1.1[0m" 302 -
