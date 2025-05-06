@@ -146,7 +146,7 @@ export function PredictionFilters() {
   
   // Fetch existing prediction filters
   const { data, isLoading, error } = useQuery<PredictionFilters>({
-    queryKey: ["/api/user/prediction-filters"],
+    queryKey: ["/user-prediction-filters"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
   
@@ -160,11 +160,11 @@ export function PredictionFilters() {
   // Mutation to update prediction filters
   const updateMutation = useMutation({
     mutationFn: async (newFilters: PredictionFilters) => {
-      const response = await apiRequest("POST", "/api/user/prediction-filters", newFilters);
+      const response = await apiRequest("POST", "/user-prediction-filters", newFilters);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user/prediction-filters"] });
+      queryClient.invalidateQueries({ queryKey: ["/user-prediction-filters"] });
       setHasChanges(false);
       toast({
         title: "Filters saved",
