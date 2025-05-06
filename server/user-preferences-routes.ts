@@ -140,8 +140,12 @@ export async function getPredictionFilters(req: Request, res: Response) {
       return res.status(400).json({ status: 400, message: "User ID is required", code: "ERROR_400" });
     }
 
-    // Get user from database
-    const userData = await db.select().from(users).where(eq(users.id, userId));
+    // Get user from database - only select the fields we need
+    const userData = await db.select({
+      id: users.id,
+      userPreferences: users.userPreferences
+    }).from(users).where(eq(users.id, userId));
+    
     if (!userData.length) {
       return res.status(404).json({ status: 404, message: "User not found", code: "ERROR_404" });
     }
@@ -209,8 +213,12 @@ export async function updatePredictionFilters(req: Request, res: Response) {
       return res.status(400).json({ status: 400, message: "User ID is required", code: "ERROR_400" });
     }
 
-    // Get user from database
-    const userData = await db.select().from(users).where(eq(users.id, userId));
+    // Get user from database - only select the fields we need
+    const userData = await db.select({
+      id: users.id,
+      userPreferences: users.userPreferences
+    }).from(users).where(eq(users.id, userId));
+    
     if (!userData.length) {
       return res.status(404).json({ status: 404, message: "User not found", code: "ERROR_404" });
     }
@@ -234,15 +242,10 @@ export async function updatePredictionFilters(req: Request, res: Response) {
 
     preferencesLogger.info(`Saving prediction filters for user ${userId}:`, JSON.stringify(req.body));
     
-    try {
-      // Update user preferences in database
-      await db.update(users)
-        .set({ userPreferences: updatedPreferences })
-        .where(eq(users.id, userId));
-    } catch (updateError: any) {
-      preferencesLogger.error(`Error in SQL update: ${updateError.message}`);
-      throw updateError;
-    }
+    // Update user preferences in database
+    await db.update(users)
+      .set({ userPreferences: updatedPreferences })
+      .where(eq(users.id, userId));
 
     preferencesLogger.info(`Updated prediction filters for user ${userId}`);
     return res.status(200).json(updatedPreferences.predictionFilters);
