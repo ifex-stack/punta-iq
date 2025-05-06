@@ -894,3 +894,7 @@ ERROR: 2025-05-06 17:11:06,482 - puntaiq_ai_service - INFO - Root endpoint acces
 ERROR: 2025-05-06 17:11:06,483 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 17:11:06] "GET / HTTP/1.1" 200 -
 ERROR: 2025-05-06 17:11:07,778 - puntaiq_ai_service - INFO - Root endpoint accessed
 ERROR: 2025-05-06 17:11:07,778 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 17:11:07] "GET / HTTP/1.1" 200 -
+ERROR: 2025-05-06 17:14:35,069 - puntaiq_ai_service - INFO - Root endpoint accessed
+ERROR: 2025-05-06 17:14:35,070 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 17:14:35] "GET / HTTP/1.1" 200 -
+ERROR: 2025-05-06 17:14:36,841 - puntaiq_ai_service - INFO - Root endpoint accessed
+ERROR: 2025-05-06 17:14:36,841 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 17:14:36] "GET / HTTP/1.1" 200 -
