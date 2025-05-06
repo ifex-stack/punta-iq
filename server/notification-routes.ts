@@ -14,15 +14,18 @@ import { storage } from './storage';
 export const notificationRouter = Router();
 
 // Get notification settings for a user
-notificationRouter.get('/api/notifications/settings', (req, res) => {
+notificationRouter.get('/api/notifications/settings', async (req, res) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
   try {
-    // For now, we'll use a simple mock implementation
-    // In the future, this would come from storage
-    const settings = {
+    // Get the user's notification settings from storage
+    const userId = req.user!.id;
+    const userPreferences = await storage.getUserPreferences(userId);
+    
+    // Default settings if none exist yet
+    const defaultSettings = {
       dailyDigest: true,
       matchAlerts: true,
       predictionResults: true,
@@ -32,6 +35,9 @@ notificationRouter.get('/api/notifications/settings', (req, res) => {
       pushEnabled: true
     };
     
+    // Use stored settings or defaults
+    const settings = userPreferences?.notificationSettings || defaultSettings;
+    
     res.json(settings);
   } catch (error: any) {
     logger.error('[NotificationRoutes]', 'Error getting notification settings:', error);
@@ -40,7 +46,7 @@ notificationRouter.get('/api/notifications/settings', (req, res) => {
 });
 
 // Update notification settings for a user
-notificationRouter.put('/api/notifications/settings', (req, res) => {
+notificationRouter.put('/api/notifications/settings', async (req, res) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
@@ -62,14 +68,27 @@ notificationRouter.put('/api/notifications/settings', (req, res) => {
     }
     
     const settings = parseResult.data;
+    const userId = req.user!.id;
     
-    // In a real implementation, we would store these settings
-    // await storage.updateUserNotificationSettings(req.user!.id, settings);
+    // Get the current user preferences from storage
+    const userPreferences = await storage.getUserPreferences(userId) || {};
+    
+    // Update the notification settings, preserving other preferences
+    const updatedPreferences = {
+      ...userPreferences,
+      notificationSettings: {
+        ...(userPreferences.notificationSettings || {}),
+        ...settings
+      }
+    };
+    
+    // Save the updated preferences
+    await storage.updateUserPreferences(userId, updatedPreferences);
     
     res.json({ 
       success: true, 
       message: 'Notification settings updated successfully',
-      settings
+      settings: updatedPreferences.notificationSettings
     });
   } catch (error: any) {
     logger.error('[NotificationRoutes]', 'Error updating notification settings:', error);
