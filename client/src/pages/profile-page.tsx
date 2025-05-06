@@ -27,13 +27,15 @@ import {
   Activity,
   Clock,
   Zap,
-  Globe
+  Globe,
+  Filter
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { BadgeCollection } from "@/components/gamification/badge-collection";
 import { LeaderboardSection } from "@/components/gamification/leaderboard-section";
 import { UserPreferences } from "@/components/profile/user-preferences";
 import { TimezonePreferences } from "@/components/profile/timezone-preferences";
+import { PredictionFilters } from "@/components/profile/prediction-filters";
 import { ProfileNotificationSettings } from "@/components/notifications/profile-notification-settings";
 import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
