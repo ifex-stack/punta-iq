@@ -1,171 +1,145 @@
 """
-Main module for the AI Sports Prediction service.
-Orchestrates the entire prediction process including data fetching,
-prediction generation, and storage.
+PuntaIQ AI Sports Prediction Service
+Main entry point for the API service
 """
+
 import os
 import sys
-import argparse
 import logging
+import argparse
 from datetime import datetime
-from data_fetcher import DataFetcher
-from predictor import Predictor
-from storage import FirestoreStorage
-from config import SUPPORTED_SPORTS, initialize_firebase
-from generate_training_data import train_and_save_models
 
-# Set up logging
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler('ai_service.log')
+    ]
 )
 logger = logging.getLogger('main')
 
-def run_prediction_pipeline(days_ahead=3, store_results=True, notify_users=True):
-    """
-    Run the complete prediction pipeline.
-    
-    Args:
-        days_ahead (int): Number of days ahead to predict
-        store_results (bool): Whether to store results in Firebase
-        notify_users (bool): Whether to send notifications to users
-        
-    Returns:
-        dict: Generated predictions
-    """
-    try:
-        logger.info(f"Starting prediction pipeline for {days_ahead} days ahead")
-        
-        # Initialize services
-        data_fetcher = DataFetcher()
-        predictor = Predictor()
-        storage = FirestoreStorage()
-        
-        # Get enabled sports
-        enabled_sports = [sport for sport, config in SUPPORTED_SPORTS.items() if config["enabled"]]
-        logger.info(f"Enabled sports: {', '.join(enabled_sports)}")
-        
-        # Fetch matches for each sport
-        all_matches = {}
-        for sport in enabled_sports:
-            logger.info(f"Fetching {sport} matches for {days_ahead} days ahead")
-            matches = data_fetcher.fetch_matches_by_sport(sport, days_ahead)
-            logger.info(f"Fetched {len(matches)} {sport} matches")
-            all_matches[sport] = matches
-        
-        # Generate predictions for each sport
-        all_predictions = {}
-        for sport, matches in all_matches.items():
-            if not matches:
-                logger.warning(f"No matches found for {sport}")
-                all_predictions[sport] = []
-                continue
-            
-            logger.info(f"Generating predictions for {len(matches)} {sport} matches")
-            predictions = predictor.predict_matches(matches, sport)
-            logger.info(f"Generated {len(predictions)} {sport} predictions")
-            all_predictions[sport] = predictions
-        
-        # Generate accumulators
-        logger.info("Generating accumulator predictions")
-        accumulators = predictor.generate_accumulators(all_predictions)
-        logger.info(f"Generated {len(accumulators)} accumulators")
-        
-        # Store predictions if requested
-        if store_results:
-            logger.info("Storing predictions in Firebase")
-            for sport, predictions in all_predictions.items():
-                if predictions:
-                    storage.store_predictions(predictions, sport)
-            
-            if accumulators:
-                storage.store_accumulators(accumulators)
-        
-        # Send notifications if requested
-        if notify_users and store_results:
-            total_predictions = sum(len(predictions) for predictions in all_predictions.values())
-            if total_predictions > 0:
-                logger.info(f"Sending notification about {total_predictions} new predictions")
-                notification_title = "New Predictions Available"
-                notification_body = f"{total_predictions} new predictions for {', '.join(enabled_sports)}"
-                
-                storage.send_notification(
-                    user_ids=["all_users"],
-                    title=notification_title,
-                    body=notification_body,
-                    data={
-                        "type": "new_predictions",
-                        "count": total_predictions,
-                        "sports": enabled_sports
-                    }
-                )
-        
-        # Prepare result
-        result = {
-            "timestamp": datetime.now().isoformat(),
-            "predictions": {
-                sport: len(predictions) for sport, predictions in all_predictions.items()
-            },
-            "total_predictions": sum(len(predictions) for predictions in all_predictions.values()),
-            "accumulators": len(accumulators)
-        }
-        
-        logger.info(f"Prediction pipeline completed successfully: {result}")
-        return result
-    
-    except Exception as e:
-        logger.error(f"Error in prediction pipeline: {e}")
-        return {"error": str(e)}
-
 def main():
-    """
-    Main entry point for the prediction service.
-    Parse command line arguments and run the pipeline.
-    """
-    parser = argparse.ArgumentParser(description='AI Sports Prediction Service')
-    parser.add_argument('--days', type=int, default=3, help='Number of days ahead to predict')
-    parser.add_argument('--no-store', action='store_true', help='Do not store results in Firebase')
-    parser.add_argument('--no-notify', action='store_true', help='Do not send notifications')
-    parser.add_argument('--train', action='store_true', help='Train models with synthetic data')
-    parser.add_argument('--serve', action='store_true', help='Start the REST API server')
+    """Main entry point for the application."""
+    parser = argparse.ArgumentParser(description='PuntaIQ AI Sports Prediction Service')
+    parser.add_argument('--mode', choices=['api', 'cron', 'test'], default='api',
+                      help='Run mode: api (run API server), cron (run cron jobs once), test (test integrations)')
+    
     args = parser.parse_args()
     
-    # Initialize Firebase
-    if not args.no_store or not args.no_notify:
-        initialized = initialize_firebase()
-        if not initialized:
-            logger.warning("Firebase not initialized. Storage and notifications will be disabled.")
+    logger.info(f"Starting PuntaIQ AI Service in {args.mode} mode")
     
-    # Train models if requested
-    if args.train:
-        logger.info("Training models with synthetic data")
-        success = train_and_save_models()
-        if success:
-            logger.info("Models trained successfully")
-        else:
-            logger.error("Failed to train models")
-            return 1
+    if args.mode == 'api':
+        # Import and start the API service
+        from api_service import start_server
+        start_server()
     
-    # Start API server if requested
-    if args.serve:
-        logger.info("Starting REST API server")
-        from api import app
-        port = int(os.environ.get('PORT', 5001))
-        app.run(host='0.0.0.0', port=port, debug=False)
-        return 0
+    elif args.mode == 'cron':
+        # Import and run cron jobs once
+        from cron_jobs import scheduler
+        scheduler.run_all_jobs()
+        logger.info("Cron jobs completed")
     
-    # Run prediction pipeline
-    result = run_prediction_pipeline(
-        days_ahead=args.days,
-        store_results=not args.no_store,
-        notify_users=not args.no_notify
-    )
+    elif args.mode == 'test':
+        # Run tests for all integrations
+        logger.info("Running integration tests")
+        test_all_integrations()
+
+def test_all_integrations():
+    """Test all API integrations and Firebase connection."""
+    from api_integrations import api_football
+    from api_integrations import thesportsdb
+    from api_integrations import balldontlie
+    from firebase_init import test_firebase_connection
     
-    if "error" in result:
-        logger.error(f"Prediction pipeline failed: {result['error']}")
-        return 1
+    test_results = {
+        "timestamp": datetime.now().isoformat(),
+        "tests": []
+    }
     
-    return 0
+    # Test API-Football
+    logger.info("Testing API-Football integration...")
+    try:
+        success, response = api_football.test_api_connection()
+        test_results["tests"].append({
+            "name": "API-Football",
+            "success": success,
+            "message": "Connection successful" if success else "Connection failed"
+        })
+        logger.info(f"API-Football test: {'Success' if success else 'Failed'}")
+    except Exception as e:
+        test_results["tests"].append({
+            "name": "API-Football",
+            "success": False,
+            "message": f"Exception: {str(e)}"
+        })
+        logger.error(f"API-Football test exception: {str(e)}")
+    
+    # Test TheSportsDB
+    logger.info("Testing TheSportsDB integration...")
+    try:
+        success, response = thesportsdb.test_api_connection()
+        test_results["tests"].append({
+            "name": "TheSportsDB",
+            "success": success,
+            "message": "Connection successful" if success else "Connection failed"
+        })
+        logger.info(f"TheSportsDB test: {'Success' if success else 'Failed'}")
+    except Exception as e:
+        test_results["tests"].append({
+            "name": "TheSportsDB",
+            "success": False,
+            "message": f"Exception: {str(e)}"
+        })
+        logger.error(f"TheSportsDB test exception: {str(e)}")
+    
+    # Test BallDontLie
+    logger.info("Testing BallDontLie integration...")
+    try:
+        success, response = balldontlie.test_api_connection()
+        test_results["tests"].append({
+            "name": "BallDontLie",
+            "success": success,
+            "message": "Connection successful" if success else "Connection failed"
+        })
+        logger.info(f"BallDontLie test: {'Success' if success else 'Failed'}")
+    except Exception as e:
+        test_results["tests"].append({
+            "name": "BallDontLie",
+            "success": False,
+            "message": f"Exception: {str(e)}"
+        })
+        logger.error(f"BallDontLie test exception: {str(e)}")
+    
+    # Test Firebase
+    logger.info("Testing Firebase connection...")
+    try:
+        success, message = test_firebase_connection()
+        test_results["tests"].append({
+            "name": "Firebase",
+            "success": success,
+            "message": message
+        })
+        logger.info(f"Firebase test: {'Success' if success else 'Failed'} - {message}")
+    except Exception as e:
+        test_results["tests"].append({
+            "name": "Firebase",
+            "success": False,
+            "message": f"Exception: {str(e)}"
+        })
+        logger.error(f"Firebase test exception: {str(e)}")
+    
+    # Print summary
+    logger.info("=== Integration Test Summary ===")
+    success_count = sum(1 for test in test_results["tests"] if test["success"])
+    logger.info(f"Tests passed: {success_count}/{len(test_results['tests'])}")
+    
+    for test in test_results["tests"]:
+        status = "✓" if test["success"] else "✗"
+        logger.info(f"{status} {test['name']}: {test['message']}")
+    
+    return test_results
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
