@@ -8,15 +8,17 @@ import json
 import time
 import datetime
 import requests
-import firebase_admin
-from firebase_admin import credentials, db
+import argparse
+# Import our firebase_init module that already has the correct configuration
+from firebase_init import app, get_db_reference
 
 # ==========================================================================
 # Configuration
 # ==========================================================================
 API_FOOTBALL_KEY = os.environ.get('API_FOOTBALL_KEY')
 ODDS_API_KEY = os.environ.get('ODDS_API_KEY')
-FIREBASE_DB_URL = os.environ.get('FIREBASE_DB_URL')
+# Use the correct Firebase DB URL
+FIREBASE_DB_URL = 'https://puntaiq-default-rtdb.firebaseio.com'
 
 # API endpoints
 API_FOOTBALL_BASE_URL = "https://v3.football.api-sports.io"
@@ -51,23 +53,8 @@ def get_date_range(days=7):
 # ==========================================================================
 # Firebase Setup
 # ==========================================================================
-def initialize_firebase():
-    """Initialize Firebase connection."""
-    try:
-        service_account_path = "firebase-service-account.json"
-        if os.path.exists(service_account_path):
-            cred = credentials.Certificate(service_account_path)
-            firebase_app = firebase_admin.initialize_app(cred, {
-                'databaseURL': FIREBASE_DB_URL
-            })
-            log_message("Firebase initialized successfully.")
-            return firebase_app
-        else:
-            log_message(f"Firebase credentials file not found at {service_account_path}", "ERROR")
-            return None
-    except Exception as e:
-        log_message(f"Error initializing Firebase: {str(e)}", "ERROR")
-        return None
+# We're using the firebase_init module to get database references, which 
+# has our Firebase app already initialized with the correct configuration
 
 # ==========================================================================
 # API Data Fetching Functions
@@ -186,9 +173,12 @@ def cache_football_fixtures():
         if data:
             # If Firebase is available, cache there
             try:
-                fixtures_ref = db.reference(f"/cache/football/fixtures/{date}")
-                fixtures_ref.set(data)
-                log_message(f"Cached {len(data.get('response', []))} football fixtures to Firebase for {date}")
+                fixtures_ref = get_db_reference(f"/cache/football/fixtures/{date}")
+                if fixtures_ref:
+                    fixtures_ref.set(data)
+                    log_message(f"Cached {len(data.get('response', []))} football fixtures to Firebase for {date}")
+                else:
+                    log_message("Unable to get Firebase reference for football fixtures", "WARNING")
             except Exception as e:
                 log_message(f"Error caching to Firebase: {str(e)}", "ERROR")
                 
@@ -211,9 +201,12 @@ def cache_nba_games():
         if data:
             # If Firebase is available, cache there
             try:
-                games_ref = db.reference(f"/cache/basketball/nba/games/{date}")
-                games_ref.set(data)
-                log_message(f"Cached {len(data.get('data', []))} NBA games to Firebase for {date}")
+                games_ref = get_db_reference(f"/cache/basketball/nba/games/{date}")
+                if games_ref:
+                    games_ref.set(data)
+                    log_message(f"Cached {len(data.get('data', []))} NBA games to Firebase for {date}")
+                else:
+                    log_message("Unable to get Firebase reference for NBA games", "WARNING")
             except Exception as e:
                 log_message(f"Error caching to Firebase: {str(e)}", "ERROR")
                 
@@ -240,10 +233,13 @@ def cache_other_sports():
             if data:
                 # If Firebase is available, cache there
                 try:
-                    events_ref = db.reference(f"/cache/{sport_key}/events/{date}")
-                    events_ref.set(data)
-                    events_count = len(data.get('events', []) or [])
-                    log_message(f"Cached {events_count} {sport} events to Firebase for {date}")
+                    events_ref = get_db_reference(f"/cache/{sport_key}/events/{date}")
+                    if events_ref:
+                        events_ref.set(data)
+                        events_count = len(data.get('events', []) or [])
+                        log_message(f"Cached {events_count} {sport} events to Firebase for {date}")
+                    else:
+                        log_message(f"Unable to get Firebase reference for {sport} events", "WARNING")
                 except Exception as e:
                     log_message(f"Error caching to Firebase: {str(e)}", "ERROR")
                 
@@ -269,9 +265,12 @@ def cache_odds():
             
             # If Firebase is available, cache there
             try:
-                odds_ref = db.reference(f"/cache/{sport_key}/odds")
-                odds_ref.set(data)
-                log_message(f"Cached odds to Firebase for {sport}")
+                odds_ref = get_db_reference(f"/cache/{sport_key}/odds")
+                if odds_ref:
+                    odds_ref.set(data)
+                    log_message(f"Cached odds to Firebase for {sport}")
+                else:
+                    log_message(f"Unable to get Firebase reference for {sport} odds", "WARNING")
             except Exception as e:
                 log_message(f"Error caching to Firebase: {str(e)}", "ERROR")
             
@@ -293,10 +292,12 @@ def run_daily_cache_update():
     start_time = datetime.datetime.now()
     log_message(f"Starting daily cache update at {start_time}")
     
-    # Initialize Firebase
-    firebase_app = initialize_firebase()
-    if not firebase_app:
-        log_message("Firebase initialization failed, but continuing with local caching.", "WARNING")
+    # Firebase is already initialized via firebase_init module
+    # Check if we're connected properly by trying to get a reference
+    if not get_db_reference("/"):
+        log_message("Firebase reference could not be obtained. Will continue with local caching.", "WARNING")
+    else:
+        log_message("Firebase connection is properly initialized")
     
     # Create cache directory if it doesn't exist
     os.makedirs("cache", exist_ok=True)
