@@ -78,6 +78,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up user preferences routes
   app.use(userPreferencesRouter);
   
+  // Debug route to log all registered routes
+  app.get('/api/routes', (req, res) => {
+    console.log("Debug route called: /api/routes");
+    // Can't easily enumerate Express routes, so we'll just check our specific routes
+    try {
+      const routes = [];
+      
+      // Print all app._router stack (debug only)
+      const stack = app._router?.stack;
+      console.log(`Router stack length: ${stack?.length || 0}`);
+      
+      if (stack) {
+        for (const layer of stack) {
+          if (layer.route) {
+            // Routes registered directly on the app
+            routes.push({
+              path: layer.route.path,
+              methods: Object.keys(layer.route.methods)
+            });
+          } else if (layer.name === 'router' && layer.handle.stack) {
+            // Routes registered via Router
+            console.log(`Router middleware found: ${layer.regexp}`);
+            for (const routeLayer of layer.handle.stack) {
+              if (routeLayer.route) {
+                routes.push({
+                  path: routeLayer.route.path,
+                  methods: Object.keys(routeLayer.route.methods),
+                  router: String(layer.regexp)
+                });
+              }
+            }
+          }
+        }
+      }
+      
+      const userPreferencesRoutes = [
+        '/api/user/preferences',
+        '/api/user/prediction-filters'
+      ];
+      
+      const checkResult = {};
+      for (const route of userPreferencesRoutes) {
+        const found = routes.some(r => r.path === route);
+        checkResult[route] = found;
+      }
+      
+      res.json({ 
+        check: checkResult,
+        routes
+      });
+    } catch (error) {
+      console.error("Error in debug route:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+  
   // Set up automation management routes
   setupAutomationRoutes(app);
   

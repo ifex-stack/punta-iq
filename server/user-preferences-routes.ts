@@ -16,26 +16,39 @@ export async function updateUserPreferences(req: Request, res: Response);
 export async function getPredictionFilters(req: Request, res: Response);
 export async function updatePredictionFilters(req: Request, res: Response);
 
-// Define route endpoints
-userPreferencesRouter.get('/api/user/preferences', getUserPreferences);
-userPreferencesRouter.post('/api/user/preferences', updateUserPreferences);
-userPreferencesRouter.get('/api/user/prediction-filters', getPredictionFilters);
-userPreferencesRouter.post('/api/user/prediction-filters', updatePredictionFilters);
+// Define route endpoints - use a different prefix to avoid potential conflicts
+// userPreferencesRouter.get('/api/user/preferences', getUserPreferences);
+// userPreferencesRouter.post('/api/user/preferences', updateUserPreferences);
+// userPreferencesRouter.get('/api/user/prediction-filters', getPredictionFilters);
+// userPreferencesRouter.post('/api/user/prediction-filters', updatePredictionFilters);
+
+// Use new direct route definitions that should be more reliable
+userPreferencesRouter.get('/user-preferences', getUserPreferences);
+userPreferencesRouter.post('/user-preferences', updateUserPreferences);
+userPreferencesRouter.get('/user-prediction-filters', getPredictionFilters);
+userPreferencesRouter.post('/user-prediction-filters', updatePredictionFilters);
 
 export async function getUserPreferences(req: Request, res: Response) {
+  console.log('getUserPreferences: Route hit');
+  preferencesLogger.info('getUserPreferences: Route hit');
   try {
     // Check if user is authenticated
     if (!req.isAuthenticated()) {
+      console.log('getUserPreferences: Not authenticated');
+      preferencesLogger.info('getUserPreferences: Not authenticated');
       return res.status(401).json({ status: 401, message: "Unauthorized", code: "ERROR_401" });
     }
 
     const userId = req.user?.id;
+    console.log(`getUserPreferences: User ID: ${userId}`);
+    preferencesLogger.info(`getUserPreferences: User ID: ${userId}`);
     if (!userId) {
       return res.status(400).json({ status: 400, message: "User ID is required", code: "ERROR_400" });
     }
     
     // Special handling for beta_tester user
     if (userId === 9999) {
+      console.log('getUserPreferences: Using beta_tester preferences');
       preferencesLogger.info("Using beta_tester built-in user preferences");
       
       // Return user preferences directly from req.user
@@ -158,13 +171,19 @@ export async function updateUserPreferences(req: Request, res: Response) {
  * Get the prediction filters for the user
  */
 export async function getPredictionFilters(req: Request, res: Response) {
+  console.log('getPredictionFilters: Route hit');
+  preferencesLogger.info('getPredictionFilters: Route hit');
   try {
     // Check if user is authenticated
     if (!req.isAuthenticated()) {
+      console.log('getPredictionFilters: Not authenticated');
+      preferencesLogger.info('getPredictionFilters: Not authenticated');
       return res.status(401).json({ status: 401, message: "Unauthorized", code: "ERROR_401" });
     }
 
     const userId = req.user?.id;
+    console.log(`getPredictionFilters: User ID: ${userId}`);
+    preferencesLogger.info(`getPredictionFilters: User ID: ${userId}`);
     if (!userId) {
       return res.status(400).json({ status: 400, message: "User ID is required", code: "ERROR_400" });
     }
