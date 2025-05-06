@@ -137,7 +137,7 @@ app.use((req, res, next) => {
     };
     
     if (status >= 500) {
-      errorLogger.critical(`${status} ${message}`, errorData);
+      errorLogger.error(`CRITICAL: ${status} ${message}`, errorData);
     } else if (status >= 400) {
       errorLogger.error(`${status} ${message}`, errorData);
     } else {

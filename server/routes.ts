@@ -1,6 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
+import fs from "fs";
+import path from "path";
 import { setupAuth } from "./auth";
 import { setupPredictionRoutes } from "./predictions";
 import { setupNotificationRoutes } from "./notifications";
@@ -138,8 +140,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test routing helper page for debugging the application interface
   app.get('/test-routing', (req, res) => {
     routesLogger.info('Test routing page accessed');
-    const fs = require('fs');
-    const path = require('path');
     
     const htmlPath = path.join(process.cwd(), 'test-routing.html');
     if (fs.existsSync(htmlPath)) {
@@ -147,6 +147,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } else {
       res.send('Test routing file not found. Please create test-routing.html in the root directory.');
     }
+  });
+  
+  // Root route - serve the login page
+  app.get('/', (req, res) => {
+    routesLogger.info('Root route accessed - serving login page');
+    
+    const loginPath = path.join(process.cwd(), 'login.html');
+    
+    // First try to directly send the file
+    res.sendFile(loginPath, (err) => {
+      if (err) {
+        // If there's an error, redirect to /auth instead
+        routesLogger.error(`Failed to serve login.html: ${err.message}`);
+        res.redirect('/auth');
+      }
+    });
   });
   
   // Set up automation management routes
