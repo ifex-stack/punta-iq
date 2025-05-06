@@ -1,5 +1,4 @@
 import { createRoot } from "react-dom/client";
-import React from "react";
 import App from "./App";
 import "./index.css";
 
@@ -61,31 +60,4 @@ window.addEventListener('unhandledrejection', (event) => {
   console.error('Unhandled Promise Rejection:', event.reason);
 });
 
-// Temporarily use a simple component to test rendering
-const TestComponent = () => {
-  return (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      alignItems: 'center', 
-      justifyContent: 'center', 
-      height: '100vh', 
-      padding: '20px'
-    }}>
-      <h1>PuntaIQ App Test</h1>
-      <p>If you can see this message, React is rendering correctly.</p>
-      <div style={{ marginTop: '20px' }}>
-        <button onClick={() => alert('Button clicked!')}>Test Button</button>
-      </div>
-      <div style={{ marginTop: '20px' }}>
-        <a href="/auth" style={{ color: 'blue', textDecoration: 'underline' }}>Go to Auth Page</a>
-      </div>
-    </div>
-  );
-};
-
-// Use the test component for debugging
-createRoot(document.getElementById("root")!).render(<TestComponent />);
-
-// Comment out the App component for now
-// createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(<App />);
