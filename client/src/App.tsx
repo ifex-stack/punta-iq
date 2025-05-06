@@ -53,12 +53,22 @@ import { NotificationToastListener } from "@/components/notifications/notificati
 import { CurrencyRecommendationProvider, CurrencyRecommendationContainer } from "@/components/currency/currency-recommendation-provider";
 import { fetchFeatureFlags } from "./lib/feature-flags";
 
+// Layout components
 import AppLayout from "@/components/layout/app-layout";
+import { MobileAppLayout } from "@/components/layout/mobile-app-layout";
+
+// Mobile pages
+import MobileHomePage from "@/pages/mobile-home-page";
+import MobileExplorePage from "@/pages/mobile-explore-page";
+import MobileMyPicksPage from "@/pages/mobile-my-picks-page";
 
 // Create typed component definition to fix TypeScript errors
 const Router: React.FC = () => {
   // Track location changes to know when we're navigating
   const [location] = useLocation();
+  
+  // Detect if we're on mobile
+  const isMobile = true; // In a real app, this would check screen size or user agent
   
   // Set navigation state when location changes
   useEffect(() => {
@@ -73,7 +83,7 @@ const Router: React.FC = () => {
     return () => clearTimeout(timeoutId);
   }, [location]);
   
-  // Don't wrap auth page in AppLayout to prevent showing the bottom navigation bar
+  // Don't wrap auth page in AppLayout to prevent showing navigation bars
   if (location === '/auth') {
     return (
       <div className="flex h-screen">
@@ -84,6 +94,68 @@ const Router: React.FC = () => {
     );
   }
   
+  // Use mobile layout for the redesigned experience
+  if (isMobile) {
+    return (
+      <div className="flex h-screen">
+        <div className="flex-1 relative">
+          <MobileAppLayout>
+            <React.Suspense fallback={
+              <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+              </div>
+            }>
+              <Switch>
+                <ProtectedRoute path="/" component={MobileHomePage} />
+                <ProtectedRoute path="/explore" component={MobileExplorePage} />
+                <ProtectedRoute path="/my-picks" component={MobileMyPicksPage} />
+                <ProtectedRoute path="/performance" component={HistoricalDashboard} />
+                <ProtectedRoute path="/predictions" component={MobileHomePage} />
+                <ProtectedRoute path="/predictions/advanced" component={AdvancedPredictionsPage} />
+                <ProtectedRoute path="/advanced-analysis" component={AdvancedAnalysisPage} />
+                <ProtectedRoute path="/accumulators" component={AccumulatorsPage} />
+                <ProtectedRoute path="/predictions/tiered" component={TieredPredictionsPage} />
+                <ProtectedRoute path="/fantasy/contests" component={FantasyContestsPage} />
+                <ProtectedRoute path="/fantasy/contests/create" component={FantasyContestCreatePage} />
+                <ProtectedRoute path="/fantasy/teams/:teamId/build" component={FantasyTeamBuildPage} />
+                <ProtectedRoute path="/fantasy/player-comparison" component={PlayerComparisonPage} />
+                <ProtectedRoute path="/fantasy/player-analysis" component={PlayerAnalysisPage} />
+                <ProtectedRoute path="/fantasy/player-performance" component={PlayerPerformancePage} />
+                <Route path="/fantasy" component={FantasyContestsPage} />
+                <ProtectedRoute path="/subscription" component={SubscriptionPage} />
+                <ProtectedRoute path="/subscription-success" component={SubscriptionSuccessPage} />
+                <ProtectedRoute path="/profile" component={ProfilePage} />
+                <ProtectedRoute path="/referrals" component={ReferralsPage} />
+                <ProtectedRoute path="/gamification" component={GamificationPage} />
+                <ProtectedRoute path="/admin" component={AdminPage} />
+                <ProtectedRoute path="/analytics-dashboard" component={AnalyticsDashboardPage} />
+                <ProtectedRoute path="/user-demographics" component={UserDemographicsPage} />
+                <Route path="/historical-dashboard" component={HistoricalDashboard} />
+                <ProtectedRoute path="/metrics" component={MetricsPage} />
+                <Route path="/livescore" component={LiveScorePage} />
+                <Route path="/ai-service-status" component={AIServiceStatusPage} />
+                <Route path="/faq" component={FAQPage} />
+                <Route path="/feedback" component={FeedbackPage} />
+                <Route path="/legal/privacy-policy" component={PrivacyPolicyPage} />
+                <Route path="/legal/terms-of-service" component={TermsOfServicePage} />
+                <Route path="/legal/responsible-gambling" component={ResponsibleGamblingPage} />
+                <Route path="/ui-showcase" component={UIShowcase} />
+                <Route path="/login-test" component={React.lazy(() => import('./pages/login-test-page'))} />
+                <Route component={NotFound} />
+              </Switch>
+            </React.Suspense>
+          </MobileAppLayout>
+          
+          {/* Onboarding components (only shown when triggered) */}
+          <GuidedTour />
+          <GettingStartedGuide />
+          <OnboardingReminderButton />
+        </div>
+      </div>
+    );
+  }
+  
+  // Use original layout for desktop/tablet experience
   return (
     <div className="flex h-screen">
       <div className="flex-1 relative">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { DateSelector } from "@/components/ui/date-selector";
 import { SportSelector } from "@/components/ui/sport-selector";
@@ -24,7 +24,7 @@ export default function MobileHomePage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSport, setSelectedSport] = useState<string>('all');
   const { user } = useAuth();
-  const [_, navigate] = useNavigate();
+  const [_, navigate] = useLocation();
 
   const formattedDate = format(selectedDate, 'yyyy-MM-dd');
   

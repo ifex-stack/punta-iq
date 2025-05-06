@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import PredictionCard from "@/components/predictions/prediction-card";
 import { useAuth } from "@/hooks/use-auth";
@@ -21,7 +21,7 @@ type PredictionStatus = 'pending' | 'won' | 'lost' | 'all';
 export default function MobileMyPicksPage() {
   const [selectedStatus, setSelectedStatus] = useState<PredictionStatus>('pending');
   const { user } = useAuth();
-  const [_, navigate] = useNavigate();
+  const [_, navigate] = useLocation();
 
   // Query for saved predictions
   const { 

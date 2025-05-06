@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DateSelector } from "@/components/ui/date-selector";
 import { SportSelector } from "@/components/ui/sport-selector";
@@ -35,7 +35,7 @@ export default function MobileExplorePage() {
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>([]);
   const [selectedMarkets, setSelectedMarkets] = useState<string[]>(['Match Result']);
   const { user } = useAuth();
-  const [_, navigate] = useNavigate();
+  const [_, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   const formattedDate = format(selectedDate, 'yyyy-MM-dd');
