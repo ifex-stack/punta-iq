@@ -33,8 +33,17 @@ export async function getUserPreferences(req: Request, res: Response) {
     if (!userId) {
       return res.status(400).json({ status: 400, message: "User ID is required", code: "ERROR_400" });
     }
+    
+    // Special handling for beta_tester user
+    if (userId === 9999) {
+      preferencesLogger.info("Using beta_tester built-in user preferences");
+      
+      // Return user preferences directly from req.user
+      const preferences = req.user?.userPreferences || {};
+      return res.status(200).json(preferences);
+    }
 
-    // Get user from database
+    // For regular users, get data from database
     const userData = await db.select().from(users).where(eq(users.id, userId));
     if (!userData.length) {
       return res.status(404).json({ status: 404, message: "User not found", code: "ERROR_404" });
@@ -62,15 +71,6 @@ export async function updateUserPreferences(req: Request, res: Response) {
     if (!userId) {
       return res.status(400).json({ status: 400, message: "User ID is required", code: "ERROR_400" });
     }
-
-    // Get user from database
-    const userData = await db.select().from(users).where(eq(users.id, userId));
-    if (!userData.length) {
-      return res.status(404).json({ status: 404, message: "User not found", code: "ERROR_404" });
-    }
-
-    // Get existing preferences
-    const existingPreferences = userData[0].userPreferences || {};
     
     // Sanitize the input data
     const { 
@@ -79,6 +79,35 @@ export async function updateUserPreferences(req: Request, res: Response) {
       completedSteps,
       ...otherPrefs 
     } = req.body;
+    
+    // Special handling for beta_tester user
+    if (userId === 9999) {
+      preferencesLogger.info("Pretending to save beta_tester user preferences (in-memory only)");
+      
+      // We'll log but not actually update the database for this user
+      preferencesLogger.info(`Preferences for beta user ${userId}:`, JSON.stringify(req.body));
+      
+      // Create a simulated response
+      const existingPreferences = req.user?.userPreferences || {};
+      const updatedPreferences = {
+        ...existingPreferences,
+        ...otherPrefs,
+        ...(onboardingCompleted !== undefined ? { onboardingCompleted } : {}),
+        ...(lastStep !== undefined ? { lastStep } : {}),
+        ...(completedSteps !== undefined ? { completedSteps } : {})
+      };
+      
+      return res.status(200).json(updatedPreferences);
+    }
+
+    // For regular users, get data from database
+    const userData = await db.select().from(users).where(eq(users.id, userId));
+    if (!userData.length) {
+      return res.status(404).json({ status: 404, message: "User not found", code: "ERROR_404" });
+    }
+
+    // Get existing preferences
+    const existingPreferences = userData[0].userPreferences || {};
     
     // Merge existing preferences with new preferences
     const updatedPreferences = {
@@ -140,7 +169,57 @@ export async function getPredictionFilters(req: Request, res: Response) {
       return res.status(400).json({ status: 400, message: "User ID is required", code: "ERROR_400" });
     }
 
-    // Get user from database - only select the fields we need
+    // For the built-in beta_tester user (id: 9999), use the default preferences directly from the user object
+    if (userId === 9999) {
+      preferencesLogger.info("Using beta_tester built-in user preferences");
+      
+      // Get user preferences from the request.user object
+      const userPreferences = req.user?.userPreferences || {};
+      
+      // Default prediction filters structure
+      const predictionFilters = userPreferences.predictionFilters || {
+        // Default filters if none are set
+        enabledSports: {
+          football: true,
+          basketball: true,
+          tennis: false,
+          baseball: false,
+          hockey: false,
+          cricket: false,
+          formula1: false,
+          mma: false,
+          volleyball: false
+        },
+        enabledLeagues: {
+          football: ["premier_league", "laliga", "bundesliga", "seriea", "ligue1", "champions_league"],
+          basketball: ["nba", "euroleague"],
+          tennis: [],
+          baseball: [],
+          hockey: [],
+          cricket: [],
+          formula1: [],
+          mma: [],
+          volleyball: []
+        },
+        marketTypes: {
+          matchWinner: true,
+          bothTeamsToScore: true,
+          overUnder: true,
+          correctScore: false,
+          handicap: false,
+          playerProps: false
+        },
+        minimumConfidence: 60,
+        minimumOdds: 1.5,
+        maximumOdds: 10.0,
+        includeAccumulators: true
+      };
+      
+      preferencesLogger.info(`Fetched prediction filters for beta user ${userId}`);
+      return res.status(200).json(predictionFilters);
+    }
+
+    // For regular users, get data from database
     const userData = await db.select({
       id: users.id,
       userPreferences: users.userPreferences
@@ -212,8 +291,24 @@ export async function updatePredictionFilters(req: Request, res: Response) {
     if (!userId) {
       return res.status(400).json({ status: 400, message: "User ID is required", code: "ERROR_400" });
     }
+    
+    // Validate incoming filters
+    if (!req.body || typeof req.body !== 'object') {
+      return res.status(400).json({ status: 400, message: "Invalid prediction filters", code: "ERROR_400" });
+    }
 
-    // Get user from database - only select the fields we need
+    // Special handling for beta_tester user (id: 9999)
+    if (userId === 9999) {
+      // For beta_tester, we'll log but not actually save to database
+      // as this user is recreated on each authentication
+      preferencesLogger.info("Pretending to save beta_tester prediction filters (in-memory only)");
+      preferencesLogger.info(`Filters for beta user ${userId}:`, JSON.stringify(req.body));
+      
+      // Return success response with the updated filters
+      return res.status(200).json(req.body);
+    }
+
+    // For regular users, get data from database
     const userData = await db.select({
       id: users.id,
       userPreferences: users.userPreferences
@@ -225,11 +320,6 @@ export async function updatePredictionFilters(req: Request, res: Response) {
 
     // Get existing preferences
     const existingPreferences = userData[0].userPreferences || {};
-    
-    // Validate incoming filters
-    if (!req.body || typeof req.body !== 'object') {
-      return res.status(400).json({ status: 400, message: "Invalid prediction filters", code: "ERROR_400" });
-    }
     
     // Update the prediction filters
     const updatedPreferences = {
