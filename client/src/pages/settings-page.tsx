@@ -2,6 +2,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Redirect } from 'wouter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotificationSettings } from '@/components/settings/notification-settings';
+import { PredictionFilters } from '@/components/profile/prediction-filters';
 import { Loader2 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -34,6 +35,7 @@ export default function SettingsPage() {
         <TabsList className="mb-8">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="prediction_filters">Prediction Filters</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
           <TabsTrigger value="subscription">Subscription</TabsTrigger>
         </TabsList>
@@ -47,6 +49,10 @@ export default function SettingsPage() {
         
         <TabsContent value="notifications">
           <NotificationSettings />
+        </TabsContent>
+        
+        <TabsContent value="prediction_filters">
+          <PredictionFilters />
         </TabsContent>
         
         <TabsContent value="appearance" className="space-y-4">
