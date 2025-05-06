@@ -1,11 +1,11 @@
 import React from 'react';
-import { Link, useLocation } from 'wouter';
+import { useLocation } from 'wouter';
 import { Home, Search, BarChart3, Bookmark, ShoppingBag, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
 export default function MobileNavbar() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   
   const navItems = [
     {
@@ -61,29 +61,31 @@ export default function MobileNavbar() {
         {navItems.map((item) => {
           const active = isActive(item.activeWhen);
           return (
-            <Link key={item.href} href={item.href}>
-              <a className="flex flex-col items-center py-1 relative">
-                <div className={cn(
-                  "flex items-center justify-center h-10 w-10 rounded-full text-muted-foreground relative",
-                  active && "text-primary"
-                )}>
-                  <item.icon size={20} />
-                  {active && (
-                    <motion.div
-                      layoutId="navbar-indicator"
-                      className="absolute inset-0 bg-primary/10 rounded-full"
-                      transition={{ type: "spring", duration: 0.3 }}
-                    />
-                  )}
-                </div>
-                <span className={cn(
-                  "text-[10px] mt-1 font-medium", 
-                  active ? "text-primary" : "text-muted-foreground"
-                )}>
-                  {item.label}
-                </span>
-              </a>
-            </Link>
+            <button
+              key={item.href}
+              className="flex flex-col items-center py-1 relative bg-transparent border-0"
+              onClick={() => navigate(item.href)}
+            >
+              <div className={cn(
+                "flex items-center justify-center h-10 w-10 rounded-full text-muted-foreground relative",
+                active && "text-primary"
+              )}>
+                <item.icon size={20} />
+                {active && (
+                  <motion.div
+                    layoutId="navbar-indicator"
+                    className="absolute inset-0 bg-primary/10 rounded-full"
+                    transition={{ type: "spring", duration: 0.3 }}
+                  />
+                )}
+              </div>
+              <span className={cn(
+                "text-[10px] mt-1 font-medium", 
+                active ? "text-primary" : "text-muted-foreground"
+              )}>
+                {item.label}
+              </span>
+            </button>
           );
         })}
       </div>
