@@ -1810,3 +1810,55 @@ ERROR: 2025-05-06 18:26:55,612 - puntaiq_ai_service - INFO - Status endpoint acc
 ERROR: 2025-05-06 18:26:55,613 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:26:55] "GET /api/status HTTP/1.1" 200 -
 ERROR: 2025-05-06 18:26:55,694 - puntaiq_ai_service - INFO - Status endpoint accessed
 ERROR: 2025-05-06 18:26:55,695 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:26:55] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:27:24,638 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:27:24,639 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:27:24] "GET /api/status HTTP/1.1" 200 -
+
+
+2025-05-06T18:27:57.205Z - AI Service starting
+ERROR: 2025-05-06 18:27:57,561 - puntaiq_ai_service - INFO - Starting AI service on port 5000
+ * Serving Flask app 'minimal_flask'
+ * Debug mode: on
+ERROR: 2025-05-06 18:27:57,621 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.36:5000
+ERROR: 2025-05-06 18:27:57,621 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+ERROR: 2025-05-06 18:27:57,622 - werkzeug - INFO -  * Restarting with stat
+ERROR: 2025-05-06 18:27:57,947 - puntaiq_ai_service - INFO - Starting AI service on port 5000
+ERROR: 2025-05-06 18:27:57,982 - werkzeug - WARNING -  * Debugger is active!
+ERROR: 2025-05-06 18:27:57,992 - werkzeug - INFO -  * Debugger PIN: 138-110-641
+ERROR: 2025-05-06 18:27:58,108 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:27:58,109 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:27:58] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:27:58,110 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:27:58,110 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:27:58] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:28:27,132 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:28:27,132 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:28:27] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:28:27,137 - puntaiq_ai_service - INFO - Status endpoint accessed
+2025-05-06 18:28:27,138 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:28:27] "GET /api/status HTTP/1.1" 200 -
+
+
+2025-05-06T18:28:53.186Z - AI Service starting
+ERROR: 2025-05-06 18:28:53,491 - puntaiq_ai_service - INFO - Starting AI service on port 5000
+ * Serving Flask app 'minimal_flask'
+ * Debug mode: on
+ERROR: 2025-05-06 18:28:53,543 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.36:5000
+ERROR: 2025-05-06 18:28:53,543 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+ERROR: 2025-05-06 18:28:53,544 - werkzeug - INFO -  * Restarting with stat
+ERROR: 2025-05-06 18:28:53,811 - puntaiq_ai_service - INFO - Starting AI service on port 5000
+ERROR: 2025-05-06 18:28:53,841 - werkzeug - WARNING -  * Debugger is active!
+ERROR: 2025-05-06 18:28:53,852 - werkzeug - INFO -  * Debugger PIN: 390-633-526
+ERROR: 2025-05-06 18:28:53,956 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:28:53,957 - puntaiq_ai_service - INFO - Root endpoint accessed - redirecting to main application
+ERROR: 2025-05-06 18:28:53,959 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 18:28:53] "[32mGET / HTTP/1.1[0m" 302 -
+ERROR: 2025-05-06 18:28:53,958 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:28:53] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:28:53,999 - puntaiq_ai_service - INFO - Status endpoint accessed
+2025-05-06 18:28:53,999 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:28:53] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:28:54,003 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:28:54,004 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:28:54] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:28:54,011 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:28:54,011 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:28:54] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:28:54,217 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:28:54,218 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:28:54] "GET /api/status HTTP/1.1" 200 -

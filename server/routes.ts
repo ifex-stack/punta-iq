@@ -185,14 +185,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Simple access page - a guaranteed solution without routing conflicts
+  app.get('/simple-access', (req, res) => {
+    routesLogger.info('Simple access page accessed');
+    
+    const htmlPath = path.join(process.cwd(), 'simple-access.html');
+    if (fs.existsSync(htmlPath)) {
+      res.sendFile(htmlPath);
+    } else {
+      res.send('Simple access file not found. Please create simple-access.html in the root directory.');
+    }
+  });
+  
   // Easy access shortcut on root
   app.get('/', (req, res) => {
-    routesLogger.info('Root route accessed - checking for easy access parameter');
+    routesLogger.info('Root route accessed - checking for access parameters');
     
     // Check if the user is trying to access with easy access parameter
     if (req.query.access === 'easy') {
       routesLogger.info('Easy access parameter detected - redirecting to easy access page');
       return res.redirect('/easy-access');
+    }
+    
+    // Check if the user is trying to access with simple access parameter
+    if (req.query.access === 'simple') {
+      routesLogger.info('Simple access parameter detected - redirecting to simple access page');
+      return res.redirect('/simple-access');
     }
     
     // Otherwise serve login page as normal
