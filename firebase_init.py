@@ -14,7 +14,8 @@ def initialize_firebase():
         project_id = 'puntaiq'  # Hardcoded for this project
         private_key = os.environ.get('FIREBASE_PRIVATE_KEY')
         client_email = 'firebase-adminsdk-fbsvc@puntaiq.iam.gserviceaccount.com'
-        db_url = os.environ.get('FIREBASE_DB_URL', f'https://{project_id}.firebaseio.com')
+        # Always use the correct database URL regardless of environment variable
+        db_url = 'https://puntaiq-default-rtdb.firebaseio.com'
         
         if not private_key:
             print("WARNING: FIREBASE_PRIVATE_KEY environment variable is not set.")
