@@ -129,6 +129,14 @@ const Router: React.FC = () => {
               <Route path="/legal/responsible-gambling" component={ResponsibleGamblingPage} />
               <Route path="/ui-showcase" component={UIShowcase} />
               <Route path="/login-test" component={React.lazy(() => import('./pages/login-test-page'))} />
+              
+              {/* Direct test page route - no auth required */}
+              <Route path="/public-test">
+                {() => {
+                  window.location.href = '/public-test';
+                  return <div>Redirecting to test page...</div>;
+                }}
+              </Route>
               <Route component={NotFound} />
             </Switch>
           </React.Suspense>

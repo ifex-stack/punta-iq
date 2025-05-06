@@ -149,6 +149,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Public test page - accessible to everyone for testing
+  app.get('/public-test', (req, res) => {
+    routesLogger.info('Public test page accessed');
+    
+    const htmlPath = path.join(process.cwd(), 'public-test.html');
+    if (fs.existsSync(htmlPath)) {
+      res.sendFile(htmlPath);
+    } else {
+      res.send('Public test file not found.');
+    }
+  });
+  
   // Root route - serve the login page
   app.get('/', (req, res) => {
     routesLogger.info('Root route accessed - serving login page');
