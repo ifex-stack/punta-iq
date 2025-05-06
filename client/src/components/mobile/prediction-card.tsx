@@ -1,9 +1,10 @@
 import React from 'react';
-import { format } from 'date-fns';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
-import { Heart } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Heart, Clock, Calendar } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 
 interface PredictionCardProps {
   homeTeam: string;
@@ -30,66 +31,83 @@ export function PredictionCard({
   onToggleSave,
   onClick,
   isCompact = false,
-  className
+  className,
 }: PredictionCardProps) {
-  // Format the date
-  const formattedDate = format(new Date(date), 'MMM d');
+  // Format date
+  const formattedDate = format(parseISO(date), 'E, d MMM • HH:mm');
+  
+  // Format prediction nicely
+  const formatPrediction = (pred: string) => {
+    return pred
+      .replace('_', ' ')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
   
   return (
-    <div 
+    <Card 
       className={cn(
-        "border rounded-lg p-3 bg-card relative",
-        onClick && "cursor-pointer hover:border-primary transition-colors",
+        "overflow-hidden cursor-pointer transition-all hover:shadow-md",
         className
       )}
       onClick={onClick}
     >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          {league && (
-            <div className="text-xs text-muted-foreground mb-1">{league} · {formattedDate}</div>
-          )}
-          
-          <div className="text-sm font-medium mb-1">
-            {homeTeam} vs. {awayTeam}
+      <CardContent className="p-0">
+        <div className="flex flex-col">
+          {/* Match info */}
+          <div className="p-3 pb-2 flex justify-between items-start">
+            <div className="flex-1">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                {league && (
+                  <Badge variant="outline" className="bg-background font-normal text-xs px-1.5 py-0">
+                    {league}
+                  </Badge>
+                )}
+                <div className="flex items-center text-xs text-muted-foreground gap-1">
+                  <Clock className="h-3 w-3" />
+                  <span>{formattedDate}</span>
+                </div>
+              </div>
+              
+              <div className="text-sm font-medium">
+                {homeTeam} vs {awayTeam}
+              </div>
+            </div>
+            
+            {onToggleSave && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleSave();
+                }}
+              >
+                <Heart 
+                  className={cn(
+                    "h-4 w-4",
+                    isSaved ? "fill-red-500 text-red-500" : "text-muted-foreground"
+                  )}
+                />
+              </Button>
+            )}
           </div>
           
-          <div className="flex items-center mt-2 gap-2">
-            <Badge variant="outline" className="text-xs bg-primary/5 text-primary">
-              {prediction}
-            </Badge>
-            
-            <span className="text-sm font-bold">
-              {odds.toFixed(2)}
-            </span>
+          {/* Prediction and odds */}
+          <div className="flex items-center p-2 pt-0 pb-3">
+            <div className="flex-1 flex items-center gap-2">
+              <div className="bg-primary/10 text-primary text-xs font-medium px-2 py-1 rounded">
+                {formatPrediction(prediction)}
+              </div>
+              <Badge variant="secondary" className="font-normal text-xs">
+                {odds.toFixed(2)}
+              </Badge>
+            </div>
           </div>
         </div>
-        
-        {onToggleSave && (
-          <div 
-            className="ml-2" 
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleSave();
-            }}
-          >
-            <Heart 
-              className={cn(
-                "h-5 w-5 transition-colors", 
-                isSaved ? "fill-destructive text-destructive" : "text-muted-foreground"
-              )} 
-            />
-          </div>
-        )}
-        
-        {!onToggleSave && (
-          <div className="ml-2">
-            <Checkbox checked={isSaved} className="pointer-events-none" />
-          </div>
-        )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
-
-export default PredictionCard;

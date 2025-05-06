@@ -1,31 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useLocation } from 'wouter';
-import { motion, AnimatePresence } from 'framer-motion';
-import { DateSelector } from "@/components/ui/date-selector";
-import { SportSelector } from "@/components/ui/sport-selector";
-import { useAuth } from "@/hooks/use-auth";
-import { format } from 'date-fns';
-import { 
-  Filter,
-  RefreshCw,
-  ChevronDown,
-  ChevronUp,
-  ChevronRight,
-  SearchIcon,
-  SlidersHorizontal
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/use-auth';
+import { motion } from 'framer-motion';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { Drawer } from 'vaul';
 import { Input } from '@/components/ui/input';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { FilterSection } from '@/components/mobile/filter-section';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Search, Filter, ChevronDown } from 'lucide-react';
 import { PredictionCard } from '@/components/mobile/prediction-card';
+import { FilterSection } from '@/components/mobile/filter-section';
 
 // Define the Prediction type
 interface Prediction {
@@ -40,84 +23,83 @@ interface Prediction {
   confidence: number;
   startTime: string;
   isCorrect: boolean | null;
+  isPremium?: boolean;
 }
 
 export default function MobileExplorePage() {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedSport, setSelectedSport] = useState<string>('all');
-  const [showLeagues, setShowLeagues] = useState<boolean>(false);
-  const [confidenceRange, setConfidenceRange] = useState<[number, number]>([50, 100]);
-  const [oddsRange, setOddsRange] = useState<[number, number]>([1.1, 5]);
-  const [selectedLeagues, setSelectedLeagues] = useState<string[]>([]);
-  const [selectedMarkets, setSelectedMarkets] = useState<string[]>(['Match Result']);
   const { user } = useAuth();
-  const [_, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState<string>('');
-
-  const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+  const [showFilters, setShowFilters] = useState<boolean>(false);
+  const [savedPredictions, setSavedPredictions] = useState<number[]>([]);
   
-  // Query for predictions based on filters
+  // Filter states
+  const [selectedSports, setSelectedSports] = useState<string[]>(['football']);
+  const [selectedMarkets, setSelectedMarkets] = useState<string[]>(['win']);
+  
+  // Available filter options
+  const availableSports = [
+    { id: 'football', label: 'Football' },
+    { id: 'basketball', label: 'Basketball' },
+    { id: 'tennis', label: 'Tennis' },
+    { id: 'hockey', label: 'Hockey' },
+    { id: 'baseball', label: 'Baseball' },
+  ];
+  
+  const availableMarkets = [
+    { id: 'win', label: 'Win' },
+    { id: 'over_under', label: 'Over/Under' },
+    { id: 'both_score', label: 'Both Teams Score' },
+    { id: 'handicap', label: 'Handicap' },
+    { id: 'correct_score', label: 'Correct Score' },
+  ];
+  
+  // Query for predictions
   const { 
     data: predictions = [], 
-    isLoading,
-    refetch, 
-    isRefetching 
+    isLoading
   } = useQuery<Prediction[]>({
-    queryKey: ['/api/predictions', formattedDate, selectedSport, confidenceRange, oddsRange, selectedLeagues, selectedMarkets],
+    queryKey: ['/api/predictions/explore', selectedSports, selectedMarkets],
     enabled: !!user,
   });
   
+  // Handle sport selection
+  const handleSportToggle = (sportId: string) => {
+    setSelectedSports(prev => 
+      prev.includes(sportId)
+        ? prev.filter(id => id !== sportId)
+        : [...prev, sportId]
+    );
+  };
+  
+  // Handle market selection
+  const handleMarketToggle = (marketId: string) => {
+    setSelectedMarkets(prev => 
+      prev.includes(marketId)
+        ? prev.filter(id => id !== marketId)
+        : [...prev, marketId]
+    );
+  };
+  
+  // Handle save/unsave predictions
+  const handleToggleSave = (predictionId: number) => {
+    setSavedPredictions(prev => 
+      prev.includes(predictionId)
+        ? prev.filter(id => id !== predictionId)
+        : [...prev, predictionId]
+    );
+  };
+  
   // Filter predictions based on search query
-  const filteredPredictions = predictions.filter((p: Prediction) => {
+  const filteredPredictions = predictions.filter(prediction => {
     if (!searchQuery) return true;
     
     const query = searchQuery.toLowerCase();
     return (
-      p.homeTeam.toLowerCase().includes(query) || 
-      p.awayTeam.toLowerCase().includes(query) ||
-      p.league.toLowerCase().includes(query)
+      prediction.homeTeam.toLowerCase().includes(query) ||
+      prediction.awayTeam.toLowerCase().includes(query) ||
+      prediction.league.toLowerCase().includes(query)
     );
   });
-    
-  // Get unique leagues for the sport filter
-  const availableLeagues = predictions.length > 0
-    ? Array.from(new Set(predictions.map((p: Prediction) => p.league)))
-    : [];
-    
-  // Get unique markets for the market filter
-  const availableMarkets = predictions.length > 0
-    ? Array.from(new Set(predictions.map((p: Prediction) => p.market)))
-    : ['Match Result', 'Over/Under', 'Both Teams to Score', 'Handicap'];
-    
-  // Toggle saved prediction
-  const handleToggleSave = (id: number) => {
-    console.log(`Toggling saved state for prediction ${id}`);
-    // Here you would call an API to save/unsave a prediction
-  };
-  
-  // View prediction details
-  const handleViewPrediction = (id: number) => {
-    console.log(`Viewing prediction details for ${id}`);
-    navigate(`/prediction/${id}`);
-  };
-  
-  // Toggle league selection
-  const handleToggleLeague = (league: string) => {
-    setSelectedLeagues(prev => 
-      prev.includes(league) 
-        ? prev.filter(l => l !== league)
-        : [...prev, league]
-    );
-  };
-  
-  // Toggle market selection
-  const handleToggleMarket = (market: string) => {
-    setSelectedMarkets(prev => 
-      prev.includes(market) 
-        ? prev.filter(m => m !== market)
-        : [...prev, market]
-    );
-  };
   
   // Animation variants
   const containerVariants = {
@@ -125,227 +107,77 @@ export default function MobileExplorePage() {
     show: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.05
+        staggerChildren: 0.1
       }
     }
   };
   
   const itemVariants = {
-    hidden: { opacity: 0, y: 10 },
+    hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0 }
   };
-  
-  // Group predictions by league
-  const predictionsByLeague = filteredPredictions.reduce<Record<string, Prediction[]>>((acc, prediction: Prediction) => {
-    const league = prediction.league;
-    if (!acc[league]) {
-      acc[league] = [];
-    }
-    acc[league].push(prediction);
-    return acc;
-  }, {});
   
   return (
     <div className="pb-20">
       {/* Header */}
-      <section className="mb-3 mt-2">
-        <div className="flex justify-between items-center mb-3">
-          <h1 className="text-xl font-bold">Explore Predictions</h1>
-          <div className="flex items-center gap-2">
-            {/* Search button */}
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="rounded-full"
-              onClick={() => document.getElementById('search-input')?.focus()}
-            >
-              <SearchIcon size={18} className="text-muted-foreground" />
-            </Button>
-            
-            {/* Refresh button */}
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="rounded-full"
-              onClick={() => refetch()}
-            >
-              <RefreshCw size={18} className={cn("text-muted-foreground", isRefetching && "animate-spin")} />
-            </Button>
-            
-            {/* Filter drawer */}
-            <Drawer.Root>
-              <Drawer.Trigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  className="rounded-full"
-                >
-                  <SlidersHorizontal size={18} />
-                </Button>
-              </Drawer.Trigger>
-              <Drawer.Portal>
-                <Drawer.Overlay className="fixed inset-0 bg-black/40" />
-                <Drawer.Content className="bg-background flex flex-col rounded-t-[10px] h-[85%] mt-24 fixed bottom-0 left-0 right-0 z-50">
-                  <div className="p-4 bg-muted-foreground/5 rounded-t-[10px] flex-1 overflow-auto">
-                    <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-muted-foreground/20 mb-4" />
-                    <div className="mb-6">
-                      <h3 className="text-lg font-semibold mb-4">Filters</h3>
-                      
-                      {/* Confidence range */}
-                      <div className="mb-6">
-                        <Label className="text-sm mb-3 block">
-                          Confidence: {confidenceRange[0]}% - {confidenceRange[1]}%
-                        </Label>
-                        <Slider
-                          defaultValue={confidenceRange}
-                          min={0}
-                          max={100}
-                          step={5}
-                          onValueChange={(value) => setConfidenceRange(value as [number, number])}
-                          className="my-4"
-                        />
-                      </div>
-                      
-                      {/* Odds range */}
-                      <div className="mb-6">
-                        <Label className="text-sm mb-3 block">
-                          Odds: {oddsRange[0].toFixed(1)} - {oddsRange[1].toFixed(1)}
-                        </Label>
-                        <Slider
-                          defaultValue={oddsRange}
-                          min={1.1}
-                          max={10}
-                          step={0.1}
-                          onValueChange={(value) => setOddsRange(value as [number, number])}
-                          className="my-4"
-                        />
-                      </div>
-                      
-                      {/* Market types */}
-                      <div className="mb-6">
-                        <h4 className="text-sm font-medium mb-3">Market Types</h4>
-                        <div className="grid grid-cols-2 gap-2">
-                          {availableMarkets.map(market => (
-                            <div key={market} className="flex items-center space-x-2">
-                              <Switch
-                                id={`market-${market}`}
-                                checked={selectedMarkets.includes(market)}
-                                onCheckedChange={() => handleToggleMarket(market)}
-                              />
-                              <Label htmlFor={`market-${market}`} className="text-sm">{market}</Label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      {/* Leagues */}
-                      <div className="mb-4">
-                        <h4 className="text-sm font-medium mb-3">Leagues</h4>
-                        <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto pr-2">
-                          {availableLeagues.map(league => (
-                            <div key={league} className="flex items-center space-x-2">
-                              <Switch
-                                id={`league-${league}`}
-                                checked={selectedLeagues.length === 0 || selectedLeagues.includes(league)}
-                                onCheckedChange={() => handleToggleLeague(league)}
-                              />
-                              <Label htmlFor={`league-${league}`} className="text-sm">{league}</Label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Action buttons */}
-                    <div className="flex gap-2 mt-4 sticky bottom-0 bg-background py-2">
-                      <Button 
-                        variant="outline" 
-                        className="flex-1"
-                        onClick={() => {
-                          setConfidenceRange([50, 100]);
-                          setOddsRange([1.1, 5]);
-                          setSelectedLeagues([]);
-                          setSelectedMarkets(['Match Result']);
-                        }}
-                      >
-                        Reset
-                      </Button>
-                      <Button className="flex-1" onClick={() => (document.querySelector('[data-vaul-drawer-trigger]') as HTMLElement)?.click()}>
-                        Apply
-                      </Button>
-                    </div>
-                  </div>
-                </Drawer.Content>
-              </Drawer.Portal>
-            </Drawer.Root>
-          </div>
+      <section className="mb-4 mt-2">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-xl font-bold">Explore</h1>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-9 flex gap-1 items-center"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter size={14} />
+            <span className="text-xs">Filters</span>
+            <ChevronDown 
+              size={14} 
+              className={`transition-transform ${showFilters ? 'rotate-180' : 'rotate-0'}`} 
+            />
+          </Button>
         </div>
         
         {/* Search input */}
-        <div className="mb-4">
-          <div className="relative">
-            <SearchIcon size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-            <Input
-              id="search-input"
-              placeholder="Search teams or leagues..."
-              className="pl-9 bg-muted/40"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search teams, leagues..."
+            className="pl-10 h-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
       </section>
       
-      {/* Date selector */}
-      <section className="mb-4 -mx-4">
-        <DateSelector
-          selectedDate={selectedDate}
-          onSelectDate={setSelectedDate}
-        />
-      </section>
+      {/* Filters */}
+      {showFilters && (
+        <Card className="p-4 mb-4">
+          <FilterSection
+            selectedSports={selectedSports}
+            onSportToggle={handleSportToggle}
+            availableSports={availableSports}
+            selectedMarkets={selectedMarkets}
+            onMarketToggle={handleMarketToggle}
+            availableMarkets={availableMarkets}
+          />
+        </Card>
+      )}
       
-      {/* Sport selector */}
-      <section className="mb-4 -mx-4">
-        <SportSelector
-          selectedSport={selectedSport}
-          onSelectSport={setSelectedSport}
-        />
-      </section>
-      
-      {/* Filter section */}
-      <section className="mb-4">
-        <FilterSection 
-          selectedSports={[selectedSport !== 'all' ? selectedSport : ''].filter(Boolean)}
-          onSportToggle={(sportId) => setSelectedSport(sportId === selectedSport ? 'all' : sportId)}
-          availableSports={[
-            { id: 'football', label: 'Football' },
-            { id: 'basketball', label: 'Basketball' },
-            { id: 'tennis', label: 'Tennis' },
-            { id: 'hockey', label: 'Hockey' },
-            { id: 'baseball', label: 'Baseball' }
-          ]}
-          selectedMarkets={selectedMarkets}
-          onMarketToggle={handleToggleMarket}
-          availableMarkets={availableMarkets.map(market => ({ id: market, label: market }))}
-        />
-      </section>
-
-      {/* Predictions list */}
-      <section className="pb-12">
+      {/* Predictions */}
+      <section>
         {isLoading ? (
-          <div className="space-y-4">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i}>
-                <Skeleton className="h-24 w-full rounded-lg mb-2" />
-              </div>
+          <div className="space-y-2">
+            {[1, 2, 3, 4, 5].map(i => (
+              <Skeleton key={i} className="h-24 w-full rounded-lg" />
             ))}
           </div>
         ) : filteredPredictions.length > 0 ? (
-          <motion.div 
-            className="space-y-2"
+          <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="show"
+            className="space-y-2"
           >
             {filteredPredictions.map(prediction => (
               <motion.div key={prediction.id} variants={itemVariants}>
@@ -356,26 +188,25 @@ export default function MobileExplorePage() {
                   date={prediction.startTime}
                   odds={prediction.odds}
                   prediction={prediction.prediction}
-                  isSaved={false}
+                  isSaved={savedPredictions.includes(prediction.id)}
                   onToggleSave={() => handleToggleSave(prediction.id)}
-                  onClick={() => handleViewPrediction(prediction.id)}
+                  onClick={() => console.log('Navigate to prediction details', prediction.id)}
                 />
               </motion.div>
             ))}
           </motion.div>
         ) : (
-          <div className="bg-muted rounded-xl p-6 text-center text-muted-foreground">
-            <p className="mb-2">No predictions match your filters</p>
+          <div className="text-center p-6 bg-muted rounded-lg">
+            <p className="text-muted-foreground">No predictions match your filters</p>
             <Button 
               variant="outline" 
+              size="sm" 
+              className="mt-2"
               onClick={() => {
-                setConfidenceRange([50, 100]);
-                setOddsRange([1.1, 5]);
-                setSelectedLeagues([]);
-                setSelectedMarkets(['Match Result']);
+                setSelectedSports(['football']);
+                setSelectedMarkets(['win']);
                 setSearchQuery('');
               }}
-              className="mt-2"
             >
               Reset Filters
             </Button>

@@ -1,22 +1,21 @@
-import React, { useState } from 'react';
-import { Filter, ChevronDown, ChevronUp } from 'lucide-react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { motion, AnimatePresence } from 'framer-motion';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
-interface FilterOption {
+interface FilterItem {
   id: string;
   label: string;
 }
 
-interface SportFilterProps {
+interface FilterSectionProps {
   selectedSports: string[];
   onSportToggle: (sportId: string) => void;
-  availableSports: FilterOption[];
+  availableSports: FilterItem[];
   selectedMarkets: string[];
   onMarketToggle: (marketId: string) => void;
-  availableMarkets: FilterOption[];
+  availableMarkets: FilterItem[];
 }
 
 export function FilterSection({
@@ -25,119 +24,82 @@ export function FilterSection({
   availableSports,
   selectedMarkets,
   onMarketToggle,
-  availableMarkets
-}: SportFilterProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [activeTab, setActiveTab] = useState<'markets' | 'all'>('all');
-
-  const toggleExpansion = () => {
-    setIsExpanded(!isExpanded);
+  availableMarkets,
+}: FilterSectionProps) {
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05
+      }
+    }
   };
-
+  
+  const itemVariants = {
+    hidden: { opacity: 0, y: 5 },
+    show: { opacity: 1, y: 0 }
+  };
+  
   return (
-    <div className="mb-4">
-      <div className="flex justify-between items-center mb-2">
-        <div className="flex space-x-1">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="h-8 gap-1"
-            onClick={toggleExpansion}
-          >
-            <Filter className="h-3.5 w-3.5" />
-            Filter
-            {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-          </Button>
-          
-          <Button 
-            variant={activeTab === 'all' ? "secondary" : "outline"} 
-            size="sm" 
-            onClick={() => setActiveTab('all')}
-            className="h-8"
-          >
-            All
-          </Button>
-          
-          <Button 
-            variant={activeTab === 'markets' ? "secondary" : "outline"} 
-            size="sm" 
-            onClick={() => setActiveTab('markets')}
-            className="h-8"
-          >
-            Markets
-          </Button>
-        </div>
-        
-        {(selectedSports.length > 0 || selectedMarkets.length > 0) && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => {
-              selectedSports.forEach(sport => onSportToggle(sport));
-              selectedMarkets.forEach(market => onMarketToggle(market));
-            }}
-            className="h-8 text-xs"
-          >
-            Reset
-          </Button>
-        )}
-      </div>
-      
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="py-2">
-              {activeTab === 'all' && (
-                <div className="mb-3">
-                  <p className="text-xs font-medium mb-2 text-muted-foreground">Sports</p>
-                  <div className="flex flex-wrap gap-1">
-                    {availableSports.map(sport => (
-                      <Badge
-                        key={sport.id}
-                        variant={selectedSports.includes(sport.id) ? "default" : "outline"}
-                        className={cn(
-                          "cursor-pointer hover:bg-primary/90",
-                          selectedSports.includes(sport.id) ? "" : "hover:bg-muted hover:text-primary"
-                        )}
-                        onClick={() => onSportToggle(sport.id)}
-                      >
-                        {sport.label}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              <div>
-                <p className="text-xs font-medium mb-2 text-muted-foreground">Markets</p>
-                <div className="flex flex-wrap gap-1">
-                  {availableMarkets.map(market => (
-                    <Badge
-                      key={market.id}
-                      variant={selectedMarkets.includes(market.id) ? "default" : "outline"}
-                      className={cn(
-                        "cursor-pointer hover:bg-primary/90",
-                        selectedMarkets.includes(market.id) ? "" : "hover:bg-muted hover:text-primary"
-                      )}
-                      onClick={() => onMarketToggle(market.id)}
-                    >
-                      {market.label}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="space-y-3"
+    >
+      {/* Sports filter */}
+      {availableSports.length > 0 && (
+        <div>
+          <p className="text-xs font-medium mb-2 text-muted-foreground">Sports</p>
+          <ScrollArea className="w-full whitespace-nowrap pb-2">
+            <div className="flex gap-2">
+              {availableSports.map(sport => (
+                <motion.div key={sport.id} variants={itemVariants}>
+                  <Button
+                    size="sm"
+                    variant={selectedSports.includes(sport.id) ? "default" : "outline"}
+                    className={cn(
+                      "rounded-full text-xs h-8 px-3",
+                      selectedSports.includes(sport.id) && "bg-primary"
+                    )}
+                    onClick={() => onSportToggle(sport.id)}
+                  >
+                    {sport.label}
+                  </Button>
+                </motion.div>
+              ))}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+          </ScrollArea>
+        </div>
+      )}
+      
+      {/* Markets filter */}
+      {availableMarkets.length > 0 && (
+        <div>
+          <p className="text-xs font-medium mb-2 text-muted-foreground">Markets</p>
+          <ScrollArea className="w-full whitespace-nowrap pb-2">
+            <div className="flex gap-2">
+              {availableMarkets.map(market => (
+                <motion.div key={market.id} variants={itemVariants}>
+                  <Button
+                    size="sm"
+                    variant={selectedMarkets.includes(market.id) ? "default" : "outline"}
+                    className={cn(
+                      "rounded-full text-xs h-8 px-3", 
+                      selectedMarkets.includes(market.id) && "bg-primary"
+                    )}
+                    onClick={() => onMarketToggle(market.id)}
+                  >
+                    {market.label}
+                  </Button>
+                </motion.div>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+      )}
+    </motion.div>
   );
 }
-
-export default FilterSection;
