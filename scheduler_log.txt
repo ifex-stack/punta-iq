@@ -1,0 +1,5 @@
+[2025-05-06 13:41:23] [INFO] Script invoked directly, running all tasks
+[2025-05-06 13:41:23] [INFO] Starting daily tasks at 2025-05-06 13:41:23.552849
+[2025-05-06 13:41:23] [INFO] Running script: cache_football_data.py
+[2025-05-06 13:41:27] [INFO] Script cache_football_data.py completed with exit code 0
+[2025-05-06 13:41:29] [INFO] Running script: cache_basketball_data.py

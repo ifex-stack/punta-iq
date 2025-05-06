@@ -1,0 +1,51 @@
+date,league_id,league_name,country,home_team,away_team,home_score,away_score,halftime_home,halftime_away,home_win,draw,away_win,total_goals,both_scored
+2025-05-06T00:00:00+00:00,240,Primera B,Colombia,Real Soacha,Bogota FC,1,2,0,1,0,0,1,3,1
+2025-05-06T00:00:00+00:00,242,Liga Pro,Ecuador,Aucas,Libertad,2,0,1,0,1,0,0,2,0
+2025-05-06T00:00:00+00:00,134,Torneo Federal A,Argentina,Atenas,Gutiérrez,4,1,2,0,1,0,0,5,1
+2025-05-06T00:10:00+00:00,129,Primera Nacional,Argentina,Defensores De Belgrano,Atletico Mitre,1,0,0,0,1,0,0,1,0
+2025-05-06T01:00:00+00:00,239,Primera A,Colombia,Chico,Envigado,1,0,0,0,1,0,0,1,0
+2025-05-06T01:00:00+00:00,673,Liga MX Femenil,Mexico,Pachuca W,Monterrey W,4,1,2,1,1,0,0,5,1
+2025-05-06T03:00:00+00:00,854,WE League,Japan,JEF United W,Omiya Ardija Ventus W,2,2,1,1,0,1,0,4,1
+2025-05-06T04:00:00+00:00,99,J2 League,Japan,Vegalta Sendai,Fujieda MYFC,2,1,1,0,1,0,0,3,1
+2025-05-06T04:55:00+00:00,99,J2 League,Japan,Kataller Toyama,V-varen Nagasaki,1,2,1,0,0,0,1,3,1
+2025-05-06T04:55:00+00:00,100,J3 League,Japan,Fukushima United,Thespakusatsu Gunma,2,4,0,2,0,0,1,6,1
+2025-05-06T05:00:00+00:00,98,J1 League,Japan,Urawa,Gamba Osaka,0,1,0,0,0,0,1,1,0
+2025-05-06T05:00:00+00:00,98,J1 League,Japan,Avispa Fukuoka,Kashima,0,1,0,1,0,0,1,1,0
+2025-05-06T05:00:00+00:00,98,J1 League,Japan,Vissel Kobe,Cerezo Osaka,1,3,1,1,0,0,1,4,1
+2025-05-06T05:00:00+00:00,99,J2 League,Japan,Consadole Sapporo,Jubilo Iwata,2,4,0,3,0,0,1,6,1
+2025-05-06T05:00:00+00:00,99,J2 League,Japan,Montedio Yamagata,Oita Trinita,3,0,1,0,1,0,0,3,0
+2025-05-06T05:00:00+00:00,99,J2 League,Japan,Renofa Yamaguchi,Mito Hollyhock,1,2,0,2,0,0,1,3,1
+2025-05-06T05:00:00+00:00,100,J3 League,Japan,Vanraure Hachinohe,Tochigi City,0,0,0,0,0,1,0,0,0
+2025-05-06T05:00:00+00:00,100,J3 League,Japan,Tochigi SC,Parceiro Nagano,1,0,0,0,1,0,0,1,0
+2025-05-06T05:00:00+00:00,100,J3 League,Japan,Sagamihara,Gainare Tottori,1,0,0,0,1,0,0,1,0
+2025-05-06T05:00:00+00:00,100,J3 League,Japan,Kanazawa,Kitakyushu,0,1,0,1,0,0,1,1,0
+2025-05-06T05:00:00+00:00,100,J3 League,Japan,Nara Club,Tegevajaro Miyazaki,0,1,0,0,0,0,1,1,0
+2025-05-06T05:00:00+00:00,100,J3 League,Japan,Kochi United,Kamatamare Sanuki,0,2,0,0,0,0,1,2,0
+2025-05-06T05:00:00+00:00,292,K League 1,South-Korea,Jeonbuk Motors,Daejeon Citizen,1,1,0,0,0,1,0,2,1
+2025-05-06T06:00:00+00:00,98,J1 League,Japan,Nagoya Grampus,Fagiano Okayama,0,0,0,0,0,1,0,0,0
+2025-05-06T06:00:00+00:00,99,J2 League,Japan,Blaublitz Akita,Ventforet Kofu,0,1,0,0,0,0,1,1,0
+2025-05-06T06:00:00+00:00,99,J2 League,Japan,Ehime FC,Iwaki,1,1,1,0,0,1,0,2,1
+2025-05-06T06:00:00+00:00,99,J2 League,Japan,Roasso Kumamoto,Imabari,0,1,0,1,0,0,1,1,0
+2025-05-06T06:30:00+00:00,363,Premier League,Ethiopia,Mebrat Hayl,Kedus Giorgis,0,1,0,1,0,0,1,1,0
+2025-05-06T06:50:00+00:00,99,J2 League,Japan,Tokushima Vortis,Sagan Tosu,0,1,0,1,0,0,1,1,0
+2025-05-06T07:00:00+00:00,98,J1 League,Japan,Kashiwa Reysol,Shimizu S-pulse,1,0,0,0,1,0,0,1,0
+2025-05-06T07:00:00+00:00,98,J1 League,Japan,Tokyo Verdy,Yokohama FC,2,0,1,0,1,0,0,2,0
+2025-05-06T07:00:00+00:00,99,J2 League,Japan,JEF United Chiba,Omiya Ardija,1,2,1,1,0,0,1,3,1
+2025-05-06T07:00:00+00:00,929,League Two,China,Wuxi Wugou,Hubei Chufeng Heli,2,0,1,0,1,0,0,2,0
+2025-05-06T07:30:00+00:00,292,K League 1,South-Korea,Jeju United FC,Gangwon FC,0,3,0,1,0,0,1,3,0
+2025-05-06T08:00:00+00:00,929,League Two,China,Guangzhou Dandelion,Hainan Star,1,2,0,0,0,0,1,3,1
+2025-05-06T08:00:00+00:00,929,League Two,China,Shanghai Port II,Changchun Xidu,0,0,0,0,0,1,0,0,0
+2025-05-06T09:00:00+00:00,100,J3 League,Japan,FC Ryukyu,Kagoshima United,1,2,1,1,0,0,1,3,1
+2025-05-06T09:30:00+00:00,833,Queensland Premier League,Australia,Redlands United,Caboolture,1,4,0,1,0,0,1,5,1
+2025-05-06T10:00:00+00:00,703,Professional Development League,England,Ipswich Town U21,Fleetwood Town U21,1,2,0,2,0,0,1,3,1
+2025-05-06T10:00:00+00:00,100,J3 League,Japan,FC Gifu,Azul Claro Numazu,3,2,3,1,1,0,0,5,1
+2025-05-06T10:00:00+00:00,835,New South Wales NPL 2,Australia,SD Raiders,UNSW,1,3,1,3,0,0,1,4,1
+2025-05-06T10:00:00+00:00,292,K League 1,South-Korea,FC Anyang,FC Seoul,1,1,0,0,0,1,0,2,1
+2025-05-06T10:00:00+00:00,292,K League 1,South-Korea,Suwon City FC,Daegu FC,2,1,1,0,1,0,0,3,1
+2025-05-06T11:00:00+00:00,566,Ligue A,Burundi,Dynamik,Ngozi City,3,2,3,2,1,0,0,5,1
+2025-05-06T11:00:00+00:00,169,Super League,China,Meizhou Kejia,Shanghai Shenhua,1,3,0,0,0,0,1,4,1
+2025-05-06T11:30:00+00:00,929,League Two,China,Guizhou Zhucheng,Quanzhou Yassin,1,0,1,0,1,0,0,1,0
+2025-05-06T11:30:00+00:00,929,League Two,China,Wuhan Three Towns II,Shenzhen 2028,0,1,0,1,0,0,1,1,0
+2025-05-06T11:30:00+00:00,929,League Two,China,Guangxi Lanhang,Chengdu Rongcheng II,0,4,0,3,0,0,1,4,0
+2025-05-06T11:30:00+00:00,343,First League,Armenia,Bentonit Ijevan,Syunik,0,2,0,0,0,0,1,2,0
+2025-05-06T11:35:00+00:00,169,Super League,China,Qingdao Youth Island,Sichuan Jiuniu,0,0,0,0,0,1,0,0,0

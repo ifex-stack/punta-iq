@@ -1,0 +1,16 @@
+[2025-05-06 13:41:03] [INFO] Starting football cache update at 2025-05-06 13:41:03.249424
+[2025-05-06 13:41:03] [INFO] Fetching football fixtures for date: 2025-05-06
+[2025-05-06 13:41:03] [INFO] Cached 216 football fixtures to local file for 2025-05-06
+[2025-05-06 13:41:04] [INFO] Fetching football fixtures for date: 2025-05-07
+[2025-05-06 13:41:04] [INFO] Cached 276 football fixtures to local file for 2025-05-07
+[2025-05-06 13:41:05] [INFO] Fetching football fixtures for date: 2025-05-08
+[2025-05-06 13:41:05] [INFO] Cached 0 football fixtures to local file for 2025-05-08
+[2025-05-06 13:41:06] [INFO] Football cache update completed in 3.70 seconds
+[2025-05-06 13:41:24] [INFO] Starting football cache update at 2025-05-06 13:41:24.036458
+[2025-05-06 13:41:24] [INFO] Fetching football fixtures for date: 2025-05-06
+[2025-05-06 13:41:24] [INFO] Cached 216 football fixtures to local file for 2025-05-06
+[2025-05-06 13:41:25] [INFO] Fetching football fixtures for date: 2025-05-07
+[2025-05-06 13:41:25] [INFO] Cached 276 football fixtures to local file for 2025-05-07
+[2025-05-06 13:41:26] [INFO] Fetching football fixtures for date: 2025-05-08
+[2025-05-06 13:41:26] [INFO] Cached 0 football fixtures to local file for 2025-05-08
+[2025-05-06 13:41:27] [INFO] Football cache update completed in 3.69 seconds
