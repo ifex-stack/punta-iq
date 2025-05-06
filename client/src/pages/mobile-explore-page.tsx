@@ -4,7 +4,6 @@ import { useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DateSelector } from "@/components/ui/date-selector";
 import { SportSelector } from "@/components/ui/sport-selector";
-import PredictionCard from "@/components/predictions/prediction-card";
 import { useAuth } from "@/hooks/use-auth";
 import { format } from 'date-fns';
 import { 
@@ -25,6 +24,23 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { FilterSection } from '@/components/mobile/filter-section';
+import { PredictionCard } from '@/components/mobile/prediction-card';
+
+// Define the Prediction type
+interface Prediction {
+  id: number;
+  homeTeam: string;
+  awayTeam: string;
+  league: string;
+  sport: string;
+  market: string;
+  prediction: string;
+  odds: number;
+  confidence: number;
+  startTime: string;
+  isCorrect: boolean | null;
+}
 
 export default function MobileExplorePage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -42,37 +58,35 @@ export default function MobileExplorePage() {
   
   // Query for predictions based on filters
   const { 
-    data: predictions, 
+    data: predictions = [], 
     isLoading,
     refetch, 
     isRefetching 
-  } = useQuery({
+  } = useQuery<Prediction[]>({
     queryKey: ['/api/predictions', formattedDate, selectedSport, confidenceRange, oddsRange, selectedLeagues, selectedMarkets],
     enabled: !!user,
   });
   
   // Filter predictions based on search query
-  const filteredPredictions = predictions && predictions.length > 0
-    ? predictions.filter(p => {
-        if (!searchQuery) return true;
-        
-        const query = searchQuery.toLowerCase();
-        return (
-          p.homeTeam.toLowerCase().includes(query) || 
-          p.awayTeam.toLowerCase().includes(query) ||
-          p.league.toLowerCase().includes(query)
-        );
-      })
-    : [];
+  const filteredPredictions = predictions.filter((p: Prediction) => {
+    if (!searchQuery) return true;
+    
+    const query = searchQuery.toLowerCase();
+    return (
+      p.homeTeam.toLowerCase().includes(query) || 
+      p.awayTeam.toLowerCase().includes(query) ||
+      p.league.toLowerCase().includes(query)
+    );
+  });
     
   // Get unique leagues for the sport filter
-  const availableLeagues = predictions && predictions.length > 0
-    ? [...new Set(predictions.map(p => p.league))]
+  const availableLeagues = predictions.length > 0
+    ? Array.from(new Set(predictions.map((p: Prediction) => p.league)))
     : [];
     
   // Get unique markets for the market filter
-  const availableMarkets = predictions && predictions.length > 0
-    ? [...new Set(predictions.map(p => p.market))]
+  const availableMarkets = predictions.length > 0
+    ? Array.from(new Set(predictions.map((p: Prediction) => p.market)))
     : ['Match Result', 'Over/Under', 'Both Teams to Score', 'Handicap'];
     
   // Toggle saved prediction
@@ -122,14 +136,14 @@ export default function MobileExplorePage() {
   };
   
   // Group predictions by league
-  const predictionsByLeague = filteredPredictions.reduce((acc, prediction) => {
+  const predictionsByLeague = filteredPredictions.reduce<Record<string, Prediction[]>>((acc, prediction: Prediction) => {
     const league = prediction.league;
     if (!acc[league]) {
       acc[league] = [];
     }
     acc[league].push(prediction);
     return acc;
-  }, {} as Record<string, typeof predictions>);
+  }, {});
   
   return (
     <div className="pb-20">
@@ -298,66 +312,54 @@ export default function MobileExplorePage() {
         />
       </section>
       
-      {/* Predictions by league */}
+      {/* Filter section */}
+      <section className="mb-4">
+        <FilterSection 
+          selectedSports={[selectedSport !== 'all' ? selectedSport : ''].filter(Boolean)}
+          onSportToggle={(sportId) => setSelectedSport(sportId === selectedSport ? 'all' : sportId)}
+          availableSports={[
+            { id: 'football', label: 'Football' },
+            { id: 'basketball', label: 'Basketball' },
+            { id: 'tennis', label: 'Tennis' },
+            { id: 'hockey', label: 'Hockey' },
+            { id: 'baseball', label: 'Baseball' }
+          ]}
+          selectedMarkets={selectedMarkets}
+          onMarketToggle={handleToggleMarket}
+          availableMarkets={availableMarkets.map(market => ({ id: market, label: market }))}
+        />
+      </section>
+
+      {/* Predictions list */}
       <section className="pb-12">
         {isLoading ? (
           <div className="space-y-4">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="h-8 w-1/3" />
-                <Skeleton className="h-28 w-full rounded-xl" />
-                <Skeleton className="h-28 w-full rounded-xl" />
+            {[1, 2, 3, 4].map(i => (
+              <div key={i}>
+                <Skeleton className="h-24 w-full rounded-lg mb-2" />
               </div>
             ))}
           </div>
-        ) : Object.entries(predictionsByLeague).length > 0 ? (
+        ) : filteredPredictions.length > 0 ? (
           <motion.div 
-            className="space-y-6"
+            className="space-y-2"
             variants={containerVariants}
             initial="hidden"
             animate="show"
           >
-            {Object.entries(predictionsByLeague).map(([league, leaguePredictions]) => (
-              <motion.div key={league} variants={itemVariants}>
-                <div 
-                  className="flex items-center justify-between mb-2 cursor-pointer"
-                  onClick={() => setShowLeagues(prev => !prev)}
-                >
-                  <h2 className="text-base font-bold flex items-center gap-1">
-                    {league}
-                    <Badge variant="outline" className="text-xs ml-2">
-                      {leaguePredictions.length}
-                    </Badge>
-                  </h2>
-                  <Button variant="ghost" size="sm" className="p-0 h-6 w-6">
-                    {showLeagues ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                  </Button>
-                </div>
-                
-                <div className="space-y-2">
-                  {leaguePredictions.map(prediction => (
-                    <PredictionCard
-                      key={prediction.id}
-                      id={prediction.id}
-                      homeTeam={prediction.homeTeam}
-                      awayTeam={prediction.awayTeam}
-                      league={prediction.league}
-                      sport={prediction.sport}
-                      prediction={prediction.prediction}
-                      market={prediction.market}
-                      odds={prediction.odds}
-                      confidence={prediction.confidence}
-                      startTime={prediction.startTime}
-                      isCorrect={prediction.isCorrect}
-                      compact={true}
-                      showLeague={false}
-                      isPremium={false}
-                      isSaved={false}
-                      onToggleSave={handleToggleSave}
-                      onSelect={() => handleViewPrediction(prediction.id)}
-                    />
-                  ))}
-                </div>
+            {filteredPredictions.map(prediction => (
+              <motion.div key={prediction.id} variants={itemVariants}>
+                <PredictionCard
+                  homeTeam={prediction.homeTeam}
+                  awayTeam={prediction.awayTeam}
+                  league={prediction.league}
+                  date={prediction.startTime}
+                  odds={prediction.odds}
+                  prediction={prediction.prediction}
+                  isSaved={false}
+                  onToggleSave={() => handleToggleSave(prediction.id)}
+                  onClick={() => handleViewPrediction(prediction.id)}
+                />
               </motion.div>
             ))}
           </motion.div>
