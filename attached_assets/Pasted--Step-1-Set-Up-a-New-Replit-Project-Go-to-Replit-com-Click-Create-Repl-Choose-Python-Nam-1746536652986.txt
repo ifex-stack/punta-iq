@@ -1,0 +1,90 @@
+✅ Step 1: Set Up a New Replit Project
+Go to Replit.com.
+
+Click "+ Create Repl" → Choose Python → Name it e.g., punta-cache-service.
+
+✅ Step 2: Add Required Files
+1. main.py – The cron job script
+Paste this code in main.py (we'll replace API_KEY and Firebase creds next):
+
+python
+Copy
+Edit
+import requests
+import json
+import datetime
+import firebase_admin
+from firebase_admin import credentials, db
+
+# Load Firebase service account
+cred = credentials.Certificate("firebase-service-account.json")
+firebase_admin.initialize_app(cred, {
+    'databaseURL': 'https://<your-project-id>.firebaseio.com/'
+})
+
+# API-Football endpoint and headers
+url = "https://v3.football.api-sports.io/fixtures"
+headers = {
+    'x-apisports-key': 'YOUR_API_KEY'
+}
+
+# Get today's date
+today = datetime.date.today().strftime('%Y-%m-%d')
+
+# Query today's fixtures
+params = {
+    'date': today,
+    'timezone': 'Europe/London'
+}
+response = requests.get(url, headers=headers, params=params)
+data = response.json()
+
+# Cache to Firebase
+ref = db.reference(f'cache/fixtures/{today}')
+ref.set(data)
+
+print(f"{len(data.get('response', []))} fixtures cached to Firebase for {today}")
+2. firebase-service-account.json – Your Firebase key
+Go to Firebase Console
+
+Go to Project Settings → Service Accounts → Generate new private key
+
+Download it and upload the file to Replit as firebase-service-account.json.
+
+✅ Step 3: Add replit.nix for required dependencies
+Create a file called replit.nix and paste:
+
+nix
+Copy
+Edit
+{ pkgs }: {
+  deps = [
+    pkgs.python311
+    pkgs.python311Packages.requests
+    pkgs.python311Packages.firebase-admin
+  ];
+}
+This ensures requests and firebase-admin are installed in Replit.
+
+✅ Step 4: Add Secrets (API Key)
+In Replit:
+
+Go to the padlock icon (Secrets).
+
+Add:
+
+API_KEY = your API-Football key
+(Or you can hardcode it in main.py if necessary.)
+
+Replace 'YOUR_API_KEY' in main.py with os.getenv('API_KEY') and import os.
+
+✅ Step 5: Schedule Cron Job on Replit
+In Replit, go to the "Tools" > "Scheduler".
+
+Add a new Job:
+
+Command: python main.py
+
+Run schedule: Daily → Choose time (e.g. 4:00 AM UTC)
+
+Save

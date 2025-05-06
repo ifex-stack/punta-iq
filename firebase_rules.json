@@ -1,0 +1,54 @@
+{
+  "rules": {
+    "cache": {
+      ".read": "auth != null",
+      ".write": false
+    },
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "predictions": {
+      ".read": "auth != null",
+      "$predictionId": {
+        ".write": "auth != null && newData.child('createdBy').val() === auth.uid"
+      }
+    },
+    "fixtures": {
+      ".read": "auth != null",
+      ".write": false
+    },
+    "subscriptions": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('isAdmin').val() === true)"
+      }
+    },
+    "statistics": {
+      "public": {
+        ".read": true,
+        ".write": false
+      },
+      "user": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": false
+        }
+      }
+    },
+    "sports": {
+      ".read": "auth != null",
+      ".write": false
+    },
+    "analytics": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      ".write": true
+    },
+    "admin": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
+    }
+  }
+}

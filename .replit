@@ -4,7 +4,7 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["glibcLocales", "jq", "iproute2"]
+packages = ["glibcLocales", "iproute2", "jq"]
 
 [deployment]
 deploymentTarget = "autoscale"

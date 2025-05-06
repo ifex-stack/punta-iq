@@ -1,0 +1,81 @@
+Great! Let's extend your Replit project to also:
+
+Fetch NBA games using BallDon'tLie API.
+
+Pull sports like tennis, NFL, etc. from TheSportsDB (free tier).
+
+Cache everything into Firebase under structured, per-sport paths.
+
+✅ Step-by-Step Extension Plan
+🔁 Update main.py with NBA + Other Sports
+Replace the previous main.py with this expanded version:
+
+python
+Copy
+Edit
+import requests
+import json
+import datetime
+import firebase_admin
+from firebase_admin import credentials, db
+import os
+
+# Load Firebase credentials
+cred = credentials.Certificate("firebase-service-account.json")
+firebase_admin.initialize_app(cred, {
+    'databaseURL': 'https://<your-project-id>.firebaseio.com/'  # Replace!
+})
+
+today = datetime.date.today().strftime('%Y-%m-%d')
+
+# 🏈 Fetch Football Fixtures (API-Football)
+def fetch_football():
+    url = "https://v3.football.api-sports.io/fixtures"
+    headers = {
+        'x-apisports-key': os.getenv('API_KEY')  # Set this in Replit secrets
+    }
+    params = {'date': today, 'timezone': 'Europe/London'}
+    res = requests.get(url, headers=headers, params=params)
+    data = res.json()
+    db.reference(f'cache/football/{today}').set(data)
+    print(f"Football: {len(data.get('response', []))} fixtures cached.")
+
+
+# 🏀 Fetch NBA Fixtures (BallDontLie)
+def fetch_nba():
+    url = f"https://www.balldontlie.io/api/v1/games?start_date={today}&end_date={today}"
+    res = requests.get(url)
+    data = res.json()
+    db.reference(f'cache/nba/{today}').set(data)
+    print(f"NBA: {len(data.get('data', []))} games cached.")
+
+
+# 🎾 Fetch Other Sports (TheSportsDB)
+def fetch_thesportsdb_sport(sport_name):
+    url = f"https://www.thesportsdb.com/api/v1/json/1/eventsday.php?d={today}&s={sport_name}"
+    res = requests.get(url)
+    data = res.json()
+    db.reference(f'cache/{sport_name.lower()}/{today}').set(data)
+    print(f"{sport_name}: Cached.")
+
+# Run all jobs
+fetch_football()
+fetch_nba()
+fetch_thesportsdb_sport("Tennis")
+fetch_thesportsdb_sport("American Football")  # NFL
+
+print("✅ All data cached successfully.")
+📂 Firebase Path Structure
+Sport	Firebase Path
+Football (Soccer)	cache/football/YYYY-MM-DD
+NBA	cache/nba/YYYY-MM-DD
+Tennis	cache/tennis/YYYY-MM-DD
+NFL	cache/american football/YYYY-MM-DD
+
+🔐 Required Setup Reminders
+API Key (API_KEY) set in Replit secrets for API-Football.
+
+No keys needed for BallDon'tLie or TheSportsDB (free tiers).
+
+🕓 Cron Job
+Make sure your Replit Scheduler is set to run python main.py daily — e.g. 4:00 AM UTC.
