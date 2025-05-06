@@ -569,7 +569,8 @@ export class OddsAPIService {
       return this.getUpcomingEventsSingle(sportKey, days, startDate, regions);
     } catch (error: any) {
       logger.warn('OddsAPIService', `Unable to get upcoming events for ${sportKey} - using fallback data`);
-      return this.getFallbackEvents(sportKey);
+      // Convert the fallback events to standardized matches to fix type error
+      return this.convertToStandardizedMatches(this.getFallbackEvents(sportKey), sportKey);
     }
   }
   
@@ -873,7 +874,7 @@ export class OddsAPIService {
       logger.info('OddsAPIService', `Found ${allMatches.length} events matching team "${teamName}"`);
       return allMatches;
     } catch (error: any) {
-      logger.error('OddsAPIService', `Error searching events for team "${teamName}": ${error.message}`);
+      logger.warn('OddsAPIService', `Team search for "${teamName}" unsuccessful - returning empty results`);
       return [];
     }
   }
