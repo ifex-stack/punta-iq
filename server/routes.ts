@@ -185,8 +185,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Root route - serve the login page
+  // Easy access shortcut on root
   app.get('/', (req, res) => {
+    routesLogger.info('Root route accessed - checking for easy access parameter');
+    
+    // Check if the user is trying to access with easy access parameter
+    if (req.query.access === 'easy') {
+      routesLogger.info('Easy access parameter detected - redirecting to easy access page');
+      return res.redirect('/easy-access');
+    }
+    
+    // Otherwise serve login page as normal
     routesLogger.info('Root route accessed - serving login page');
     
     const loginPath = path.join(process.cwd(), 'login.html');
