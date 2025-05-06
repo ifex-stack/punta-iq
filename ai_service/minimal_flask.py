@@ -14,15 +14,12 @@ logger = logging.getLogger('puntaiq_ai_service')
 app = Flask(__name__)
 CORS(app)
 
-# Root endpoint for health checks
+# Root endpoint - redirect to main application
 @app.route('/', methods=['GET'])
 def root():
-    logger.info("Root endpoint accessed")
-    return jsonify({
-        "status": "online",
-        "message": "PuntaIQ AI Service is running",
-        "timestamp": datetime.datetime.now().isoformat()
-    })
+    from flask import redirect
+    logger.info("Root endpoint accessed - redirecting to main application")
+    return redirect("http://localhost:3001/", code=302)
 
 @app.route('/api/status', methods=['GET'])
 def status():
