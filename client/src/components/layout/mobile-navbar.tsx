@@ -7,7 +7,12 @@ import {
   Search,
   BarChart2,
   UserCircle,
-  BookmarkIcon
+  BookmarkIcon,
+  History,
+  HeartIcon,
+  DollarSign,
+  Settings,
+  Clock
 } from "lucide-react";
 
 interface MobileNavbarProps {
@@ -30,16 +35,22 @@ export function MobileNavbar({ activeTab }: MobileNavbarProps) {
       href: '/explore'
     },
     {
-      id: 'picks',
-      label: 'My Picks',
-      icon: BookmarkIcon,
-      href: '/my-picks'
+      id: 'history',
+      label: 'History',
+      icon: History,
+      href: '/history'
     },
     {
-      id: 'performance',
-      label: 'Performance',
-      icon: BarChart2,
-      href: '/performance'
+      id: 'favorites',
+      label: 'Favorites',
+      icon: HeartIcon,
+      href: '/favorites'
+    },
+    {
+      id: 'pricing',
+      label: 'Pricing',
+      icon: DollarSign,
+      href: '/pricing'
     },
     {
       id: 'profile',
@@ -68,7 +79,7 @@ export function MobileNavbar({ activeTab }: MobileNavbarProps) {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 pb-safe shadow-lg">
-      <div className="grid grid-cols-5 h-16">
+      <div className="grid grid-cols-6 h-16">
         {navItems.map(item => (
           <Link key={item.id} href={item.href}>
             <div className="flex flex-col items-center justify-center h-full touch-manipulation active:opacity-70">
@@ -87,12 +98,12 @@ export function MobileNavbar({ activeTab }: MobileNavbarProps) {
                 )}
                 
                 <item.icon className={cn(
-                  "h-5 w-5 mb-1",
+                  "h-4 w-4 mb-1",
                   isActive(item.id) ? "text-primary" : "text-muted-foreground"
                 )} />
                 
                 <span className={cn(
-                  "text-[10px]",
+                  "text-[9px]",
                   isActive(item.id) ? "text-primary font-medium" : "text-muted-foreground"
                 )}>
                   {item.label}

@@ -61,6 +61,9 @@ import { MobileAppLayout } from "@/components/layout/mobile-app-layout";
 import MobileHomePage from "@/pages/mobile-home-page";
 import MobileExplorePage from "@/pages/mobile-explore-page";
 import MobileMyPicksPage from "@/pages/mobile-my-picks-page";
+import HistoryPage from "@/pages/history-page";
+import FavoritesPage from "@/pages/favorites-page";
+import PricingPage from "@/pages/pricing-page";
 
 // Create typed component definition to fix TypeScript errors
 const Router: React.FC = () => {
