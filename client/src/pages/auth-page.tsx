@@ -12,9 +12,10 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2, Info } from "lucide-react";
+import { Loader2, Info, Trophy, BarChart2, Globe, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 // Login schema
 const loginSchema = z.object({
@@ -87,13 +88,14 @@ export default function AuthPage() {
   }, [user, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background to-secondary/5">
-      <div className="w-full max-w-5xl">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary/5 to-secondary/10">
+      <div className="w-full max-w-5xl animate-in fade-in duration-500">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
           {/* Auth Forms */}
-          <Card className="w-full">
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl font-bold">Welcome</CardTitle>
+          <Card className="w-full shadow-lg border-0 overflow-hidden">
+            <div className="h-2 bg-gradient-to-r from-primary to-secondary"></div>
+            <CardHeader className="space-y-1 pb-2">
+              <CardTitle className="text-2xl font-bold bg-gradient-to-br from-primary to-secondary bg-clip-text text-transparent">PuntaIQ</CardTitle>
               <CardDescription>
                 Sign in or create an account to access AI-powered sports predictions
               </CardDescription>
@@ -105,9 +107,9 @@ export default function AuthPage() {
                 onValueChange={setActiveTab}
                 className="w-full"
               >
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="login">Login</TabsTrigger>
-                  <TabsTrigger value="register">Register</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 mb-4 bg-muted/50">
+                  <TabsTrigger value="login" className="text-sm font-medium">Login</TabsTrigger>
+                  <TabsTrigger value="register" className="text-sm font-medium">Register</TabsTrigger>
                 </TabsList>
                 
                 {/* Login Form */}
@@ -164,7 +166,7 @@ export default function AuthPage() {
                       
                       <Button 
                         type="submit" 
-                        className="w-full"
+                        className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 transition-all duration-300"
                         disabled={loginMutation.isPending}
                       >
                         {loginMutation.isPending ? (
@@ -301,7 +303,7 @@ export default function AuthPage() {
                       
                       <Button 
                         type="submit" 
-                        className="w-full"
+                        className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 transition-all duration-300"
                         disabled={registerMutation.isPending}
                       >
                         {registerMutation.isPending ? (
@@ -330,64 +332,94 @@ export default function AuthPage() {
             </CardFooter>
           </Card>
           
-          {/* Hero section */}
-          <div className="p-6 hidden md:block">
-            <div className="space-y-4">
-              <h2 className="text-3xl font-bold tracking-tight">
-                AI-Powered Sports Predictions
-              </h2>
-              <p className="text-muted-foreground">
-                Access daily expert predictions to help you win more consistently
-              </p>
+          {/* Hero section - redesigned for mobile */}
+          <div className="md:block hidden">
+            <div className="w-full h-full relative overflow-hidden rounded-xl border shadow-lg">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/20 z-0"></div>
               
-              <div className="mt-8 space-y-6">
-                <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="font-bold text-primary">1</span>
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Advanced AI Predictions</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Our expert systems analyze thousands of data points to deliver accurate predictions just for you
-                    </p>
+              <div className="relative z-10 p-8 flex flex-col h-full justify-between">
+                <div>
+                  <h2 className="text-4xl font-bold mb-4 bg-gradient-to-br from-primary to-secondary bg-clip-text text-transparent">
+                    PuntaIQ
+                  </h2>
+                  <p className="text-xl font-medium mb-2">AI-Powered Sports Predictions</p>
+                  <p className="text-muted-foreground mb-6">
+                    Access expert predictions backed by advanced AI analytics
+                  </p>
+                
+                  <div className="grid gap-4">
+                    <div className="flex items-center gap-3 bg-background/80 backdrop-blur-sm p-4 rounded-lg border shadow-sm transition-all hover:scale-[1.02]">
+                      <div className="bg-primary/10 p-2 rounded-full">
+                        <BarChart2 className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-medium">Advanced Analytics</h3>
+                        <p className="text-sm text-muted-foreground">Thousands of data points analyzed per prediction</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 bg-background/80 backdrop-blur-sm p-4 rounded-lg border shadow-sm transition-all hover:scale-[1.02]">
+                      <div className="bg-primary/10 p-2 rounded-full">
+                        <Globe className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-medium">Global Sports Coverage</h3>
+                        <p className="text-sm text-muted-foreground">Football, basketball, tennis and more</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 bg-background/80 backdrop-blur-sm p-4 rounded-lg border shadow-sm transition-all hover:scale-[1.02]">
+                      <div className="bg-primary/10 p-2 rounded-full">
+                        <Trophy className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-medium">Premium Tiers</h3>
+                        <p className="text-sm text-muted-foreground">Basic £7.99, Pro £14.99, Elite £29.99</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 
-                <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="font-bold text-primary">2</span>
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Multiple Sports Coverage</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Get predictions for football, basketball, tennis, and more sports
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="font-bold text-primary">3</span>
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Subscription Tiers</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Choose from free, basic, pro, and elite plans to match your needs
-                    </p>
+                <div className="mt-6 bg-background/80 backdrop-blur-sm p-4 rounded-lg border">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-primary/10 p-2 rounded-full">
+                      <Zap className="h-5 w-5 text-primary" />
+                    </div>
+                    <p className="text-sm font-medium">Join 50,000+ sports enthusiasts making smarter predictions</p>
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+          
+          {/* Mobile features section - visible on mobile only */}
+          <div className="md:hidden mt-6">
+            <div className="grid gap-3">
+              <div className="flex items-center gap-3 bg-background p-3 rounded-lg border">
+                <div className="bg-primary/10 p-2 rounded-full">
+                  <BarChart2 className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-sm">AI-Powered Analytics</h3>
+                </div>
+              </div>
               
-              <Separator className="my-6" />
+              <div className="flex items-center gap-3 bg-background p-3 rounded-lg border">
+                <div className="bg-primary/10 p-2 rounded-full">
+                  <Globe className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-sm">Multiple Sports Coverage</h3>
+                </div>
+              </div>
               
-              <div className="bg-muted/50 p-4 rounded-lg border">
-                <h4 className="font-medium mb-2">Already a member?</h4>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Sign in to access your predictions and account dashboard.
-                </p>
-                <Button variant="outline" onClick={() => setActiveTab("login")}>
-                  Sign in
-                </Button>
+              <div className="flex items-center gap-3 bg-background p-3 rounded-lg border">
+                <div className="bg-primary/10 p-2 rounded-full">
+                  <Trophy className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-sm">Subscription Plans Available</h3>
+                </div>
               </div>
             </div>
           </div>
