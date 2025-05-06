@@ -30,10 +30,10 @@ export function SportSelector({
     ...(showAll ? [{ id: 'all', label: 'All Sports', icon: Trophy }] : []),
     { id: 'football', label: 'Football', icon: SiPremierleague },
     { id: 'basketball', label: 'Basketball', icon: Dribbble },
-    { id: 'tennis', label: 'Tennis', icon: BadgeTennis },
-    { id: 'baseball', label: 'Baseball', icon: GanttChartSquare },
+    { id: 'tennis', label: 'Tennis', icon: CircleDot },
+    { id: 'baseball', label: 'Baseball', icon: StickyNote },
     { id: 'hockey', label: 'Hockey', icon: Snowflake },
-    { id: 'golf', label: 'Golf', icon: GolfBall },
+    { id: 'golf', label: 'Golf', icon: Circle },
     { id: 'cycling', label: 'Cycling', icon: Bike },
     { id: 'mma', label: 'MMA', icon: Dumbbell },
   ];

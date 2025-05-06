@@ -1,103 +1,108 @@
 import React from 'react';
-import { Link, useLocation } from 'wouter';
-import { motion } from 'framer-motion';
+import { Link } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { 
-  Home, 
-  Search, 
-  BarChart2, 
-  Bookmark, 
-  User,
-  Trophy
-} from 'lucide-react';
-import { useAuth } from '@/hooks/use-auth';
+import {
+  Home,
+  Search,
+  BarChart2,
+  UserCircle,
+  BookmarkIcon
+} from "lucide-react";
 
 interface MobileNavbarProps {
   activeTab: string;
 }
 
 export function MobileNavbar({ activeTab }: MobileNavbarProps) {
-  const [location, navigate] = useLocation();
-  const { user } = useAuth();
-  
+  // Navigation items
   const navItems = [
     {
       id: 'home',
-      icon: Home,
       label: 'Home',
-      href: '/',
+      icon: Home,
+      href: '/'
     },
     {
       id: 'explore',
-      icon: Search,
       label: 'Explore',
-      href: '/explore',
+      icon: Search,
+      href: '/explore'
     },
     {
       id: 'picks',
-      icon: Bookmark,
       label: 'My Picks',
-      href: '/my-picks',
+      icon: BookmarkIcon,
+      href: '/my-picks'
     },
     {
       id: 'performance',
+      label: 'Performance',
       icon: BarChart2,
-      label: 'Stats',
-      href: '/performance',
+      href: '/performance'
     },
     {
       id: 'profile',
-      icon: User,
       label: 'Profile',
-      href: '/profile',
-    },
+      icon: UserCircle,
+      href: '/profile'
+    }
   ];
 
+  // Helper to determine if a tab is active
+  const isActive = (id: string) => activeTab === id;
+
+  // Animation variants
+  const navItemVariants = {
+    active: { 
+      scale: 1.1, 
+      y: -4,
+      transition: { type: "spring", stiffness: 400, damping: 15 } 
+    },
+    inactive: { 
+      scale: 1, 
+      y: 0,
+      transition: { type: "spring", stiffness: 400, damping: 17 } 
+    }
+  };
+
   return (
-    <motion.nav 
-      className="fixed bottom-0 left-0 right-0 h-16 bg-background border-t border-border z-50 px-1"
-      initial={{ y: 100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <div className="flex items-center justify-around h-full max-w-md mx-auto">
-        {navItems.map((item) => {
-          const isActive = activeTab === item.id;
-          const Icon = item.icon;
-          
-          return (
-            <Link key={item.id} href={item.href}>
-              <a className="flex flex-col items-center justify-center w-16 h-full relative">
-                <div className="relative flex flex-col items-center justify-center">
-                  {isActive && (
-                    <motion.div
-                      className="absolute -top-5 w-8 h-1 bg-primary rounded-full"
-                      layoutId="navbar-indicator"
-                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                    />
-                  )}
-                  <Icon
-                    size={20}
-                    className={cn(
-                      "mb-1",
-                      isActive ? "text-primary" : "text-muted-foreground"
-                    )}
+    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 pb-safe shadow-lg">
+      <div className="grid grid-cols-5 h-16">
+        {navItems.map(item => (
+          <Link key={item.id} href={item.href}>
+            <div className="flex flex-col items-center justify-center h-full touch-manipulation active:opacity-70">
+              <motion.div 
+                className="relative flex flex-col items-center"
+                initial="inactive"
+                animate={isActive(item.id) ? "active" : "inactive"}
+                variants={navItemVariants}
+              >
+                {isActive(item.id) && (
+                  <motion.div 
+                    className="absolute -top-1.5 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary rounded-full"
+                    layoutId="navIndicator"
+                    transition={{ type: "spring", bounce: 0.5, duration: 0.6 }}
                   />
-                  <span
-                    className={cn(
-                      "text-[10px]",
-                      isActive ? "text-primary font-medium" : "text-muted-foreground"
-                    )}
-                  >
-                    {item.label}
-                  </span>
-                </div>
-              </a>
-            </Link>
-          );
-        })}
+                )}
+                
+                <item.icon className={cn(
+                  "h-5 w-5 mb-1",
+                  isActive(item.id) ? "text-primary" : "text-muted-foreground"
+                )} />
+                
+                <span className={cn(
+                  "text-[10px]",
+                  isActive(item.id) ? "text-primary font-medium" : "text-muted-foreground"
+                )}>
+                  {item.label}
+                </span>
+              </motion.div>
+            </div>
+          </Link>
+        ))}
       </div>
-    </motion.nav>
+    </nav>
   );
 }
 

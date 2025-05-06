@@ -1,7 +1,7 @@
 import React, { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from "@/lib/utils";
-import MobileNavbar from './mobile-navbar';
+import { MobileNavbar } from './mobile-navbar';
 
 interface MobileLayoutProps {
   children: ReactNode;
