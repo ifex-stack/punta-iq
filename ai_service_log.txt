@@ -672,3 +672,34 @@ Error: AI microservice started but is not responding to HTTP requests
 Error: AI microservice started but is not responding to HTTP requests
     at Timeout._onTimeout (file:///home/runner/workspace/scripts/start-ai-service.js:240:18)
     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+
+
+2025-05-06T16:42:40.775Z - AI Service starting
+ERROR: 2025-05-06 16:42:41,385 - puntaiq_ai_service - INFO - Starting AI service on port 5000
+ * Serving Flask app 'minimal_flask'
+ * Debug mode: on
+ERROR: Address already in use
+ERROR: Port 5000 is in use by another program. Either identify and stop that program, or start the server with a different port.
+
+2025-05-06T16:42:41.525Z - AI Service exited with code 1
+
+
+2025-05-06T16:42:50.261Z - AI Service starting
+ERROR: 2025-05-06 16:42:50,643 - puntaiq_ai_service - INFO - Starting AI service on port 5000
+ * Serving Flask app 'minimal_flask'
+ * Debug mode: on
+ERROR: 2025-05-06 16:42:50,718 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.36:5000
+ERROR: 2025-05-06 16:42:50,718 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+ERROR: 2025-05-06 16:42:50,719 - werkzeug - INFO -  * Restarting with stat
+ERROR: 2025-05-06 16:42:51,057 - puntaiq_ai_service - INFO - Starting AI service on port 5000
+ERROR: 2025-05-06 16:42:51,100 - werkzeug - WARNING -  * Debugger is active!
+ERROR: 2025-05-06 16:42:51,109 - werkzeug - INFO -  * Debugger PIN: 552-635-554
+ERROR: 2025-05-06 16:42:51,231 - puntaiq_ai_service - INFO - Root endpoint accessed
+ERROR: 2025-05-06 16:42:51,232 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 16:42:51] "GET / HTTP/1.1" 200 -
+ERROR: 2025-05-06 16:42:51,342 - puntaiq_ai_service - INFO - Root endpoint accessed
+ERROR: 2025-05-06 16:42:51,342 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 16:42:51] "GET / HTTP/1.1" 200 -
+ERROR: 2025-05-06 16:42:51,380 - puntaiq_ai_service - INFO - Root endpoint accessed
+ERROR: 2025-05-06 16:42:51,381 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 16:42:51] "GET / HTTP/1.1" 200 -
