@@ -6,13 +6,20 @@ import { cn } from '@/lib/utils';
 
 interface MobileAppLayoutProps {
   children: React.ReactNode;
+  activeTab?: string;
 }
 
-export function MobileAppLayout({ children }: MobileAppLayoutProps) {
+export function MobileAppLayout({ children, activeTab: explicitActiveTab }: MobileAppLayoutProps) {
   const [location] = useLocation();
   
   // Determine active page for bottom navigation
   const getActiveTab = () => {
+    // If an explicit activeTab is provided, use it
+    if (explicitActiveTab) {
+      return explicitActiveTab;
+    }
+    
+    // Otherwise infer from the current location
     if (location === '/' || location === '/predictions' || location === '/stats') {
       return 'home';
     }
@@ -20,11 +27,15 @@ export function MobileAppLayout({ children }: MobileAppLayoutProps) {
         location.includes('/accumulators') || location.includes('/advanced-analysis')) {
       return 'explore';
     }
-    if (location.includes('/my-picks') || location.includes('/saved-predictions')) {
-      return 'picks';
+    if (location.includes('/history') || location.includes('/historical-dashboard')) {
+      return 'history';
     }
-    if (location.includes('/performance') || location.includes('/historical-dashboard')) {
-      return 'performance';
+    if (location.includes('/favorites') || location.includes('/my-picks') || 
+        location.includes('/saved-predictions')) {
+      return 'favorites';
+    }
+    if (location.includes('/pricing') || location.includes('/subscription')) {
+      return 'pricing';
     }
     if (location.includes('/profile')) {
       return 'profile';

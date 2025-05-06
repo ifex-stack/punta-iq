@@ -111,9 +111,14 @@ const Router: React.FC = () => {
               <Switch>
                 <ProtectedRoute path="/" component={MobileHomePage} />
                 <ProtectedRoute path="/explore" component={MobileExplorePage} />
-                <ProtectedRoute path="/my-picks" component={MobileMyPicksPage} />
-                <ProtectedRoute path="/performance" component={HistoricalDashboard} />
+                <ProtectedRoute path="/history" component={HistoryPage} />
+                <ProtectedRoute path="/favorites" component={FavoritesPage} />
+                <ProtectedRoute path="/pricing" component={PricingPage} />
                 <ProtectedRoute path="/predictions" component={MobileHomePage} />
+                
+                {/* Legacy routes - redirecting to new equivalents */}
+                <ProtectedRoute path="/my-picks" component={FavoritesPage} />
+                <ProtectedRoute path="/performance" component={HistoryPage} />
                 <ProtectedRoute path="/predictions/advanced" component={AdvancedPredictionsPage} />
                 <ProtectedRoute path="/advanced-analysis" component={AdvancedAnalysisPage} />
                 <ProtectedRoute path="/accumulators" component={AccumulatorsPage} />
