@@ -37,6 +37,7 @@ import { aiStatusRouter } from "./ai-status-routes";
 import { aiPredictionRouter } from "./ai-prediction-routes";
 import { analyticsRouter } from "./analytics-routes";
 import { bettingMetricsRouter } from "./betting-metrics-routes";
+import { aiAutoTunerRouter } from "./ai-autotuner-routes";
 import { MicroserviceClient } from "./microservice-client";
 import { createContextLogger } from "./logger";
 import { analytics, AnalyticsEventType } from "./analytics-service";
@@ -154,6 +155,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up betting metrics routes
   app.use('/api/betting-metrics', bettingMetricsRouter);
+  
+  // Set up AI auto-tuner routes
+  app.use(aiAutoTunerRouter);
   
   // Try to start the microservice at server initialization
   try {
