@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import {
   User,
@@ -14,7 +14,8 @@ import {
   BadgeHelp,
   Mail,
   Shield,
-  ChevronRight
+  ChevronRight,
+  RefreshCw
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -24,12 +25,42 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { queryClient } from '@/lib/queryClient';
+import { useLocation } from 'wouter';
+
+// Define types for subscription data
+interface Subscription {
+  id: string;
+  planId: string;
+  status: 'active' | 'canceled' | 'past_due' | 'trial';
+  currentPeriodEnd: string;
+  paymentMethod?: {
+    id: string;
+    last4: string;
+    brand: string;
+  };
+}
+
+interface SubscriptionDetails {
+  status: string;
+  nextBilling: string | null;
+  plan: string;
+}
+
+// Extended user interface with avatar field
+interface ProfileUser {
+  id: number;
+  username: string;
+  email: string;
+  avatar?: string;
+}
 
 export default function ProfilePage() {
-  const { user, logoutMutation } = useAuth();
+  const { user: authUser, logoutMutation } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('account');
+  
+  // Cast user to ProfileUser to handle avatar property
+  const user = authUser as unknown as ProfileUser;
   
   // User preferences states
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -54,14 +85,38 @@ export default function ProfilePage() {
     }
   };
   
+  // Navigation
+  const [_, navigate] = useLocation();
+  const queryClient = useQueryClient();
+  
+  // Handle hash fragment for direct tab access
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash && ['account', 'settings', 'subscription'].includes(hash)) {
+      setActiveTab(hash);
+    }
+  }, []);
+  
+  // Update URL hash when tab changes
+  useEffect(() => {
+    window.history.replaceState(null, '', `#${activeTab}`);
+  }, [activeTab]);
+  
   // Get user subscription info
-  const { data: subscription, isLoading: isLoadingSubscription } = useQuery({
+  const { 
+    data: subscription, 
+    isLoading: isLoadingSubscription,
+    refetch: refetchSubscription,
+    isError: isSubscriptionError
+  } = useQuery({
     queryKey: ['/api/user/subscription'],
     enabled: !!user,
+    retry: 1,
+    retryDelay: 1000,
   });
   
   // Format subscription details for display
-  const getSubscriptionDetails = () => {
+  const getSubscriptionDetails = (): SubscriptionDetails => {
     if (!subscription) return { status: 'Free', nextBilling: null, plan: 'Free' };
     
     const planMap = {
@@ -70,12 +125,14 @@ export default function ProfilePage() {
       'elite': 'Elite',
     };
     
+    const typedSubscription = subscription as Subscription;
+    
     return {
-      status: subscription.status === 'active' ? 'Active' : 'Inactive',
-      nextBilling: subscription.currentPeriodEnd 
-        ? format(new Date(subscription.currentPeriodEnd), 'MMM d, yyyy')
+      status: typedSubscription.status === 'active' ? 'Active' : 'Inactive',
+      nextBilling: typedSubscription.currentPeriodEnd 
+        ? format(new Date(typedSubscription.currentPeriodEnd), 'MMM d, yyyy')
         : null,
-      plan: planMap[subscription.planId as keyof typeof planMap] || 'Unknown'
+      plan: planMap[typedSubscription.planId as keyof typeof planMap] || 'Unknown'
     };
   };
   
@@ -383,89 +440,131 @@ export default function ProfilePage() {
         
         {/* Subscription Tab */}
         <TabsContent value="subscription">
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="show"
-            className="space-y-4"
-          >
-            <motion.div variants={itemVariants}>
-              <Card className="p-4">
-                <h3 className="text-sm font-medium mb-4">Subscription Details</h3>
-                
-                {isLoadingSubscription ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-4 w-48" />
-                    <Skeleton className="h-4 w-40" />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`subscription-${isSubscriptionError ? 'error' : 'content'}`}
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+              exit={{ opacity: 0 }}
+              className="space-y-4"
+            >
+              {isSubscriptionError ? (
+                <motion.div variants={itemVariants} className="text-center py-8 space-y-4">
+                  <div className="bg-red-50 dark:bg-red-950/20 inline-flex h-16 w-16 items-center justify-center rounded-full mx-auto">
+                    <RefreshCw className="h-8 w-8 text-red-500" />
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-2 py-1">
-                      <span className="text-sm text-muted-foreground">Plan:</span>
-                      <span className="text-sm font-medium">{subDetails.plan}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 py-1">
-                      <span className="text-sm text-muted-foreground">Status:</span>
-                      <span className="text-sm font-medium">{subDetails.status}</span>
-                    </div>
-                    {subDetails.nextBilling && (
-                      <div className="grid grid-cols-2 gap-2 py-1">
-                        <span className="text-sm text-muted-foreground">Next Billing:</span>
-                        <span className="text-sm font-medium">{subDetails.nextBilling}</span>
-                      </div>
-                    )}
-                    
-                    <div className="pt-4">
-                      <Button 
-                        variant={subDetails.plan === 'Free' ? 'default' : 'outline'} 
-                        className="w-full"
-                        onClick={() => window.location.href = '/pricing'}
-                      >
-                        {subDetails.plan === 'Free' ? 'Upgrade Subscription' : 'Manage Subscription'}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </Card>
-            </motion.div>
-            
-            <motion.div variants={itemVariants}>
-              <Card className="p-4">
-                <h3 className="text-sm font-medium mb-4">Payment Method</h3>
-                
-                {isLoadingSubscription ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-24" />
-                  </div>
-                ) : (
-                  <div>
-                    {subscription ? (
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <CreditCard className="h-5 w-5 mr-2 text-muted-foreground" />
-                          <span className="text-sm">•••• •••• •••• 4242</span>
-                        </div>
-                        <Button variant="ghost" size="sm">Update</Button>
-                      </div>
+                  <h3 className="font-semibold">Unable to load subscription</h3>
+                  <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                    We're having trouble loading your subscription information. Please try again.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-2" 
+                    onClick={() => refetchSubscription()}
+                    disabled={isLoadingSubscription}
+                  >
+                    {isLoadingSubscription ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Loading...
+                      </>
                     ) : (
-                      <div className="text-center p-4">
-                        <p className="text-sm text-muted-foreground mb-2">No payment method on file</p>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => window.location.href = '/pricing'}
-                        >
-                          Add Payment Method
-                        </Button>
-                      </div>
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Retry
+                      </>
                     )}
-                  </div>
-                )}
-              </Card>
+                  </Button>
+                </motion.div>
+              ) : (
+                <>
+                  <motion.div variants={itemVariants}>
+                    <Card className="p-4">
+                      <h3 className="text-sm font-medium mb-4">Subscription Details</h3>
+                      
+                      {isLoadingSubscription ? (
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-4 w-48" />
+                          <Skeleton className="h-4 w-40" />
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-2 py-1">
+                            <span className="text-sm text-muted-foreground">Plan:</span>
+                            <span className="text-sm font-medium">{subDetails.plan}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 py-1">
+                            <span className="text-sm text-muted-foreground">Status:</span>
+                            <span className="text-sm font-medium">{subDetails.status}</span>
+                          </div>
+                          {subDetails.nextBilling && (
+                            <div className="grid grid-cols-2 gap-2 py-1">
+                              <span className="text-sm text-muted-foreground">Next Billing:</span>
+                              <span className="text-sm font-medium">{subDetails.nextBilling}</span>
+                            </div>
+                          )}
+                          
+                          <div className="pt-4">
+                            <Button 
+                              variant={subDetails.plan === 'Free' ? 'default' : 'outline'} 
+                              className="w-full"
+                              onClick={() => navigate('/pricing')}
+                            >
+                              {subDetails.plan === 'Free' ? 'Upgrade Subscription' : 'Manage Subscription'}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </Card>
+                  </motion.div>
+                  
+                  <motion.div variants={itemVariants}>
+                    <Card className="p-4">
+                      <h3 className="text-sm font-medium mb-4">Payment Method</h3>
+                      
+                      {isLoadingSubscription ? (
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-4 w-24" />
+                        </div>
+                      ) : (
+                        <div>
+                          {subscription ? (
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <CreditCard className="h-5 w-5 mr-2 text-muted-foreground" />
+                                <span className="text-sm">•••• •••• •••• 4242</span>
+                              </div>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => navigate('/pricing')}
+                              >
+                                Update
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="text-center p-4">
+                              <p className="text-sm text-muted-foreground mb-2">No payment method on file</p>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => navigate('/pricing')}
+                              >
+                                Add Payment Method
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </Card>
+                  </motion.div>
+                </>
+              )}
             </motion.div>
-          </motion.div>
+          </AnimatePresence>
         </TabsContent>
       </Tabs>
     </div>
