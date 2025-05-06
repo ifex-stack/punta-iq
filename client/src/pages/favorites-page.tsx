@@ -1,66 +1,107 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
-import { Helmet } from "react-helmet";
-import { MobileAppLayout } from '@/components/layout/mobile-app-layout';
-import { 
-  Heart,
-  RefreshCw,
-  Clock,
-  ArrowUpRight,
-  ChevronDown,
-  ChevronUp,
-  AlertTriangle
-} from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CheckCircle, XCircle, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import PredictionCard from '@/components/predictions/prediction-card';
-import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from '@/hooks/use-auth';
+import { PredictionCard } from '@/components/mobile/prediction-card';
+import { FilterSection } from '@/components/mobile/filter-section';
+import { Skeleton } from '@/components/ui/skeleton';
+import { format } from 'date-fns';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+
+// Define the Prediction type
+interface Prediction {
+  id: number;
+  homeTeam: string;
+  awayTeam: string;
+  league: string;
+  sport: string;
+  market: string;
+  prediction: string;
+  odds: number;
+  confidence: number;
+  startTime: string;
+  isCorrect: boolean | null;
+}
 
 export default function FavoritesPage() {
-  const [_, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState('upcoming');
   const { user } = useAuth();
+  const [_, navigate] = useLocation();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [selectedSports, setSelectedSports] = useState<string[]>([]);
+  const [selectedMarkets, setSelectedMarkets] = useState<string[]>([]);
   
-  // Query for saved predictions
+  // Fetch user's favorite predictions
   const { 
-    data: savedPredictions, 
-    isLoading,
-    isError,
-    refetch,
-    isRefetching
-  } = useQuery({
-    queryKey: ['/api/predictions/saved'],
+    data: favorites = [],
+    isLoading 
+  } = useQuery<Prediction[]>({
+    queryKey: ['/api/favorites'],
     enabled: !!user,
   });
   
-  // Filter predictions based on status
-  const upcomingPredictions = savedPredictions?.filter(p => !p.isCorrect === undefined) || [];
-  const completedPredictions = savedPredictions?.filter(p => p.isCorrect !== undefined) || [];
+  // Mutation for removing a prediction from favorites
+  const removeFavoriteMutation = useMutation({
+    mutationFn: async (predictionId: number) => {
+      const res = await apiRequest('DELETE', `/api/favorites/${predictionId}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/favorites'] });
+      toast({
+        title: "Removed from favorites",
+        description: "Prediction has been removed from your favorites",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to remove prediction from favorites",
+        variant: "destructive",
+      });
+    },
+  });
   
-  // Grouping predictions by sport for better organization
-  const groupPredictionsBySport = (predictions: any[]) => {
-    return predictions.reduce((acc, prediction) => {
-      const sport = prediction.sport;
-      if (!acc[sport]) {
-        acc[sport] = [];
-      }
-      acc[sport].push(prediction);
-      return acc;
-    }, {});
+  // Filter favorites based on selected filters
+  const filteredFavorites = favorites.filter(prediction => {
+    if (selectedSports.length > 0 && !selectedSports.includes(prediction.sport)) {
+      return false;
+    }
+    
+    if (selectedMarkets.length > 0 && !selectedMarkets.includes(prediction.market)) {
+      return false;
+    }
+    
+    return true;
+  });
+  
+  // Get all available sports and markets from favorites
+  const availableSports = Array.from(new Set(favorites.map(p => p.sport)))
+    .map(sport => ({ id: sport, label: sport.charAt(0).toUpperCase() + sport.slice(1) }));
+    
+  const availableMarkets = Array.from(new Set(favorites.map(p => p.market)))
+    .map(market => ({ id: market, label: market }));
+  
+  // Toggle sport selection
+  const handleToggleSport = (sportId: string) => {
+    setSelectedSports(prev => 
+      prev.includes(sportId)
+        ? prev.filter(id => id !== sportId)
+        : [...prev, sportId]
+    );
   };
   
-  const upcomingBySport = groupPredictionsBySport(upcomingPredictions);
-  const completedBySport = groupPredictionsBySport(completedPredictions);
-  
-  // Toggle saved prediction
-  const handleToggleSave = (id: number) => {
-    console.log(`Toggling saved state for prediction ${id}`);
-    // Here you would call an API to save/unsave a prediction
+  // Toggle market selection
+  const handleToggleMarket = (marketId: string) => {
+    setSelectedMarkets(prev => 
+      prev.includes(marketId)
+        ? prev.filter(id => id !== marketId)
+        : [...prev, marketId]
+    );
   };
   
   // View prediction details
@@ -71,152 +112,89 @@ export default function FavoritesPage() {
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { 
+    show: {
       opacity: 1,
-      transition: { 
+      transition: {
         staggerChildren: 0.05
       }
     }
   };
   
   const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { 
-      y: 0, 
-      opacity: 1,
-      transition: { type: "spring", stiffness: 300, damping: 24 }
-    }
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0 }
   };
   
-  const renderPredictionGroups = (groupedPredictions: Record<string, any[]>) => {
-    if (Object.keys(groupedPredictions).length === 0) {
-      return (
-        <div className="bg-muted rounded-xl p-6 text-center text-muted-foreground">
-          <Heart className="h-12 w-12 mx-auto mb-3 text-muted-foreground/60" />
-          <p className="mb-2">No saved predictions yet</p>
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/explore')}
-            className="mt-2"
-          >
-            Explore Predictions
-          </Button>
-        </div>
-      );
+  // Group favorites by result status
+  const getStatusIcon = (prediction: Prediction) => {
+    if (prediction.isCorrect === true) {
+      return <CheckCircle className="w-4 h-4 text-green-500" />;
+    } else if (prediction.isCorrect === false) {
+      return <XCircle className="w-4 h-4 text-red-500" />;
+    } else {
+      return <Clock className="w-4 h-4 text-amber-500" />;
     }
-    
-    return Object.entries(groupedPredictions).map(([sport, predictions]) => (
-      <motion.div key={sport} variants={itemVariants} className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-base font-bold capitalize">{sport}</h3>
-          <Badge variant="outline" className="text-xs">
-            {predictions.length} picks
-          </Badge>
-        </div>
-        
-        <div className="space-y-3">
-          {predictions.map(prediction => (
-            <PredictionCard
-              key={prediction.id}
-              id={prediction.id}
-              homeTeam={prediction.homeTeam}
-              awayTeam={prediction.awayTeam}
-              league={prediction.league}
-              sport={prediction.sport}
-              prediction={prediction.prediction}
-              market={prediction.market}
-              odds={prediction.odds}
-              confidence={prediction.confidence}
-              startTime={prediction.startTime}
-              isCorrect={prediction.isCorrect}
-              compact={true}
-              showLeague={true}
-              isPremium={false}
-              isSaved={true}
-              onToggleSave={() => handleToggleSave(prediction.id)}
-              onSelect={() => handleViewPrediction(prediction.id)}
-            />
-          ))}
-        </div>
-      </motion.div>
-    ));
   };
   
   return (
-    <MobileAppLayout activeTab="favorites">
-      <Helmet>
-        <title>My Favorites - PuntaIQ</title>
-      </Helmet>
+    <div className="pb-20">
+      {/* Header */}
+      <section className="mb-4 mt-2">
+        <h1 className="text-xl font-bold mb-4">Favorites</h1>
+        
+        {/* Filters */}
+        {favorites.length > 0 && (
+          <FilterSection 
+            selectedSports={selectedSports}
+            onSportToggle={handleToggleSport}
+            availableSports={availableSports}
+            selectedMarkets={selectedMarkets}
+            onMarketToggle={handleToggleMarket}
+            availableMarkets={availableMarkets}
+          />
+        )}
+      </section>
       
-      <div className="mb-16 pt-2">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold">Favorites</h1>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-full"
-            onClick={() => refetch()}
-          >
-            <RefreshCw className={cn("h-4 w-4", isRefetching && "animate-spin")} />
-          </Button>
-        </div>
-        
-        {/* Tabs Navigation */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
-          <TabsList className="grid grid-cols-2 mb-4">
-            <TabsTrigger value="upcoming" className="text-xs">
-              <Clock className="h-3 w-3 mr-1" />
-              Upcoming
-            </TabsTrigger>
-            <TabsTrigger value="completed" className="text-xs">
-              <ArrowUpRight className="h-3 w-3 mr-1" />
-              Completed
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-        
-        {/* Favorites Content */}
+      {/* Favorites list */}
+      <section>
         {isLoading ? (
           <div className="space-y-4">
-            <Skeleton className="h-6 w-1/4" />
-            <Skeleton className="h-28 w-full rounded-xl" />
-            <Skeleton className="h-28 w-full rounded-xl" />
-            <Skeleton className="h-6 w-1/4" />
-            <Skeleton className="h-28 w-full rounded-xl" />
+            {[1, 2, 3].map(i => (
+              <Skeleton key={i} className="h-24 w-full rounded-lg" />
+            ))}
           </div>
-        ) : isError ? (
-          <div className="p-4 border border-red-300 bg-red-50 rounded-md text-red-600">
-            <div className="flex items-center">
-              <AlertTriangle className="h-5 w-5 mr-2" />
-              <p className="font-medium">Failed to load favorites</p>
-            </div>
-            <p className="mt-2 text-sm">Please try again later or contact support if the issue persists.</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={() => refetch()}
-            >
-              Retry
-            </Button>
-          </div>
-        ) : (
-          <motion.div 
+        ) : filteredFavorites.length > 0 ? (
+          <motion.div
+            className="space-y-2"
             variants={containerVariants}
             initial="hidden"
-            animate="visible"
+            animate="show"
           >
-            <TabsContent value="upcoming" className="mt-0">
-              {renderPredictionGroups(upcomingBySport)}
-            </TabsContent>
-            
-            <TabsContent value="completed" className="mt-0">
-              {renderPredictionGroups(completedBySport)}
-            </TabsContent>
+            {filteredFavorites.map(prediction => (
+              <motion.div key={prediction.id} variants={itemVariants}>
+                <PredictionCard
+                  homeTeam={prediction.homeTeam}
+                  awayTeam={prediction.awayTeam}
+                  league={prediction.league}
+                  date={prediction.startTime}
+                  odds={prediction.odds}
+                  prediction={prediction.prediction}
+                  isSaved={true}
+                  onToggleSave={() => removeFavoriteMutation.mutate(prediction.id)}
+                  onClick={() => handleViewPrediction(prediction.id)}
+                />
+              </motion.div>
+            ))}
           </motion.div>
+        ) : (
+          <div className="bg-muted rounded-xl p-6 text-center text-muted-foreground">
+            <p className="mb-2">You haven't saved any predictions yet</p>
+            <p className="text-sm">
+              Add predictions to your favorites by tapping the heart icon on any prediction
+            </p>
+          </div>
         )}
-      </div>
-    </MobileAppLayout>
+      </section>
+    </div>
   );
 }

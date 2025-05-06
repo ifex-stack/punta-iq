@@ -1,70 +1,57 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useLocation } from 'wouter';
+import { useAuth } from '@/hooks/use-auth';
 import { motion } from 'framer-motion';
-import { DateSelector } from "@/components/ui/date-selector";
-import { SportSelector } from "@/components/ui/sport-selector";
-import PredictionCard from "@/components/predictions/prediction-card";
-import { useAuth } from "@/hooks/use-auth";
-import { format, startOfDay } from 'date-fns';
-import { 
-  ChevronRight, 
-  TrendingUp, 
-  Trophy,
-  Sparkles,
-  BookmarkIcon,
-  RefreshCw
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { format, addDays } from 'date-fns';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PredictionCard } from '@/components/mobile/prediction-card';
+import { FilterSection } from '@/components/mobile/filter-section';
+import { Trophy, Star, TrendingUp, Calendar, ChevronRight } from 'lucide-react';
+
+// Define the Prediction type
+interface Prediction {
+  id: number;
+  homeTeam: string;
+  awayTeam: string;
+  league: string;
+  sport: string;
+  market: string;
+  prediction: string;
+  odds: number;
+  confidence: number;
+  startTime: string;
+  isCorrect: boolean | null;
+  isPremium?: boolean;
+}
 
 export default function MobileHomePage() {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedSport, setSelectedSport] = useState<string>('all');
   const { user } = useAuth();
-  const [_, navigate] = useLocation();
-
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedTab, setSelectedTab] = useState<string>('today');
+  
+  // Format date for API request
   const formattedDate = format(selectedDate, 'yyyy-MM-dd');
   
-  // Query for predictions based on selected date and sport
+  // Query for daily predictions
   const { 
-    data: predictions, 
-    isLoading,
-    refetch, 
-    isRefetching 
-  } = useQuery({
-    queryKey: ['/api/predictions', formattedDate, selectedSport],
+    data: todaysPredictions = [], 
+    isLoading: isLoadingToday 
+  } = useQuery<Prediction[]>({
+    queryKey: ['/api/predictions/top-picks', formattedDate],
     enabled: !!user,
   });
   
-  // Get top prediction with highest confidence
-  const topPrediction = predictions && predictions.length > 0 
-    ? [...predictions].sort((a, b) => b.confidence - a.confidence)[0]
-    : null;
-    
-  // Get today's predictions for all other sports
-  const otherPredictions = predictions && predictions.length > 0 
-    ? predictions.filter(p => p.id !== (topPrediction?.id || 0)).slice(0, 5)
-    : [];
-  
-  // Calculate prediction stats
-  const totalPredictions = predictions?.length || 0;
-  const confidencePredictions = predictions?.filter(p => p.confidence >= 70).length || 0;
-  const highOddsPredictions = predictions?.filter(p => p.odds >= 2.0).length || 0;
-  
-  // Toggle saved prediction
-  const handleToggleSave = (id: number) => {
-    console.log(`Toggling saved state for prediction ${id}`);
-    // Here you would call an API to save/unsave a prediction
-  };
-  
-  // View prediction details
-  const handleViewPrediction = (id: number) => {
-    console.log(`Viewing prediction details for ${id}`);
-    navigate(`/prediction/${id}`);
-  };
+  // Query for upcoming big events
+  const { 
+    data: bigEvents = [], 
+    isLoading: isLoadingEvents 
+  } = useQuery<Prediction[]>({
+    queryKey: ['/api/predictions/big-events'],
+    enabled: !!user,
+  });
   
   // Animation variants
   const containerVariants = {
@@ -82,201 +69,185 @@ export default function MobileHomePage() {
     show: { opacity: 1, y: 0 }
   };
   
+  // Handle date selection
+  const handleSelectDate = (date: 'today' | 'tomorrow' | 'weekend') => {
+    const today = new Date();
+    
+    switch (date) {
+      case 'today':
+        setSelectedDate(today);
+        break;
+      case 'tomorrow':
+        setSelectedDate(addDays(today, 1));
+        break;
+      case 'weekend':
+        // Find upcoming weekend (Saturday)
+        const daysUntilSaturday = (6 - today.getDay() + 7) % 7;
+        setSelectedDate(addDays(today, daysUntilSaturday));
+        break;
+    }
+    
+    setSelectedTab(date);
+  };
+  
   return (
-    <div className="pb-8">
-      {/* Greeting */}
+    <div className="pb-20">
+      {/* Header */}
       <section className="mb-4 mt-2">
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex justify-between items-center"
+        <div className="flex justify-between items-center mb-2">
+          <h1 className="text-xl font-bold">AI Predictions</h1>
+          <div className="flex items-center">
+            <Button variant="ghost" size="sm" className="h-8 flex gap-1 items-center">
+              <Calendar size={14} />
+              <span className="text-xs">Calendar</span>
+            </Button>
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">
+          Daily picks powered by our AI algorithm
+        </p>
+      </section>
+      
+      {/* Date quick filter */}
+      <section className="mb-6">
+        <Tabs 
+          value={selectedTab} 
+          onValueChange={(value) => handleSelectDate(value as 'today' | 'tomorrow' | 'weekend')}
+          className="w-full"
         >
-          <div>
-            <h1 className="text-xl font-bold">Welcome back, {user?.username || 'User'}</h1>
-            <p className="text-sm text-muted-foreground">
-              {format(new Date(), 'EEEE, MMMM d')}
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="rounded-full"
-              onClick={() => refetch()}
-            >
-              <RefreshCw size={18} className={cn("text-muted-foreground", isRefetching && "animate-spin")} />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="rounded-full"
-              onClick={() => navigate('/my-picks')}
-            >
-              <BookmarkIcon size={18} className="text-muted-foreground" />
-            </Button>
-          </div>
-        </motion.div>
+          <TabsList className="grid grid-cols-3 w-full">
+            <TabsTrigger value="today">Today</TabsTrigger>
+            <TabsTrigger value="tomorrow">Tomorrow</TabsTrigger>
+            <TabsTrigger value="weekend">Weekend</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </section>
       
-      {/* Date selector */}
-      <section className="mb-4 -mx-4">
-        <DateSelector
-          selectedDate={selectedDate}
-          onSelectDate={setSelectedDate}
-        />
-      </section>
-      
-      {/* Top pick of the day */}
-      <section className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-bold flex items-center gap-1">
-            <Sparkles size={18} className="text-yellow-500" />
-            Top Pick Today
+      {/* Top Picks */}
+      <section className="mb-8">
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-base font-semibold flex items-center gap-1">
+            <Trophy size={16} className="text-amber-500" />
+            Top Picks Today
           </h2>
-        </div>
-        
-        {isLoading ? (
-          <Skeleton className="h-32 w-full rounded-xl" />
-        ) : topPrediction ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <PredictionCard
-              id={topPrediction.id}
-              homeTeam={topPrediction.homeTeam}
-              awayTeam={topPrediction.awayTeam}
-              league={topPrediction.league}
-              sport={topPrediction.sport}
-              prediction={topPrediction.prediction}
-              market={topPrediction.market}
-              odds={topPrediction.odds}
-              confidence={topPrediction.confidence}
-              startTime={topPrediction.startTime}
-              isCorrect={topPrediction.isCorrect}
-              isPremium={false}
-              isSaved={false}
-              onToggleSave={handleToggleSave}
-              onSelect={() => handleViewPrediction(topPrediction.id)}
-            />
-          </motion.div>
-        ) : (
-          <div className="bg-muted rounded-xl p-4 text-center text-muted-foreground">
-            No predictions available for this date
-          </div>
-        )}
-      </section>
-      
-      {/* Quick stats */}
-      <section className="mb-6">
-        <div className="grid grid-cols-3 gap-3">
-          <motion.div 
-            className="bg-gradient-to-br from-primary/10 to-primary/20 rounded-xl p-3"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1 }}
-          >
-            <div className="mb-1">
-              <TrendingUp size={16} className="text-primary" />
-            </div>
-            <div className="text-lg font-bold">{totalPredictions}</div>
-            <div className="text-xs text-muted-foreground">Total Matches</div>
-          </motion.div>
-          
-          <motion.div 
-            className="bg-gradient-to-br from-green-500/10 to-green-500/20 rounded-xl p-3"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            <div className="mb-1">
-              <Trophy size={16} className="text-green-500" />
-            </div>
-            <div className="text-lg font-bold">{confidencePredictions}</div>
-            <div className="text-xs text-muted-foreground">High Confidence</div>
-          </motion.div>
-          
-          <motion.div 
-            className="bg-gradient-to-br from-amber-500/10 to-amber-500/20 rounded-xl p-3"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3 }}
-          >
-            <div className="mb-1">
-              <Sparkles size={16} className="text-amber-500" />
-            </div>
-            <div className="text-lg font-bold">{highOddsPredictions}</div>
-            <div className="text-xs text-muted-foreground">High Odds</div>
-          </motion.div>
-        </div>
-      </section>
-      
-      {/* Sport Selector */}
-      <section className="mb-4 -mx-4">
-        <SportSelector
-          selectedSport={selectedSport}
-          onSelectSport={setSelectedSport}
-        />
-      </section>
-      
-      {/* More Predictions */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold">Today's Predictions</h2>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-xs font-medium flex items-center"
-            onClick={() => navigate('/predictions')}
-          >
-            See all
-            <ChevronRight size={16} />
+          <Button variant="ghost" size="sm" className="h-7 text-xs px-2 flex items-center gap-1">
+            View All <ChevronRight size={14} />
           </Button>
         </div>
         
-        {isLoading ? (
-          <div className="space-y-3">
+        {isLoadingToday ? (
+          <div className="space-y-2">
             {[1, 2, 3].map(i => (
-              <Skeleton key={i} className="h-28 w-full rounded-xl" />
+              <Skeleton key={i} className="h-24 w-full rounded-lg" />
             ))}
           </div>
-        ) : otherPredictions.length > 0 ? (
-          <motion.div 
-            className="space-y-3"
+        ) : todaysPredictions.length > 0 ? (
+          <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="show"
+            className="space-y-2"
           >
-            {otherPredictions.map(prediction => (
+            {todaysPredictions.slice(0, 3).map(prediction => (
               <motion.div key={prediction.id} variants={itemVariants}>
                 <PredictionCard
-                  id={prediction.id}
                   homeTeam={prediction.homeTeam}
                   awayTeam={prediction.awayTeam}
                   league={prediction.league}
-                  sport={prediction.sport}
-                  prediction={prediction.prediction}
-                  market={prediction.market}
+                  date={prediction.startTime}
                   odds={prediction.odds}
-                  confidence={prediction.confidence}
-                  startTime={prediction.startTime}
-                  isCorrect={prediction.isCorrect}
-                  compact={true}
-                  isPremium={false}
-                  isSaved={false}
-                  onToggleSave={handleToggleSave}
-                  onSelect={() => handleViewPrediction(prediction.id)}
+                  prediction={prediction.prediction}
                 />
               </motion.div>
             ))}
           </motion.div>
         ) : (
-          <div className="bg-muted rounded-xl p-4 text-center text-muted-foreground">
-            No additional predictions available
+          <div className="text-center p-6 bg-muted rounded-lg">
+            <p className="text-muted-foreground">No predictions available for today</p>
           </div>
         )}
+      </section>
+      
+      {/* Big Events */}
+      <section className="mb-8">
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-base font-semibold flex items-center gap-1">
+            <Star size={16} className="text-amber-500" />
+            Big Events
+          </h2>
+          <Button variant="ghost" size="sm" className="h-7 text-xs px-2 flex items-center gap-1">
+            View All <ChevronRight size={14} />
+          </Button>
+        </div>
+        
+        {isLoadingEvents ? (
+          <div className="space-y-2">
+            {[1, 2].map(i => (
+              <Skeleton key={i} className="h-24 w-full rounded-lg" />
+            ))}
+          </div>
+        ) : bigEvents.length > 0 ? (
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+            className="space-y-2"
+          >
+            {bigEvents.slice(0, 2).map(prediction => (
+              <motion.div key={prediction.id} variants={itemVariants}>
+                <PredictionCard
+                  homeTeam={prediction.homeTeam}
+                  awayTeam={prediction.awayTeam}
+                  league={prediction.league}
+                  date={prediction.startTime}
+                  odds={prediction.odds}
+                  prediction={prediction.prediction}
+                />
+              </motion.div>
+            ))}
+          </motion.div>
+        ) : (
+          <div className="text-center p-6 bg-muted rounded-lg">
+            <p className="text-muted-foreground">No big events available</p>
+          </div>
+        )}
+      </section>
+      
+      {/* Performance Card */}
+      <section>
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-base font-semibold flex items-center gap-1">
+            <TrendingUp size={16} className="text-green-500" />
+            AI Performance
+          </h2>
+        </div>
+        
+        <Card>
+          <CardHeader className="p-4 pb-0">
+            <CardTitle className="text-sm font-medium">Weekly Success Rate</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-3xl font-bold">72%</p>
+                <p className="text-xs text-muted-foreground">Success Rate</p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold">+12%</p>
+                <p className="text-xs text-muted-foreground">Return on Investment</p>
+              </div>
+            </div>
+            
+            <Button 
+              className="w-full mt-4" 
+              variant="outline" 
+              size="sm"
+              onClick={() => window.location.href = '/history'}
+            >
+              View Detailed Performance
+            </Button>
+          </CardContent>
+        </Card>
       </section>
     </div>
   );

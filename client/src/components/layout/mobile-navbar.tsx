@@ -1,120 +1,92 @@
 import React from 'react';
-import { Link } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
-import {
-  Home,
-  Search,
-  BarChart2,
-  UserCircle,
-  BookmarkIcon,
-  History,
-  HeartIcon,
-  DollarSign,
-  Settings,
-  Clock
-} from "lucide-react";
+import { Link, useLocation } from 'wouter';
+import { Home, Search, BarChart3, Bookmark, ShoppingBag, User } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
-interface MobileNavbarProps {
-  activeTab: string;
-}
-
-export function MobileNavbar({ activeTab }: MobileNavbarProps) {
-  // Navigation items
+export default function MobileNavbar() {
+  const [location] = useLocation();
+  
   const navItems = [
     {
-      id: 'home',
       label: 'Home',
+      href: '/',
       icon: Home,
-      href: '/'
+      activeWhen: ['/'],
     },
     {
-      id: 'explore',
       label: 'Explore',
+      href: '/explore',
       icon: Search,
-      href: '/explore'
+      activeWhen: ['/explore', '/prediction'],
     },
     {
-      id: 'history',
       label: 'History',
-      icon: History,
-      href: '/history'
+      href: '/history',
+      icon: BarChart3,
+      activeWhen: ['/history'],
     },
     {
-      id: 'favorites',
       label: 'Favorites',
-      icon: HeartIcon,
-      href: '/favorites'
+      href: '/favorites',
+      icon: Bookmark,
+      activeWhen: ['/favorites'],
     },
     {
-      id: 'pricing',
       label: 'Pricing',
-      icon: DollarSign,
-      href: '/pricing'
+      href: '/pricing',
+      icon: ShoppingBag,
+      activeWhen: ['/pricing', '/subscribe'],
     },
     {
-      id: 'profile',
       label: 'Profile',
-      icon: UserCircle,
-      href: '/profile'
-    }
-  ];
-
-  // Helper to determine if a tab is active
-  const isActive = (id: string) => activeTab === id;
-
-  // Animation variants
-  const navItemVariants = {
-    active: { 
-      scale: 1.1, 
-      y: -4,
-      transition: { type: "spring", stiffness: 400, damping: 15 } 
+      href: '/profile',
+      icon: User,
+      activeWhen: ['/profile', '/settings'],
     },
-    inactive: { 
-      scale: 1, 
-      y: 0,
-      transition: { type: "spring", stiffness: 400, damping: 17 } 
-    }
+  ];
+  
+  // Check if the current location matches an "activeWhen" path
+  const isActive = (paths: string[]) => {
+    return paths.some(path => 
+      path === '/' 
+        ? location === '/' 
+        : location.startsWith(path)
+    );
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 pb-safe shadow-lg">
-      <div className="grid grid-cols-6 h-16">
-        {navItems.map(item => (
-          <Link key={item.id} href={item.href}>
-            <div className="flex flex-col items-center justify-center h-full touch-manipulation active:opacity-70">
-              <motion.div 
-                className="relative flex flex-col items-center"
-                initial="inactive"
-                animate={isActive(item.id) ? "active" : "inactive"}
-                variants={navItemVariants}
-              >
-                {isActive(item.id) && (
-                  <motion.div 
-                    className="absolute -top-1.5 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary rounded-full"
-                    layoutId="navIndicator"
-                    transition={{ type: "spring", bounce: 0.5, duration: 0.6 }}
-                  />
-                )}
-                
-                <item.icon className={cn(
-                  "h-4 w-4 mb-1",
-                  isActive(item.id) ? "text-primary" : "text-muted-foreground"
-                )} />
-                
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background px-3 py-2">
+      <div className="flex items-center justify-between">
+        {navItems.map((item) => {
+          const active = isActive(item.activeWhen);
+          return (
+            <Link key={item.href} href={item.href}>
+              <a className="flex flex-col items-center py-1 relative">
+                <div className={cn(
+                  "flex items-center justify-center h-10 w-10 rounded-full text-muted-foreground relative",
+                  active && "text-primary"
+                )}>
+                  <item.icon size={20} />
+                  {active && (
+                    <motion.div
+                      layoutId="navbar-indicator"
+                      className="absolute inset-0 bg-primary/10 rounded-full"
+                      transition={{ type: "spring", duration: 0.3 }}
+                    />
+                  )}
+                </div>
                 <span className={cn(
-                  "text-[9px]",
-                  isActive(item.id) ? "text-primary font-medium" : "text-muted-foreground"
+                  "text-[10px] mt-1 font-medium", 
+                  active ? "text-primary" : "text-muted-foreground"
                 )}>
                   {item.label}
                 </span>
-              </motion.div>
-            </div>
-          </Link>
-        ))}
+              </a>
+            </Link>
+          );
+        })}
       </div>
     </nav>
   );
 }
-
-export default MobileNavbar;

@@ -55,7 +55,7 @@ import { fetchFeatureFlags } from "./lib/feature-flags";
 
 // Layout components
 import AppLayout from "@/components/layout/app-layout";
-import { MobileAppLayout } from "@/components/layout/mobile-app-layout";
+import MobileAppLayout from "@/components/layout/mobile-app-layout";
 
 // Mobile pages
 import MobileHomePage from "@/pages/mobile-home-page";

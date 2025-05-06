@@ -527,3 +527,20 @@ Error: AI Service failed to start properly: exit code 1
     at ChildProcess.<anonymous> (file:///home/runner/workspace/scripts/start-ai-service.js:228:16)
     at ChildProcess.emit (node:events:518:28)
     at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+--- Starting AI Microservice at 2025-05-06T23:07:03.382Z on port 5001 ---
+[STDERR] 2025-05-06 23:07:04,508 - config - WARNING - Using free tier of TheSportsDB API with limited functionality
+[STDERR] 2025-05-06 23:07:04,508 - config - INFO - Configuration validation successful
+2025-05-06 23:07:04,508 - config - INFO - Running in development environment
+[STDERR] 2025-05-06 23:07:05,518 - __main__ - INFO - Starting API service on port 5000
+[STDOUT]  * Serving Flask app 'main'
+[STDOUT]  * Debug mode: on
+[STDERR] Address already in use[STDERR] 
+Port 5000 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[EXIT] AI Service exited with code 1 and signal null
+
+--- ERROR starting AI Microservice at 2025-05-06T23:07:05.642Z ---
+Error: AI Service failed to start properly: exit code 1
+    at ChildProcess.<anonymous> (file:///home/runner/workspace/scripts/start-ai-service.js:228:16)
+    at ChildProcess.emit (node:events:518:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
