@@ -122,6 +122,10 @@ export default function ProfilePage() {
             <Globe className="h-4 w-4 mr-2" />
             Timezone
           </TabsTrigger>
+          <TabsTrigger value="prediction-filters">
+            <Filter className="h-4 w-4 mr-2" />
+            Prediction Filters
+          </TabsTrigger>
           <TabsTrigger value="settings">
             <Settings className="h-4 w-4 mr-2" />
             Settings
@@ -193,6 +197,10 @@ export default function ProfilePage() {
         
         <TabsContent value="timezone">
           <TimezonePreferences />
+        </TabsContent>
+
+        <TabsContent value="prediction-filters">
+          <PredictionFilters />
         </TabsContent>
         
         <TabsContent value="settings">

@@ -7,12 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
   Zap, 
-  Save, 
-  Football, 
-  Basketball, 
-  TennisBall,
+  Save,
   Goal,
-  TimerReset,
+  Timer,
   RefreshCw,
   BarChart4,
   DollarSign
@@ -25,7 +22,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { getQueryFn, queryClient, apiRequest } from "@/lib/queryClient";
 
 // Default prediction filters
-const defaultPredictionFilters = {
+const defaultPredictionFilters: PredictionFilters = {
   enabledSports: {
     football: true,
     basketball: true,
@@ -64,20 +61,38 @@ const defaultPredictionFilters = {
 
 // Sport icons mapping
 const SportIcon = ({ sport }: { sport: string }) => {
-  switch (sport) {
-    case 'football':
-      return <Football className="h-4 w-4" />;
-    case 'basketball':
-      return <Basketball className="h-4 w-4" />;
-    case 'tennis':
-      return <TennisBall className="h-4 w-4" />;
-    default:
-      return <Goal className="h-4 w-4" />;
-  }
+  // Just use the Goal icon for all sports for simplicity
+  return <Goal className="h-4 w-4" />;
+};
+
+// Define types for the filters
+type SportType = 'football' | 'basketball' | 'tennis' | 'baseball' | 'hockey' | 'cricket' | 'formula1' | 'mma' | 'volleyball';
+type MarketType = 'matchWinner' | 'bothTeamsToScore' | 'overUnder' | 'correctScore' | 'handicap' | 'playerProps';
+
+type EnabledSports = {
+  [key in SportType]: boolean;
+};
+
+type EnabledLeagues = {
+  [key in SportType]: string[];
+};
+
+type MarketTypes = {
+  [key in MarketType]: boolean;
+};
+
+type PredictionFilters = {
+  enabledSports: EnabledSports;
+  enabledLeagues: EnabledLeagues;
+  marketTypes: MarketTypes;
+  minimumConfidence: number;
+  minimumOdds: number;
+  maximumOdds: number;
+  includeAccumulators: boolean;
 };
 
 // Sport display names
-const sportDisplayNames: Record<string, string> = {
+const sportDisplayNames: Record<SportType, string> = {
   football: "Football (Soccer)",
   basketball: "Basketball",
   tennis: "Tennis",
@@ -130,22 +145,21 @@ export function PredictionFilters() {
   const [hasChanges, setHasChanges] = useState(false);
   
   // Fetch existing prediction filters
-  const { data, isLoading, error } = useQuery<any>({
+  const { data, isLoading, error } = useQuery<PredictionFilters>({
     queryKey: ["/api/user/prediction-filters"],
     queryFn: getQueryFn({ on401: "returnNull" }),
-    onSuccess: (data) => {
-      if (data) {
-        setFilters(data);
-      }
-    },
-    onError: () => {
-      // Keep using local filters
-    }
   });
+  
+  // Update filters when data changes
+  useEffect(() => {
+    if (data) {
+      setFilters(data);
+    }
+  }, [data]);
 
   // Mutation to update prediction filters
   const updateMutation = useMutation({
-    mutationFn: async (newFilters: any) => {
+    mutationFn: async (newFilters: PredictionFilters) => {
       const response = await apiRequest("POST", "/api/user/prediction-filters", newFilters);
       return response.json();
     },
@@ -166,15 +180,8 @@ export function PredictionFilters() {
     }
   });
 
-  // Update local filters when data changes
-  useEffect(() => {
-    if (data) {
-      setFilters(data);
-    }
-  }, [data]);
-
   // Handle sport toggle
-  const handleSportToggle = (sport: string, value: boolean) => {
+  const handleSportToggle = (sport: SportType, value: boolean) => {
     setFilters(prev => ({
       ...prev,
       enabledSports: {
@@ -186,7 +193,7 @@ export function PredictionFilters() {
   };
 
   // Handle market toggle
-  const handleMarketToggle = (market: string, value: boolean) => {
+  const handleMarketToggle = (market: MarketType, value: boolean) => {
     setFilters(prev => ({
       ...prev,
       marketTypes: {
@@ -286,7 +293,7 @@ export function PredictionFilters() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid grid-cols-3 mb-6">
           <TabsTrigger value="sports" className="flex gap-2 items-center">
-            <Football className="h-4 w-4" />
+            <Goal className="h-4 w-4" />
             Sports & Leagues
           </TabsTrigger>
           <TabsTrigger value="markets" className="flex gap-2 items-center">
