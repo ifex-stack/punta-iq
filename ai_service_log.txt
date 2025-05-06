@@ -1501,3 +1501,21 @@ ERROR: 2025-05-06 18:05:01,716 - puntaiq_ai_service - INFO - Navigation endpoint
 ERROR: 2025-05-06 18:05:01,716 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 18:05:01] "[32mGET /navigation HTTP/1.1[0m" 302 -
 ERROR: 2025-05-06 18:05:02,463 - puntaiq_ai_service - INFO - Navigation endpoint accessed - redirecting to main application
 ERROR: 2025-05-06 18:05:02,463 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 18:05:02] "[32mGET /navigation HTTP/1.1[0m" 302 -
+ERROR: 2025-05-06 18:05:20,589 - puntaiq_ai_service - INFO - Navigation endpoint accessed - redirecting to main application
+ERROR: 2025-05-06 18:05:20,589 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 18:05:20] "[32mGET /navigation HTTP/1.1[0m" 302 -
+ERROR: 2025-05-06 18:05:23,599 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:05:23,600 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:05:23] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:05:23,603 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:05:23,604 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:05:23] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:05:53,599 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:05:53,599 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:05:53] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:06:23,599 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:06:23,599 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:06:23] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:06:53,599 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:06:53,599 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:06:53] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:07:23,599 - puntaiq_ai_service - INFO - Status endpoint accessed
+ERROR: 2025-05-06 18:07:23,600 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 18:07:23] "GET /api/status HTTP/1.1" 200 -
+ERROR: 2025-05-06 18:07:34,474 - puntaiq_ai_service - INFO - Public test endpoint accessed - redirecting to main application
+ERROR: 2025-05-06 18:07:34,474 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 18:07:34] "[32mGET /public-test HTTP/1.1[0m" 302 -
+ERROR: 2025-05-06 18:07:35,521 - puntaiq_ai_service - INFO - Public test endpoint accessed - redirecting to main application
+ERROR: 2025-05-06 18:07:35,521 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 18:07:35] "[32mGET /public-test HTTP/1.1[0m" 302 -
