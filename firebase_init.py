@@ -10,38 +10,25 @@ from firebase_admin import credentials, db
 def initialize_firebase():
     """Initialize Firebase connection if credentials are available."""
     try:
-        # Get Firebase configuration from environment variables
-        project_id = 'puntaiq'  # Hardcoded for this project
-        private_key = os.environ.get('FIREBASE_PRIVATE_KEY')
-        client_email = 'firebase-adminsdk-fbsvc@puntaiq.iam.gserviceaccount.com'
-        # Always use the correct database URL regardless of environment variable
+        # Always use the correct database URL
         db_url = 'https://puntaiq-default-rtdb.firebaseio.com'
         
-        if not private_key:
-            print("WARNING: FIREBASE_PRIVATE_KEY environment variable is not set.")
-            # Check if there's a service account file as fallback
-            if os.path.exists('firebase-service-account.json'):
-                print("Using firebase-service-account.json file as fallback.")
-                cred = credentials.Certificate('firebase-service-account.json')
-            else:
-                print("No Firebase credentials available.")
-                return None
-        else:
-            # Create credentials dictionary with environment variables
-            cred_dict = {
-                "type": "service_account",
-                "project_id": project_id,
-                "private_key": private_key.replace('\\n', '\n'),  # Fix escaped newlines if present
-                "client_email": client_email,
-            }
-            cred = credentials.Certificate(cred_dict)
+        # Always use the service account file for simplicity and reliability
+        service_account_path = 'firebase-service-account.json'
         
-        # Initialize the app
+        if not os.path.exists(service_account_path):
+            print(f"ERROR: Service account file not found at {service_account_path}")
+            return None
+            
+        print(f"Using Firebase service account file at {service_account_path}")
+        cred = credentials.Certificate(service_account_path)
+        
+        # Initialize the app with the correct database URL
         firebase_app = firebase_admin.initialize_app(cred, {
             'databaseURL': db_url
         })
         
-        print("Firebase initialized successfully.")
+        print("Firebase initialized successfully with database URL:", db_url)
         return firebase_app
         
     except Exception as e:
