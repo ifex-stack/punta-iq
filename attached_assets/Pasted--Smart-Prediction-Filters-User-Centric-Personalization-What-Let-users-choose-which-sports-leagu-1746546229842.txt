@@ -1,0 +1,56 @@
+. Smart Prediction Filters (User-Centric Personalization)
+What: Let users choose which sports, leagues, or markets they want daily predictions for.
+
+How: Use Firebase to store user preferences, and tailor prediction data output.
+
+Benefit: Reduces API load and improves user satisfaction by giving relevant tips only.
+
+📉 2. Historical Performance Dashboard
+What: Track how accurate PuntaIQ predictions have been over time per sport, league, and market.
+
+How: Store prediction outputs and actual match outcomes in Firebase and analyze.
+
+Benefit: Builds credibility and trust; supports user decisions.
+
+🔁 3. Confidence Score per Prediction
+What: Show a "confidence level" (e.g., 85%) next to each prediction.
+
+How: Use your AI model’s output probabilities or performance on similar past fixtures.
+
+Benefit: Helps users make smarter, data-driven betting decisions.
+
+💡 4. AI Auto-Tuner (Model Retraining Scheduler)
+What: Automatically retrain your AI models weekly/monthly with newly cached data.
+
+How: Trigger retraining jobs via Replit background workers or externally via GitHub Actions.
+
+Benefit: Improves prediction quality as data grows; ensures ongoing performance.
+
+🔔 5. Daily Notifications with Prediction Digest
+What: Push daily prediction summaries via email or push notification (e.g., “Top 3 Picks Today”).
+
+How: Integrate with Firebase Cloud Messaging (FCM) or Mailgun.
+
+Benefit: Increases engagement and repeat usage.
+
+🧠 6. Explainable AI
+What: Briefly show “why” a prediction was made — e.g., “based on last 5 wins + home advantage.”
+
+How: Use rule-based interpreters tied to the prediction model features.
+
+Benefit: Boosts transparency and user confidence.
+
+🔒 7. Fraud Prevention / Request Throttling
+What: Prevent scraping or abuse by tracking user usage and applying rate limits.
+
+How: Use Firebase Auth tokens + Replit middleware with IP/user-agent filters.
+
+Benefit: Protects your app from overuse and keeps API costs under control.
+
+📱 8. Installable Mobile PWA (Before Native)
+What: Launch as a Progressive Web App (PWA) so users can “install” from browser.
+
+How: Add a manifest.json, service workers, and mobile-friendly layout.
+
+Benefit: Quick mobile access before a full iOS/Android release.
+

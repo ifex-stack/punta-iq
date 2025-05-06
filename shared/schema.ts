@@ -106,6 +106,43 @@ export const users = pgTable("users", {
       respectQuietHours: true, // Whether to respect quiet hours
       quietHoursStart: '23:00', // Start of quiet hours
       quietHoursEnd: '07:00' // End of quiet hours
+    },
+    // Smart Prediction Filters
+    predictionFilters: {
+      enabledSports: {
+        football: true,
+        basketball: true,
+        tennis: false,
+        baseball: false,
+        hockey: false,
+        cricket: false,
+        formula1: false,
+        mma: false,
+        volleyball: false
+      },
+      enabledLeagues: {
+        football: ["premier_league", "laliga", "bundesliga", "seriea", "ligue1", "champions_league"],
+        basketball: ["nba", "euroleague"],
+        tennis: [],
+        baseball: [],
+        hockey: [],
+        cricket: [],
+        formula1: [],
+        mma: [],
+        volleyball: []
+      },
+      marketTypes: {
+        matchWinner: true,
+        bothTeamsToScore: true,
+        overUnder: true,
+        correctScore: false,
+        handicap: false,
+        playerProps: false
+      },
+      minimumConfidence: 60, // Minimum confidence threshold (percentage)
+      minimumOdds: 1.5,      // Minimum odds threshold
+      maximumOdds: 10.0,     // Maximum odds threshold
+      includeAccumulators: true
     }
   }),
   onboardingStatus: onboardingStatusEnum("onboarding_status").default('not_started'),
