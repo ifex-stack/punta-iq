@@ -1,468 +1,207 @@
-import React, { useState } from "react";
-import { format } from "date-fns";
-import { 
-  Bookmark as BookmarkIcon,
-  PlusSquare,
-  Trophy,
-  Clock,
-  ArrowUpDown,
-  DollarSign,
-  Lock,
-  TrendingUp,
-  BarChart3
-} from "lucide-react";
-import { FaFutbol } from "react-icons/fa";
+import React from 'react';
+import { motion } from 'framer-motion';
+import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { 
+  Card, 
+  CardContent 
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CustomProgress } from "@/components/ui/custom-progress";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { 
+  BookmarkIcon, 
+  CheckIcon, 
+  XIcon,
+  AlertCircleIcon,
+  TimerIcon,
+  TrendingUpIcon,
+  PercentIcon
+} from 'lucide-react';
 
-type PredictionCardProps = {
-  prediction: any;
+interface PredictionCardProps {
+  id: number;
+  homeTeam: string;
+  awayTeam: string;
+  league: string;
+  sport: string;
+  prediction: string;
+  market: string;
+  odds: number;
+  confidence: number;
+  startTime: string;
+  isCorrect?: boolean | null;
+  isPremium?: boolean;
   isSaved?: boolean;
-  isInAccumulator?: boolean;
-  onSave?: (id: string) => void;
-  onAddToAccumulator?: (id: string) => void;
-  subscriptionStatus?: string;
-};
+  onToggleSave?: (id: number) => void;
+  onSelect?: (id: number) => void;
+  className?: string;
+  compact?: boolean;
+  showLeague?: boolean;
+}
 
-export default function PredictionCard({ 
-  prediction, 
+export function PredictionCard({
+  id,
+  homeTeam,
+  awayTeam,
+  league,
+  sport,
+  prediction,
+  market,
+  odds,
+  confidence,
+  startTime,
+  isCorrect,
+  isPremium = false,
   isSaved = false,
-  isInAccumulator = false,
-  onSave,
-  onAddToAccumulator,
-  subscriptionStatus = "free"
+  onToggleSave,
+  onSelect,
+  className,
+  compact = false,
+  showLeague = true
 }: PredictionCardProps) {
-  const [expanded, setExpanded] = useState(false);
-
-  // Calculate if prediction should be locked based on subscription
-  const isLocked = prediction.isPremium && subscriptionStatus !== "premium";
   
-  // Determine if showing main market (1X2 for football or Winner for basketball)
-  const mainMarket = true;
-
-  // Parse the date for display
-  const matchDate = new Date(prediction.startTime);
-  const formattedDate = format(matchDate, "dd MMM yyyy");
-  const formattedTime = format(matchDate, "HH:mm");
-
-  // Get display color based on confidence level
-  const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 85) return "bg-green-500";
-    if (confidence >= 65) return "bg-yellow-500";
-    return "bg-red-500";
+  // Format date
+  const matchDate = new Date(startTime);
+  const formattedTime = format(matchDate, 'HH:mm');
+  const formattedDate = format(matchDate, 'dd MMM');
+  
+  // Determine status
+  const isPending = isCorrect === null;
+  const isWon = isCorrect === true;
+  const isLost = isCorrect === false;
+  
+  // Determine confidence color
+  const getConfidenceColor = (conf: number) => {
+    if (conf >= 80) return 'bg-green-500';
+    if (conf >= 65) return 'bg-lime-500';
+    if (conf >= 50) return 'bg-amber-500';
+    return 'bg-red-500';
   };
   
-  // Determine sport icon
-  const getSportIcon = () => {
-    if (prediction.sport === "football") {
-      return <FaFutbol className="h-4 w-4 text-muted-foreground" />;
-    } else {
-      return <BarChart3 className="h-4 w-4 text-muted-foreground" />;
-    }
+  const handleSave = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onToggleSave) onToggleSave(id);
   };
   
-  // Format personalized prediction description
-  const getPredictionDescription = () => {
-    if (prediction.sport === "football" && prediction.predictions["1X2"]) {
-      const outcome = prediction.predictions["1X2"].outcome;
-      const team = outcome === "HOME_WIN" ? prediction.homeTeam : outcome === "AWAY_WIN" ? prediction.awayTeam : "Draw";
-      const action = outcome === "DRAW" ? "draw" : "win";
-      
-      // More personalized descriptions based on confidence
-      if (prediction.confidence >= 85) {
-        return `Strong chance for ${team} to ${action} this match`;
-      } else if (prediction.confidence >= 70) {
-        return `${team} looking likely to ${action} based on recent form`;
-      } else {
-        return `${team} may edge this one with a ${action}`;
-      }
-    } else if (prediction.sport === "basketball" && prediction.predictions["Winner"]) {
-      const outcome = prediction.predictions["Winner"].outcome;
-      const team = outcome === "HOME_WIN" ? prediction.homeTeam : prediction.awayTeam;
-      
-      // Personalized basketball descriptions
-      if (prediction.confidence >= 85) {
-        return `Expect a convincing win for ${team}`;
-      } else if (prediction.confidence >= 70) {
-        return `${team} should come out on top in this matchup`;
-      } else {
-        return `${team} has a slight edge in this contest`;
-      }
-    }
-    return prediction.predictedOutcome;
+  const handleCardClick = () => {
+    if (onSelect) onSelect(id);
   };
-
+  
   return (
-    <Card className={cn(
-      "overflow-hidden transition-all duration-200",
-      expanded ? "shadow-lg" : "shadow",
-      isLocked ? "opacity-95" : ""
-    )}>
-      <CardHeader className="px-4 py-3 bg-muted/30">
-        <div className="flex justify-between items-start">
-          <div className="space-y-1">
-            <div className="flex items-center gap-1.5">
-              {getSportIcon()}
-              <span className="text-sm font-medium text-muted-foreground">
-                {prediction.league}
-              </span>
-              {prediction.isPremium && (
-                <Badge variant={subscriptionStatus === "premium" ? "secondary" : "premium"} className="ml-2">
-                  Premium
-                </Badge>
-              )}
-              {prediction.valueBet?.isRecommended && (
-                <Badge variant="value" className="ml-1">
-                  Value Bet
-                </Badge>
-              )}
-            </div>
-            <CardTitle className="text-base font-bold">
-              {prediction.homeTeam} vs {prediction.awayTeam}
-            </CardTitle>
-            <CardDescription className="flex items-center mt-1">
-              <Clock className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-              {formattedDate} · {formattedTime}
-            </CardDescription>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      transition={{ duration: 0.3 }}
+      className={cn("w-full", className)}
+      layout
+    >
+      <Card 
+        className={cn(
+          "relative overflow-hidden border bg-card hover:bg-card/95 transition-colors",
+          compact ? "shadow-sm" : "shadow-md"
+        )}
+        onClick={handleCardClick}
+      >
+        {/* Premium badge */}
+        {isPremium && (
+          <div className="absolute top-0 right-0">
+            <Badge variant="premium" className="rounded-bl-md rounded-tr-md rounded-br-none rounded-tl-none">
+              PRO
+            </Badge>
           </div>
-          <div className="flex space-x-1">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSave?.(prediction.id);
-                    }}
-                  >
-                    <BookmarkIcon
-                      className={cn(
-                        "h-4 w-4",
-                        isSaved ? "fill-primary text-primary" : "text-muted-foreground"
-                      )}
-                    />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  {isSaved ? "Remove from saved" : "Save prediction"}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAddToAccumulator?.(prediction.id);
-                    }}
-                  >
-                    <PlusSquare
-                      className={cn(
-                        "h-4 w-4",
-                        isInAccumulator ? "fill-primary text-primary" : "text-muted-foreground"
-                      )}
-                    />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  {isInAccumulator ? "Remove from accumulator" : "Add to accumulator"}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="px-4 pt-3 pb-4">
-        <div className="grid grid-cols-4 gap-2 mb-4">
-          <div className="col-span-3">
-            <div className="flex justify-between items-center mb-1">
-              <div className="text-sm font-medium">AI Confidence</div>
-              <div className="text-sm font-bold">{prediction.confidence}%</div>
+        )}
+        
+        <CardContent className={cn(
+          "p-3",
+          compact ? "space-y-1" : "space-y-2"
+        )}>
+          {/* Header with league and time */}
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            {showLeague && (
+              <div className="font-medium truncate">{league}</div>
+            )}
+            <div className="flex items-center space-x-1 ml-auto">
+              <TimerIcon size={12} className="text-muted-foreground" />
+              <span>{formattedTime}</span>
+              <span className="opacity-60 px-1">|</span>
+              <span>{formattedDate}</span>
             </div>
-            <CustomProgress 
-              value={prediction.confidence} 
-              className="h-2" 
-              indicatorClassName={getConfidenceColor(prediction.confidence)}
-            />
           </div>
           
-          <div className="flex flex-col items-center justify-center border rounded-md p-2">
-            {isLocked ? (
-              <>
-                <Lock className="h-5 w-5 text-muted-foreground mb-1" />
-                <span className="text-xs text-muted-foreground">Premium</span>
-              </>
-            ) : mainMarket ? (
-              <>
-                <div className="text-xs text-muted-foreground">Odds</div>
-                <div className="text-lg font-bold">
-                  {prediction.predictions["1X2"] ? 
-                    (prediction.predictions["1X2"].outcome === "HOME_WIN" ? 
-                      prediction.predictions["1X2"].homeWin.odds : 
-                      prediction.predictions["1X2"].outcome === "AWAY_WIN" ? 
-                        prediction.predictions["1X2"].awayWin.odds : 
-                        prediction.predictions["1X2"].draw.odds).toFixed(2) : 
-                    (prediction.predictions["Winner"]?.outcome === "HOME_WIN" ? 
-                      prediction.predictions["Winner"].homeWin.odds : 
-                      prediction.predictions["Winner"]?.awayWin.odds).toFixed(2)}
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="text-xs text-muted-foreground">Score</div>
-                <div className="text-lg font-bold">
-                  {prediction.predictions["PredictedScore"] ? 
-                    `${prediction.predictions["PredictedScore"].home}-${prediction.predictions["PredictedScore"].away}` : 
-                    "-"}
-                </div>
-              </>
-            )}
+          {/* Teams */}
+          <div className="flex items-center justify-between font-medium">
+            <div className="truncate mr-2">{homeTeam}</div>
+            <div className="text-xs text-muted-foreground">vs</div>
+            <div className="truncate ml-2 text-right">{awayTeam}</div>
           </div>
-        </div>
-        
-        <div className="mb-3">
-          <div className="flex items-center mb-2">
-            <Trophy className="h-4 w-4 mr-1.5 text-primary" />
-            <h3 className="font-bold">AI Prediction</h3>
-          </div>
-          <div className="flex items-center justify-between mb-1 px-2 py-1.5 bg-muted/30 rounded-md">
-            <div>
-              <span className="font-medium">{getPredictionDescription()}</span>
-            </div>
-            {!isLocked && prediction.valueBet?.isRecommended && (
+          
+          {/* Prediction info */}
+          <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center space-x-2">
+              <Badge variant={
+                isPending ? "outline" : 
+                isWon ? "success" : 
+                "destructive"
+              } className="text-xs font-normal">
+                {isPending && "Pending"}
+                {isWon && "Won"}
+                {isLost && "Lost"}
+              </Badge>
+              
               <div className="flex items-center">
-                <Badge variant="success" className="mr-1">
-                  <DollarSign className="h-3 w-3 mr-0.5" />
-                  <span>Value</span>
+                <Badge variant="secondary" className="text-xs font-normal">
+                  {market}
                 </Badge>
               </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              {!compact && (
+                <div className="flex items-center text-xs">
+                  <TrendingUpIcon size={14} className="mr-1 text-muted-foreground" />
+                  <span className="font-medium">{odds.toFixed(2)}</span>
+                </div>
+              )}
+              
+              <div className="flex items-center">
+                <div 
+                  className={cn(
+                    "w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium text-white",
+                    getConfidenceColor(confidence)
+                  )}
+                >
+                  {confidence}%
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Prediction */}
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-medium">
+              {prediction}
+            </div>
+            
+            {/* Bookmark button */}
+            {onToggleSave && (
+              <motion.button
+                className={cn(
+                  "p-2 rounded-full",
+                  isSaved ? "text-primary" : "text-muted-foreground"
+                )}
+                onClick={handleSave}
+                whileTap={{ scale: 0.9 }}
+              >
+                <BookmarkIcon size={16} className={cn(
+                  isSaved ? "fill-primary" : "fill-none"
+                )} />
+              </motion.button>
             )}
           </div>
-        </div>
-        
-        {!isLocked && prediction.valueBet && (
-          <div className="mb-4 p-2 border border-green-200 bg-green-50 dark:bg-green-900/10 dark:border-green-800 rounded-md">
-            <div className="flex items-center mb-1">
-              <TrendingUp className="h-4 w-4 mr-1.5 text-green-600 dark:text-green-400" />
-              <h3 className="font-bold text-sm text-green-700 dark:text-green-400">Value Bet Analysis</h3>
-            </div>
-            <div className="text-sm text-green-800 dark:text-green-300">
-              <div className="flex justify-between mb-1">
-                <span>Market:</span>
-                <span className="font-medium">{prediction.valueBet.outcome}</span>
-              </div>
-              <div className="flex justify-between mb-1">
-                <span>Odds:</span>
-                <span className="font-medium">{prediction.valueBet.odds.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Value Rating:</span>
-                <span className="font-medium">{prediction.valueBet.value > 0 ? '+' : ''}{prediction.valueBet.value.toFixed(1)}%</span>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="w-full text-xs" 
-          onClick={() => setExpanded(!expanded)}
-        >
-          <ArrowUpDown className="h-3.5 w-3.5 mr-1.5" />
-          {expanded ? "Show less" : "Show more markets"}
-        </Button>
-        
-        {expanded && !isLocked && (
-          <div className="mt-3">
-            <Accordion type="single" collapsible className="w-full">
-              {prediction.predictions["1X2"] && (
-                <AccordionItem value="1x2" className="border-b">
-                  <AccordionTrigger className="py-2 hover:no-underline">
-                    <div className="flex items-center">
-                      <span className="font-medium">1X2 Market</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="pb-3">
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className={cn(
-                        "border p-2 rounded text-center",
-                        prediction.predictions["1X2"].outcome === "HOME_WIN" ? "bg-primary/10 border-primary" : ""
-                      )}>
-                        <div className="font-medium truncate">{prediction.homeTeam}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {(prediction.predictions["1X2"].homeWin.probability * 100).toFixed(0)}%
-                        </div>
-                        <div className="text-lg font-bold">
-                          {prediction.predictions["1X2"].homeWin.odds.toFixed(2)}
-                        </div>
-                      </div>
-                      <div className={cn(
-                        "border p-2 rounded text-center",
-                        prediction.predictions["1X2"].outcome === "DRAW" ? "bg-primary/10 border-primary" : ""
-                      )}>
-                        <div className="font-medium">Draw</div>
-                        <div className="text-sm text-muted-foreground">
-                          {(prediction.predictions["1X2"].draw.probability * 100).toFixed(0)}%
-                        </div>
-                        <div className="text-lg font-bold">
-                          {prediction.predictions["1X2"].draw.odds.toFixed(2)}
-                        </div>
-                      </div>
-                      <div className={cn(
-                        "border p-2 rounded text-center",
-                        prediction.predictions["1X2"].outcome === "AWAY_WIN" ? "bg-primary/10 border-primary" : ""
-                      )}>
-                        <div className="font-medium truncate">{prediction.awayTeam}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {(prediction.predictions["1X2"].awayWin.probability * 100).toFixed(0)}%
-                        </div>
-                        <div className="text-lg font-bold">
-                          {prediction.predictions["1X2"].awayWin.odds.toFixed(2)}
-                        </div>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              )}
-              
-              {prediction.predictions["BTTS"] && (
-                <AccordionItem value="btts" className="border-b">
-                  <AccordionTrigger className="py-2 hover:no-underline">
-                    <div className="flex items-center">
-                      <span className="font-medium">Both Teams to Score</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="pb-3">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className={cn(
-                        "border p-2 rounded text-center",
-                        prediction.predictions["BTTS"].outcome === "YES" ? "bg-primary/10 border-primary" : ""
-                      )}>
-                        <div className="font-medium">Yes</div>
-                        <div className="text-sm text-muted-foreground">
-                          {prediction.predictions["BTTS"].outcome === "YES" 
-                            ? (prediction.predictions["BTTS"].probability * 100).toFixed(0) 
-                            : (100 - prediction.predictions["BTTS"].probability * 100).toFixed(0)}%
-                        </div>
-                        {prediction.predictions["BTTS"].odds && (
-                          <div className="text-lg font-bold">
-                            {prediction.predictions["BTTS"].odds.toFixed(2)}
-                          </div>
-                        )}
-                      </div>
-                      <div className={cn(
-                        "border p-2 rounded text-center",
-                        prediction.predictions["BTTS"].outcome === "NO" ? "bg-primary/10 border-primary" : ""
-                      )}>
-                        <div className="font-medium">No</div>
-                        <div className="text-sm text-muted-foreground">
-                          {prediction.predictions["BTTS"].outcome === "NO" 
-                            ? (prediction.predictions["BTTS"].probability * 100).toFixed(0) 
-                            : (100 - prediction.predictions["BTTS"].probability * 100).toFixed(0)}%
-                        </div>
-                        {prediction.predictions["BTTS"].noOdds && (
-                          <div className="text-lg font-bold">
-                            {prediction.predictions["BTTS"].noOdds.toFixed(2)}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              )}
-              
-              {prediction.predictions["Over_Under"] && (
-                <AccordionItem value="overunder" className="border-b">
-                  <AccordionTrigger className="py-2 hover:no-underline">
-                    <div className="flex items-center">
-                      <span className="font-medium">Over/Under {prediction.predictions["Over_Under"].line}.5 Goals</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="pb-3">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className={cn(
-                        "border p-2 rounded text-center",
-                        prediction.predictions["Over_Under"].outcome === "OVER" ? "bg-primary/10 border-primary" : ""
-                      )}>
-                        <div className="font-medium">Over {prediction.predictions["Over_Under"].line}.5</div>
-                        <div className="text-sm text-muted-foreground">
-                          {prediction.predictions["Over_Under"].outcome === "OVER" 
-                            ? (prediction.predictions["Over_Under"].probability * 100).toFixed(0) 
-                            : (100 - prediction.predictions["Over_Under"].probability * 100).toFixed(0)}%
-                        </div>
-                        {prediction.predictions["Over_Under"].odds && (
-                          <div className="text-lg font-bold">
-                            {prediction.predictions["Over_Under"].odds.toFixed(2)}
-                          </div>
-                        )}
-                      </div>
-                      <div className={cn(
-                        "border p-2 rounded text-center",
-                        prediction.predictions["Over_Under"].outcome === "UNDER" ? "bg-primary/10 border-primary" : ""
-                      )}>
-                        <div className="font-medium">Under {prediction.predictions["Over_Under"].line}.5</div>
-                        <div className="text-sm text-muted-foreground">
-                          {prediction.predictions["Over_Under"].outcome === "UNDER" 
-                            ? (prediction.predictions["Over_Under"].probability * 100).toFixed(0) 
-                            : (100 - prediction.predictions["Over_Under"].probability * 100).toFixed(0)}%
-                        </div>
-                        {prediction.predictions["Over_Under"].underOdds && (
-                          <div className="text-lg font-bold">
-                            {prediction.predictions["Over_Under"].underOdds.toFixed(2)}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              )}
-              
-              {prediction.predictions["PredictedScore"] && (
-                <AccordionItem value="correctscore" className="border-b">
-                  <AccordionTrigger className="py-2 hover:no-underline">
-                    <div className="flex items-center">
-                      <span className="font-medium">Correct Score</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="pb-3">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="border p-2 rounded text-center bg-primary/10 border-primary">
-                        <div className="font-medium">
-                          {prediction.homeTeam} {prediction.predictions["PredictedScore"].home} - {prediction.predictions["PredictedScore"].away} {prediction.awayTeam}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {(prediction.predictions["PredictedScore"].probability * 100).toFixed(0)}%
-                        </div>
-                        {prediction.predictions["PredictedScore"].odds && (
-                          <div className="text-lg font-bold">
-                            {prediction.predictions["PredictedScore"].odds.toFixed(2)}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              )}
-            </Accordion>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
-};
+}
+
+export default PredictionCard;
