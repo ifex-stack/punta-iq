@@ -15,7 +15,14 @@ import {
   Mail,
   Shield,
   ChevronRight,
-  RefreshCw
+  RefreshCw,
+  BarChart3,
+  Smartphone,
+  Clock,
+  Download,
+  Trash2,
+  AlertTriangle,
+  Activity
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -61,6 +68,32 @@ export default function ProfilePage() {
   
   // Cast user to ProfileUser to handle avatar property
   const user = authUser as unknown as ProfileUser;
+  
+  // Prediction statistics data
+  const predictionStats = {
+    daily: {
+      totalPredictions: 8,
+      correctPredictions: 6,
+      winRate: 75
+    },
+    weekly: {
+      totalPredictions: 42,
+      correctPredictions: 31,
+      winRate: 73.8
+    },
+    monthly: {
+      totalPredictions: 164,
+      correctPredictions: 118,
+      winRate: 72
+    }
+  };
+  
+  // Device access log data
+  const deviceAccessLog = [
+    { device: 'iPhone 12 Pro', location: 'London, UK', date: '2025-05-06 14:32', isCurrentDevice: true },
+    { device: 'Chrome on Windows', location: 'Manchester, UK', date: '2025-05-05 09:21', isCurrentDevice: false },
+    { device: 'Firefox on MacBook', location: 'Edinburgh, UK', date: '2025-05-02 18:45', isCurrentDevice: false }
+  ];
   
   // User preferences states
   const [emailNotifications, setEmailNotifications] = useState(true);
