@@ -135,6 +135,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Test routing helper page for debugging the application interface
+  app.get('/test-routing', (req, res) => {
+    routesLogger.info('Test routing page accessed');
+    const fs = require('fs');
+    const path = require('path');
+    
+    const htmlPath = path.join(process.cwd(), 'test-routing.html');
+    if (fs.existsSync(htmlPath)) {
+      res.sendFile(htmlPath);
+    } else {
+      res.send('Test routing file not found. Please create test-routing.html in the root directory.');
+    }
+  });
+  
   // Set up automation management routes
   setupAutomationRoutes(app);
   
