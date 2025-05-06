@@ -5,6 +5,8 @@ Processes cached sports data and exports to CSV for AI training
 import os
 import json
 import datetime
+# Import our firebase_init module for Firebase access
+from firebase_init import get_db_reference
 
 # Configure logging
 LOG_FILE = "training_export_log.txt"
@@ -38,60 +40,108 @@ def export_football_data():
     
     try:
         football_rows = []
-        football_fixtures_dir = "cache/football/fixtures"
         
-        if os.path.exists(football_fixtures_dir):
-            for filename in os.listdir(football_fixtures_dir):
-                if filename.endswith(".json"):
-                    with open(os.path.join(football_fixtures_dir, filename), "r") as f:
-                        try:
-                            data = json.load(f)
-                            
-                            for fixture in data.get('response', []):
-                                fixture_info = fixture.get('fixture', {})
-                                teams = fixture.get('teams', {})
-                                league = fixture.get('league', {})
-                                goals = fixture.get('goals', {})
-                                score = fixture.get('score', {})
-                                
-                                # Only include completed matches with scores for training
-                                if fixture_info.get('status', {}).get('short') == 'FT':
-                                    row = {
-                                        'date': fixture_info.get('date'),
-                                        'league_id': league.get('id'),
-                                        'league_name': league.get('name'),
-                                        'country': league.get('country'),
-                                        'home_team': teams.get('home', {}).get('name'),
-                                        'away_team': teams.get('away', {}).get('name'),
-                                        'home_score': goals.get('home'),
-                                        'away_score': goals.get('away'),
-                                        'halftime_home': score.get('halftime', {}).get('home'),
-                                        'halftime_away': score.get('halftime', {}).get('away'),
-                                        'home_win': 1 if goals.get('home', 0) > goals.get('away', 0) else 0,
-                                        'draw': 1 if goals.get('home', 0) == goals.get('away', 0) else 0,
-                                        'away_win': 1 if goals.get('home', 0) < goals.get('away', 0) else 0,
-                                        'total_goals': (goals.get('home', 0) or 0) + (goals.get('away', 0) or 0),
-                                        'both_scored': 1 if (goals.get('home', 0) > 0 and goals.get('away', 0) > 0) else 0
-                                    }
-                                    football_rows.append(row)
-                        except json.JSONDecodeError:
-                            log_message(f"Error parsing {filename}", "ERROR")
-                        except Exception as e:
-                            log_message(f"Error processing {filename}: {str(e)}", "ERROR")
-            
-            # Write to CSV
-            if football_rows:
-                csv_file = f"{exports_dir}/football_training_data_{timestamp}.csv"
-                with open(csv_file, "w") as f:
-                    # Write header
-                    f.write(",".join(football_rows[0].keys()) + "\n")
+        # Try to get data from Firebase first
+        fixtures_ref = get_db_reference("/cache/football/fixtures")
+        if fixtures_ref:
+            log_message("Reading football data from Firebase...")
+            try:
+                # Get all dates from Firebase
+                firebase_data = fixtures_ref.get()
+                if firebase_data:
+                    log_message(f"Found {len(firebase_data)} dates in Firebase football cache")
                     
-                    # Write rows
-                    for row in football_rows:
-                        f.write(",".join(str(v) for v in row.values()) + "\n")
+                    # Process Firebase data
+                    for date, data in firebase_data.items():
+                        for fixture in data.get('response', []):
+                            fixture_info = fixture.get('fixture', {})
+                            teams = fixture.get('teams', {})
+                            league = fixture.get('league', {})
+                            goals = fixture.get('goals', {})
+                            score = fixture.get('score', {})
+                            
+                            # Only include completed matches with scores for training
+                            if fixture_info.get('status', {}).get('short') == 'FT':
+                                row = {
+                                    'date': fixture_info.get('date'),
+                                    'league_id': league.get('id'),
+                                    'league_name': league.get('name'),
+                                    'country': league.get('country'),
+                                    'home_team': teams.get('home', {}).get('name'),
+                                    'away_team': teams.get('away', {}).get('name'),
+                                    'home_score': goals.get('home'),
+                                    'away_score': goals.get('away'),
+                                    'halftime_home': score.get('halftime', {}).get('home'),
+                                    'halftime_away': score.get('halftime', {}).get('away'),
+                                    'home_win': 1 if goals.get('home', 0) > goals.get('away', 0) else 0,
+                                    'draw': 1 if goals.get('home', 0) == goals.get('away', 0) else 0,
+                                    'away_win': 1 if goals.get('home', 0) < goals.get('away', 0) else 0,
+                                    'total_goals': (goals.get('home', 0) or 0) + (goals.get('away', 0) or 0),
+                                    'both_scored': 1 if (goals.get('home', 0) > 0 and goals.get('away', 0) > 0) else 0
+                                }
+                                football_rows.append(row)
+            except Exception as e:
+                log_message(f"Error retrieving data from Firebase: {str(e)}", "ERROR")
+        
+        # Fallback to local files if Firebase didn't work or if we have no rows yet
+        if not football_rows:
+            log_message("Falling back to local cache files for football data...")
+            football_fixtures_dir = "cache/football/fixtures"
+            
+            if os.path.exists(football_fixtures_dir):
+                for filename in os.listdir(football_fixtures_dir):
+                    if filename.endswith(".json"):
+                        with open(os.path.join(football_fixtures_dir, filename), "r") as f:
+                            try:
+                                data = json.load(f)
+                                
+                                for fixture in data.get('response', []):
+                                    fixture_info = fixture.get('fixture', {})
+                                    teams = fixture.get('teams', {})
+                                    league = fixture.get('league', {})
+                                    goals = fixture.get('goals', {})
+                                    score = fixture.get('score', {})
+                                    
+                                    # Only include completed matches with scores for training
+                                    if fixture_info.get('status', {}).get('short') == 'FT':
+                                        row = {
+                                            'date': fixture_info.get('date'),
+                                            'league_id': league.get('id'),
+                                            'league_name': league.get('name'),
+                                            'country': league.get('country'),
+                                            'home_team': teams.get('home', {}).get('name'),
+                                            'away_team': teams.get('away', {}).get('name'),
+                                            'home_score': goals.get('home'),
+                                            'away_score': goals.get('away'),
+                                            'halftime_home': score.get('halftime', {}).get('home'),
+                                            'halftime_away': score.get('halftime', {}).get('away'),
+                                            'home_win': 1 if goals.get('home', 0) > goals.get('away', 0) else 0,
+                                            'draw': 1 if goals.get('home', 0) == goals.get('away', 0) else 0,
+                                            'away_win': 1 if goals.get('home', 0) < goals.get('away', 0) else 0,
+                                            'total_goals': (goals.get('home', 0) or 0) + (goals.get('away', 0) or 0),
+                                            'both_scored': 1 if (goals.get('home', 0) > 0 and goals.get('away', 0) > 0) else 0
+                                        }
+                                        football_rows.append(row)
+                            except json.JSONDecodeError:
+                                log_message(f"Error parsing {filename}", "ERROR")
+                            except Exception as e:
+                                log_message(f"Error processing {filename}: {str(e)}", "ERROR")
+        
+        # Write to CSV
+        if football_rows:
+            csv_file = f"{exports_dir}/football_training_data_{timestamp}.csv"
+            with open(csv_file, "w") as f:
+                # Write header
+                f.write(",".join(football_rows[0].keys()) + "\n")
                 
-                log_message(f"Exported {len(football_rows)} football fixtures to {csv_file}")
-                return csv_file
+                # Write rows
+                for row in football_rows:
+                    f.write(",".join(str(v) for v in row.values()) + "\n")
+            
+            log_message(f"Exported {len(football_rows)} football fixtures to {csv_file}")
+            return csv_file
+        else:
+            log_message("No football data found to export", "WARNING")
     except Exception as e:
         log_message(f"Error exporting football data: {str(e)}", "ERROR")
     
@@ -235,6 +285,12 @@ def run_training_data_export():
     start_time = datetime.datetime.now()
     log_message(f"Starting training data export at {start_time}")
     
+    # Check Firebase connection
+    if not get_db_reference("/"):
+        log_message("Firebase reference could not be obtained. Will continue with local data only.", "WARNING")
+    else:
+        log_message("Firebase connection is properly initialized")
+    
     # Create exports directory
     os.makedirs("exports", exist_ok=True)
     
@@ -259,6 +315,15 @@ def run_training_data_export():
         manifest_file = f"exports/export_manifest_{timestamp}.json"
         with open(manifest_file, 'w') as f:
             json.dump(manifest, f, indent=2)
+        
+        # Store export manifest to Firebase if available
+        try:
+            export_ref = get_db_reference(f"/exports/manifests/{timestamp}")
+            if export_ref:
+                export_ref.set(manifest)
+                log_message("Saved export manifest to Firebase")
+        except Exception as e:
+            log_message(f"Error saving manifest to Firebase: {str(e)}", "WARNING")
         
         log_message(f"Training data export completed. Manifest saved to {manifest_file}")
         

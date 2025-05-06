@@ -14,3 +14,15 @@
 [2025-05-06 13:41:26] [INFO] Fetching football fixtures for date: 2025-05-08
 [2025-05-06 13:41:26] [INFO] Cached 0 football fixtures to local file for 2025-05-08
 [2025-05-06 13:41:27] [INFO] Football cache update completed in 3.69 seconds
+[2025-05-06 15:34:35] [INFO] Starting football cache update at 2025-05-06 15:34:35.217684
+[2025-05-06 15:34:35] [INFO] Firebase connection is properly initialized
+[2025-05-06 15:34:35] [INFO] Fetching football fixtures for date: 2025-05-06
+[2025-05-06 15:34:35] [INFO] Cached 204 football fixtures to Firebase for 2025-05-06
+[2025-05-06 15:34:35] [INFO] Cached 204 football fixtures to local file for 2025-05-06
+[2025-05-06 15:34:36] [INFO] Fetching football fixtures for date: 2025-05-07
+[2025-05-06 15:34:37] [INFO] Cached 282 football fixtures to Firebase for 2025-05-07
+[2025-05-06 15:34:37] [INFO] Cached 282 football fixtures to local file for 2025-05-07
+[2025-05-06 15:34:38] [INFO] Fetching football fixtures for date: 2025-05-08
+[2025-05-06 15:34:38] [INFO] Cached 0 football fixtures to Firebase for 2025-05-08
+[2025-05-06 15:34:38] [INFO] Cached 0 football fixtures to local file for 2025-05-08
+[2025-05-06 15:34:39] [INFO] Football cache update completed in 4.12 seconds
