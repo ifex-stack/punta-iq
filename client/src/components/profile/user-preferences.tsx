@@ -18,7 +18,7 @@ export function UserPreferences() {
   const [editMode, setEditMode] = useState(false);
   
   const { data: preferences, isLoading } = useQuery<any>({
-    queryKey: ["/api/user/preferences"],
+    queryKey: ["/user-preferences"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
 
