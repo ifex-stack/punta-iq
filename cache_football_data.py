@@ -7,6 +7,8 @@ import json
 import time
 import datetime
 import requests
+# Import our firebase_init module for Firebase access
+from firebase_init import get_db_reference
 
 # ==========================================================================
 # Configuration
@@ -78,7 +80,18 @@ def cache_football_fixtures():
     for date in dates:
         data = fetch_football_fixtures(date=date)
         if data:
-            # Cache to local file
+            # If Firebase is available, cache there
+            try:
+                fixtures_ref = get_db_reference(f"/cache/football/fixtures/{date}")
+                if fixtures_ref:
+                    fixtures_ref.set(data)
+                    log_message(f"Cached {len(data.get('response', []))} football fixtures to Firebase for {date}")
+                else:
+                    log_message("Unable to get Firebase reference for football fixtures", "WARNING")
+            except Exception as e:
+                log_message(f"Error caching to Firebase: {str(e)}", "ERROR")
+            
+            # Also cache to local file as backup
             cache_dir = "cache/football/fixtures"
             os.makedirs(cache_dir, exist_ok=True)
             with open(f"{cache_dir}/{date}.json", "w") as f:
@@ -95,6 +108,12 @@ def run_football_cache_update():
     """Run the football cache update process."""
     start_time = datetime.datetime.now()
     log_message(f"Starting football cache update at {start_time}")
+    
+    # Check Firebase connection
+    if not get_db_reference("/"):
+        log_message("Firebase reference could not be obtained. Will continue with local caching.", "WARNING")
+    else:
+        log_message("Firebase connection is properly initialized")
     
     # Create cache directory structure
     os.makedirs("cache/football/fixtures", exist_ok=True)
