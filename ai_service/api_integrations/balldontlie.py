@@ -133,7 +133,8 @@ def fetch_games(season=None, start_date=None, end_date=None, team_ids=None,
     if team_ids:
         params["team_ids[]"] = team_ids
     if postseason is not None:
-        params["postseason"] = "true" if postseason else "false"
+        # BallDontLie API expects 0 or 1 for boolean values
+        params["postseason"] = 1 if postseason else 0
         
     return _make_api_request("games", params)
 

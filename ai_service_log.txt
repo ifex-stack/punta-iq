@@ -302,3 +302,58 @@ Error: AI Service failed to start properly: exit code 1
  * Running on http://127.0.0.1:5001
  * Running on http://172.31.128.48:5001
 [STDOUT] [2025-05-06 09:18:22,863] [INFO] [33mPress CTRL+C to quit[0m
+
+--- ERROR starting AI Microservice at 2025-05-06T12:53:56.437Z ---
+Error: Command failed: python --version
+runtime: failed to create new OS thread (have 3 already; errno=11)
+runtime: may need to increase max user processes (ulimit -u)
+fatal error: newosproc
+
+runtime stack:
+runtime.throw({0x494b9d?, 0x7ffc2c8d7e10?})
+	runtime/panic.go:1067 +0x48 fp=0x7ffc2c8d7de8 sp=0x7ffc2c8d7db8 pc=0x464008
+runtime.newosproc(0xc000068708)
+	runtime/os_linux.go:195 +0x165 fp=0x7ffc2c8d7e58 sp=0x7ffc2c8d7de8 pc=0x42ec85
+runtime.newm1(0xc000068708)
+	runtime/proc.go:2804 +0xbf fp=0x7ffc2c8d7e98 sp=0x7ffc2c8d7e58 pc=0x4393ff
+runtime.newm(0x6fae54b5a22d?, 0xc000052508, 0x7ffc2c8d7f38?)
+	runtime/proc.go:2779 +0x125 fp=0x7ffc2c8d7ec8 sp=0x7ffc2c8d7e98 pc=0x4392c5
+runtime.startm(0xc000052508?, 0x1, 0x0)
+	runtime/proc.go:2973 +0x159 fp=0x7ffc2c8d7f18 sp=0x7ffc2c8d7ec8 pc=0x4398b9
+runtime.wakep()
+	runtime/proc.go:3120 +0xec fp=0x7ffc2c8d7f48 sp=0x7ffc2c8d7f18 pc=0x46424c
+runtime.newproc.func1()
+	runtime/proc.go:4984 +0x53 fp=0x7ffc2c8d7f78 sp=0x7ffc2c8d7f48 pc=0x43e4d3
+runtime.systemstack(0x46d1ff)
+	runtime/asm_amd64.s:514 +0x4a fp=0x7ffc2c8d7f88 sp=0x7ffc2c8d7f78 pc=0x468dca
+
+goroutine 1 gp=0xc0000061c0 m=0 mp=0x523460 [running, locked to thread]:
+runtime.systemstack_switch()
+	runtime/asm_amd64.s:479 +0x8 fp=0xc0000625d0 sp=0xc0000625c0 pc=0x468d68
+runtime.newproc(0x180ffffffff?)
+	runtime/proc.go:4977 +0x3f fp=0xc000062608 sp=0xc0000625d0 pc=0x43e43f
+runtime.init.7()
+	runtime/proc.go:325 +0x1a fp=0xc000062620 sp=0xc000062608 pc=0x434c9a
+runtime.doInit1(0x51c600)
+	runtime/proc.go:7290 +0xe8 fp=0xc000062750 sp=0xc000062620 pc=0x4430a8
+runtime.doInit(...)
+	runtime/proc.go:7257
+runtime.main()
+	runtime/proc.go:201 +0x11f fp=0xc0000627e0 sp=0xc000062750 pc=0x4348bf
+runtime.goexit({})
+	runtime/asm_amd64.s:1700 +0x1 fp=0xc0000627e8 sp=0xc0000627e0 pc=0x46abe1
+
+goroutine 2 gp=0xc000006700 m=nil [runnable]:
+runtime.forcegchelper()
+	runtime/proc.go:328 fp=0xc000062fe0 sp=0xc000062fd8 pc=0x434cc0
+runtime.goexit({})
+	runtime/asm_amd64.s:1700 +0x1 fp=0xc000062fe8 sp=0xc000062fe0 pc=0x46abe1
+created by runtime.init.7 in goroutine 1
+	runtime/proc.go:325 +0x1a
+
+    at genericNodeError (node:internal/errors:984:15)
+    at wrappedFn (node:internal/errors:538:14)
+    at ChildProcess.exithandler (node:child_process:422:12)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1104:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:304:5)

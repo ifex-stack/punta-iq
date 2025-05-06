@@ -307,7 +307,13 @@ def get_upcoming_events_by_sport(sport, days=7):
         dict: Processed upcoming events data
     """
     leagues_data = fetch_leagues_by_sport(sport)
-    leagues = leagues_data.get("leagues", [])
+    
+    # Handle leagues_data properly based on response structure
+    if isinstance(leagues_data, dict) and "leagues" in leagues_data:
+        leagues = leagues_data["leagues"]
+    else:
+        leagues = []
+        logger.warning(f"Unexpected response format from fetch_leagues_by_sport for {sport}")
     
     if not leagues:
         return {
@@ -321,36 +327,50 @@ def get_upcoming_events_by_sport(sport, days=7):
     all_events = []
     
     for league in league_sample:
-        league_id = league.get("idLeague")
+        # Handle potential string vs dict issues
+        if isinstance(league, dict) and "idLeague" in league:
+            league_id = league["idLeague"]
+        else:
+            continue
+        
         if league_id:
             events_data = fetch_upcoming_events(league_id, days)
-            events = events_data.get("events", [])
-            if events:
-                all_events.extend(events)
+            
+            # Handle events_data properly based on response structure
+            if isinstance(events_data, dict) and "events" in events_data:
+                events = events_data["events"]
+                if events:
+                    all_events.extend(events)
     
     # Process into standardized format
     processed_events = []
     for event in all_events:
-        processed_events.append({
-            "id": event.get("idEvent"),
-            "name": event.get("strEvent"),
-            "date": event.get("dateEvent"),
-            "time": event.get("strTime"),
+        # Make sure we're working with a dict
+        if not isinstance(event, dict):
+            continue
+            
+        # Extract values safely
+        event_data = {
+            "id": event.get("idEvent") if isinstance(event, dict) else None,
+            "name": event.get("strEvent") if isinstance(event, dict) else None,
+            "date": event.get("dateEvent") if isinstance(event, dict) else None,
+            "time": event.get("strTime") if isinstance(event, dict) else None,
             "league": {
-                "id": event.get("idLeague"),
-                "name": event.get("strLeague")
+                "id": event.get("idLeague") if isinstance(event, dict) else None,
+                "name": event.get("strLeague") if isinstance(event, dict) else None
             },
             "home_team": {
-                "id": event.get("idHomeTeam"),
-                "name": event.get("strHomeTeam")
+                "id": event.get("idHomeTeam") if isinstance(event, dict) else None,
+                "name": event.get("strHomeTeam") if isinstance(event, dict) else None
             },
             "away_team": {
-                "id": event.get("idAwayTeam"),
-                "name": event.get("strAwayTeam")
+                "id": event.get("idAwayTeam") if isinstance(event, dict) else None,
+                "name": event.get("strAwayTeam") if isinstance(event, dict) else None
             },
-            "stadium": event.get("strVenue"),
+            "stadium": event.get("strVenue") if isinstance(event, dict) else None,
             "sport": sport
-        })
+        }
+        processed_events.append(event_data)
     
     return {
         "data": processed_events,
