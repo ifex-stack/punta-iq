@@ -1,89 +1,101 @@
-# AI Sports Prediction Microservice
+# PuntaIQ AI Sports Prediction Service
 
-This Python-based microservice is responsible for generating AI-powered sports predictions for the Sports Prediction Platform.
+This is the AI microservice component for the PuntaIQ application, responsible for:
+- Fetching sports data from various APIs
+- Storing data in Firebase
+- Running predictive models
+- Providing a REST API for the main application
 
-## Features
+## Setup and Installation
 
-- 🏆 Fetch sports data from multiple APIs (API-Football, SportRadar)
-- 🧠 Machine learning models for prediction generation
-- 📊 Support for multiple prediction markets (1X2, Over/Under, BTTS, etc.)
-- 📱 Firebase integration for storage and notifications
-- ⚙️ Automated execution via cloud functions
+### Prerequisites
 
-## Architecture
+- Python 3.8 or higher
+- Firebase account with Realtime Database
+- API keys for the sports data services
 
-The service is composed of several modules:
+### Installation
 
-- `main.py`: Orchestration module that runs the entire pipeline
-- `data_fetcher.py`: Handles fetching sports data from APIs
-- `predictor.py`: Contains ML models and prediction logic
-- `storage.py`: Manages storing predictions in Firebase
-- `cloud_function.py`: Cloud function entry point for automated execution
-- `config.py`: Configuration and Firebase initialization
-- `generate_training_data.py`: Utility to generate training data
+1. Clone this repository
+2. Set up environment variables:
+   - Create a `.env` file based on `.env.example`
+   - Add your API keys and configuration
 
-## Setup
+   ```shell
+   cp .env.example .env
+   # Then edit .env with your actual API keys
+   ```
 
-1. Clone the repository
-2. Install dependencies: `pip install -r requirements.txt`
-3. Create a `.env` file based on `.env.example` with your API keys and Firebase credentials
+3. Set up Firebase:
+   - Option 1: Create a `serviceAccountKey.json` file with your Firebase credentials
+   - Option 2: Add your Firebase credentials JSON to the `.env` file (FIREBASE_CRED_JSON)
+
+4. Install dependencies:
+   ```shell
+   pip install -r requirements.txt
+   ```
+
+### Quick Start
+
+Use the provided setup script:
+
+```shell
+./setup_and_run.sh
+```
+
+Or run manually:
+
+```shell
+# Activate virtual environment (if using one)
+source venv/bin/activate
+
+# Run the service
+python main.py
+```
 
 ## Usage
 
-### Running Locally
+The service offers multiple run modes:
 
-```bash
-# Generate predictions for the next 3 days
-python main.py --days 3
+```shell
+# Run the API server (default)
+python main.py
 
-# Generate predictions without storing to Firebase
-python main.py --no-store
+# Run just the cron jobs
+python main.py --mode cron
 
-# Generate predictions without sending notifications
-python main.py --no-notify
-
-# Save predictions to a JSON file
-python main.py --output predictions.json
+# Run integration tests
+python main.py --mode test
 ```
 
-### Training Models
+## API Endpoints
 
-```bash
-# Generate synthetic training data
-python generate_training_data.py
+The service exposes the following endpoints:
 
-# Train models (uncomment the train_and_save_models() call in generate_training_data.py)
-```
+- `/status` - Check service status
+- `/check-api-status` - Trigger check of all API connections
+- `/sports` - List available sports
+- `/odds/{sport}` - Get odds for a specific sport
+- `/livescore` - Get live scores for in-progress matches
+- `/fixtures/league/{league_id}` - Get fixtures for a specific league
+- `/teams/{league_id}` - Get teams for a specific league
+- `/leagues` - Get available leagues
 
-### Deploying to Cloud Functions
+## Supported Sports Data Providers
 
-1. Create a Google Cloud Function
-2. Set the entry point to `predict_daily`
-3. Set up a Cloud Scheduler job to trigger the function daily
+- API-Football - Football/soccer data
+- TheSportsDB - Multi-sport data
+- BallDontLie - NBA basketball data
 
 ## Environment Variables
 
-- `API_FOOTBALL_KEY`: API key for API-Football
-- `SPORTRADAR_KEY`: API key for SportRadar
-- `FIREBASE_PROJECT_ID`: Firebase project ID
-- `FIREBASE_PRIVATE_KEY`: Firebase private key
-- `FIREBASE_CLIENT_EMAIL`: Firebase client email
-- `FIREBASE_DATABASE_URL`: Firebase database URL
-- `PREDICTION_SCHEDULE`: Cron schedule for predictions (default: "0 0 * * *")
+See `.env.example` for a list of all configurable environment variables.
 
-## Prediction Flow
+## Troubleshooting
 
-1. Fetch upcoming matches for all enabled sports
-2. Apply machine learning models to generate predictions
-3. Calculate confidence scores for each prediction
-4. Generate accumulators of different sizes (2, 5, 10 matches)
-5. Store predictions in Firebase Firestore
-6. Send notifications to users about new predictions
+If you encounter issues:
 
-## Adding New Sports
-
-To add a new sport, update the `SUPPORTED_SPORTS` dictionary in `config.py` and implement the corresponding fetching and prediction methods.
-
-## License
-
-Copyright © 2025 AI Sports Predictions
+1. Check the logs in `ai_service.log`
+2. Verify your API keys are correct
+3. Ensure Firebase credentials are properly configured
+4. Run in test mode to verify API connections: `python main.py --mode test`
