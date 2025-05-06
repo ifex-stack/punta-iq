@@ -431,13 +431,15 @@ const TopBar = () => {
                   )}
                 </Button>
                 
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start h-12 text-base rounded-lg touch-manipulation active:scale-95 transition-transform"
-                >
-                  <Settings className="mr-3 h-5 w-5" />
-                  <span>Settings</span>
-                </Button>
+                <Link href="/settings">
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start h-12 text-base rounded-lg touch-manipulation active:scale-95 transition-transform"
+                  >
+                    <Settings className="mr-3 h-5 w-5" />
+                    <span>Settings</span>
+                  </Button>
+                </Link>
               </div>
             </div>
           </SheetContent>
