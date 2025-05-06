@@ -18,16 +18,23 @@ import {
   BarChart3,
   ListFilter,
   TrendingUp,
+  TrendingDown,
   Check,
   X,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  Trophy,
+  Dumbbell,
+  Snowflake
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { getQueryFn } from "@/lib/queryClient";
 import SportsTabs from "@/components/predictions/sports-tabs";
+import { MonthlyPerformanceChart, MonthlyData } from "@/components/dashboard/monthly-performance-chart";
+import { PerformanceBarChart, BarChartData } from "@/components/dashboard/performance-bar-chart";
+import { SportPerformanceCard, SportPerformance } from "@/components/dashboard/sport-performance-card";
 
 // Define types for historical dashboard API response
 interface Prediction {
@@ -63,23 +70,6 @@ interface Metrics {
   successRate: number;
   averageOdds: number;
   roi: number;
-}
-
-interface MonthlyData {
-  month: string;
-  year: number;
-  total: number;
-  won: number;
-  successRate: number;
-}
-
-interface SportPerformance {
-  totalPredictions: number;
-  successRate: number;
-  averageOdds: number;
-  roi: number;
-  wonCount: number;
-  lostCount: number;
 }
 
 interface SportPerformanceData {
@@ -357,6 +347,64 @@ export default function HistoricalDashboard() {
     return Math.round((wins / predictions.length) * 100);
   };
   
+  // Prepare data for visualization components
+  const performanceBarData: BarChartData[] = [
+    {
+      label: "Won",
+      value: dashboardData?.metrics?.wonCount || historicalStats.overall.wonCount,
+      percentage: dashboardData?.metrics?.wonCount 
+        ? (dashboardData.metrics.wonCount / dashboardData.metrics.totalPredictions) * 100
+        : (historicalStats.overall.wonCount / historicalStats.overall.totalPredictions) * 100,
+      color: "bg-green-500"
+    },
+    {
+      label: "Lost",
+      value: dashboardData?.metrics?.lostCount || historicalStats.overall.lostCount,
+      percentage: dashboardData?.metrics?.lostCount 
+        ? (dashboardData.metrics.lostCount / dashboardData.metrics.totalPredictions) * 100
+        : (historicalStats.overall.lostCount / historicalStats.overall.totalPredictions) * 100,
+      color: "bg-red-500"
+    },
+    {
+      label: "Pending",
+      value: dashboardData?.metrics?.pendingCount || historicalStats.overall.pendingCount || 0,
+      percentage: dashboardData?.metrics?.pendingCount 
+        ? (dashboardData.metrics.pendingCount / dashboardData.metrics.totalPredictions) * 100
+        : historicalStats.overall.pendingCount 
+          ? (historicalStats.overall.pendingCount / historicalStats.overall.totalPredictions) * 100 
+          : 0,
+      color: "bg-amber-500"
+    }
+  ];
+  
+  // Prepare monthly performance data
+  const monthlyPerformanceData: MonthlyData[] = dashboardData?.monthlyPerformance || monthlyPerformance.map(m => ({
+    month: m.month,
+    year: 2023,
+    total: m.predictions || 0,
+    won: Math.round((m.predictions * m.successRate) / 100) || 0,
+    successRate: m.successRate
+  }));
+  
+  // Prepare sport performance data
+  const sportPerformanceData: Record<string, SportPerformance> = dashboardData?.sportPerformance || historicalStats;
+  
+  // Function to get sport icon component
+  const getSportIcon = (sportName: string) => {
+    switch(sportName.toLowerCase()) {
+      case 'football':
+        return <div className="p-2 rounded-full bg-primary/10 text-primary"><TrendingUp className="h-5 w-5" /></div>;
+      case 'basketball':
+        return <div className="p-2 rounded-full bg-orange-500/10 text-orange-500"><Dumbbell className="h-5 w-5" /></div>;
+      case 'tennis':
+        return <div className="p-2 rounded-full bg-green-500/10 text-green-500"><Trophy className="h-5 w-5" /></div>;
+      case 'hockey':
+        return <div className="p-2 rounded-full bg-blue-500/10 text-blue-500"><Snowflake className="h-5 w-5" /></div>;
+      default:
+        return <div className="p-2 rounded-full bg-primary/10 text-primary"><BarChart3 className="h-5 w-5" /></div>;
+    }
+  };
+  
   const getResultBadge = (result?: string | null) => {
     if (!result) {
       return <Badge variant="outline" className="text-amber-500 border-amber-500"><AlertTriangle className="h-3 w-3 mr-1" /> Pending</Badge>;
@@ -462,8 +510,6 @@ export default function HistoricalDashboard() {
 
   // If server data is not available, use sample data
   const metrics = dashboardData?.metrics || historicalStats.overall;
-  const sportPerformanceData = dashboardData?.sportPerformance || historicalStats;
-  const monthlyPerformanceData = dashboardData?.monthlyPerformance || monthlyPerformance;
   const predictions = dashboardData?.predictions || filteredPredictions;
   
   // We have data (either from server or fallback), render the dashboard
@@ -739,81 +785,36 @@ export default function HistoricalDashboard() {
                     </Card>
                   </div>
                   
+                  {/* Performance Bar Chart */}
+                  <PerformanceBarChart
+                    title="Prediction Results"
+                    description="Overall prediction performance statistics"
+                    data={performanceBarData}
+                    showPercentage={true}
+                    height={300}
+                    loading={isLoading}
+                  />
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Card>
-                      <CardHeader className="py-3">
-                        <CardTitle className="text-sm font-medium">Win/Loss Ratio</CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-4 pt-0">
-                        <div className="flex items-center gap-2">
-                          <div className="h-10 w-full bg-muted rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-green-500" 
-                              style={{ width: `${metrics.successRate}%` }}
-                            />
-                          </div>
-                          <div className="text-sm whitespace-nowrap">{metrics.successRate}%</div>
-                        </div>
-                        <div className="flex justify-between mt-2 text-sm">
-                          <div>
-                            <span className="text-green-500 font-medium">{metrics.wonCount}</span> Won
-                          </div>
-                          <div>
-                            <span className="text-red-500 font-medium">{metrics.lostCount}</span> Lost
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    {/* Monthly Performance Chart */}
+                    <MonthlyPerformanceChart
+                      title="Monthly Performance"
+                      description="Success rate by month"
+                      data={monthlyPerformanceData.slice(0, 8).reverse()}
+                      height={250}
+                      loading={isLoading}
+                    />
                     
-                    <Card>
-                      <CardHeader className="py-3">
-                        <CardTitle className="text-sm font-medium">Best Performing Sport</CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-4 pt-0">
-                        <div className="flex justify-between items-center">
-                          <div className="space-y-1">
-                            <div className="font-medium">Football</div>
-                            <div className="text-sm text-muted-foreground">1,423 predictions</div>
-                          </div>
-                          <div className={cn("text-2xl font-bold", getStatValueColor(historicalStats.football.successRate))}>
-                            {historicalStats.football.successRate}%
-                          </div>
-                        </div>
-                        <Separator className="my-3" />
-                        <div className="flex justify-between text-sm">
-                          <div>Avg. Odds: <span className="font-medium">{historicalStats.football.averageOdds?.toFixed(2) || "0.00"}</span></div>
-                          <div>ROI: <span className={cn("font-medium", getStatValueColor(historicalStats.football.roi, false))}>
-                            {historicalStats.football.roi}%
-                          </span></div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    {/* Sport Performance Card */}
+                    <SportPerformanceCard
+                      sportName="Football"
+                      sportIcon={getSportIcon('football')}
+                      data={sportPerformanceData.football}
+                      loading={isLoading}
+                    />
                   </div>
                   
-                  <Card>
-                    <CardHeader className="py-3">
-                      <CardTitle className="text-sm font-medium">Monthly Performance Trend</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                      <div className="h-[180px] w-full">
-                        <div className="flex h-full items-end gap-2">
-                          {monthlyPerformance.map((month) => (
-                            <div key={month.month} className="flex-1 flex flex-col items-center">
-                              <div 
-                                className={cn(
-                                  "w-full rounded-t-sm", 
-                                  month.successRate >= 70 ? "bg-green-500" : 
-                                  month.successRate >= 60 ? "bg-amber-500" : "bg-red-500"
-                                )}
-                                style={{ height: `${month.successRate * 1.8}px` }}
-                              />
-                              <div className="text-xs text-muted-foreground mt-1">{month.month}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+
                 </TabsContent>
                 
                 <TabsContent value="monthly" className="mt-4 space-y-4">

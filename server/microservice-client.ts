@@ -130,7 +130,7 @@ export class MicroserviceClient {
 
   // Track discovered ports for dynamic service discovery
   private static discoveredPort: number | null = null;
-  private static ports = [5000, 5001, 5002, 5003, 5004, 5005];
+  private static ports = [5001, 5002, 5003, 5004, 5005, 5000];
   
   constructor() {
     // If we've already discovered a working port, use it
@@ -141,7 +141,7 @@ export class MicroserviceClient {
     }
     
     // Otherwise use the configured URL or default
-    this.baseUrl = process.env.AI_SERVICE_URL || "http://localhost:5000";
+    this.baseUrl = process.env.AI_SERVICE_URL || "http://localhost:5001";
     this.logger.info(`Initialized with base URL: ${this.baseUrl}`);
   }
   

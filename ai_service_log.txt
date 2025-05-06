@@ -476,3 +476,199 @@ Error: AI Service failed to start properly: exit code 1
     at ChildProcess.<anonymous> (file:///home/runner/workspace/scripts/start-ai-service.js:228:16)
     at ChildProcess.emit (node:events:518:28)
     at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+--- Starting AI Microservice at 2025-05-06T16:25:42.215Z on port 5000 ---
+[STDERR] 2025-05-06 16:25:42,787 - config - WARNING - Using free tier of TheSportsDB API with limited functionality
+[STDERR] 2025-05-06 16:25:42,787 - config - INFO - Configuration validation successful
+2025-05-06 16:25:42,788 - config - INFO - Running in development environment
+[STDERR] 2025-05-06 16:25:43,207 - __main__ - INFO - Starting API service on port 5000
+[STDOUT]  * Serving Flask app 'main'
+ * Debug mode: on
+[STDERR] 2025-05-06 16:25:43,273 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.36:5000
+[STDERR] 2025-05-06 16:25:43,273 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+[STDERR] 2025-05-06 16:25:43,279 - werkzeug - INFO -  * Restarting with stat
+[STDERR] 2025-05-06 16:25:43,649 - config - WARNING - Using free tier of TheSportsDB API with limited functionality
+[STDERR] 2025-05-06 16:25:43,649 - config - INFO - Configuration validation successful
+2025-05-06 16:25:43,649 - config - INFO - Running in development environment
+[STDERR] 2025-05-06 16:25:43,824 - __main__ - INFO - Starting API service on port 5000
+[STDERR] 2025-05-06 16:25:43,861 - werkzeug - WARNING -  * Debugger is active!
+[STDERR] 2025-05-06 16:25:44,024 - werkzeug - INFO -  * Debugger PIN: 144-491-104
+[STDERR] 2025-05-06 16:25:44,143 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 16:25:44] "[33mGET /api/notifications HTTP/1.1[0m" 404 -
+[STDERR] 2025-05-06 16:25:44,148 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 16:25:44] "[33mGET / HTTP/1.1[0m" 404 -
+[STDERR] 2025-05-06 16:25:44,156 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 16:25:44] "[33mGET / HTTP/1.1[0m" 404 -
+[STDERR] 2025-05-06 16:25:44,261 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 16:25:44] "[33mGET /api/notifications HTTP/1.1[0m" 404 -
+[STDERR] 2025-05-06 16:25:45,221 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 16:25:45] "[33mGET /api/status HTTP/1.1[0m" 404 -
+
+--- ERROR starting AI Microservice at 2025-05-06T16:25:45.223Z ---
+Error: AI microservice started but is not responding to HTTP requests
+    at Timeout._onTimeout (file:///home/runner/workspace/scripts/start-ai-service.js:240:18)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+
+--- Starting AI Microservice at 2025-05-06T16:27:48.512Z on port 5000 ---
+[STDERR] 2025-05-06 16:27:48,834 - config - WARNING - Using free tier of TheSportsDB API with limited functionality
+[STDERR] 2025-05-06 16:27:48,834 - config - INFO - Configuration validation successful
+2025-05-06 16:27:48,834 - config - INFO - Running in development environment
+[STDERR] 2025-05-06 16:27:49,004 - __main__ - INFO - Starting API service on port 5000
+[STDOUT]  * Serving Flask app 'main'
+ * Debug mode: on
+[STDERR] 2025-05-06 16:27:49,057 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.36:5000
+[STDERR] 2025-05-06 16:27:49,058 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+[STDERR] 2025-05-06 16:27:49,058 - werkzeug - INFO -  * Restarting with stat
+[STDERR] 2025-05-06 16:27:49,359 - config - WARNING - Using free tier of TheSportsDB API with limited functionality
+[STDERR] 2025-05-06 16:27:49,359 - config - INFO - Configuration validation successful
+2025-05-06 16:27:49,359 - config - INFO - Running in development environment
+[STDERR] 2025-05-06 16:27:49,504 - __main__ - INFO - Starting API service on port 5000
+[STDERR] 2025-05-06 16:27:49,527 - werkzeug - WARNING -  * Debugger is active!
+[STDERR] 2025-05-06 16:27:49,535 - werkzeug - INFO -  * Debugger PIN: 319-732-430
+[STDERR] 2025-05-06 16:27:49,970 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 16:27:49] "[33mGET / HTTP/1.1[0m" 404 -
+[STDERR] 2025-05-06 16:27:51,531 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 16:27:51] "[33mGET /api/status HTTP/1.1[0m" 404 -
+
+--- ERROR starting AI Microservice at 2025-05-06T16:27:51.535Z ---
+Error: AI microservice started but is not responding to HTTP requests
+    at Timeout._onTimeout (file:///home/runner/workspace/scripts/start-ai-service.js:240:18)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+
+--- Starting AI Microservice at 2025-05-06T16:31:45.737Z on port 5000 ---
+[STDERR] 2025-05-06 16:31:46,124 - config - WARNING - Using free tier of TheSportsDB API with limited functionality
+[STDERR] 2025-05-06 16:31:46,129 - config - INFO - Configuration validation successful
+[STDERR] 2025-05-06 16:31:46,129 - config - INFO - Running in development environment
+[STDERR] 2025-05-06 16:31:46,274 - __main__ - INFO - Starting API service on port 5000
+[STDOUT]  * Serving Flask app 'main'
+ * Debug mode: on
+[STDERR] 2025-05-06 16:31:46,314 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.36:5000
+[STDERR] 2025-05-06 16:31:46,314 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+[STDERR] 2025-05-06 16:31:46,315 - werkzeug - INFO -  * Restarting with stat
+[STDERR] 2025-05-06 16:31:46,609 - config - WARNING - Using free tier of TheSportsDB API with limited functionality
+[STDERR] 2025-05-06 16:31:46,609 - config - INFO - Configuration validation successful
+2025-05-06 16:31:46,609 - config - INFO - Running in development environment
+[STDERR] 2025-05-06 16:31:46,748 - __main__ - INFO - Starting API service on port 5000
+[STDERR] 2025-05-06 16:31:46,783 - werkzeug - WARNING -  * Debugger is active!
+[STDERR] 2025-05-06 16:31:46,794 - werkzeug - INFO -  * Debugger PIN: 987-585-081
+[STDERR] 2025-05-06 16:31:46,951 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 16:31:46] "[33mGET / HTTP/1.1[0m" 404 -
+[STDERR] 2025-05-06 16:31:47,050 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 16:31:47] "[33mGET / HTTP/1.1[0m" 404 -
+[STDERR] 2025-05-06 16:31:48,743 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 16:31:48] "[33mGET /api/status HTTP/1.1[0m" 404 -
+
+--- ERROR starting AI Microservice at 2025-05-06T16:31:48.745Z ---
+Error: AI microservice started but is not responding to HTTP requests
+    at Timeout._onTimeout (file:///home/runner/workspace/scripts/start-ai-service.js:240:18)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+
+--- Starting AI Microservice at 2025-05-06T16:34:37.144Z on port 5000 ---
+[STDERR] 2025-05-06 16:34:37,465 - config - WARNING - Using free tier of TheSportsDB API with limited functionality
+2025-05-06 16:34:37,465 - config - INFO - Configuration validation successful
+[STDERR] 2025-05-06 16:34:37,465 - config - INFO - Running in development environment
+[STDERR] 2025-05-06 16:34:37,624 - __main__ - INFO - Starting API service on port 5000
+[STDOUT]  * Serving Flask app 'main'
+ * Debug mode: on
+[STDERR] 2025-05-06 16:34:37,662 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.36:5000
+[STDERR] 2025-05-06 16:34:37,662 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+[STDERR] 2025-05-06 16:34:37,663 - werkzeug - INFO -  * Restarting with stat
+[STDERR] 2025-05-06 16:34:37,931 - config - WARNING - Using free tier of TheSportsDB API with limited functionality
+[STDERR] 2025-05-06 16:34:37,931 - config - INFO - Configuration validation successful
+2025-05-06 16:34:37,931 - config - INFO - Running in development environment
+[STDERR] 2025-05-06 16:34:38,082 - __main__ - INFO - Starting API service on port 5000
+[STDERR] 2025-05-06 16:34:38,111 - werkzeug - WARNING -  * Debugger is active!
+[STDERR] 2025-05-06 16:34:38,119 - werkzeug - INFO -  * Debugger PIN: 844-748-746
+[STDERR] 2025-05-06 16:34:38,224 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 16:34:38] "[33mGET / HTTP/1.1[0m" 404 -
+[STDERR] 2025-05-06 16:34:38,442 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 16:34:38] "[33mGET / HTTP/1.1[0m" 404 -
+[STDERR] 2025-05-06 16:34:38,488 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 16:34:38] "[33mGET / HTTP/1.1[0m" 404 -
+[STDERR] 2025-05-06 16:34:40,152 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 16:34:40] "[33mGET /api/status HTTP/1.1[0m" 404 -
+
+--- ERROR starting AI Microservice at 2025-05-06T16:34:40.155Z ---
+Error: AI microservice started but is not responding to HTTP requests
+    at Timeout._onTimeout (file:///home/runner/workspace/scripts/start-ai-service.js:240:18)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+
+--- Starting AI Microservice at 2025-05-06T16:36:49.301Z on port 5000 ---
+[STDERR] 2025-05-06 16:36:49,628 - config - WARNING - Using free tier of TheSportsDB API with limited functionality
+[STDERR] 2025-05-06 16:36:49,628 - config - INFO - Configuration validation successful
+2025-05-06 16:36:49,628 - config - INFO - Running in development environment
+[STDERR] 2025-05-06 16:36:49,780 - __main__ - INFO - Starting API service on port 5000
+[STDOUT]  * Serving Flask app 'main'
+ * Debug mode: on
+[STDERR] 2025-05-06 16:36:49,818 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.36:5000
+[STDERR] 2025-05-06 16:36:49,818 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+[STDERR] 2025-05-06 16:36:49,818 - werkzeug - INFO -  * Restarting with stat
+[STDERR] 2025-05-06 16:36:50,085 - config - WARNING - Using free tier of TheSportsDB API with limited functionality
+[STDERR] 2025-05-06 16:36:50,085 - config - INFO - Configuration validation successful
+2025-05-06 16:36:50,085 - config - INFO - Running in development environment
+[STDERR] 2025-05-06 16:36:50,266 - __main__ - INFO - Starting API service on port 5000
+[STDERR] 2025-05-06 16:36:50,294 - werkzeug - WARNING -  * Debugger is active!
+[STDERR] 2025-05-06 16:36:50,302 - werkzeug - INFO -  * Debugger PIN: 123-450-756
+[STDERR] 2025-05-06 16:36:50,779 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 16:36:50] "[33mGET / HTTP/1.1[0m" 404 -
+[STDERR] 2025-05-06 16:36:52,308 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 16:36:52] "[33mGET /api/status HTTP/1.1[0m" 404 -
+
+--- ERROR starting AI Microservice at 2025-05-06T16:36:52.311Z ---
+Error: AI microservice started but is not responding to HTTP requests
+    at Timeout._onTimeout (file:///home/runner/workspace/scripts/start-ai-service.js:240:18)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+
+--- Starting AI Microservice at 2025-05-06T16:38:16.299Z on port 5000 ---
+[STDERR] 2025-05-06 16:38:16,672 - config - WARNING - Using free tier of TheSportsDB API with limited functionality
+[STDERR] 2025-05-06 16:38:16,672 - config - INFO - Configuration validation successful
+2025-05-06 16:38:16,672 - config - INFO - Running in development environment
+[STDERR] 2025-05-06 16:38:16,821 - __main__ - INFO - Starting API service on port 5000
+[STDOUT]  * Serving Flask app 'main'
+ * Debug mode: on
+[STDERR] 2025-05-06 16:38:16,865 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.36:5000
+[STDERR] 2025-05-06 16:38:16,866 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+[STDERR] 2025-05-06 16:38:16,867 - werkzeug - INFO -  * Restarting with stat
+[STDERR] 2025-05-06 16:38:17,222 - config - WARNING - Using free tier of TheSportsDB API with limited functionality
+[STDERR] 2025-05-06 16:38:17,223 - config - INFO - Configuration validation successful
+2025-05-06 16:38:17,223 - config - INFO - Running in development environment
+[STDERR] 2025-05-06 16:38:17,398 - __main__ - INFO - Starting API service on port 5000
+[STDERR] 2025-05-06 16:38:17,441 - werkzeug - WARNING -  * Debugger is active!
+[STDERR] 2025-05-06 16:38:17,460 - werkzeug - INFO -  * Debugger PIN: 547-202-261
+[STDERR] 2025-05-06 16:38:17,596 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 16:38:17] "[33mGET / HTTP/1.1[0m" 404 -
+[STDERR] 2025-05-06 16:38:17,599 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 16:38:17] "[33mGET / HTTP/1.1[0m" 404 -
+[STDERR] 2025-05-06 16:38:19,315 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 16:38:19] "[33mGET /api/status HTTP/1.1[0m" 404 -
+
+--- ERROR starting AI Microservice at 2025-05-06T16:38:19.321Z ---
+Error: AI microservice started but is not responding to HTTP requests
+    at Timeout._onTimeout (file:///home/runner/workspace/scripts/start-ai-service.js:240:18)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+
+--- Starting AI Microservice at 2025-05-06T16:39:57.040Z on port 5000 ---
+[STDERR] 2025-05-06 16:39:57,437 - config - WARNING - Using free tier of TheSportsDB API with limited functionality
+[STDERR] 2025-05-06 16:39:57,437 - config - INFO - Configuration validation successful
+2025-05-06 16:39:57,437 - config - INFO - Running in development environment
+[STDERR] 2025-05-06 16:39:57,620 - __main__ - INFO - Starting API service on port 5000
+[STDOUT]  * Serving Flask app 'main'
+ * Debug mode: on
+[STDERR] 2025-05-06 16:39:57,670 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.36:5000
+[STDERR] 2025-05-06 16:39:57,670 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+[STDERR] 2025-05-06 16:39:57,671 - werkzeug - INFO -  * Restarting with stat
+[STDERR] 2025-05-06 16:39:58,074 - config - WARNING - Using free tier of TheSportsDB API with limited functionality
+[STDERR] 2025-05-06 16:39:58,074 - config - INFO - Configuration validation successful
+2025-05-06 16:39:58,074 - config - INFO - Running in development environment
+[STDERR] 2025-05-06 16:39:58,220 - __main__ - INFO - Starting API service on port 5000
+[STDERR] 2025-05-06 16:39:58,241 - werkzeug - WARNING -  * Debugger is active!
+[STDERR] 2025-05-06 16:39:58,252 - werkzeug - INFO -  * Debugger PIN: 285-325-602
+[STDERR] 2025-05-06 16:39:58,377 - werkzeug - INFO - 172.31.128.36 - - [06/May/2025 16:39:58] "[33mGET / HTTP/1.1[0m" 404 -
+[STDERR] 2025-05-06 16:40:00,048 - werkzeug - INFO - 127.0.0.1 - - [06/May/2025 16:40:00] "[33mGET /api/status HTTP/1.1[0m" 404 -
+
+--- ERROR starting AI Microservice at 2025-05-06T16:40:00.049Z ---
+Error: AI microservice started but is not responding to HTTP requests
+    at Timeout._onTimeout (file:///home/runner/workspace/scripts/start-ai-service.js:240:18)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
