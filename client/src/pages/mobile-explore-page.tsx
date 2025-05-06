@@ -132,7 +132,7 @@ export default function MobileExplorePage() {
   }, {} as Record<string, typeof predictions>);
   
   return (
-    <div className="pb-8">
+    <div className="pb-20">
       {/* Header */}
       <section className="mb-3 mt-2">
         <div className="flex justify-between items-center mb-3">
@@ -171,7 +171,7 @@ export default function MobileExplorePage() {
               </Drawer.Trigger>
               <Drawer.Portal>
                 <Drawer.Overlay className="fixed inset-0 bg-black/40" />
-                <Drawer.Content className="bg-background flex flex-col rounded-t-[10px] h-[90%] mt-24 fixed bottom-0 left-0 right-0">
+                <Drawer.Content className="bg-background flex flex-col rounded-t-[10px] h-[85%] mt-24 fixed bottom-0 left-0 right-0 z-50">
                   <div className="p-4 bg-muted-foreground/5 rounded-t-[10px] flex-1 overflow-auto">
                     <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-muted-foreground/20 mb-4" />
                     <div className="mb-6">
@@ -218,7 +218,7 @@ export default function MobileExplorePage() {
                                 checked={selectedMarkets.includes(market)}
                                 onCheckedChange={() => handleToggleMarket(market)}
                               />
-                              <Label htmlFor={`market-${market}`}>{market}</Label>
+                              <Label htmlFor={`market-${market}`} className="text-sm">{market}</Label>
                             </div>
                           ))}
                         </div>
@@ -227,7 +227,7 @@ export default function MobileExplorePage() {
                       {/* Leagues */}
                       <div className="mb-4">
                         <h4 className="text-sm font-medium mb-3">Leagues</h4>
-                        <div className="grid grid-cols-1 gap-2 max-h-52 overflow-y-auto pr-2">
+                        <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto pr-2">
                           {availableLeagues.map(league => (
                             <div key={league} className="flex items-center space-x-2">
                               <Switch
@@ -235,7 +235,7 @@ export default function MobileExplorePage() {
                                 checked={selectedLeagues.length === 0 || selectedLeagues.includes(league)}
                                 onCheckedChange={() => handleToggleLeague(league)}
                               />
-                              <Label htmlFor={`league-${league}`}>{league}</Label>
+                              <Label htmlFor={`league-${league}`} className="text-sm">{league}</Label>
                             </div>
                           ))}
                         </div>
@@ -243,7 +243,7 @@ export default function MobileExplorePage() {
                     </div>
                     
                     {/* Action buttons */}
-                    <div className="flex gap-2 mt-4">
+                    <div className="flex gap-2 mt-4 sticky bottom-0 bg-background py-2">
                       <Button 
                         variant="outline" 
                         className="flex-1"
@@ -299,7 +299,7 @@ export default function MobileExplorePage() {
       </section>
       
       {/* Predictions by league */}
-      <section>
+      <section className="pb-12">
         {isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
