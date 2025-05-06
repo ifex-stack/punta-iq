@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PuntaIQ - Navigation</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      color: #fff;
+      text-align: center;
+    }
+    
+    .container {
+      max-width: 800px;
+      padding: 2rem;
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(45deg, #4b6cb7, #182848);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      display: inline-block;
+    }
+    
+    p {
+      font-size: 1.2rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .nav-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    
+    .nav-link {
+      display: block;
+      background: rgba(0, 0, 0, 0.2);
+      color: white;
+      padding: 1rem;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      font-weight: 500;
+    }
+    
+    .nav-link:hover {
+      background: rgba(75, 108, 183, 0.4);
+      transform: translateY(-2px);
+    }
+    
+    .section-title {
+      grid-column: 1 / -1;
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+      color: #ccc;
+      font-size: 1.1rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>PuntaIQ Navigation</h1>
+    <p>Click on any link below to navigate to that section of the application.</p>
+    
+    <div class="nav-grid">
+      <div class="section-title">Test Pages</div>
+      <a href="/public-test" class="nav-link">Public Test Page</a>
+      <a href="/test-routing" class="nav-link">Test Routing Page</a>
+      
+      <div class="section-title">Main Application</div>
+      <a href="/" class="nav-link">Home / Login</a>
+      <a href="/auth" class="nav-link">Auth Page</a>
+      
+      <div class="section-title">API Status</div>
+      <a href="/api/ai-status" class="nav-link">AI Service Status API</a>
+      <a href="/api/feature-flags" class="nav-link">Feature Flags API</a>
+      
+      <div class="section-title">Application Pages</div>
+      <a href="/predictions" class="nav-link">Predictions Page</a>
+      <a href="/historical-dashboard" class="nav-link">Historical Dashboard</a>
+      <a href="/livescore" class="nav-link">Live Scores</a>
+      <a href="/ai-service-status" class="nav-link">AI Service Status</a>
+      
+      <div class="section-title">User Pages</div>
+      <a href="/profile" class="nav-link">Profile</a>
+      <a href="/settings" class="nav-link">Settings</a>
+      <a href="/subscription" class="nav-link">Subscription</a>
+      <a href="/referrals" class="nav-link">Referrals</a>
+    </div>
+  </div>
+</body>
+</html>

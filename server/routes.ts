@@ -161,6 +161,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Navigation page - accessible to everyone
+  app.get('/navigation', (req, res) => {
+    routesLogger.info('Navigation page accessed');
+    
+    const htmlPath = path.join(process.cwd(), 'navigation.html');
+    if (fs.existsSync(htmlPath)) {
+      res.sendFile(htmlPath);
+    } else {
+      res.send('Navigation file not found.');
+    }
+  });
+  
   // Root route - serve the login page
   app.get('/', (req, res) => {
     routesLogger.info('Root route accessed - serving login page');

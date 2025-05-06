@@ -21,6 +21,20 @@ def root():
     logger.info("Root endpoint accessed - redirecting to main application")
     return redirect("http://localhost:3001/", code=302)
 
+# Navigation page - redirect to main application
+@app.route('/navigation', methods=['GET'])
+def navigation():
+    from flask import redirect
+    logger.info("Navigation endpoint accessed - redirecting to main application")
+    return redirect("http://localhost:3001/navigation", code=302)
+
+# Public test page - redirect to main application
+@app.route('/public-test', methods=['GET'])
+def public_test():
+    from flask import redirect
+    logger.info("Public test endpoint accessed - redirecting to main application")
+    return redirect("http://localhost:3001/public-test", code=302)
+
 @app.route('/api/status', methods=['GET'])
 def status():
     logger.info("Status endpoint accessed")
