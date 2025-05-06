@@ -173,7 +173,7 @@ notificationRouter.delete('/api/notifications/clear-old', (req, res) => {
 });
 
 // Send a test notification to the current user
-notificationRouter.post('/api/notifications/test', (req, res) => {
+notificationRouter.post('/api/notifications/test', async (req, res) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
@@ -230,8 +230,9 @@ notificationRouter.post('/api/notifications/test', (req, res) => {
         break;
     }
     
-    // In a real implementation, we would get the user's timezone from storage
-    const timezone = 'Europe/London';
+    // Get the user's timezone from storage
+    const preferences = await storage.getUserPreferences(userId);
+    const timezone = preferences?.notificationSettings?.timezone || 'Europe/London';
     
     notificationScheduler.scheduleNotification({
       id: `test-notification-${userId}-${Date.now()}`,

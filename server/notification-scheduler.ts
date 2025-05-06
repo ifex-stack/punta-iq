@@ -125,18 +125,24 @@ class NotificationScheduler {
     try {
       logger.info('Scheduling daily digest notifications');
       
-      // Get all active users with notification preferences enabled
-      // const activeUsers = await storage.getAllActiveUsers();
-      // For now, we'll use a simple mock implementation
-      const activeUsers = [
-        { id: 1, username: 'user1', timezone: 'Europe/London', notificationPreferences: { dailyDigest: true } },
-        { id: 2, username: 'user2', timezone: 'America/New_York', notificationPreferences: { dailyDigest: true } },
-        { id: 3, username: 'user3', timezone: 'Asia/Tokyo', notificationPreferences: { dailyDigest: false } }
-      ] as any[];
+      // Get all active users
+      const activeUsers = await storage.getAllUsers();
       
-      const usersForDigest = activeUsers.filter(user => 
-        user.notificationPreferences?.dailyDigest === true
-      );
+      // Get notification preferences for each user
+      const usersForDigest = [];
+      for (const user of activeUsers) {
+        const preferences = await storage.getUserPreferences(user.id);
+        const notificationSettings = preferences?.notificationSettings;
+        
+        // Check if user has daily digest enabled
+        if (notificationSettings?.dailyDigest === true && notificationSettings?.pushEnabled === true) {
+          usersForDigest.push({
+            ...user,
+            timezone: notificationSettings.timezone || 'Europe/London',
+            digestTime: notificationSettings.digestTime || '07:00'
+          });
+        }
+      }
       
       logger.info(`Found ${usersForDigest.length} users for daily digest notifications`);
       
@@ -179,13 +185,23 @@ class NotificationScheduler {
     try {
       logger.info('Scheduling match alert notifications');
       
-      // Get users with match alert preferences enabled
-      // const usersWithAlerts = await storage.getUsersWithMatchAlerts();
-      // For now, we'll use a simple mock implementation
-      const usersWithAlerts = [
-        { id: 1, username: 'user1', timezone: 'Europe/London', notificationPreferences: { matchAlerts: true } },
-        { id: 2, username: 'user2', timezone: 'America/New_York', notificationPreferences: { matchAlerts: true } }
-      ] as any[];
+      // Get all active users
+      const activeUsers = await storage.getAllUsers();
+      
+      // Get notification preferences for each user
+      const usersWithAlerts = [];
+      for (const user of activeUsers) {
+        const preferences = await storage.getUserPreferences(user.id);
+        const notificationSettings = preferences?.notificationSettings;
+        
+        // Check if user has match alerts enabled
+        if (notificationSettings?.matchAlerts === true && notificationSettings?.pushEnabled === true) {
+          usersWithAlerts.push({
+            ...user,
+            timezone: notificationSettings.timezone || 'Europe/London'
+          });
+        }
+      }
       
       // Get upcoming matches in the next hour
       // const upcomingMatches = await storage.getUpcomingMatches(60);
