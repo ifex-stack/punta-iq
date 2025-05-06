@@ -194,6 +194,18 @@ export default function ProfilePage() {
     updateNotificationsMutation.mutate({ [setting]: value });
   };
   
+  // State for each expanded section
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  
+  // Handle clicking on a section
+  const handleSectionClick = (section: string) => {
+    if (expandedSection === section) {
+      setExpandedSection(null); // collapse if clicking the same section
+    } else {
+      setExpandedSection(section); // expand the new section
+    }
+  };
+  
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -208,6 +220,18 @@ export default function ProfilePage() {
   const itemVariants = {
     hidden: { opacity: 0, y: 10 },
     show: { opacity: 1, y: 0 }
+  };
+  
+  const expandVariants = {
+    collapsed: { height: 0, opacity: 0, padding: 0, margin: 0, overflow: 'hidden' },
+    expanded: { 
+      height: 'auto', 
+      opacity: 1, 
+      padding: '1rem',
+      margin: '0.5rem 0 0 0',
+      overflow: 'visible',
+      transition: { duration: 0.3 }
+    }
   };
   
   // Loading state
@@ -276,7 +300,7 @@ export default function ProfilePage() {
             className="space-y-4"
           >
             <motion.div variants={itemVariants}>
-              <Card className="p-4">
+              <Card className="p-4 cursor-pointer relative overflow-hidden" onClick={() => handleSectionClick('account-details')}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="mr-3 bg-primary/10 p-2 rounded-full">
@@ -287,13 +311,61 @@ export default function ProfilePage() {
                       <p className="text-xs text-muted-foreground">View and update your profile</p>
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${expandedSection === 'account-details' ? 'rotate-90' : ''}`} />
                 </div>
+                
+                <motion.div
+                  variants={expandVariants}
+                  initial="collapsed"
+                  animate={expandedSection === 'account-details' ? 'expanded' : 'collapsed'}
+                  className="border-t mt-4"
+                >
+                  <div className="space-y-4 pt-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="username">Username</Label>
+                      <div className="flex">
+                        <input 
+                          id="username" 
+                          value={user.username}
+                          readOnly
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <div className="flex">
+                        <input 
+                          id="email" 
+                          value={user.email}
+                          readOnly
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <div className="flex">
+                        <input 
+                          id="phone" 
+                          placeholder="Add your phone number"
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                      </div>
+                    </div>
+                    
+                    <Button className="w-full" size="sm">
+                      Save Changes
+                    </Button>
+                  </div>
+                </motion.div>
               </Card>
             </motion.div>
             
             <motion.div variants={itemVariants}>
-              <Card className="p-4">
+              <Card className="p-4 cursor-pointer relative overflow-hidden" onClick={() => handleSectionClick('notifications')}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="mr-3 bg-primary/10 p-2 rounded-full">
@@ -304,13 +376,62 @@ export default function ProfilePage() {
                       <p className="text-xs text-muted-foreground">Manage notification preferences</p>
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${expandedSection === 'notifications' ? 'rotate-90' : ''}`} />
                 </div>
+                
+                <motion.div
+                  variants={expandVariants}
+                  initial="collapsed"
+                  animate={expandedSection === 'notifications' ? 'expanded' : 'collapsed'}
+                  className="border-t mt-4"
+                >
+                  <div className="space-y-4 pt-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="game-start" className="text-sm font-medium">
+                          Game Starts
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Get notified when your tracked games begin
+                        </p>
+                      </div>
+                      <Switch id="game-start" checked={true} />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="prediction-results" className="text-sm font-medium">
+                          Prediction Results
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Get notified about prediction outcomes
+                        </p>
+                      </div>
+                      <Switch id="prediction-results" checked={true} />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="new-contests" className="text-sm font-medium">
+                          New Contests
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Get notified about new fantasy contests
+                        </p>
+                      </div>
+                      <Switch id="new-contests" checked={false} />
+                    </div>
+                    
+                    <Button className="w-full" size="sm">
+                      Save Preferences
+                    </Button>
+                  </div>
+                </motion.div>
               </Card>
             </motion.div>
             
             <motion.div variants={itemVariants}>
-              <Card className="p-4">
+              <Card className="p-4 cursor-pointer relative overflow-hidden" onClick={() => handleSectionClick('email-preferences')}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="mr-3 bg-primary/10 p-2 rounded-full">
@@ -321,13 +442,62 @@ export default function ProfilePage() {
                       <p className="text-xs text-muted-foreground">Manage email settings</p>
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${expandedSection === 'email-preferences' ? 'rotate-90' : ''}`} />
                 </div>
+                
+                <motion.div
+                  variants={expandVariants}
+                  initial="collapsed"
+                  animate={expandedSection === 'email-preferences' ? 'expanded' : 'collapsed'}
+                  className="border-t mt-4"
+                >
+                  <div className="space-y-4 pt-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="weekly-digest" className="text-sm font-medium">
+                          Weekly Digest
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Receive weekly summary of your predictions
+                        </p>
+                      </div>
+                      <Switch id="weekly-digest" checked={true} />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="tips-news" className="text-sm font-medium">
+                          Tips & News
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Get the latest news and prediction tips
+                        </p>
+                      </div>
+                      <Switch id="tips-news" checked={false} />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="account-updates" className="text-sm font-medium">
+                          Account Updates
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Important information about your account
+                        </p>
+                      </div>
+                      <Switch id="account-updates" checked={true} />
+                    </div>
+                    
+                    <Button className="w-full" size="sm">
+                      Update Email Settings
+                    </Button>
+                  </div>
+                </motion.div>
               </Card>
             </motion.div>
             
             <motion.div variants={itemVariants}>
-              <Card className="p-4">
+              <Card className="p-4 cursor-pointer relative overflow-hidden" onClick={() => handleSectionClick('privacy-security')}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="mr-3 bg-primary/10 p-2 rounded-full">
@@ -338,13 +508,62 @@ export default function ProfilePage() {
                       <p className="text-xs text-muted-foreground">Manage security settings</p>
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${expandedSection === 'privacy-security' ? 'rotate-90' : ''}`} />
                 </div>
+                
+                <motion.div
+                  variants={expandVariants}
+                  initial="collapsed"
+                  animate={expandedSection === 'privacy-security' ? 'expanded' : 'collapsed'}
+                  className="border-t mt-4"
+                >
+                  <div className="space-y-4 pt-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="current-password">Current Password</Label>
+                      <div className="flex">
+                        <input 
+                          id="current-password" 
+                          type="password"
+                          placeholder="Enter current password"
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor="new-password">New Password</Label>
+                      <div className="flex">
+                        <input 
+                          id="new-password" 
+                          type="password"
+                          placeholder="Enter new password"
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor="confirm-password">Confirm Password</Label>
+                      <div className="flex">
+                        <input 
+                          id="confirm-password" 
+                          type="password"
+                          placeholder="Confirm new password"
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                      </div>
+                    </div>
+                    
+                    <Button className="w-full" size="sm">
+                      Update Password
+                    </Button>
+                  </div>
+                </motion.div>
               </Card>
             </motion.div>
             
             <motion.div variants={itemVariants}>
-              <Card className="p-4">
+              <Card className="p-4 cursor-pointer relative overflow-hidden" onClick={() => handleSectionClick('help-support')}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="mr-3 bg-primary/10 p-2 rounded-full">
@@ -355,8 +574,42 @@ export default function ProfilePage() {
                       <p className="text-xs text-muted-foreground">Get assistance and FAQs</p>
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${expandedSection === 'help-support' ? 'rotate-90' : ''}`} />
                 </div>
+                
+                <motion.div
+                  variants={expandVariants}
+                  initial="collapsed"
+                  animate={expandedSection === 'help-support' ? 'expanded' : 'collapsed'}
+                  className="border-t mt-4"
+                >
+                  <div className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium">Frequently Asked Questions</h4>
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <h5 className="text-sm font-medium">How are predictions calculated?</h5>
+                          <p className="text-xs text-muted-foreground">Our AI system analyzes historical data, player performance, and team stats to generate accurate predictions.</p>
+                        </div>
+                        
+                        <div>
+                          <h5 className="text-sm font-medium">How do I cancel my subscription?</h5>
+                          <p className="text-xs text-muted-foreground">You can cancel your subscription at any time from the Subscription tab in your profile settings.</p>
+                        </div>
+                        
+                        <div>
+                          <h5 className="text-sm font-medium">How do I contact support?</h5>
+                          <p className="text-xs text-muted-foreground">You can email us at support@puntaiq.com or use the in-app chat for assistance.</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <Button className="w-full" size="sm">
+                      Contact Support
+                    </Button>
+                  </div>
+                </motion.div>
               </Card>
             </motion.div>
             
