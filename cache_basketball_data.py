@@ -7,6 +7,8 @@ import json
 import time
 import datetime
 import requests
+# Import our firebase_init module for Firebase access
+from firebase_init import get_db_reference
 
 # ==========================================================================
 # Configuration
@@ -73,7 +75,18 @@ def cache_nba_games():
     for date in dates:
         data = fetch_nba_games(date=date)
         if data:
-            # Cache to local file
+            # If Firebase is available, cache there
+            try:
+                games_ref = get_db_reference(f"/cache/basketball/nba/games/{date}")
+                if games_ref:
+                    games_ref.set(data)
+                    log_message(f"Cached {len(data.get('data', []))} NBA games to Firebase for {date}")
+                else:
+                    log_message("Unable to get Firebase reference for NBA games", "WARNING")
+            except Exception as e:
+                log_message(f"Error caching to Firebase: {str(e)}", "ERROR")
+            
+            # Also cache to local file as backup
             cache_dir = "cache/basketball/nba/games"
             os.makedirs(cache_dir, exist_ok=True)
             with open(f"{cache_dir}/{date}.json", "w") as f:
@@ -90,6 +103,12 @@ def run_basketball_cache_update():
     """Run the basketball cache update process."""
     start_time = datetime.datetime.now()
     log_message(f"Starting basketball cache update at {start_time}")
+    
+    # Check Firebase connection
+    if not get_db_reference("/"):
+        log_message("Firebase reference could not be obtained. Will continue with local caching.", "WARNING")
+    else:
+        log_message("Firebase connection is properly initialized")
     
     # Create cache directory structure
     os.makedirs("cache/basketball/nba/games", exist_ok=True)

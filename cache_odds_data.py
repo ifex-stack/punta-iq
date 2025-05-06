@@ -7,6 +7,8 @@ import json
 import time
 import datetime
 import requests
+# Import our firebase_init module for Firebase access
+from firebase_init import get_db_reference
 
 # ==========================================================================
 # Configuration
@@ -73,7 +75,18 @@ def cache_odds():
         if data:
             sport_key = sport.split("_")[0] if "_" in sport else sport
             
-            # Cache to local file
+            # If Firebase is available, cache there
+            try:
+                odds_ref = get_db_reference(f"/cache/{sport_key}/odds/latest")
+                if odds_ref:
+                    odds_ref.set(data)
+                    log_message(f"Cached odds to Firebase for {sport}")
+                else:
+                    log_message(f"Unable to get Firebase reference for {sport} odds", "WARNING")
+            except Exception as e:
+                log_message(f"Error caching odds to Firebase: {str(e)}", "ERROR")
+            
+            # Also cache to local file as backup
             cache_dir = f"cache/{sport_key}/odds"
             os.makedirs(cache_dir, exist_ok=True)
             with open(f"{cache_dir}/latest.json", "w") as f:
@@ -90,6 +103,12 @@ def run_odds_cache_update():
     """Run the odds cache update process."""
     start_time = datetime.datetime.now()
     log_message(f"Starting odds cache update at {start_time}")
+    
+    # Check Firebase connection
+    if not get_db_reference("/"):
+        log_message("Firebase reference could not be obtained. Will continue with local caching.", "WARNING")
+    else:
+        log_message("Firebase connection is properly initialized")
     
     # Create base cache directory if it doesn't exist
     os.makedirs("cache", exist_ok=True)

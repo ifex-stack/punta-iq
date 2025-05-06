@@ -408,3 +408,37 @@ Error: AI Service failed to start properly: exit code 1
     at ChildProcess.<anonymous> (file:///home/runner/workspace/scripts/start-ai-service.js:228:16)
     at ChildProcess.emit (node:events:518:28)
     at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+--- Starting AI Microservice at 2025-05-06T15:30:32.263Z on port 5001 ---
+[STDERR] 2025-05-06 15:30:32,535 - config - WARNING - Using free tier of TheSportsDB API with limited functionality
+[STDERR] 2025-05-06 15:30:32,535 - config - INFO - Configuration validation successful
+2025-05-06 15:30:32,535 - config - INFO - Running in development environment
+[STDERR] 2025-05-06 15:30:32,668 - __main__ - INFO - Starting API service on port 5000
+[STDOUT]  * Serving Flask app 'main'
+ * Debug mode: on
+[STDERR] Address already in use[STDERR] 
+[STDERR] Port 5000 is in use by another program. Either identify and stop that program, or start the server with a different port.
+
+--- ERROR starting AI Microservice at 2025-05-06T15:30:32.764Z ---
+Error: AI Service failed to start properly: exit code 1
+    at ChildProcess.<anonymous> (file:///home/runner/workspace/scripts/start-ai-service.js:228:16)
+    at ChildProcess.emit (node:events:518:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+[EXIT] AI Service exited with code 1 and signal null
+
+--- Starting AI Microservice at 2025-05-06T15:32:40.339Z on port 5001 ---
+[STDERR] 2025-05-06 15:32:40,765 - config - WARNING - Using free tier of TheSportsDB API with limited functionality
+2025-05-06 15:32:40,765 - config - INFO - Configuration validation successful
+2025-05-06 15:32:40,765 - config - INFO - Running in development environment
+[STDERR] 2025-05-06 15:32:40,956 - __main__ - INFO - Starting API service on port 5000
+[STDOUT]  * Serving Flask app 'main'
+ * Debug mode: on
+[STDERR] Address already in use
+Port 5000 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[EXIT] AI Service exited with code 1 and signal null
+
+--- ERROR starting AI Microservice at 2025-05-06T15:32:41.109Z ---
+Error: AI Service failed to start properly: exit code 1
+    at ChildProcess.<anonymous> (file:///home/runner/workspace/scripts/start-ai-service.js:228:16)
+    at ChildProcess.emit (node:events:518:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
