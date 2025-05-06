@@ -657,6 +657,226 @@ export default function ProfilePage() {
                 Sign Out
               </Button>
             </motion.div>
+            
+            {/* PREDICTION STATS SECTION */}
+            <motion.div variants={itemVariants} className="mt-4">
+              <Card className="p-4 cursor-pointer relative overflow-hidden" onClick={() => handleSectionClick('prediction-stats')}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="mr-3 bg-primary/10 p-2 rounded-full">
+                      <BarChart3 className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium">Prediction Statistics</h3>
+                      <p className="text-xs text-muted-foreground">View your prediction performance</p>
+                    </div>
+                  </div>
+                  <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${expandedSection === 'prediction-stats' ? 'rotate-90' : ''}`} />
+                </div>
+                
+                <motion.div
+                  variants={expandVariants}
+                  initial="collapsed"
+                  animate={expandedSection === 'prediction-stats' ? 'expanded' : 'collapsed'}
+                  className="border-t mt-4"
+                >
+                  <div className="space-y-4 pt-4">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="rounded-lg bg-muted p-3 text-center">
+                        <h4 className="text-xs font-medium text-muted-foreground mb-2">Daily</h4>
+                        <div className="text-2xl font-bold mb-1">
+                          {predictionStats.daily.winRate}%
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {predictionStats.daily.correctPredictions}/{predictionStats.daily.totalPredictions} correct
+                        </p>
+                        <div className="mt-2 h-1 w-full bg-background overflow-hidden rounded-full">
+                          <div 
+                            className="bg-green-500 h-full rounded-full" 
+                            style={{ width: `${predictionStats.daily.winRate}%` }}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="rounded-lg bg-muted p-3 text-center">
+                        <h4 className="text-xs font-medium text-muted-foreground mb-2">Weekly</h4>
+                        <div className="text-2xl font-bold mb-1">
+                          {predictionStats.weekly.winRate.toFixed(1)}%
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {predictionStats.weekly.correctPredictions}/{predictionStats.weekly.totalPredictions} correct
+                        </p>
+                        <div className="mt-2 h-1 w-full bg-background overflow-hidden rounded-full">
+                          <div 
+                            className="bg-green-500 h-full rounded-full" 
+                            style={{ width: `${predictionStats.weekly.winRate}%` }}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="rounded-lg bg-muted p-3 text-center">
+                        <h4 className="text-xs font-medium text-muted-foreground mb-2">Monthly</h4>
+                        <div className="text-2xl font-bold mb-1">
+                          {predictionStats.monthly.winRate}%
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {predictionStats.monthly.correctPredictions}/{predictionStats.monthly.totalPredictions} correct
+                        </p>
+                        <div className="mt-2 h-1 w-full bg-background overflow-hidden rounded-full">
+                          <div 
+                            className="bg-green-500 h-full rounded-full" 
+                            style={{ width: `${predictionStats.monthly.winRate}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-end">
+                      <Button variant="outline" size="sm" className="text-xs">
+                        <Activity className="h-3 w-3 mr-1" />
+                        View Detailed Stats
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              </Card>
+            </motion.div>
+            
+            {/* DEVICE & ACCESS LOG SECTION */}
+            <motion.div variants={itemVariants} className="mt-4">
+              <Card className="p-4 cursor-pointer relative overflow-hidden" onClick={() => handleSectionClick('device-access-log')}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="mr-3 bg-primary/10 p-2 rounded-full">
+                      <Smartphone className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium">Device & Access Log</h3>
+                      <p className="text-xs text-muted-foreground">Monitor your recent logins</p>
+                    </div>
+                  </div>
+                  <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${expandedSection === 'device-access-log' ? 'rotate-90' : ''}`} />
+                </div>
+                
+                <motion.div
+                  variants={expandVariants}
+                  initial="collapsed"
+                  animate={expandedSection === 'device-access-log' ? 'expanded' : 'collapsed'}
+                  className="border-t mt-4"
+                >
+                  <div className="space-y-4 pt-4">
+                    <div className="space-y-3">
+                      {deviceAccessLog.map((log, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 rounded-md bg-muted">
+                          <div className="flex items-center">
+                            <div className="mr-3 p-1.5 rounded-full bg-background">
+                              <Smartphone className="h-4 w-4 text-primary" />
+                            </div>
+                            <div>
+                              <div className="flex items-center">
+                                <h5 className="text-sm font-medium">{log.device}</h5>
+                                {log.isCurrentDevice && (
+                                  <Badge variant="outline" className="ml-2 text-[10px] py-0 h-4">Current</Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground">{log.location}</p>
+                            </div>
+                          </div>
+                          <div className="text-xs text-muted-foreground flex items-center">
+                            <Clock className="h-3 w-3 mr-1 inline" />
+                            {log.date}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <Button variant="outline" size="sm" className="w-full text-xs">
+                      View All Devices
+                    </Button>
+                  </div>
+                </motion.div>
+              </Card>
+            </motion.div>
+            
+            {/* DATA EXPORT SECTION */}
+            <motion.div variants={itemVariants} className="mt-4">
+              <Card className="p-4 cursor-pointer relative overflow-hidden" onClick={() => handleSectionClick('data-export')}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="mr-3 bg-primary/10 p-2 rounded-full">
+                      <Download className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium">Data Export</h3>
+                      <p className="text-xs text-muted-foreground">Download your prediction history</p>
+                    </div>
+                  </div>
+                  <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${expandedSection === 'data-export' ? 'rotate-90' : ''}`} />
+                </div>
+                
+                <motion.div
+                  variants={expandVariants}
+                  initial="collapsed"
+                  animate={expandedSection === 'data-export' ? 'expanded' : 'collapsed'}
+                  className="border-t mt-4"
+                >
+                  <div className="space-y-4 pt-4">
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Download your prediction history and performance analytics for your records.</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant="outline" size="sm" className="text-xs">
+                        <Download className="h-3 w-3 mr-1" />
+                        CSV Format
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-xs">
+                        <Download className="h-3 w-3 mr-1" />
+                        PDF Report
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              </Card>
+            </motion.div>
+            
+            {/* ACCOUNT DELETION SECTION */}
+            <motion.div variants={itemVariants} className="mt-4">
+              <Card className="p-4 cursor-pointer relative overflow-hidden" onClick={() => handleSectionClick('account-deletion')}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="mr-3 bg-red-100 p-2 rounded-full">
+                      <Trash2 className="h-5 w-5 text-red-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-red-500">Delete Account</h3>
+                      <p className="text-xs text-muted-foreground">Permanently delete your account</p>
+                    </div>
+                  </div>
+                  <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${expandedSection === 'account-deletion' ? 'rotate-90' : ''}`} />
+                </div>
+                
+                <motion.div
+                  variants={expandVariants}
+                  initial="collapsed"
+                  animate={expandedSection === 'account-deletion' ? 'expanded' : 'collapsed'}
+                  className="border-t mt-4"
+                >
+                  <div className="space-y-4 pt-4">
+                    <div className="flex items-start p-3 bg-red-50 rounded-md">
+                      <AlertTriangle className="h-5 w-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+                      <p className="text-xs text-red-500">
+                        Warning: This action is permanent and cannot be undone. All your data, predictions, and history will be permanently deleted.
+                      </p>
+                    </div>
+                    
+                    <Button variant="destructive" size="sm" className="w-full">
+                      Delete Account
+                    </Button>
+                  </div>
+                </motion.div>
+              </Card>
+            </motion.div>
           </motion.div>
         </TabsContent>
         
