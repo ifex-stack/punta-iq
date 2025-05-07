@@ -411,13 +411,20 @@ export default function AIAccumulatorsPage() {
                     {generatedAccumulator.predictions.map((prediction, index) => (
                       <div key={prediction.id} className="mb-3">
                         <PredictionCard
-                          homeTeam={prediction.homeTeam}
-                          awayTeam={prediction.awayTeam}
-                          league={prediction.league}
-                          date={prediction.date}
-                          odds={prediction.odds}
-                          prediction={prediction.prediction}
-                          sport={prediction.sport}
+                          prediction={{
+                            id: prediction.id.toString(),
+                            matchId: prediction.id.toString(),
+                            homeTeam: prediction.homeTeam,
+                            awayTeam: prediction.awayTeam,
+                            league: prediction.league,
+                            sport: prediction.sport || 'football',
+                            date: prediction.date,
+                            time: new Date(prediction.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+                            prediction: prediction.prediction,
+                            confidence: prediction.confidence,
+                            odds: prediction.odds,
+                            isPremium: false
+                          }}
                         />
                         
                         {showExplanations && prediction.analysis && (

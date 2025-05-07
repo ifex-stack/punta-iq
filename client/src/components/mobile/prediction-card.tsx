@@ -63,7 +63,10 @@ export function PredictionCard({
   });
   
   // Get sport-specific icon
-  const getSportIcon = (sport: string): LucideIcon => {
+  const getSportIcon = (sport?: string): LucideIcon => {
+    // Default to TrendingUp if sport is undefined
+    if (!sport) return TrendingUp;
+    
     // Sport-specific icons
     switch (sport.toLowerCase()) {
       case 'football':
@@ -204,7 +207,7 @@ export function PredictionCard({
           <div className="flex items-center justify-between mb-2">
             <Badge variant="outline" className="text-xs flex items-center gap-1">
               <SportIcon size={12} />
-              <span>{prediction.sport.charAt(0).toUpperCase() + prediction.sport.slice(1)}</span>
+              <span>{prediction.sport ? `${prediction.sport.charAt(0).toUpperCase()}${prediction.sport.slice(1)}` : 'Football'}</span>
             </Badge>
             
             <div className="flex items-center gap-1">
