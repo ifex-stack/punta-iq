@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation } from 'wouter';
-import { Home, Search, BarChart3, Bookmark, ShoppingBag, User } from 'lucide-react';
+import { Home, Search, BarChart3, Bookmark, ShoppingBag, User, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
@@ -27,16 +27,16 @@ export default function MobileNavbar() {
       activeWhen: ['/history'],
     },
     {
+      label: 'AI Builder',
+      href: '/ai-accumulators',
+      icon: Brain,
+      activeWhen: ['/ai-accumulators'],
+    },
+    {
       label: 'Favorites',
       href: '/favorites',
       icon: Bookmark,
       activeWhen: ['/favorites'],
-    },
-    {
-      label: 'Pricing',
-      href: '/pricing',
-      icon: ShoppingBag,
-      activeWhen: ['/pricing', '/subscribe'],
     },
     {
       label: 'Profile',

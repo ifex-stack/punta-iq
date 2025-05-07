@@ -10,12 +10,14 @@ import {
   Home,
   CreditCard,
   TrendingUp,
+  Brain,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
 
 interface BottomNavigationProps {
-  activePage: "predictions_stats" | "fantasy" | "subscription" | "profile" | "admin" | "gamification" | "history" | "livescore" | "home";
+  activePage: "predictions_stats" | "fantasy" | "subscription" | "profile" | "admin" | "gamification" | "history" | "livescore" | "home" | "ai_accumulators";
 }
 
 const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
@@ -51,7 +53,7 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
     <nav className={`fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-50 ${safeAreaClass} shadow-lg`}>
       {/* Use max-width to center the navigation on larger screens and add consistent padding */}
       <div className="max-w-screen-lg mx-auto px-1">
-        <div className={`grid ${isAdmin ? 'grid-cols-6' : 'grid-cols-5'} h-16`}>
+        <div className={`grid ${isAdmin ? 'grid-cols-6' : 'grid-cols-6'} h-16`}>
           {/* Home/Dashboard */}
           <Link href="/">
             <div className="flex flex-col items-center justify-center py-2 focus:outline-none touch-manipulation active:opacity-70">
@@ -143,6 +145,30 @@ const BottomNavigation = ({ activePage }: BottomNavigationProps) => {
                 <CreditCard className={`h-6 w-6 mb-1 ${isActive("subscription") ? "text-primary" : "text-muted-foreground"}`} />
                 <span className={`text-[10px] ${isActive("subscription") ? "text-primary font-medium" : "text-muted-foreground"}`}>
                   Pricing
+                </span>
+              </motion.div>
+            </div>
+          </Link>
+          
+          {/* AI Accumulators */}
+          <Link href="/ai-accumulators">
+            <div className="flex flex-col items-center justify-center py-2 focus:outline-none touch-manipulation active:opacity-70">
+              <motion.div 
+                className="relative flex flex-col items-center"
+                initial="inactive"
+                animate={isActive("ai_accumulators") ? "active" : "inactive"}
+                variants={navItemVariants}
+              >
+                {isActive("ai_accumulators") && (
+                  <motion.div 
+                    className="absolute -top-1.5 left-1/2 w-1 h-1 bg-primary rounded-full"
+                    layoutId="navIndicator"
+                    transition={{ type: "spring", bounce: 0.5, duration: 0.6 }}
+                  />
+                )}
+                <Brain className={`h-6 w-6 mb-1 ${isActive("ai_accumulators") ? "text-primary" : "text-muted-foreground"}`} />
+                <span className={`text-[10px] ${isActive("ai_accumulators") ? "text-primary font-medium" : "text-muted-foreground"}`}>
+                  AI Builder
                 </span>
               </motion.div>
             </div>
