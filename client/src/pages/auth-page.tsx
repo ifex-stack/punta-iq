@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
@@ -529,20 +529,32 @@ export default function AuthPage() {
       >
         <div className="text-center">
           <h2 className="text-sm font-medium mb-4">Powerful AI Predictions</h2>
-          <div className="flex justify-center space-x-4">
-            {['Football', 'Basketball', 'Tennis'].map((sport, i) => (
+          <div className="flex flex-wrap justify-center gap-2 px-4 max-w-md mx-auto">
+            {['Football', 'Basketball', 'Tennis', 'Volleyball', 'Hockey', 'Rugby', 'Baseball', 'Cricket', 'MMA'].map((sport, i) => (
               <motion.div 
                 key={sport}
                 className="px-3 py-1 bg-primary/10 rounded-full text-xs font-medium text-primary"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.6 + (i * 0.1), duration: 0.3 }}
+                transition={{ delay: 0.6 + (i * 0.05), duration: 0.3 }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
                 {sport}
               </motion.div>
             ))}
+          </div>
+          
+          {/* Footer with legal links */}
+          <div className="mt-8 text-xs text-muted-foreground">
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mb-2">
+              <span className="font-medium">Legal</span>
+              <Link to="/legal/privacy-policy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+              <Link to="/legal/terms-of-service" className="hover:text-primary transition-colors">Terms of Service</Link>
+              <Link to="/legal/responsible-gambling" className="hover:text-primary transition-colors">Responsible Gambling</Link>
+              <span className="hover:text-primary transition-colors cursor-pointer">Support</span>
+            </div>
+            <p className="text-xs opacity-70">© 2025 PuntaIQ. All rights reserved.</p>
           </div>
         </div>
       </motion.div>
