@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
-import { format, addDays } from 'date-fns';
+import { format, addDays, isToday, startOfDay } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PredictionCard } from '@/components/mobile/prediction-card';
 import { FilterSection } from '@/components/mobile/filter-section';
-import { Trophy, Star, TrendingUp, Calendar, ChevronRight } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Trophy, Star, TrendingUp, Calendar, ChevronRight, ChevronDown } from 'lucide-react';
 
 // Define the Prediction type
 interface Prediction {
@@ -29,11 +32,15 @@ interface Prediction {
 
 export default function MobileHomePage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedTab, setSelectedTab] = useState<string>('today');
+  const [calendarOpen, setCalendarOpen] = useState<boolean>(false);
   
-  // Format date for API request
+  // Format date for API request and display
   const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+  const displayDate = format(selectedDate, 'MMM dd, yyyy');
+  const isCurrentDate = isToday(selectedDate);
   
   // Query for daily predictions
   const { 
@@ -90,6 +97,23 @@ export default function MobileHomePage() {
     setSelectedTab(date);
   };
   
+  // Handle calendar date selection
+  const handleCalendarChange = (newDate: Date | undefined) => {
+    if (newDate) {
+      setSelectedDate(newDate);
+      setCalendarOpen(false);
+      
+      // Reset the tab selection since we're using a custom date
+      setSelectedTab('');
+      
+      // Provide user feedback
+      toast({
+        title: `Date Selected: ${format(newDate, 'MMMM dd, yyyy')}`,
+        description: `Showing predictions for ${isToday(newDate) ? 'today' : format(newDate, 'MMM dd, yyyy')}`,
+      });
+    }
+  };
+  
   return (
     <div className="pb-20">
       {/* Header */}
@@ -97,10 +121,30 @@ export default function MobileHomePage() {
         <div className="flex justify-between items-center mb-2">
           <h1 className="text-xl font-bold">AI Predictions</h1>
           <div className="flex items-center">
-            <Button variant="ghost" size="sm" className="h-8 flex gap-1 items-center">
-              <Calendar size={14} />
-              <span className="text-xs">Calendar</span>
-            </Button>
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 flex gap-1 items-center"
+                >
+                  <Calendar size={14} />
+                  <span className="text-xs">
+                    {isCurrentDate ? 'Today' : format(selectedDate, 'MMM dd')}
+                  </span>
+                  <ChevronDown size={14} className="opacity-70" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-white rounded-md shadow-lg" align="end">
+                <CalendarComponent
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleCalendarChange}
+                  initialFocus
+                  className="rounded-md border-none"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
         <p className="text-sm text-muted-foreground mb-4">
