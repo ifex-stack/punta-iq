@@ -48,7 +48,7 @@ interface MobilePredictionCardProps {
 }
 
 // Enhanced 3D card with animations and mobile-first design
-export default function MobilePredictionCard({ 
+export function PredictionCard({ 
   prediction, 
   onFavoriteToggle,
   isFavorite = false,
@@ -348,3 +348,6 @@ export default function MobilePredictionCard({
     </motion.div>
   );
 }
+
+// Default export to maintain compatibility
+export default PredictionCard;

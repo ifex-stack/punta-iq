@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Heart, Star, Filter, RefreshCw, BookmarkX } from "lucide-react";
 import FilterSection, { FilterOptions } from "@/components/mobile/filter-section";
-import MobilePredictionCard from "@/components/mobile/prediction-card";
+import { PredictionCard } from "@/components/mobile/prediction-card";
 import { useAuth } from "@/hooks/use-auth";
 
 // Types for prediction data
