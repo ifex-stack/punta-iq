@@ -94,6 +94,8 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByVerificationToken(token: string): Promise<User | undefined>;
+  getUserByResetToken(token: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserSubscription(userId: number, tier: string): Promise<User>;
   updateUserStripeInfo(userId: number, info: { stripeCustomerId?: string, stripeSubscriptionId?: string }): Promise<User>;
@@ -101,6 +103,9 @@ export interface IStorage {
   updateUserPreferences(userId: number, preferences: any): Promise<User>;
   updateUserOnboardingStatus(userId: number, status: string, lastStep: number): Promise<User>;
   updateLastLogin(userId: number): Promise<User>;
+  verifyEmail(userId: number): Promise<User>;
+  setPasswordResetToken(userId: number, token: string, expires: Date): Promise<User>;
+  resetPassword(userId: number, newHashedPassword: string): Promise<User>;
   
   // Football Player methods
   getAllFootballPlayers(limit?: number, offset?: number, filters?: any): Promise<FootballPlayer[]>;

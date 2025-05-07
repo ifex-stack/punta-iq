@@ -90,103 +90,36 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
-        // Debug account for beta testing
-        // This allows testers to log in with a consistent account
-        if (username === 'beta_tester') {
-          if (password === 'puntaiq_beta_test') {
-            // Create a complete debug user object with all required fields from the schema
-            const debugUser: SelectUser = {
-              id: 9999,
-              username: 'beta_tester',
-              email: 'beta@puntaiq.com',
-              password: 'hashed_password_placeholder',
-              createdAt: new Date(),
-              deviceImei: null,
-              phoneNumber: null,
-              isTwoFactorEnabled: false,
-              twoFactorSecret: null,
-              referralCode: 'BETATEST',
-              role: 'admin' as const,
-              lastLoginAt: new Date(),
-              isActive: true,
-              isEmailVerified: true,
-              emailVerificationToken: null,
-              passwordResetToken: null,
-              passwordResetExpires: null,
-              notificationToken: null,
-              referredBy: null,
-              stripeCustomerId: null,
-              stripeSubscriptionId: null,
-              subscriptionTier: 'pro',
-              // Gamification properties
-              fantasyPoints: 1500,
-              totalContestsWon: 12,
-              totalContestsEntered: 25,
-              referralStreak: 3,
-              lastReferralDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-              // Additional properties 
-              userPreferences: {
-                favoriteSports: [1, 3, 5],
-                favoriteLeagues: [39, 40, 61],
-                preferredTimeZone: 'UTC',
-                theme: 'dark',
-                language: 'en',
-                currency: 'USD',
-                bettingFrequency: 'weekly',
-                predictionTypes: ['singles', 'accumulators'],
-                riskTolerance: 'medium',
-                preferredOddsFormat: 'decimal',
-                predictionsPerDay: 5,
-                experienceLevel: 'intermediate',
-                onboardingCompleted: true
-              },
-              notificationSettings: {
-                general: {
-                  predictions: true,
-                  results: true,
-                  promotions: true,
-                },
-                sports: {
-                  football: true,
-                  basketball: true,
-                  tennis: true,
-                  baseball: true,
-                  hockey: true,
-                  cricket: false,
-                  formula1: false,
-                  mma: true,
-                  volleyball: false,
-                  other: false
-                },
-                metrics: {
-                  notificationCount: 24,
-                  lastNotificationSent: new Date(),
-                  clickThroughRate: 0.65,
-                  viewCount: 42,
-                  clickCount: 27,
-                  dismissCount: 5
-                }
-              },
-              onboardingStatus: 'completed' as const,
-              lastOnboardingStep: 5
-            };
-            return done(null, debugUser);
-          }
-        }
-        
-        // Regular authentication logic
+        // Check if login is with email or username
         const isEmail = username.includes('@');
         const user = isEmail 
           ? await storage.getUserByEmail(username)
           : await storage.getUserByUsername(username);
         
+        // Validate the user and password
         if (!user || !(await comparePasswords(password, user.password))) {
+          logger.warn('Auth', `Failed login attempt for user: ${username}`);
           return done(null, false);
-        } else {
-          return done(null, user);
         }
+        
+        // Check if email verification is required but not completed
+        if (user.isEmailVerified === false) {
+          logger.warn('Auth', `Login attempt with unverified email for user: ${username}`);
+          // For now we're allowing login with unverified email
+          // but we'll add a warning message to the client
+        }
+        
+        // User is valid, update last login time
+        try {
+          await storage.updateLastLogin(user.id);
+        } catch (updateError) {
+          logger.error('Auth', `Failed to update last login time: ${updateError}`);
+          // Continue login despite update error
+        }
+        
+        return done(null, user);
       } catch (error) {
-        console.error('Authentication error:', error);
+        logger.error('Auth', `Authentication error: ${error}`);
         return done(error);
       }
     }),
@@ -195,89 +128,6 @@ export function setupAuth(app: Express) {
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
     try {
-      // Handle debug user for beta testing
-      // Always allow deserializing the beta_tester regardless of environment
-      if (id === 9999) {
-        // Create a complete debug user object with all required fields from the schema
-        const debugUser: SelectUser = {
-          id: 9999,
-          username: 'beta_tester',
-          email: 'beta@puntaiq.com',
-          password: 'hashed_password_placeholder',
-          createdAt: new Date(),
-          deviceImei: null,
-          phoneNumber: null,
-          isTwoFactorEnabled: false,
-          twoFactorSecret: null,
-          referralCode: 'BETATEST',
-          role: 'admin' as const,
-          lastLoginAt: new Date(),
-          isActive: true,
-          isEmailVerified: true,
-          emailVerificationToken: null,
-          passwordResetToken: null,
-          passwordResetExpires: null,
-          notificationToken: null,
-          referredBy: null,
-          stripeCustomerId: null,
-          stripeSubscriptionId: null,
-          subscriptionTier: 'pro',
-          // Gamification properties
-          fantasyPoints: 1500,
-          totalContestsWon: 12,
-          totalContestsEntered: 25,
-          referralStreak: 3,
-          lastReferralDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-          // Additional properties 
-
-          userPreferences: {
-            favoriteSports: [1, 3, 5],
-            favoriteLeagues: [39, 40, 61],
-            preferredTimeZone: 'UTC',
-            theme: 'dark',
-            language: 'en',
-            currency: 'USD',
-            bettingFrequency: 'weekly',
-            predictionTypes: ['singles', 'accumulators'],
-            riskTolerance: 'medium',
-            preferredOddsFormat: 'decimal',
-            predictionsPerDay: 5,
-            experienceLevel: 'intermediate',
-            onboardingCompleted: true
-          },
-          notificationSettings: {
-            general: {
-              predictions: true,
-              results: true,
-              promotions: true,
-            },
-            sports: {
-              football: true,
-              basketball: true,
-              tennis: true,
-              baseball: true,
-              hockey: true,
-              cricket: false,
-              formula1: false,
-              mma: true,
-              volleyball: false,
-              other: false
-            },
-            metrics: {
-              notificationCount: 24,
-              lastNotificationSent: new Date(),
-              clickThroughRate: 0.65,
-              viewCount: 42,
-              clickCount: 27,
-              dismissCount: 5
-            }
-          },
-          onboardingStatus: 'completed' as const,
-          lastOnboardingStep: 5
-        };
-        return done(null, debugUser);
-      }
-      
       // Normal user lookup from storage
       const user = await storage.getUser(id);
       if (!user) {
@@ -288,7 +138,7 @@ export function setupAuth(app: Express) {
       }
       done(null, user);
     } catch (error) {
-      console.error('Error deserializing user:', error);
+      logger.error('Auth', `Error deserializing user: ${error}`);
       done(error);
     }
   });
@@ -324,10 +174,15 @@ export function setupAuth(app: Express) {
         });
       }
 
+      // Generate verification token
+      const verificationToken = randomBytes(32).toString('hex');
+      
       // Create user with hashed password
       const user = await storage.createUser({
         ...validatedData,
         password: await hashPassword(validatedData.password),
+        emailVerificationToken: verificationToken,
+        isEmailVerified: false
       });
 
       // Create welcome notification for the new user
@@ -343,16 +198,16 @@ export function setupAuth(app: Express) {
             section: "welcome"
           }
         });
-        console.log(`Created welcome notification for user ${user.id}`);
+        logger.info('Auth', `Created welcome notification for user ${user.id}`);
       } catch (notificationError) {
-        console.error("Failed to create welcome notification:", notificationError);
+        logger.error('Auth', `Failed to create welcome notification: ${notificationError}`);
         // Continue with login despite notification error
       }
 
       // Log user in
       req.login(user, (err) => {
         if (err) {
-          console.error('Session creation error on registration:', err);
+          logger.error('Auth', `Session creation error on registration: ${err}`);
           return res.status(500).json({
             error: 'Session Error',
             message: 'Account created but login failed. Please try logging in manually.',
@@ -373,7 +228,7 @@ export function setupAuth(app: Express) {
           field: error.errors[0].path.join('.') // Return the field that failed validation
         });
       }
-      console.error('Registration error:', error);
+      logger.error('Auth', `Registration error: ${error}`);
       res.status(500).json({
         error: 'Server Error',
         message: 'Failed to create account. Please try again later.',
@@ -394,7 +249,7 @@ export function setupAuth(app: Express) {
 
     passport.authenticate("local", (err: any, user: SelectUser | false, info: any) => {
       if (err) {
-        console.error('Authentication error:', err);
+        logger.error('Auth', `Authentication error: ${err}`);
         return res.status(500).json({
           error: 'Server Error',
           message: 'An error occurred during authentication. Please try again.',
@@ -413,7 +268,7 @@ export function setupAuth(app: Express) {
       
       req.login(user, async (loginErr) => {
         if (loginErr) {
-          console.error('Session creation error:', loginErr);
+          logger.error('Auth', `Session creation error: ${loginErr}`);
           return res.status(500).json({
             error: 'Session Error',
             message: 'Could not create a session. Please try again.',
@@ -431,7 +286,7 @@ export function setupAuth(app: Express) {
           // Success - return user data
           res.status(200).json(userWithoutPassword);
         } catch (updateError) {
-          console.warn('Failed to update last login time, but login successful:', updateError);
+          logger.warn('Auth', `Failed to update last login time, but login successful: ${updateError}`);
           // Still return user data even if updating last login fails
           const { password, ...userWithoutPassword } = user;
           res.status(200).json(userWithoutPassword);
@@ -451,7 +306,7 @@ export function setupAuth(app: Express) {
     
     req.logout((err) => {
       if (err) {
-        console.error('Logout error:', err);
+        logger.error('Auth', `Logout error: ${err}`);
         return res.status(500).json({
           error: "Logout Error",
           message: "Failed to log out. Please try again.",
@@ -462,7 +317,7 @@ export function setupAuth(app: Express) {
       if (req.session) {
         req.session.destroy((sessionErr) => {
           if (sessionErr) {
-            console.error('Session destroy error:', sessionErr);
+            logger.error('Auth', `Session destroy error: ${sessionErr}`);
             // Even if session destroy fails, we've already logged out
           }
           // Clear any cookies
@@ -481,264 +336,184 @@ export function setupAuth(app: Express) {
     });
   });
 
-  // Add a special beta tester login endpoint that doesn't require authentication
-  // This is specifically for testing and development purposes
-  app.post("/api/beta_login", (req, res) => {
-    console.log("Beta tester login request received");
-    // Create a debug user for beta testers
-    const debugUser: SelectUser = {
-      id: 9999,
-      username: 'beta_tester',
-      email: 'beta@puntaiq.com',
-      password: 'hashed_password_placeholder',
-      createdAt: new Date(),
-      deviceImei: null,
-      phoneNumber: null,
-      isTwoFactorEnabled: false,
-      twoFactorSecret: null,
-      referralCode: 'BETATEST',
-      role: 'admin' as const,
-      lastLoginAt: new Date(),
-      isActive: true,
-      isEmailVerified: true,
-      emailVerificationToken: null,
-      passwordResetToken: null,
-      passwordResetExpires: null,
-      notificationToken: null,
-      referredBy: null,
-      stripeCustomerId: null,
-      stripeSubscriptionId: null,
-      subscriptionTier: 'pro',
-      fantasyPoints: 1500,
-      totalContestsWon: 12,
-      totalContestsEntered: 25,
-      referralStreak: 3,
-      lastReferralDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      userPreferences: {
-        favoriteSports: [1, 3, 5],
-        favoriteLeagues: [39, 40, 61],
-        preferredTimeZone: 'UTC',
-        theme: 'dark',
-        language: 'en',
-        currency: 'USD',
-        bettingFrequency: 'weekly',
-        predictionTypes: ['singles', 'accumulators'],
-        riskTolerance: 'medium',
-        preferredOddsFormat: 'decimal',
-        predictionsPerDay: 5,
-        experienceLevel: 'intermediate',
-        onboardingCompleted: true
-      },
-      notificationSettings: {
-        general: {
-          predictions: true,
-          results: true,
-          promotions: true,
-        },
-        sports: {
-          football: true,
-          basketball: true,
-          tennis: true,
-          baseball: true,
-          hockey: true,
-          cricket: false,
-          formula1: false,
-          mma: true,
-          volleyball: false,
-          other: false
-        },
-        metrics: {
-          notificationCount: 24,
-          lastNotificationSent: new Date(),
-          clickThroughRate: 0.65,
-          viewCount: 42,
-          clickCount: 27,
-          dismissCount: 5
-        }
-      },
-      onboardingStatus: 'completed' as const,
-      lastOnboardingStep: 5
-    };
-    
-    // Log in the debug user
-    req.login(debugUser, (err) => {
-      if (err) {
-        console.error("Error logging in beta tester:", err);
-        return res.status(500).json({
-          error: 'Session Error',
-          message: 'Could not create a session. Please try again.',
-          code: 'SESSION_ERROR'
-        });
-      }
-      
-      // Return success response with user object
-      res.status(200).json(debugUser);
-    });
-  });
-
   app.get("/api/user", (req, res) => {
-    // Special handling for beta testing with query parameter
-    // This allows creating a mock session with a beta_tester user
-    if (req.query.beta_login === 'true') {
-      // Create a complete debug user object with all required fields from the schema
-      const debugUser: SelectUser = {
-        id: 9999,
-        username: 'beta_tester',
-        email: 'beta@puntaiq.com',
-        password: 'hashed_password_placeholder',
-        createdAt: new Date(),
-        deviceImei: null,
-        phoneNumber: null,
-        isTwoFactorEnabled: false,
-        twoFactorSecret: null,
-        referralCode: 'BETATEST',
-        role: 'admin' as const,
-        lastLoginAt: new Date(),
-        isActive: true,
-        isEmailVerified: true,
-        emailVerificationToken: null,
-        passwordResetToken: null,
-        passwordResetExpires: null,
-        notificationToken: null,
-        referredBy: null,
-        stripeCustomerId: null,
-        stripeSubscriptionId: null,
-        subscriptionTier: 'pro',
-        // Gamification properties
-        fantasyPoints: 1500,
-        totalContestsWon: 12,
-        totalContestsEntered: 25,
-        referralStreak: 3,
-        lastReferralDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-        // Additional properties 
-        userPreferences: {
-          favoriteSports: [1, 3, 5],
-          favoriteLeagues: [39, 40, 61],
-          preferredTimeZone: 'UTC',
-          theme: 'dark',
-          language: 'en',
-          currency: 'USD',
-          bettingFrequency: 'weekly',
-          predictionTypes: ['singles', 'accumulators'],
-          riskTolerance: 'medium',
-          preferredOddsFormat: 'decimal',
-          predictionsPerDay: 5,
-          experienceLevel: 'intermediate',
-          onboardingCompleted: true
-        },
-        notificationSettings: {
-          general: {
-            predictions: true,
-            results: true,
-            promotions: true,
-          },
-          sports: {
-            football: true,
-            basketball: true,
-            tennis: true,
-            baseball: true,
-            hockey: true,
-            cricket: false,
-            formula1: false,
-            mma: true,
-            volleyball: false,
-            other: false
-          },
-          metrics: {
-            notificationCount: 24,
-            lastNotificationSent: new Date(),
-            clickThroughRate: 0.65,
-            viewCount: 42,
-            clickCount: 27,
-            dismissCount: 5
-          }
-        },
-        onboardingStatus: 'completed' as const,
-        lastOnboardingStep: 5
-      };
-      
-      // Create a login session for the beta tester
-      req.login(debugUser, (err) => {
-        if (err) {
-          console.error('Error creating beta tester session:', err);
-          return res.status(500).json({
-            error: 'Session Error',
-            message: 'Could not create a beta tester session',
-            code: 'BETA_SESSION_ERROR'
-          });
-        }
-        
-        // Return the beta tester data
-        return res.status(200).json(debugUser);
-      });
-      return;
-    }
-    
-    // Enhanced authentication check with detailed error responses
     if (!req.isAuthenticated()) {
-      return res.status(401).json({
-        error: 'Unauthorized',
-        message: 'You must be logged in to access this resource',
-        code: 'NOT_AUTHENTICATED'
-      });
+      return res.sendStatus(401);
     }
     
-    // Check if session exists but user isn't valid
-    if (!req.user || !req.user.id) {
-      // Destroy the invalid session
-      req.logout((err) => {
-        if (err) console.error('Error destroying invalid session:', err);
-        return res.status(401).json({
-          error: 'Invalid Session',
-          message: 'Your session appears to be invalid. Please login again.',
-          code: 'INVALID_SESSION'
-        });
-      });
-      return;
-    }
-    
-    // Remove password from response
+    // Remove sensitive info from user object
     const { password, ...userWithoutPassword } = req.user;
     res.json(userWithoutPassword);
   });
-  
-  // User preferences routes
-  app.get("/api/user/preferences", async (req, res) => {
-    // Enhanced authentication check
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({
-        error: 'Unauthorized',
-        message: 'You must be logged in to access your preferences',
-        code: 'NOT_AUTHENTICATED'
-      });
-    }
-    
+
+  // Email verification endpoint
+  app.post("/api/verify-email", async (req, res) => {
     try {
-      const user = await storage.getUser(req.user.id);
-      if (!user) {
-        return res.status(404).json({
-          error: 'Not Found',
-          message: 'User not found',
-          code: 'USER_NOT_FOUND'
+      const { token } = req.body;
+      
+      if (!token) {
+        return res.status(400).json({
+          error: 'Validation Error',
+          message: 'Verification token is required',
+          code: 'MISSING_TOKEN'
         });
       }
       
-      // Return user preferences or default empty object
-      res.json(user.userPreferences || {});
+      const user = await storage.getUserByVerificationToken(token);
+      
+      if (!user) {
+        return res.status(400).json({
+          error: 'Verification Failed',
+          message: 'Invalid or expired verification token',
+          code: 'INVALID_TOKEN'
+        });
+      }
+      
+      if (user.isEmailVerified) {
+        return res.status(200).json({
+          message: 'Email already verified',
+          code: 'ALREADY_VERIFIED'
+        });
+      }
+      
+      // Mark email as verified
+      const updatedUser = await storage.verifyEmail(user.id);
+      
+      if (req.isAuthenticated() && req.user.id === user.id) {
+        // Update the session with the latest user data
+        req.login(updatedUser, (err) => {
+          if (err) {
+            logger.error('Auth', `Session update error after email verification: ${err}`);
+            // Continue despite error - verification still succeeded
+          }
+        });
+      }
+      
+      res.status(200).json({
+        message: 'Email verified successfully',
+        code: 'VERIFICATION_SUCCESS'
+      });
     } catch (error) {
-      console.error('Error fetching user preferences:', error);
+      logger.error('Auth', `Email verification error: ${error}`);
       res.status(500).json({
         error: 'Server Error',
-        message: 'Failed to fetch user preferences',
-        code: 'PREFERENCES_FETCH_ERROR'
+        message: 'Failed to verify email. Please try again later.',
+        code: 'VERIFICATION_ERROR'
       });
     }
   });
-  
-  // Note: This endpoint is now managed by userPreferencesRouter
-  // This implementation is kept for backward compatibility only
-  app.post("/api/user/preferences", async (req, res, next) => {
-    // Allow the request to be handled by userPreferencesRouter
-    next();
+
+  // Password reset request
+  app.post("/api/reset-password-request", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({
+          error: 'Validation Error',
+          message: 'Email is required',
+          code: 'MISSING_EMAIL'
+        });
+      }
+      
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        // Don't reveal that the email doesn't exist for security reasons
+        return res.status(200).json({
+          message: 'If your email exists in our system, you will receive a password reset link',
+          code: 'RESET_EMAIL_SENT'
+        });
+      }
+      
+      // Generate password reset token (expires in 1 hour)
+      const resetToken = randomBytes(32).toString('hex');
+      const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+      
+      await storage.setPasswordResetToken(user.id, resetToken, expires);
+      
+      // Here, in a real implementation, we would send an email with the reset link
+      // For now, we'll just return the token in the response for testing
+      logger.info('Auth', `Password reset requested for user ${user.id}`);
+      
+      // Success response (same whether user exists or not, for security)
+      res.status(200).json({
+        message: 'If your email exists in our system, you will receive a password reset link',
+        code: 'RESET_EMAIL_SENT',
+        // The following would be removed in production:
+        debug: {
+          resetToken,
+          userId: user.id 
+        }
+      });
+    } catch (error) {
+      logger.error('Auth', `Password reset request error: ${error}`);
+      res.status(500).json({
+        error: 'Server Error',
+        message: 'Failed to process password reset request. Please try again later.',
+        code: 'RESET_REQUEST_ERROR'
+      });
+    }
+  });
+
+  // Password reset (with token)
+  app.post("/api/reset-password", async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+      
+      if (!token || !newPassword) {
+        return res.status(400).json({
+          error: 'Validation Error',
+          message: 'Reset token and new password are required',
+          code: 'MISSING_RESET_DATA'
+        });
+      }
+      
+      // Validate password strength
+      if (newPassword.length < 6) {
+        return res.status(400).json({
+          error: 'Validation Error',
+          message: 'Password must be at least 6 characters long',
+          code: 'PASSWORD_TOO_SHORT'
+        });
+      }
+      
+      const user = await storage.getUserByResetToken(token);
+      
+      if (!user) {
+        return res.status(400).json({
+          error: 'Reset Failed',
+          message: 'Invalid or expired reset token',
+          code: 'INVALID_RESET_TOKEN'
+        });
+      }
+      
+      // Check if token is expired
+      if (user.passwordResetExpires && new Date(user.passwordResetExpires) < new Date()) {
+        return res.status(400).json({
+          error: 'Reset Failed',
+          message: 'Reset token has expired. Please request a new one.',
+          code: 'EXPIRED_RESET_TOKEN'
+        });
+      }
+      
+      // Update password and clear reset token
+      const updatedUser = await storage.resetPassword(
+        user.id, 
+        await hashPassword(newPassword)
+      );
+      
+      res.status(200).json({
+        message: 'Password reset successfully. You can now log in with your new password.',
+        code: 'PASSWORD_RESET_SUCCESS'
+      });
+    } catch (error) {
+      logger.error('Auth', `Password reset error: ${error}`);
+      res.status(500).json({
+        error: 'Server Error',
+        message: 'Failed to reset password. Please try again later.',
+        code: 'RESET_ERROR'
+      });
+    }
   });
 }
