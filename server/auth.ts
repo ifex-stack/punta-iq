@@ -481,6 +481,99 @@ export function setupAuth(app: Express) {
     });
   });
 
+  // Add a special beta tester login endpoint that doesn't require authentication
+  app.post("/api/beta_login", (req, res) => {
+    // Create a debug user for beta testers
+    const debugUser: SelectUser = {
+      id: 9999,
+      username: 'beta_tester',
+      email: 'beta@puntaiq.com',
+      password: 'hashed_password_placeholder',
+      createdAt: new Date(),
+      deviceImei: null,
+      phoneNumber: null,
+      isTwoFactorEnabled: false,
+      twoFactorSecret: null,
+      referralCode: 'BETATEST',
+      role: 'admin' as const,
+      lastLoginAt: new Date(),
+      isActive: true,
+      isEmailVerified: true,
+      emailVerificationToken: null,
+      passwordResetToken: null,
+      passwordResetExpires: null,
+      notificationToken: null,
+      referredBy: null,
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      subscriptionTier: 'pro',
+      fantasyPoints: 1500,
+      totalContestsWon: 12,
+      totalContestsEntered: 25,
+      referralStreak: 3,
+      lastReferralDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      userPreferences: {
+        favoriteSports: [1, 3, 5],
+        favoriteLeagues: [39, 40, 61],
+        preferredTimeZone: 'UTC',
+        theme: 'dark',
+        language: 'en',
+        currency: 'USD',
+        bettingFrequency: 'weekly',
+        predictionTypes: ['singles', 'accumulators'],
+        riskTolerance: 'medium',
+        preferredOddsFormat: 'decimal',
+        predictionsPerDay: 5,
+        experienceLevel: 'intermediate',
+        onboardingCompleted: true
+      },
+      notificationSettings: {
+        general: {
+          predictions: true,
+          results: true,
+          promotions: true,
+        },
+        sports: {
+          football: true,
+          basketball: true,
+          tennis: true,
+          baseball: true,
+          hockey: true,
+          cricket: false,
+          formula1: false,
+          mma: true,
+          volleyball: false,
+          other: false
+        },
+        metrics: {
+          notificationCount: 24,
+          lastNotificationSent: new Date(),
+          clickThroughRate: 0.65,
+          viewCount: 42,
+          clickCount: 27,
+          dismissCount: 5
+        }
+      },
+      onboardingStatus: 'completed' as const,
+      lastOnboardingStep: 5
+    };
+    
+    // Log in the debug user
+    req.login(debugUser, (err) => {
+      if (err) {
+        console.error("Error logging in beta tester:", err);
+        return res.status(500).json({
+          error: 'Session Error',
+          message: 'Could not create a session. Please try again.',
+          code: 'SESSION_ERROR'
+        });
+      }
+      
+      // Return success response with user object
+      res.status(200).json(debugUser);
+    });
+  });
+
   app.get("/api/user", (req, res) => {
     // Special handling for beta testing with query parameter
     // This allows creating a mock session with a beta_tester user

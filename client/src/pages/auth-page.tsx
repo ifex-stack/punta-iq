@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/queryClient';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -77,14 +78,51 @@ export default function AuthPage() {
   });
   
   // Auto-fill demo account
-  const handleDemoAccount = () => {
+  const handleDemoAccount = async () => {
     loginForm.setValue('username', 'beta_tester');
     loginForm.setValue('password', 'puntaiq_beta_test');
     
+    // Instead of just filling the form, directly login with the beta account
     toast({
       title: "Demo Account",
-      description: "Demo account credentials applied. Click Login to continue.",
+      description: "Logging in with demo account...",
     });
+
+    try {
+      // Call our special beta login endpoint
+      const response = await fetch('/api/beta_login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const user = await response.json();
+        console.log("Beta login successful:", user.username);
+        queryClient.setQueryData(["/api/user"], user);
+        toast({
+          title: "Demo Login Successful",
+          description: "You are now logged in as beta_tester",
+        });
+        window.location.href = '/';
+      } else {
+        console.error("Beta login failed:", response.status);
+        toast({
+          title: "Demo Login Failed",
+          description: "Could not login with demo account. Try regular login.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Beta login error:", error);
+      toast({
+        title: "Demo Login Error",
+        description: "An error occurred trying to login with the demo account.",
+        variant: "destructive",
+      });
+    }
   };
   
   // Handle login form submission

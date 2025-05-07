@@ -22,11 +22,10 @@ export const getFantasyStore = () => {
     },
     
     createFantasyContest: async (contest: any) => {
-      const now = new Date();
+      // Create contest object with only allowed fields
       const insertContest: InsertFantasyContest = {
         name: contest.name,
         description: contest.description || null,
-        status: 'upcoming',
         type: contest.type || null,
         tier: contest.tier,
         startDate: contest.startDate,
@@ -35,9 +34,7 @@ export const getFantasyStore = () => {
         maxTeams: contest.maxTeams || 100,
         prizePool: contest.prizePool,
         gameweekIds: contest.gameweekIds,
-        rules: contest.rules,
-        createdAt: now,
-        updatedAt: now
+        rules: contest.rules
       };
       
       return await storage.createFantasyContest(insertContest);
