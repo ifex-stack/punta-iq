@@ -6,11 +6,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { 
-  ChevronRight, Filter, Loader2, TrendingUp, Bell, 
+  ChevronRight, ChevronLeft, Filter, Loader2, TrendingUp, Bell, 
   ChevronDown, Calculator, Trophy, Activity,
   Target, BarChart3, Users, Sparkles, Star, Zap, 
   ArrowRight, BadgeCheck, PieChart, ArrowUpRight,
-  CheckCircle2
+  CheckCircle2, Calendar
 } from "lucide-react";
 import PredictionCard from "@/components/predictions/prediction-card";
 import SportsTabs from "@/components/predictions/sports-tabs";
@@ -22,6 +22,9 @@ import { PuntaIQLogo } from "@/components/ui/puntaiq-logo";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingTopics } from "@/components/news/trending-topics";
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { format, addDays, startOfDay, isToday, isPast, isFuture } from 'date-fns';
 
 export default function HomePage() {
   const [_, navigate] = useLocation();
@@ -30,6 +33,12 @@ export default function HomePage() {
   const notifications = useNotifications();
   const { showOnboarding } = useOnboarding();
   const [selectedSport, setSelectedSport] = useState("all");
+  
+  // Calendar state
+  const [date, setDate] = useState<Date>(new Date());
+  const [calendarOpen, setCalendarOpen] = useState<boolean>(false);
+  const formattedDate = format(date, 'MMM dd, yyyy');
+  const isCurrentDate = isToday(date);
   
   interface Prediction {
     id: string;
@@ -73,6 +82,20 @@ export default function HomePage() {
     setSelectedSport(sport);
   };
   
+  const handleDateChange = (newDate: Date | undefined) => {
+    if (newDate) {
+      setDate(newDate);
+      setCalendarOpen(false);
+      
+      // Here you could refetch predictions for the selected date
+      // or navigate to a date-specific view
+      toast({
+        title: `Date Selected: ${format(newDate, 'MMMM dd, yyyy')}`,
+        description: `Showing predictions for ${isToday(newDate) ? 'today' : format(newDate, 'MMM dd, yyyy')}`,
+      });
+    }
+  };
+  
   // Test notification function
   const handleSendTestNotification = async () => {
     if (!user) {
@@ -110,6 +133,61 @@ export default function HomePage() {
 
   return (
     <div className="animate-in fade-in duration-500">
+      {/* Fixed header with calendar */}
+      <div className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur border-b">
+        <div className="container flex h-14 items-center justify-between max-w-6xl">
+          <div className="flex items-center">
+            <PuntaIQLogo size="sm" />
+          </div>
+          <div className="flex items-center space-x-4">
+            {/* Calendar date picker */}
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className={`gap-1 ${!isCurrentDate ? 'text-blue-600 border-blue-300 dark:text-blue-400 dark:border-blue-700' : ''}`}
+                >
+                  <Calendar className="h-4 w-4" />
+                  <span>{formattedDate}</span>
+                  <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <CalendarComponent
+                  mode="single"
+                  selected={date}
+                  onSelect={handleDateChange}
+                  initialFocus
+                  className="p-2"
+                />
+              </PopoverContent>
+            </Popover>
+            
+            {/* Notification bell icon */}
+            {user && (
+              <Button variant="ghost" size="icon" className="relative">
+                <Bell className="h-5 w-5" />
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                  3
+                </span>
+              </Button>
+            )}
+            
+            {/* Profile/login button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(user ? "/profile" : "/auth")}
+              className="gap-1"
+            >
+              {user ? "My Profile" : "Sign In"}
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+      
       {/* Hero section with gradient background */}
       <div className="relative bg-gradient-to-b from-indigo-50 to-white dark:from-gray-900 dark:to-background">
         <div className="container py-16 max-w-6xl">
