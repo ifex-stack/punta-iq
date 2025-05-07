@@ -161,7 +161,7 @@ export default function FavoritesPage() {
   };
 
   // Handle remove from favorites
-  const handleRemoveFavorite = (id: string) => {
+  const handleRemoveFavorite = (id: string): void => {
     // Update favorites state
     const updatedFavorites = favorites.filter(fav => fav.id !== id);
     setFavorites(updatedFavorites);
@@ -225,7 +225,7 @@ export default function FavoritesPage() {
             className="space-y-4"
           >
             {filteredFavorites.map((prediction) => (
-              <MobilePredictionCard 
+              <PredictionCard 
                 key={prediction.id}
                 prediction={prediction}
                 onFavoriteToggle={(id) => handleRemoveFavorite(id)}

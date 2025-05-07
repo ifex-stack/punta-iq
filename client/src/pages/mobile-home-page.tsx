@@ -392,7 +392,7 @@ export default function MobileHomePage() {
             className="space-y-4"
           >
             {filteredPredictions.map((prediction) => (
-              <MobilePredictionCard 
+              <PredictionCard 
                 key={prediction.id}
                 prediction={prediction}
                 onFavoriteToggle={handleFavoriteToggle}
