@@ -79,17 +79,20 @@ export default function AuthPage() {
   
   // Auto-fill demo account
   const handleDemoAccount = async () => {
+    // Two-pronged approach: fill form AND direct API call
     loginForm.setValue('username', 'beta_tester');
     loginForm.setValue('password', 'puntaiq_beta_test');
     
-    // Instead of just filling the form, directly login with the beta account
+    // Show immediate feedback
     toast({
-      title: "Demo Account",
-      description: "Logging in with demo account...",
+      title: "Demo Mode",
+      description: "Activating beta test account...",
+      variant: "default"
     });
 
     try {
-      // Call our special beta login endpoint
+      console.log("CRITICAL: Attempting direct beta login");
+      // Call our special beta login endpoint directly
       const response = await fetch('/api/beta_login', {
         method: 'POST',
         headers: {
