@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
 import { CalendarDays, TrendingUp, Calendar, Trophy, ChevronRight } from 'lucide-react';
-import { PredictionCard } from '@/components/mobile/prediction-card';
+import { SimplePredictionCard } from '@/components/mobile/simple-prediction-card';
 import { format, parseISO, subDays } from 'date-fns';
 
 interface HistoricalData {
