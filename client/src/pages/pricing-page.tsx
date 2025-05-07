@@ -101,8 +101,8 @@ export default function PricingPage() {
       return;
     }
     
-    // Navigate to checkout page with selected plan
-    navigate(`/subscribe?plan=${planId}&interval=${selectedInterval}`);
+    // Navigate to subscription page with selected plan
+    navigate(`/subscription?plan=${planId}&interval=${selectedInterval}`);
   };
   
   // Check if user is subscribed to a plan

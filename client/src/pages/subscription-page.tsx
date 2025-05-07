@@ -115,7 +115,7 @@ interface Plan {
 }
 
 export default function SubscriptionPage() {
-  const [_, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
   const { currency, format, convert, refreshRates } = useCurrency();
@@ -123,6 +123,21 @@ export default function SubscriptionPage() {
   const [isYearly, setIsYearly] = useState(false);
   const [subscriptionPlans, setSubscriptionPlans] = useState<Plan[]>([]);
   
+  // Parse URL parameters
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.split('?')[1] || '');
+    const planId = searchParams.get('plan');
+    const interval = searchParams.get('interval');
+    
+    if (planId) {
+      setSelectedPlan(planId);
+    }
+    
+    if (interval === 'year') {
+      setIsYearly(true);
+    }
+  }, [location]);
+
   // Update subscription plans with pricing information
   useEffect(() => {
     // Create deep copy of base plans and apply currency conversion
