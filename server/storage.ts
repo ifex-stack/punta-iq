@@ -589,6 +589,66 @@ export class MemStorage implements IStorage {
     return updatedUser;
   }
   
+  async getUserByVerificationToken(token: string): Promise<User | undefined> {
+    // Find a user with the given verification token
+    for (const [, user] of this.usersMap) {
+      if (user.emailVerificationToken === token) {
+        return user;
+      }
+    }
+    return undefined;
+  }
+  
+  async getUserByResetToken(token: string): Promise<User | undefined> {
+    // Find a user with the given password reset token
+    for (const [, user] of this.usersMap) {
+      if (user.passwordResetToken === token) {
+        return user;
+      }
+    }
+    return undefined;
+  }
+  
+  async verifyEmail(userId: number): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    const updatedUser = { 
+      ...user, 
+      isEmailVerified: true,
+      emailVerificationToken: null
+    };
+    this.usersMap.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
+  async setPasswordResetToken(userId: number, token: string, expires: Date): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    const updatedUser = { 
+      ...user, 
+      passwordResetToken: token,
+      passwordResetExpires: expires
+    };
+    this.usersMap.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
+  async resetPassword(userId: number, newHashedPassword: string): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    const updatedUser = { 
+      ...user, 
+      password: newHashedPassword,
+      passwordResetToken: null,
+      passwordResetExpires: null
+    };
+    this.usersMap.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
   async updateUserFantasyPoints(userId: number, points: number): Promise<User> {
     const user = await this.getUser(userId);
     if (!user) throw new Error("User not found");
