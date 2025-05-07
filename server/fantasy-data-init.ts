@@ -68,16 +68,21 @@ export const getFantasyStore = () => {
 export async function initializeFantasyData() {
   console.log('Initializing fantasy football data...');
   
+  // Use a flag to track if the database is in memory mode or not
+  let useMemoryMode = false;
+  
   try {
-    // Check if we already have contests
-    // Skip this check - we'll try to create the fantasy contests regardless
-    // If they already exist, the database will handle conflicts
+    // We'll skip the initial check and just try to create the fantasy contests
+    // If they already exist, we'll handle errors when we try to insert them
+    console.log('Attempting to initialize fantasy contests...');
   } catch (error) {
-    console.error('Error checking fantasy contests:', error);
+    console.error('Error during fantasy contest initialization:', error);
+    useMemoryMode = true;
   }
   
-  // Initialize the database in memory mode to avoid DB errors during setup
-  console.log('Using in-memory fallback for fantasy data initialization');
+  if (useMemoryMode) {
+    console.log('Using in-memory fallback for fantasy data initialization');
+  }
   
   // Create free contests
   const freeContests = [

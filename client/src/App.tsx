@@ -82,7 +82,8 @@ const Router: React.FC = () => {
   }
   
   // If user is not logged in, redirect to auth page
-  if (!user) {
+  // But only if the current location is not already the auth page
+  if (!user && location !== '/auth') {
     window.location.href = '/auth';
     return (
       <div className="flex items-center justify-center min-h-screen">
