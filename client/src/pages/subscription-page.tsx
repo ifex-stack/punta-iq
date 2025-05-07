@@ -157,7 +157,8 @@ export default function SubscriptionPage() {
       const res = await apiRequest("POST", "/api/create-subscription", {
         userId: user?.id,
         ...planData,
-        currencyCode: currency.code
+        currencyCode: currency.code,
+        checkout: true // This indicates we want to actually checkout, not just view
       });
       return await res.json();
     },

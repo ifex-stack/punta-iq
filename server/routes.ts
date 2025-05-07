@@ -874,8 +874,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Stripe subscription endpoint
   app.post("/api/create-subscription", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Unauthorized" });
+    // For viewing subscription info, we don't require authentication
+    // Only require authentication when creating an actual subscription
+    const { planId, isYearly, currencyCode, userId } = req.body;
+    
+    if (!planId) {
+      return res.status(400).json({ message: "Plan ID is required" });
+    }
+    
+    // If in checkout mode, authentication is required
+    if (req.body.checkout === true && !req.isAuthenticated()) {
+      return res.status(401).json({ message: "Please log in to complete your subscription" });
     }
     
     if (!process.env.STRIPE_SECRET_KEY) {
@@ -883,8 +892,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
-      const { planId, isYearly, currencyCode } = req.body;
-      const userId = req.user.id;
+      // If authenticated, use the user's ID, otherwise use null (preview only)
+      const actualUserId = req.isAuthenticated() ? req.user.id : (userId || null);
       
       // Simple mapping of plan IDs to Stripe price IDs
       // In a production app, these would be stored in the database
@@ -919,12 +928,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         url: "/subscription-success", // Redirect to our success page
         subscription: null,
         status: "open",
-        client_reference_id: userId.toString()
+        client_reference_id: actualUserId ? actualUserId.toString() : 'guest'
       };
       
-      // For demonstration purposes, directly update the user's subscription tier
-      // In a real implementation, this would happen after Stripe webhook confirmation
-      await storage.updateUserSubscription(userId, planId);
+      // Only update user subscription if user is authenticated
+      if (req.isAuthenticated() && actualUserId) {
+        // For demonstration purposes, directly update the user's subscription tier
+        // In a real implementation, this would happen after Stripe webhook confirmation
+        await storage.updateUserSubscription(actualUserId, planId);
+      }
       
       res.json({ 
         sessionId: mockCheckoutSession.id,
