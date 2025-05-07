@@ -5,6 +5,18 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes loading {
+  0% { width: 10%; }
+  50% { width: 70%; }
+  100% { width: 60%; }
+}
+
+@keyframes gradient {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(0); }
+  100% { transform: translateX(100%); }
+}
+
 :root {
   /* Base colors */
   --background: 222 47% 11%;

@@ -489,7 +489,9 @@ export default function AIAccumulatorsPage() {
                         </div>
                       </div>
                       <div className="mt-3 h-1 w-full bg-muted overflow-hidden rounded-full">
-                        <div className="h-full bg-primary animate-[gradient_2s_ease-in-out_infinite]" style={{ width: '60%' }}></div>
+                        <div className="h-full bg-gradient-to-r from-primary via-accent to-secondary relative animate-[loading_2s_ease-in-out_infinite]">
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[gradient_2s_ease-in-out_infinite]"></div>
+                        </div>
                       </div>
                     </div>
                   )}
