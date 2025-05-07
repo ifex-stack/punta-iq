@@ -1,5 +1,6 @@
 import React, { ReactNode, useEffect, useState, useRef } from 'react';
 import MobileNavbar from './mobile-navbar';
+import MobileFooter from './mobile-footer';
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import { useLocation } from 'wouter';
 
@@ -313,6 +314,7 @@ export default function MobileAppLayout({ children }: MobileAppLayoutProps) {
               }}
             >
               {children}
+              <MobileFooter />
             </motion.div>
           </AnimatePresence>
         </motion.div>

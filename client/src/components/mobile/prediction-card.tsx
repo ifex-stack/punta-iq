@@ -64,13 +64,27 @@ export function PredictionCard({
   
   // Get sport-specific icon
   const getSportIcon = (sport: string): LucideIcon => {
-    // You could replace this with actual sport-specific icons later
+    // Sport-specific icons
     switch (sport.toLowerCase()) {
       case 'football':
         return TrendingUp;
       case 'basketball':
         return TrendingUp;
       case 'tennis':
+        return TrendingUp;
+      case 'volleyball':
+        return TrendingUp;
+      case 'hockey':
+        return TrendingUp;
+      case 'rugby':
+        return TrendingUp;
+      case 'baseball':
+        return TrendingUp;
+      case 'cricket':
+        return TrendingUp;
+      case 'handball':
+        return TrendingUp;
+      case 'mma':
         return TrendingUp;
       default:
         return TrendingUp;
