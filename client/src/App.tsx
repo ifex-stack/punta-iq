@@ -68,18 +68,16 @@ const Router: React.FC = () => {
     return () => clearTimeout(timeoutId);
   }, [location]);
   
-  // Auth-related pages that don't require the mobile layout/navigation
-  const authRelatedPages = ['/auth', '/verify-email', '/reset-password-request', '/reset-password'];
+  // Define pages that don't require authentication or navigation
+  const authPages = ['/auth', '/verify-email', '/reset-password-request', '/reset-password'];
   
   // Render splash screen first, but not on auth-related pages
-  if (showSplash && !authRelatedPages.includes(location)) {
+  if (showSplash && !authPages.includes(location)) {
     return <SplashScreen onComplete={() => setShowSplash(false)} />;
   }
   
-  // Auth-related pages that don't require the mobile layout/navigation
-  const authRelatedPages = ['/auth', '/verify-email', '/reset-password-request', '/reset-password'];
-  
-  if (authRelatedPages.includes(location)) {
+  // Display auth-related pages without the mobile layout
+  if (authPages.includes(location)) {
     return (
       <div className="flex h-screen">
         <div className="flex-1 relative">
@@ -145,7 +143,7 @@ const Router: React.FC = () => {
 
   // Normal flow - if user is not logged in, redirect to auth page
   // But only if the current location is not already an auth-related page
-  if (!user && !authRelatedPages.includes(location)) {
+  if (!user && !authPages.includes(location)) {
     window.location.href = '/auth';
     return (
       <div className="flex items-center justify-center min-h-screen">

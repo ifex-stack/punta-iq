@@ -8,6 +8,7 @@ export interface UserResponse {
   email: string;
   role: 'user' | 'admin' | 'analyst';
   createdAt: string;
+  isEmailVerified?: boolean;
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
   stripeSubscriptionStatus?: string | null;
