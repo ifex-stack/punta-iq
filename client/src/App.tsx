@@ -28,6 +28,7 @@ import AdminPage from "@/pages/admin-page";
 import FeedbackPage from "@/pages/feedback";
 import AdvancedAnalysisPage from "@/pages/advanced-analysis-page";
 import AccumulatorsPage from "@/pages/enhanced-accumulators-page"; // Using enhanced version with animations and improved UX
+import AIAccumulatorsPage from "@/pages/ai-accumulators-page"; // New AI-powered accumulators
 import LiveScorePage from "@/pages/livescore-page";
 import AIServiceStatusPage from "@/pages/ai-service-status-page";
 import TieredPredictionsPage from "@/pages/tiered-predictions-page"; // New tiered predictions page
@@ -122,6 +123,7 @@ const Router: React.FC = () => {
                 <ProtectedRoute path="/predictions/advanced" component={AdvancedPredictionsPage} />
                 <ProtectedRoute path="/advanced-analysis" component={AdvancedAnalysisPage} />
                 <ProtectedRoute path="/accumulators" component={AccumulatorsPage} />
+                <ProtectedRoute path="/ai-accumulators" component={AIAccumulatorsPage} />
                 <ProtectedRoute path="/predictions/tiered" component={TieredPredictionsPage} />
                 <ProtectedRoute path="/fantasy/contests" component={FantasyContestsPage} />
                 <ProtectedRoute path="/fantasy/contests/create" component={FantasyContestCreatePage} />
@@ -180,6 +182,7 @@ const Router: React.FC = () => {
               <ProtectedRoute path="/predictions/advanced" component={AdvancedPredictionsPage} />
               <ProtectedRoute path="/advanced-analysis" component={AdvancedAnalysisPage} />
               <ProtectedRoute path="/accumulators" component={AccumulatorsPage} />
+              <ProtectedRoute path="/ai-accumulators" component={AIAccumulatorsPage} />
               <ProtectedRoute path="/predictions/tiered" component={TieredPredictionsPage} />
               <ProtectedRoute path="/fantasy/contests" component={FantasyContestsPage} />
               <ProtectedRoute path="/fantasy/contests/create" component={FantasyContestCreatePage} />
