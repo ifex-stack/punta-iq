@@ -4220,6 +4220,121 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  async getUserByVerificationToken(token: string): Promise<User | undefined> {
+    try {
+      const [user] = await db.select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        password: users.password,
+        createdAt: users.createdAt,
+        emailVerificationToken: users.emailVerificationToken,
+        isEmailVerified: users.isEmailVerified
+      }).from(users).where(eq(users.emailVerificationToken, token));
+      return user;
+    } catch (error) {
+      console.error("Error getting user by verification token:", error);
+      return undefined;
+    }
+  }
+  
+  async getUserByResetToken(token: string): Promise<User | undefined> {
+    try {
+      const [user] = await db.select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        password: users.password,
+        createdAt: users.createdAt,
+        passwordResetToken: users.passwordResetToken,
+        passwordResetExpires: users.passwordResetExpires
+      }).from(users).where(eq(users.passwordResetToken, token));
+      
+      // If the reset token has expired, return undefined
+      if (user && user.passwordResetExpires && user.passwordResetExpires < new Date()) {
+        return undefined;
+      }
+      
+      return user;
+    } catch (error) {
+      console.error("Error getting user by reset token:", error);
+      return undefined;
+    }
+  }
+  
+  async verifyEmail(userId: number): Promise<User> {
+    try {
+      const [user] = await db
+        .update(users)
+        .set({
+          isEmailVerified: true,
+          emailVerificationToken: null
+        })
+        .where(eq(users.id, userId))
+        .returning({
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          isEmailVerified: users.isEmailVerified
+        });
+      
+      if (!user) throw new Error("User not found");
+      return user;
+    } catch (error) {
+      console.error("Error verifying user email:", error);
+      throw error;
+    }
+  }
+  
+  async setPasswordResetToken(userId: number, token: string, expires: Date): Promise<User> {
+    try {
+      const [user] = await db
+        .update(users)
+        .set({
+          passwordResetToken: token,
+          passwordResetExpires: expires
+        })
+        .where(eq(users.id, userId))
+        .returning({
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          passwordResetToken: users.passwordResetToken,
+          passwordResetExpires: users.passwordResetExpires
+        });
+      
+      if (!user) throw new Error("User not found");
+      return user;
+    } catch (error) {
+      console.error("Error setting password reset token:", error);
+      throw error;
+    }
+  }
+  
+  async resetPassword(userId: number, newHashedPassword: string): Promise<User> {
+    try {
+      const [user] = await db
+        .update(users)
+        .set({
+          password: newHashedPassword,
+          passwordResetToken: null,
+          passwordResetExpires: null
+        })
+        .where(eq(users.id, userId))
+        .returning({
+          id: users.id,
+          username: users.username,
+          email: users.email
+        });
+      
+      if (!user) throw new Error("User not found");
+      return user;
+    } catch (error) {
+      console.error("Error resetting user password:", error);
+      throw error;
+    }
+  }
+  
   async updateUserFantasyPoints(userId: number, points: number): Promise<User> {
     try {
       // Get current fantasy points
