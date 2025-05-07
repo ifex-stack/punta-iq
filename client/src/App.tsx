@@ -1,10 +1,10 @@
 import { Route, Switch, useLocation } from "wouter";
-import React, { useEffect, Suspense } from "react";
+import React, { useEffect, Suspense, useState } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/hooks/use-auth";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { NotificationsProvider } from "@/hooks/use-notifications";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
@@ -23,8 +23,10 @@ import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from 'next-themes';
 import { setNavigationState } from "./lib/error-handler";
 import { CurrencyProvider } from "./hooks/use-currency";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Mobile-specific components
+import SplashScreen from "@/components/splash-screen";
 import { OnboardingProvider, OnboardingReminderButton } from "@/components/onboarding/onboarding-provider";
 import { GuidedTour } from "@/components/onboarding/guided-tour";
 import { GettingStartedGuide } from "@/components/onboarding/getting-started-guide";
@@ -46,6 +48,8 @@ import PricingPage from "@/pages/pricing-page";
 const Router: React.FC = () => {
   // Track location changes to know when we're navigating
   const [location] = useLocation();
+  const { user } = useAuth();
+  const [showSplash, setShowSplash] = useState(true);
   
   // Set navigation state when location changes
   useEffect(() => {
@@ -60,8 +64,13 @@ const Router: React.FC = () => {
     return () => clearTimeout(timeoutId);
   }, [location]);
   
+  // Render splash screen first
+  if (showSplash && location !== '/auth') {
+    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+  }
+  
   // Don't wrap auth page in AppLayout to prevent showing navigation bars
-  if (location === '/auth') {
+  if (location === '/auth' || !user) {
     return (
       <div className="flex h-screen">
         <div className="flex-1 relative">
@@ -76,41 +85,51 @@ const Router: React.FC = () => {
     <div className="flex h-screen">
       <div className="flex-1 relative">
         <MobileAppLayout>
-          <React.Suspense fallback={
-            <div className="flex items-center justify-center min-h-screen">
-              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-            </div>
-          }>
-            <Switch>
-              {/* Primary Mobile App Navigation */}
-              <ProtectedRoute path="/" component={MobileHomePage} />
-              <ProtectedRoute path="/explore" component={MobileExplorePage} />
-              <ProtectedRoute path="/history" component={HistoryPage} />
-              <ProtectedRoute path="/favorites" component={FavoritesPage} />
-              <ProtectedRoute path="/profile" component={ProfilePage} />
-              <ProtectedRoute path="/pricing" component={PricingPage} />
-              
-              {/* Secondary Mobile App Pages */}
-              <ProtectedRoute path="/accumulators" component={AccumulatorsPage} />
-              <Route path="/subscription" component={SubscriptionPage} />
-              <Route path="/subscription-success" component={SubscriptionSuccessPage} />
-              <ProtectedRoute path="/referrals" component={ReferralsPage} />
-              <Route path="/livescore" component={LiveScorePage} />
-              
-              {/* Support & Legal Pages */}
-              <Route path="/faq" component={FAQPage} />
-              <Route path="/feedback" component={FeedbackPage} />
-              <Route path="/legal/privacy-policy" component={PrivacyPolicyPage} />
-              <Route path="/legal/terms-of-service" component={TermsOfServicePage} />
-              <Route path="/legal/responsible-gambling" component={ResponsibleGamblingPage} />
-              
-              {/* Legacy Redirects */}
-              <ProtectedRoute path="/predictions" component={MobileHomePage} />
-              <ProtectedRoute path="/my-picks" component={FavoritesPage} />
-              
-              <Route component={NotFound} />
-            </Switch>
-          </React.Suspense>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <React.Suspense fallback={
+                <div className="flex items-center justify-center min-h-screen">
+                  <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                </div>
+              }>
+                <Switch>
+                  {/* Primary Mobile App Navigation */}
+                  <Route path="/" component={MobileHomePage} />
+                  <Route path="/explore" component={MobileExplorePage} />
+                  <Route path="/history" component={HistoryPage} />
+                  <Route path="/favorites" component={FavoritesPage} />
+                  <Route path="/profile" component={ProfilePage} />
+                  <Route path="/pricing" component={PricingPage} />
+                  
+                  {/* Secondary Mobile App Pages */}
+                  <Route path="/accumulators" component={AccumulatorsPage} />
+                  <Route path="/subscription" component={SubscriptionPage} />
+                  <Route path="/subscription-success" component={SubscriptionSuccessPage} />
+                  <Route path="/referrals" component={ReferralsPage} />
+                  <Route path="/livescore" component={LiveScorePage} />
+                  
+                  {/* Support & Legal Pages */}
+                  <Route path="/faq" component={FAQPage} />
+                  <Route path="/feedback" component={FeedbackPage} />
+                  <Route path="/legal/privacy-policy" component={PrivacyPolicyPage} />
+                  <Route path="/legal/terms-of-service" component={TermsOfServicePage} />
+                  <Route path="/legal/responsible-gambling" component={ResponsibleGamblingPage} />
+                  
+                  {/* Legacy Redirects */}
+                  <Route path="/predictions" component={MobileHomePage} />
+                  <Route path="/my-picks" component={FavoritesPage} />
+                  
+                  <Route component={NotFound} />
+                </Switch>
+              </React.Suspense>
+            </motion.div>
+          </AnimatePresence>
         </MobileAppLayout>
         
         {/* Mobile-optimized notifications and onboarding components */}

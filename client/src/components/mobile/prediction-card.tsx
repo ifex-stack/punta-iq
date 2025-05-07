@@ -1,303 +1,350 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { format } from 'date-fns';
-import { cn } from "@/lib/utils";
 import { 
-  Card, 
-  CardContent 
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { 
-  BookmarkIcon, 
-  CheckIcon, 
-  XIcon,
-  AlertCircleIcon,
-  TimerIcon,
-  TrendingUpIcon,
-  PercentIcon,
-  ChevronRightIcon
+  Calendar, 
+  Clock, 
+  Heart, 
+  TrendingUp, 
+  Award, 
+  Check, 
+  X, 
+  ChevronUp, 
+  ChevronDown, 
+  LucideIcon,
+  DollarSign,
+  Crown,
+  Zap
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
-interface PredictionCardProps {
-  id?: number;
+interface Prediction {
+  id: string;
+  matchId: string;
   homeTeam: string;
   awayTeam: string;
-  league?: string;
-  sport?: string;
-  prediction?: string;
-  market?: string;
-  odds?: number;
-  confidence?: number;
-  // Support both date string format (ISO) and Date object
-  date?: string | Date;
-  startTime?: string | Date;
-  isCorrect?: boolean | null;
-  isPremium?: boolean;
-  isSaved?: boolean;
-  onToggleSave?: (id: number) => void;
-  onSelect?: (id: number) => void;
-  className?: string;
-  compact?: boolean;
+  league: string;
+  sport: string;
+  date: string;
+  time: string;
+  prediction: string;
+  confidence: number;
+  odds: number;
+  isPremium: boolean;
+  isLive?: boolean;
+  homeScore?: number | null;
+  awayScore?: number | null;
+  status?: "scheduled" | "live" | "completed" | "cancelled";
+  favorite?: boolean;
 }
 
-export function PredictionCard({
-  id,
-  homeTeam,
-  awayTeam,
-  league,
-  sport,
-  prediction,
-  market = 'Match Result',
-  odds = 1.5,
-  confidence = 70,
-  date,
-  startTime,
-  isCorrect,
-  isPremium = false,
-  isSaved = false,
-  onToggleSave,
-  onSelect,
-  className,
-  compact = false,
-}: PredictionCardProps) {
+interface MobilePredictionCardProps {
+  prediction: Prediction;
+  onFavoriteToggle?: (id: string) => void;
+  isFavorite?: boolean;
+  className?: string;
+}
+
+// Enhanced 3D card with animations and mobile-first design
+export default function MobilePredictionCard({ 
+  prediction, 
+  onFavoriteToggle,
+  isFavorite = false,
+  className 
+}: MobilePredictionCardProps) {
+  const [expanded, setExpanded] = useState(false);
   
-  // Format date - handle both date formats and provide error handling
-  let matchDate: Date;
-  try {
-    // First use date prop if it exists, otherwise use startTime
-    const dateValue = date || startTime;
-    
-    // Handle different date formats
-    if (dateValue instanceof Date) {
-      matchDate = dateValue;
-    } else {
-      matchDate = new Date(dateValue || Date.now());
+  // Format date
+  const formattedDate = new Date(prediction.date).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+  });
+  
+  // Get sport-specific icon
+  const getSportIcon = (sport: string): LucideIcon => {
+    // You could replace this with actual sport-specific icons later
+    switch (sport.toLowerCase()) {
+      case 'football':
+        return TrendingUp;
+      case 'basketball':
+        return TrendingUp;
+      case 'tennis':
+        return TrendingUp;
+      default:
+        return TrendingUp;
     }
-    
-    // Validate the date
-    if (isNaN(matchDate.getTime())) {
-      throw new Error('Invalid date');
-    }
-  } catch (error) {
-    // If date is invalid, use current date as fallback
-    matchDate = new Date();
-  }
-  
-  // Format with consistent patterns
-  const formattedTime = format(matchDate, 'HH:mm');
-  const formattedDate = format(matchDate, 'dd MMM');
-  
-  // Determine status
-  const isPending = isCorrect === null || isCorrect === undefined;
-  const isWon = isCorrect === true;
-  const isLost = isCorrect === false;
-  
-  // Determine confidence color
-  const getConfidenceColor = (conf: number) => {
-    if (conf >= 80) return 'bg-green-500';
-    if (conf >= 65) return 'bg-lime-500';
-    if (conf >= 50) return 'bg-amber-500';
-    return 'bg-red-500';
   };
   
-  const handleSave = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onToggleSave && id) onToggleSave(id);
+  const SportIcon = getSportIcon(prediction.sport);
+  
+  // Get status color
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'live':
+        return 'bg-red-500';
+      case 'completed':
+        return 'bg-green-500';
+      case 'cancelled':
+        return 'bg-gray-500';
+      default:
+        return 'bg-blue-500';
+    }
   };
   
-  const handleCardClick = () => {
-    if (onSelect && id) onSelect(id);
+  // Get confidence indicator color
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 80) return 'bg-green-500';
+    if (confidence >= 60) return 'bg-yellow-500';
+    return 'bg-orange-500';
+  };
+  
+  // Handle toggle favorite
+  const handleFavoriteToggle = () => {
+    if (onFavoriteToggle) {
+      onFavoriteToggle(prediction.id);
+    }
+  };
+  
+  // Animation variants for the card
+  const cardVariants = {
+    initial: { 
+      scale: 0.98,
+      y: 10,
+      opacity: 0 
+    },
+    animate: { 
+      scale: 1,
+      y: 0,
+      opacity: 1,
+      transition: {
+        duration: 0.3,
+        ease: 'easeOut'
+      }
+    },
+    tap: { 
+      scale: 0.98,
+      transition: {
+        duration: 0.1
+      }
+    },
+    hover: { 
+      y: -5,
+      transition: {
+        duration: 0.2
+      }
+    }
+  };
+  
+  // Animation variants for premium badge
+  const premiumBadgeVariants = {
+    initial: {
+      scale: 0.8,
+      opacity: 0,
+      rotate: -5
+    },
+    animate: {
+      scale: 1,
+      opacity: 1,
+      rotate: 0,
+      transition: {
+        delay: 0.2,
+        duration: 0.3,
+        type: 'spring',
+        stiffness: 200
+      }
+    }
   };
   
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      transition={{ duration: 0.3 }}
-      className={cn("w-full", className)}
-      layout
-      whileHover={{ y: -5 }}
-      whileTap={{ scale: 0.97 }}
+      initial="initial"
+      animate="animate"
+      whileTap="tap"
+      whileHover="hover"
+      variants={cardVariants}
+      className={cn("transform perspective-1000", className)}
     >
-      <Card 
-        className={cn(
-          "relative overflow-hidden border bg-card transition-all touch-manipulation",
-          "hover:bg-card/95 hover:shadow-lg active:shadow-sm",
-          "transform perspective-1000 hover:translate-y-[-2px]",
-          compact ? "shadow-sm" : "shadow-md"
-        )}
-        onClick={handleCardClick}
-        style={{
-          transformStyle: "preserve-3d"
-        }}
-      >
-        {/* Premium badge with 3D effect */}
-        {isPremium && (
-          <motion.div 
-            className="absolute top-0 right-0 z-10"
-            initial={{ rotate: 0, scale: 1 }}
-            animate={{ 
-              rotate: [0, -2, 2, -2, 0],
-              scale: [1, 1.05, 1],
-              y: [0, -2, 0]
-            }}
-            transition={{ 
-              duration: 2, 
-              repeat: Infinity, 
-              repeatDelay: 5,
-              ease: "easeInOut" 
-            }}
+      <Card className={cn(
+        "overflow-hidden relative border shadow-md", 
+        {
+          "border-primary/30 shadow-primary/10": prediction.isPremium,
+          "border-gray-200 shadow-gray-100": !prediction.isPremium
+        }
+      )}>
+        {/* Premium badge */}
+        {prediction.isPremium && (
+          <motion.div
+            className="absolute -right-6 -top-1 rotate-45 z-10"
+            variants={premiumBadgeVariants}
           >
-            <Badge 
-              variant="premium" 
-              className="rounded-bl-md rounded-tr-md rounded-br-none rounded-tl-none shadow-md"
-              style={{
-                background: "linear-gradient(135deg, #7928CA, #FF0080)",
-                textShadow: "0 1px 2px rgba(0,0,0,0.2)"
-              }}
-            >
-              PRO
-            </Badge>
+            <div className="bg-gradient-to-r from-amber-400 to-amber-600 text-white px-8 py-1 text-xs shadow-md">
+              PREMIUM
+            </div>
           </motion.div>
         )}
         
-        <CardContent className={cn(
-          "p-3",
-          compact ? "space-y-1" : "space-y-2"
-        )}>
-          {/* Header with league and time */}
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            {league && (
-              <div className="font-medium truncate">{league}</div>
-            )}
-            <div className="flex items-center space-x-1 ml-auto">
-              <TimerIcon size={12} className="text-muted-foreground" />
-              <span>{formattedTime}</span>
-              <span className="opacity-60 px-1">|</span>
-              <span>{formattedDate}</span>
-            </div>
-          </div>
-          
-          {/* Teams */}
-          <div className="flex items-center justify-between font-medium relative">
-            <div className="truncate mr-2">{homeTeam}</div>
-            {/* VS badge with 3D effect */}
-            <motion.div
-              className="text-xs text-muted-foreground bg-muted px-1.5 rounded-full shadow-sm absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2"
-              animate={{
-                y: [0, -1, 0, 1, 0],
-                rotateZ: [0, -1, 0, 1, 0],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            >
-              vs
-            </motion.div>
-            <div className="truncate ml-2 text-right">{awayTeam}</div>
-          </div>
-          
-          {/* Prediction info */}
-          <div className="flex items-center justify-between pt-1">
-            <div className="flex items-center space-x-2">
-              <Badge variant={
-                isPending ? "outline" : 
-                isWon ? "success" : 
-                "destructive"
-              } className="text-xs font-normal">
-                {isPending && "Pending"}
-                {isWon && "Won"}
-                {isLost && "Lost"}
+        {/* Match header with teams */}
+        <div className="p-4 pb-2">
+          <div className="flex items-center justify-between mb-2">
+            <Badge variant="outline" className="text-xs flex items-center gap-1">
+              <SportIcon size={12} />
+              <span>{prediction.sport.charAt(0).toUpperCase() + prediction.sport.slice(1)}</span>
+            </Badge>
+            
+            <div className="flex items-center gap-1">
+              <Badge variant="outline" className="text-xs flex items-center gap-1">
+                <Calendar size={12} />
+                <span>{formattedDate}</span>
               </Badge>
               
-              <div className="flex items-center">
-                <Badge variant="secondary" className="text-xs font-normal">
-                  {market}
-                </Badge>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              {!compact && odds && (
-                <div className="flex items-center text-xs">
-                  <TrendingUpIcon size={14} className="mr-1 text-muted-foreground" />
-                  <span className="font-medium">{odds.toFixed(2)}</span>
-                </div>
-              )}
-              
-              {confidence && (
-                <div className="flex items-center">
-                  <motion.div 
-                    className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium text-white",
-                      "shadow-md backdrop-blur-sm",
-                      getConfidenceColor(confidence)
-                    )}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                    initial={{ boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)" }}
-                    animate={{ 
-                      boxShadow: [
-                        "0 4px 6px -1px rgba(0, 0, 0, 0.1)", 
-                        "0 6px 12px -1px rgba(0, 0, 0, 0.15)", 
-                        "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
-                      ],
-                      y: [0, -2, 0]
-                    }}
-                    transition={{ 
-                      duration: 3, 
-                      repeat: Infinity, 
-                      repeatDelay: 2
-                    }}
-                    style={{
-                      transform: "perspective(800px) rotateX(5deg)",
-                    }}
-                  >
-                    <span className="drop-shadow-sm">{confidence}%</span>
-                  </motion.div>
-                </div>
-              )}
+              <Badge variant="outline" className="text-xs flex items-center gap-1">
+                <Clock size={12} />
+                <span>{prediction.time}</span>
+              </Badge>
             </div>
           </div>
           
-          {/* Prediction */}
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-medium">
-              {prediction || 'Home Win'}
+          <div className="flex justify-between items-center mb-1">
+            <div className="flex-1 truncate">
+              <span className="font-semibold text-sm">{prediction.homeTeam}</span>
             </div>
             
-            {/* Touch-enhanced actions */}
-            <div className="flex items-center space-x-1">
-              {onToggleSave && id && (
-                <motion.button
-                  className={cn(
-                    "p-2 rounded-full",
-                    isSaved ? "text-primary" : "text-muted-foreground"
-                  )}
-                  onClick={handleSave}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <BookmarkIcon size={16} className={cn(
-                    isSaved ? "fill-primary" : "fill-none"
-                  )} />
-                </motion.button>
-              )}
+            {prediction.status === 'live' || prediction.status === 'completed' ? (
+              <div className="px-2 font-bold">
+                {typeof prediction.homeScore === 'number' ? prediction.homeScore : '-'}
+              </div>
+            ) : (
+              <div className="h-4 w-4"></div>
+            )}
+          </div>
+          
+          <div className="flex justify-between items-center">
+            <div className="flex-1 truncate">
+              <span className="font-semibold text-sm">{prediction.awayTeam}</span>
+            </div>
+            
+            {prediction.status === 'live' || prediction.status === 'completed' ? (
+              <div className="px-2 font-bold">
+                {typeof prediction.awayScore === 'number' ? prediction.awayScore : '-'}
+              </div>
+            ) : (
+              <div className="h-4 w-4"></div>
+            )}
+          </div>
+          
+          <div className="text-xs text-muted-foreground mt-1">
+            {prediction.league}
+          </div>
+        </div>
+        
+        {/* Prediction and confidence */}
+        <div className="px-4 py-3 bg-muted/30">
+          <div className="flex justify-between items-center">
+            <div>
+              <div className="text-xs text-muted-foreground">Prediction</div>
+              <div className="font-semibold text-sm">{prediction.prediction}</div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <div className="text-xs text-muted-foreground">Confidence</div>
+                <div className="font-semibold text-sm">{prediction.confidence}%</div>
+              </div>
               
-              <motion.button 
-                className="p-2 rounded-full text-muted-foreground"
-                whileTap={{ scale: 0.9 }}
-              >
-                <ChevronRightIcon size={16} />
-              </motion.button>
+              <div className="h-8 w-8 rounded-full border-4 border-muted flex items-center justify-center" style={{ borderColor: getConfidenceColor(prediction.confidence) }}>
+                <span className="text-xs font-bold">{prediction.confidence}%</span>
+              </div>
             </div>
           </div>
-        </CardContent>
+        </div>
+        
+        {/* Expanded details */}
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="px-4 py-3 border-t border-border/50"
+          >
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="text-xs text-muted-foreground">Odds</div>
+                <div className="font-semibold text-sm flex items-center">
+                  <DollarSign size={14} className="inline mr-1 text-green-500" />
+                  {prediction.odds.toFixed(2)}
+                </div>
+              </div>
+              
+              <div>
+                <div className="text-xs text-muted-foreground">Status</div>
+                <div className="font-semibold text-sm flex items-center">
+                  <span 
+                    className={`inline-block w-2 h-2 rounded-full mr-1.5 ${getStatusColor(prediction.status)}`}
+                  />
+                  {prediction.status || 'Scheduled'}
+                </div>
+              </div>
+              
+              {prediction.isPremium && (
+                <div className="col-span-2 mt-1">
+                  <div className="text-xs text-muted-foreground">Premium Features</div>
+                  <div className="text-xs flex items-center gap-2 mt-1">
+                    <Badge variant="outline" className="bg-primary/5 gap-1">
+                      <Crown size={10} className="text-amber-500" />
+                      Advanced Analysis
+                    </Badge>
+                    <Badge variant="outline" className="bg-primary/5 gap-1">
+                      <Zap size={10} className="text-amber-500" />
+                      AI Boosted
+                    </Badge>
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+        
+        {/* Actions footer */}
+        <div className="px-4 py-2 border-t border-border/50 flex justify-between items-center">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-xs h-8 px-2"
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? (
+              <>
+                <ChevronUp size={14} className="mr-1" />
+                Less
+              </>
+            ) : (
+              <>
+                <ChevronDown size={14} className="mr-1" />
+                More
+              </>
+            )}
+          </Button>
+          
+          <div className="flex items-center gap-2">
+            <Button 
+              variant={isFavorite ? "default" : "outline"}
+              size="icon"
+              className={cn(
+                "h-8 w-8",
+                isFavorite ? "bg-red-500 text-white hover:bg-red-600" : "text-red-500 hover:text-red-600"
+              )}
+              onClick={handleFavoriteToggle}
+            >
+              <Heart size={16} className={cn(
+                isFavorite ? "fill-current" : "stroke-current"
+              )} />
+            </Button>
+          </div>
+        </div>
       </Card>
     </motion.div>
   );
 }
-
-export default PredictionCard;

@@ -1,298 +1,430 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/use-auth';
-import { useToast } from '@/hooks/use-toast';
-import { motion } from 'framer-motion';
-import { format, addDays, isToday, startOfDay } from 'date-fns';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PredictionCard } from '@/components/mobile/prediction-card';
-import { FilterSection } from '@/components/mobile/filter-section';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { Trophy, Star, TrendingUp, Calendar, ChevronRight, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { Wand2, RefreshCw, CalendarDays, Heart, BarChart2, Zap } from "lucide-react";
+import FilterSection, { FilterOptions } from "@/components/mobile/filter-section";
+import MobilePredictionCard from "@/components/mobile/prediction-card";
+import { useAuth } from "@/hooks/use-auth";
 
-// Define the Prediction type
+// Types
 interface Prediction {
-  id: number;
+  id: string;
+  matchId: string;
   homeTeam: string;
   awayTeam: string;
   league: string;
   sport: string;
-  market: string;
+  date: string;
+  time: string;
   prediction: string;
-  odds: number;
   confidence: number;
-  startTime: string;
-  isCorrect: boolean | null;
-  isPremium?: boolean;
+  odds: number;
+  isPremium: boolean;
+  isLive?: boolean;
+  homeScore?: number | null;
+  awayScore?: number | null;
+  status?: "scheduled" | "live" | "completed" | "cancelled";
+  favorite?: boolean;
 }
+
+// Date options for filter
+const dateOptions = [
+  { label: "Today", value: "today" },
+  { label: "Tomorrow", value: "tomorrow" },
+  { label: "This Week", value: "week" },
+];
 
 export default function MobileHomePage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedTab, setSelectedTab] = useState<string>('today');
-  const [calendarOpen, setCalendarOpen] = useState<boolean>(false);
-  
-  // Format date for API request and display
-  const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-  const displayDate = format(selectedDate, 'MMM dd, yyyy');
-  const isCurrentDate = isToday(selectedDate);
-  
-  // Query for daily predictions
-  const { 
-    data: todaysPredictions = [], 
-    isLoading: isLoadingToday 
-  } = useQuery<Prediction[]>({
-    queryKey: ['/api/predictions/top-picks', formattedDate],
-    enabled: !!user,
+  const [isLoading, setIsLoading] = useState(false);
+  const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [filteredPredictions, setFilteredPredictions] = useState<Prediction[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState("today");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [filters, setFilters] = useState<FilterOptions>({
+    sports: ["football", "basketball", "tennis", "baseball", "hockey"],
+    confidenceLevel: 0,
+    premiumOnly: false,
+    sortBy: "time",
   });
-  
-  // Query for upcoming big events
-  const { 
-    data: bigEvents = [], 
-    isLoading: isLoadingEvents 
-  } = useQuery<Prediction[]>({
-    queryKey: ['/api/predictions/big-events'],
-    enabled: !!user,
-  });
-  
+
+  // Load predictions on mount
+  useEffect(() => {
+    loadPredictions();
+  }, []);
+
+  // Load initial predictions
+  const loadPredictions = (forceRefresh = false) => {
+    setIsLoading(true);
+    
+    // In production, this would fetch from an API
+    setTimeout(() => {
+      generateRandomPredictions(6);
+      setIsLoading(false);
+      
+      if (forceRefresh) {
+        toast({
+          title: "Predictions refreshed",
+          description: "Latest predictions loaded.",
+        });
+      }
+    }, 1000);
+  };
+
+  // Generate random predictions - DEMO ONLY
+  // In production, this would be real data from your API
+  const generateRandomPredictions = (count: number) => {
+    const sports = ["football", "basketball", "tennis", "baseball", "hockey"];
+    const footballTeams = [
+      ["Arsenal", "Chelsea", "Premier League"], 
+      ["Manchester City", "Liverpool", "Premier League"],
+      ["Real Madrid", "Barcelona", "La Liga"],
+      ["Bayern Munich", "Dortmund", "Bundesliga"],
+      ["PSG", "Lyon", "Ligue 1"],
+      ["Ajax", "PSV", "Eredivisie"],
+      ["Inter Milan", "AC Milan", "Serie A"],
+      ["Juventus", "Napoli", "Serie A"]
+    ];
+    const basketballTeams = [
+      ["LA Lakers", "Chicago Bulls", "NBA"],
+      ["Miami Heat", "Boston Celtics", "NBA"],
+      ["Golden State Warriors", "Phoenix Suns", "NBA"],
+      ["Milwaukee Bucks", "Brooklyn Nets", "NBA"]
+    ];
+    const tennisPlayers = [
+      ["Rafael Nadal", "Novak Djokovic", "Roland Garros"],
+      ["Roger Federer", "Andy Murray", "Wimbledon"],
+      ["Carlos Alcaraz", "Daniil Medvedev", "US Open"],
+      ["Jannik Sinner", "Alexander Zverev", "Australian Open"]
+    ];
+    const baseballTeams = [
+      ["New York Yankees", "Boston Red Sox", "MLB"],
+      ["Los Angeles Dodgers", "San Francisco Giants", "MLB"],
+      ["Chicago Cubs", "St. Louis Cardinals", "MLB"]
+    ];
+    const hockeyTeams = [
+      ["Toronto Maple Leafs", "Montreal Canadiens", "NHL"],
+      ["Boston Bruins", "New York Rangers", "NHL"],
+      ["Pittsburgh Penguins", "Washington Capitals", "NHL"]
+    ];
+    
+    const footballPredictions = ["Home Win", "Away Win", "Draw", "Both Teams to Score", "Over 2.5 Goals", "Under 2.5 Goals"];
+    const basketballPredictions = ["Home Win", "Away Win", "Over 220.5 Points", "Under 220.5 Points", "Handicap +5.5 Home", "Handicap -5.5 Away"];
+    const tennisPredictions = ["Home Win", "Away Win", "Over 22.5 Games", "Under 22.5 Games", "Straight Sets Win", "Match to go 3+ Sets"];
+    const baseballPredictions = ["Home Win", "Away Win", "Over 8.5 Runs", "Under 8.5 Runs", "Home Team Over 4.5 Runs", "No Run First Inning"];
+    const hockeyPredictions = ["Home Win", "Away Win", "Over 5.5 Goals", "Under 5.5 Goals", "Both Teams to Score 2+", "First Period Over 1.5"];
+    
+    // Generate dates for the next 7 days
+    const dates = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() + i);
+      return date.toISOString().split('T')[0];
+    });
+    
+    // Generate times
+    const times = ["12:00", "15:00", "17:30", "19:45", "20:30", "21:15"];
+    
+    // Generate new predictions
+    const newPredictions: Prediction[] = [];
+    
+    for (let i = 0; i < count; i++) {
+      const sportIndex = Math.floor(Math.random() * sports.length);
+      const sport = sports[sportIndex];
+      
+      let teams: string[] = [];
+      let predictions: string[] = [];
+      
+      // Get teams based on sport
+      switch (sport) {
+        case "football":
+          teams = footballTeams[Math.floor(Math.random() * footballTeams.length)];
+          predictions = footballPredictions;
+          break;
+        case "basketball":
+          teams = basketballTeams[Math.floor(Math.random() * basketballTeams.length)];
+          predictions = basketballPredictions;
+          break;
+        case "tennis":
+          teams = tennisPlayers[Math.floor(Math.random() * tennisPlayers.length)];
+          predictions = tennisPredictions;
+          break;
+        case "baseball":
+          teams = baseballTeams[Math.floor(Math.random() * baseballTeams.length)];
+          predictions = baseballPredictions;
+          break;
+        case "hockey":
+          teams = hockeyTeams[Math.floor(Math.random() * hockeyTeams.length)];
+          predictions = hockeyPredictions;
+          break;
+        default:
+          teams = footballTeams[Math.floor(Math.random() * footballTeams.length)];
+          predictions = footballPredictions;
+      }
+      
+      const date = dates[Math.floor(Math.random() * dates.length)];
+      const time = times[Math.floor(Math.random() * times.length)];
+      const prediction = predictions[Math.floor(Math.random() * predictions.length)];
+      const confidence = Math.floor(Math.random() * 41) + 60; // 60-100
+      const odds = (Math.random() * 3 + 1).toFixed(2);
+      const isPremium = Math.random() > 0.7; // 30% chance of being premium
+      
+      newPredictions.push({
+        id: `pred-${Date.now()}-${i}`,
+        matchId: `match-${Date.now()}-${i}`,
+        homeTeam: teams[0],
+        awayTeam: teams[1],
+        league: teams[2],
+        sport,
+        date,
+        time,
+        prediction,
+        confidence,
+        odds: parseFloat(odds),
+        isPremium,
+        status: "scheduled"
+      });
+    }
+    
+    setPredictions(newPredictions);
+    applyFilters(newPredictions, filters);
+  };
+
+  // Generate new AI predictions (auto-fill feature)
+  const handleGenerateAIPredictions = () => {
+    setIsGenerating(true);
+    
+    setTimeout(() => {
+      generateRandomPredictions(Math.floor(Math.random() * 4) + 3); // 3-6 random predictions
+      setIsGenerating(false);
+      
+      toast({
+        title: "New AI predictions generated",
+        description: "Our AI has created unique predictions just for you.",
+      });
+    }, 1500);
+  };
+
+  // Apply filters to predictions
+  const applyFilters = (preds: Prediction[], filterOptions: FilterOptions) => {
+    let filtered = [...preds];
+
+    // Filter by sports
+    if (filterOptions.sports.length > 0) {
+      filtered = filtered.filter(pred => filterOptions.sports.includes(pred.sport));
+    }
+
+    // Filter by confidence level
+    filtered = filtered.filter(pred => pred.confidence >= filterOptions.confidenceLevel);
+
+    // Filter by premium only
+    if (filterOptions.premiumOnly) {
+      filtered = filtered.filter(pred => pred.isPremium);
+    }
+
+    // Sort predictions
+    switch (filterOptions.sortBy) {
+      case "confidence":
+        filtered.sort((a, b) => b.confidence - a.confidence);
+        break;
+      case "odds":
+        filtered.sort((a, b) => b.odds - a.odds);
+        break;
+      case "time":
+      default:
+        // Sort by date and time
+        filtered.sort((a, b) => {
+          const dateA = new Date(`${a.date}T${a.time}`);
+          const dateB = new Date(`${b.date}T${b.time}`);
+          return dateA.getTime() - dateB.getTime();
+        });
+        break;
+    }
+
+    setFilteredPredictions(filtered);
+  };
+
+  // Handle filter changes
+  const handleFilterChange = (newFilters: FilterOptions) => {
+    setFilters(newFilters);
+    applyFilters(predictions, newFilters);
+  };
+
+  // Handle refresh
+  const handleRefresh = () => {
+    loadPredictions(true);
+  };
+
+  // Handle favorite toggle
+  const handleFavoriteToggle = (id: string) => {
+    setFavorites(prevFavs => {
+      if (prevFavs.includes(id)) {
+        toast({
+          title: "Removed from favorites",
+          description: "Prediction removed from your favorites.",
+        });
+        return prevFavs.filter(fav => fav !== id);
+      } else {
+        toast({
+          title: "Added to favorites",
+          description: "Prediction added to your favorites.",
+        });
+        return [...prevFavs, id];
+      }
+    });
+  };
+
+  // Handle date filter change
+  const handleDateChange = (date: string) => {
+    setSelectedDate(date);
+    // In a real app, this would filter by date
+  };
+
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
-    show: {
+    visible: { 
       opacity: 1,
       transition: {
         staggerChildren: 0.1
       }
     }
   };
-  
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
-  };
-  
-  // Handle date selection
-  const handleSelectDate = (date: 'today' | 'tomorrow' | 'weekend') => {
-    const today = new Date();
-    
-    switch (date) {
-      case 'today':
-        setSelectedDate(today);
-        break;
-      case 'tomorrow':
-        setSelectedDate(addDays(today, 1));
-        break;
-      case 'weekend':
-        // Find upcoming weekend (Saturday)
-        const daysUntilSaturday = (6 - today.getDay() + 7) % 7;
-        setSelectedDate(addDays(today, daysUntilSaturday));
-        break;
-    }
-    
-    setSelectedTab(date);
-  };
-  
-  // Handle calendar date selection
-  const handleCalendarChange = (newDate: Date | undefined) => {
-    if (newDate) {
-      setSelectedDate(newDate);
-      setCalendarOpen(false);
-      
-      // Reset the tab selection since we're using a custom date
-      setSelectedTab('');
-      
-      // Provide user feedback
-      toast({
-        title: `Date Selected: ${format(newDate, 'MMMM dd, yyyy')}`,
-        description: `Showing predictions for ${isToday(newDate) ? 'today' : format(newDate, 'MMM dd, yyyy')}`,
-      });
-    }
-  };
-  
+
   return (
-    <div className="pb-20">
-      {/* Header */}
-      <section className="mb-4 mt-2">
-        <div className="flex justify-between items-center mb-2">
-          <h1 className="text-xl font-bold">AI Predictions</h1>
-          <div className="flex items-center">
-            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-              <PopoverTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-8 flex gap-1 items-center"
-                >
-                  <Calendar size={14} />
-                  <span className="text-xs">
-                    {isCurrentDate ? 'Today' : format(selectedDate, 'MMM dd')}
-                  </span>
-                  <ChevronDown size={14} className="opacity-70" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-white rounded-md shadow-lg" align="end">
-                <CalendarComponent
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={handleCalendarChange}
-                  initialFocus
-                  className="rounded-md border-none"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+    <div className="container px-4 py-6 max-w-3xl mx-auto">
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h1 className="text-2xl font-bold">AI Predictions</h1>
+          <p className="text-sm text-muted-foreground">
+            Smart picks for today's matches
+          </p>
         </div>
-        <p className="text-sm text-muted-foreground mb-4">
-          Daily picks powered by our AI algorithm
-        </p>
-      </section>
-      
-      {/* Date quick filter */}
-      <section className="mb-6">
-        <Tabs 
-          value={selectedTab} 
-          onValueChange={(value) => handleSelectDate(value as 'today' | 'tomorrow' | 'weekend')}
-          className="w-full"
+        <Button 
+          variant="ghost" 
+          size="icon"
+          className="relative"
+          disabled={isLoading}
+          onClick={handleRefresh}
         >
-          <TabsList className="grid grid-cols-3 w-full">
-            <TabsTrigger value="today">Today</TabsTrigger>
-            <TabsTrigger value="tomorrow">Tomorrow</TabsTrigger>
-            <TabsTrigger value="weekend">Weekend</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </section>
-      
-      {/* Top Picks */}
-      <section className="mb-8">
-        <div className="flex justify-between items-center mb-3">
-          <h2 className="text-base font-semibold flex items-center gap-1">
-            <Trophy size={16} className="text-amber-500" />
-            Top Picks Today
-          </h2>
-          <Button variant="ghost" size="sm" className="h-7 text-xs px-2 flex items-center gap-1">
-            View All <ChevronRight size={14} />
+          <RefreshCw 
+            size={20} 
+            className={`${isLoading ? "animate-spin" : ""}`} 
+          />
+        </Button>
+      </div>
+
+      {/* Date Filter */}
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+        {dateOptions.map(option => (
+          <Button
+            key={option.value}
+            variant={selectedDate === option.value ? "default" : "outline"}
+            size="sm"
+            className="flex items-center gap-1 h-9"
+            onClick={() => handleDateChange(option.value)}
+          >
+            <CalendarDays size={14} />
+            {option.label}
           </Button>
-        </div>
+        ))}
+      </div>
+
+      {/* AutoFill AI Generator Button */}
+      <div className="mb-6">
+        <Button
+          variant="default"
+          size="lg"
+          className="w-full gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-md"
+          onClick={handleGenerateAIPredictions}
+          disabled={isGenerating}
+        >
+          {isGenerating ? (
+            <>
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="h-5 w-5 border-2 border-white border-t-transparent rounded-full"
+              />
+              <span>Generating predictions...</span>
+            </>
+          ) : (
+            <>
+              <Wand2 size={18} />
+              <span>AutoFill with AI Predictions</span>
+            </>
+          )}
+        </Button>
         
-        {isLoadingToday ? (
-          <div className="space-y-2">
-            {[1, 2, 3].map(i => (
-              <Skeleton key={i} className="h-24 w-full rounded-lg" />
-            ))}
-          </div>
-        ) : todaysPredictions.length > 0 ? (
+        <p className="text-xs text-muted-foreground text-center mt-1">
+          Get unique AI-generated predictions that change with each click
+        </p>
+      </div>
+
+      {/* Filters */}
+      <FilterSection onFilterChange={handleFilterChange} />
+
+      {/* Content */}
+      <AnimatePresence mode="wait">
+        {isLoading ? (
           <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex flex-col items-center justify-center py-12"
+          >
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+              className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full mb-4"
+            />
+            <p className="text-muted-foreground">Loading predictions...</p>
+          </motion.div>
+        ) : filteredPredictions.length > 0 ? (
+          <motion.div
+            key="predictions-list"
             variants={containerVariants}
             initial="hidden"
-            animate="show"
-            className="space-y-2"
+            animate="visible"
+            className="space-y-4"
           >
-            {todaysPredictions.slice(0, 3).map(prediction => (
-              <motion.div key={prediction.id} variants={itemVariants}>
-                <PredictionCard
-                  homeTeam={prediction.homeTeam}
-                  awayTeam={prediction.awayTeam}
-                  league={prediction.league}
-                  date={prediction.startTime}
-                  odds={prediction.odds}
-                  prediction={prediction.prediction}
-                />
-              </motion.div>
+            {filteredPredictions.map((prediction) => (
+              <MobilePredictionCard 
+                key={prediction.id}
+                prediction={prediction}
+                onFavoriteToggle={handleFavoriteToggle}
+                isFavorite={favorites.includes(prediction.id)}
+              />
             ))}
           </motion.div>
         ) : (
-          <div className="text-center p-6 bg-muted rounded-lg">
-            <p className="text-muted-foreground">No predictions available for today</p>
-          </div>
-        )}
-      </section>
-      
-      {/* Big Events */}
-      <section className="mb-8">
-        <div className="flex justify-between items-center mb-3">
-          <h2 className="text-base font-semibold flex items-center gap-1">
-            <Star size={16} className="text-amber-500" />
-            Big Events
-          </h2>
-          <Button variant="ghost" size="sm" className="h-7 text-xs px-2 flex items-center gap-1">
-            View All <ChevronRight size={14} />
-          </Button>
-        </div>
-        
-        {isLoadingEvents ? (
-          <div className="space-y-2">
-            {[1, 2].map(i => (
-              <Skeleton key={i} className="h-24 w-full rounded-lg" />
-            ))}
-          </div>
-        ) : bigEvents.length > 0 ? (
           <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="show"
-            className="space-y-2"
+            key="empty-state"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="flex flex-col items-center justify-center py-12 px-4 text-center"
           >
-            {bigEvents.slice(0, 2).map(prediction => (
-              <motion.div key={prediction.id} variants={itemVariants}>
-                <PredictionCard
-                  homeTeam={prediction.homeTeam}
-                  awayTeam={prediction.awayTeam}
-                  league={prediction.league}
-                  date={prediction.startTime}
-                  odds={prediction.odds}
-                  prediction={prediction.prediction}
-                />
-              </motion.div>
-            ))}
-          </motion.div>
-        ) : (
-          <div className="text-center p-6 bg-muted rounded-lg">
-            <p className="text-muted-foreground">No big events available</p>
-          </div>
-        )}
-      </section>
-      
-      {/* Performance Card */}
-      <section>
-        <div className="flex justify-between items-center mb-3">
-          <h2 className="text-base font-semibold flex items-center gap-1">
-            <TrendingUp size={16} className="text-green-500" />
-            AI Performance
-          </h2>
-        </div>
-        
-        <Card>
-          <CardHeader className="p-4 pb-0">
-            <CardTitle className="text-sm font-medium">Weekly Success Rate</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-3xl font-bold">72%</p>
-                <p className="text-xs text-muted-foreground">Success Rate</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold">+12%</p>
-                <p className="text-xs text-muted-foreground">Return on Investment</p>
-              </div>
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+              <BarChart2 className="w-8 h-8 text-primary" />
             </div>
-            
-            <Button 
-              className="w-full mt-4" 
-              variant="outline" 
-              size="sm"
-              onClick={() => window.location.href = '/history'}
+            <h3 className="text-lg font-medium mb-2">No predictions found</h3>
+            <p className="text-sm text-muted-foreground mb-6 max-w-xs">
+              Try changing your filters or click the AutoFill button to generate new predictions.
+            </p>
+            <Button
+              onClick={handleGenerateAIPredictions}
+              className="gap-2"
             >
-              View Detailed Performance
+              <Zap size={16} />
+              Generate New Predictions
             </Button>
-          </CardContent>
-        </Card>
-      </section>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

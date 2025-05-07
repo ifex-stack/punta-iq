@@ -1,398 +1,476 @@
-import React, { useState, useEffect } from "react";
-import { useLocation } from "wouter";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2, Info } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation } from 'wouter';
+import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Eye, EyeOff, ChevronLeft, ChevronRight, Brain } from 'lucide-react';
 
-// Login schema
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
+
+// Form validation schemas
 const loginSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  username: z.string().min(3, 'Username must be at least 3 characters'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
-// Registration schema
 const registerSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  username: z.string().min(3, 'Username must be at least 3 characters'),
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
   confirmPassword: z.string(),
 }).refine(data => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
-  const [location, navigate] = useLocation();
+  const [, navigate] = useLocation();
+  const { user, loginMutation, registerMutation } = useAuth();
   const { toast } = useToast();
-  const { user, loginMutation, registerMutation, isLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>("login");
-
+  const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
+  
   // Login form
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
-      password: "",
+      username: '',
+      password: '',
     },
   });
-
+  
   // Register form
   const registerForm = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      username: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
     },
   });
-
-  // Handle login submission
+  
+  // Auto-fill demo account
+  const handleDemoAccount = () => {
+    loginForm.setValue('username', 'demo_user');
+    loginForm.setValue('password', 'password123');
+    
+    toast({
+      title: "Demo Account",
+      description: "Demo account credentials applied. Click Login to continue.",
+    });
+  };
+  
+  // Handle login form submission
   const onLoginSubmit = (data: LoginFormValues) => {
-    loginMutation.mutate({
-      username: data.username,
-      password: data.password,
+    loginMutation.mutate(data, {
+      onSuccess: () => {
+        toast({
+          title: "Login successful",
+          description: "Welcome back!",
+        });
+        navigate('/');
+      },
     });
   };
-
-  // Handle registration submission
+  
+  // Handle register form submission
   const onRegisterSubmit = (data: RegisterFormValues) => {
-    registerMutation.mutate({
-      username: data.username,
-      email: data.email,
-      password: data.password,
+    const { confirmPassword, ...registerData } = data;
+    
+    registerMutation.mutate(registerData, {
+      onSuccess: () => {
+        toast({
+          title: "Registration successful",
+          description: "Your account has been created.",
+        });
+        navigate('/');
+      },
     });
   };
-
-  // Redirect if already logged in
-  useEffect(() => {
-    if (user) {
-      navigate("/");
+  
+  // Animation variants
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { 
+        duration: 0.6,
+        ease: "easeOut"
+      }
+    },
+    exit: { 
+      opacity: 0, 
+      y: -20,
+      transition: { 
+        duration: 0.2 
+      }
     }
-  }, [user, navigate]);
-
+  };
+  
+  // If user is authenticated, don't render auth page
+  if (user) return null;
+  
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background to-secondary/5">
-      <div className="w-full max-w-5xl">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-          {/* Auth Forms */}
-          <Card className="w-full">
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl font-bold">Welcome</CardTitle>
-              <CardDescription>
-                Sign in or create an account to access AI-powered sports predictions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs 
-                defaultValue="login" 
-                value={activeTab}
-                onValueChange={setActiveTab}
-                className="w-full"
-              >
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="login">Login</TabsTrigger>
-                  <TabsTrigger value="register">Register</TabsTrigger>
-                </TabsList>
-                
-                {/* Login Form */}
-                <TabsContent value="login" className="mt-4">
-                  <Form {...loginForm}>
-                    <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
-                      <FormField
-                        control={loginForm.control}
-                        name="username"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Username</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Enter your username" 
-                                {...field} 
-                                disabled={loginMutation.isPending}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={loginForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Password</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Enter your password" 
-                                type="password" 
-                                {...field} 
-                                disabled={loginMutation.isPending}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <div className="text-right">
-                        <Button 
-                          variant="link" 
-                          size="sm" 
-                          className="px-0 font-normal h-auto" 
-                          type="button"
-                        >
-                          Forgot password?
-                        </Button>
-                      </div>
-                      
-                      <Button 
-                        type="submit" 
-                        className="w-full"
-                        disabled={loginMutation.isPending}
-                      >
-                        {loginMutation.isPending ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Signing in...
-                          </>
-                        ) : "Sign in"}
-                      </Button>
-                      
-                      {/* Debug login for beta testing */}
-                        <div className="mt-4 space-y-3">
-                          <Separator />
-                          <Alert className="bg-muted/50">
-                            <Info className="h-4 w-4" />
-                            <AlertTitle className="flex items-center gap-2">
-                              Beta Testing <Badge variant="outline" className="text-xs">Development Only</Badge>
-                            </AlertTitle>
-                            <AlertDescription className="pt-2">
-                              Use these credentials for testing:
-                              <div className="mt-2 font-mono text-xs bg-background p-2 rounded">
-                                Username: beta_tester<br />
-                                Password: puntaiq_beta_test
-                              </div>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="mt-2 w-full text-xs"
-                                onClick={() => {
-                                  loginForm.setValue('username', 'beta_tester');
-                                  loginForm.setValue('password', 'puntaiq_beta_test');
-                                  loginMutation.mutate({
-                                    username: 'beta_tester',
-                                    password: 'puntaiq_beta_test'
-                                  });
-                                }}
-                                disabled={loginMutation.isPending}
-                              >
-                                {loginMutation.isPending ? (
-                                  <>
-                                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                                    Logging in...
-                                  </>
-                                ) : "Login as Beta Tester"}
-                              </Button>
-                            </AlertDescription>
-                          </Alert>
-                        </div>
-                      </form>
-                  </Form>
-                </TabsContent>
-                
-                {/* Register Form */}
-                <TabsContent value="register" className="mt-4">
-                  <Form {...registerForm}>
-                    <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
-                      <FormField
-                        control={registerForm.control}
-                        name="username"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Username</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Choose a username" 
-                                {...field} 
-                                disabled={registerMutation.isPending}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={registerForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Enter your email" 
-                                type="email" 
-                                {...field} 
-                                disabled={registerMutation.isPending}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={registerForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Password</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Create a password" 
-                                type="password" 
-                                {...field} 
-                                disabled={registerMutation.isPending}
-                              />
-                            </FormControl>
-                            <FormDescription className="text-xs">
-                              At least 6 characters
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={registerForm.control}
-                        name="confirmPassword"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Confirm Password</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Confirm your password" 
-                                type="password" 
-                                {...field} 
-                                disabled={registerMutation.isPending}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <Button 
-                        type="submit" 
-                        className="w-full"
-                        disabled={registerMutation.isPending}
-                      >
-                        {registerMutation.isPending ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Creating account...
-                          </>
-                        ) : "Create account"}
-                      </Button>
-                    </form>
-                  </Form>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-            <CardFooter>
-              <div className="text-sm text-muted-foreground text-center w-full">
-                By continuing, you agree to our{" "}
-                <Button variant="link" className="p-0 h-auto font-normal" onClick={() => window.open("/legal/terms_and_conditions.md", "_blank")}>
-                  Terms of Service
-                </Button>{" "}
-                and{" "}
-                <Button variant="link" className="p-0 h-auto font-normal" onClick={() => window.open("/legal/privacy_policy.md", "_blank")}>
-                  Privacy Policy
-                </Button>
-              </div>
-            </CardFooter>
-          </Card>
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-primary-900/10 to-background pt-10 px-6">
+      {/* App Logo/Branding */}
+      <motion.div 
+        className="mb-8 text-center"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.5 }}
+      >
+        <div className="inline-block">
+          <motion.div
+            className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary to-primary-600 mx-auto flex items-center justify-center shadow-md"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            animate={{ 
+              rotateZ: [0, 2, 0, -2, 0],
+              y: [0, -2, 0, 2, 0] 
+            }}
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <Brain className="h-8 w-8 text-white drop-shadow-md" />
+          </motion.div>
+        </div>
+        <h1 className="text-2xl font-bold mt-4 bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary-500">
+          PuntaIQ
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          AI-Powered Sports Predictions
+        </p>
+      </motion.div>
+      
+      {/* Auth Cards - Login/Register */}
+      <motion.div
+        className="flex-1 max-w-md w-full mx-auto"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3, duration: 0.5 }}
+      >
+        <Tabs
+          value={authTab}
+          onValueChange={(value) => setAuthTab(value as 'login' | 'register')}
+          className="w-full"
+        >
+          <TabsList className="grid grid-cols-2 w-full mb-6">
+            <TabsTrigger value="login" className="text-sm">Login</TabsTrigger>
+            <TabsTrigger value="register" className="text-sm">Register</TabsTrigger>
+          </TabsList>
           
-          {/* Hero section */}
-          <div className="p-6 hidden md:block">
-            <div className="space-y-4">
-              <h2 className="text-3xl font-bold tracking-tight">
-                AI-Powered Sports Predictions
-              </h2>
-              <p className="text-muted-foreground">
-                Access daily expert predictions to help you win more consistently
-              </p>
-              
-              <div className="mt-8 space-y-6">
-                <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="font-bold text-primary">1</span>
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Advanced AI Predictions</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Our expert systems analyze thousands of data points to deliver accurate predictions just for you
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="font-bold text-primary">2</span>
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Multiple Sports Coverage</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Get predictions for football, basketball, tennis, and more sports
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="font-bold text-primary">3</span>
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Subscription Tiers</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Choose from free, basic, pro, and elite plans to match your needs
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
-              <Separator className="my-6" />
-              
-              <div className="bg-muted/50 p-4 rounded-lg border">
-                <h4 className="font-medium mb-2">Already a member?</h4>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Sign in to access your predictions and account dashboard.
-                </p>
-                <Button variant="outline" onClick={() => setActiveTab("login")}>
-                  Sign in
-                </Button>
-              </div>
-            </div>
+          {/* Login Form */}
+          <AnimatePresence mode="wait">
+            {authTab === 'login' && (
+              <TabsContent value="login" className="mt-0">
+                <motion.div
+                  variants={cardVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  key="login-form"
+                >
+                  <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
+                    <CardContent className="pt-6">
+                      <Form {...loginForm}>
+                        <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                          <FormField
+                            control={loginForm.control}
+                            name="username"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Username</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    className="bg-background/50"
+                                    placeholder="Enter your username"
+                                    autoComplete="username"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={loginForm.control}
+                            name="password"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Password</FormLabel>
+                                <FormControl>
+                                  <div className="relative">
+                                    <Input
+                                      {...field}
+                                      className="bg-background/50 pr-10"
+                                      type={showPassword ? "text" : "password"}
+                                      placeholder="Enter your password"
+                                      autoComplete="current-password"
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                      onClick={() => setShowPassword(!showPassword)}
+                                    >
+                                      {showPassword ? (
+                                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                      ) : (
+                                        <Eye className="h-4 w-4 text-muted-foreground" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <div className="pt-2 space-y-4">
+                            <Button
+                              type="submit"
+                              className="w-full"
+                              disabled={loginMutation.isPending}
+                            >
+                              {loginMutation.isPending ? (
+                                <span className="flex items-center">
+                                  <motion.div
+                                    className="h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                  />
+                                  Logging in...
+                                </span>
+                              ) : (
+                                <>Login <ChevronRight className="ml-1 h-4 w-4" /></>
+                              )}
+                            </Button>
+                            
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full"
+                              onClick={handleDemoAccount}
+                            >
+                              Try Demo Account
+                            </Button>
+                          </div>
+                        </form>
+                      </Form>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </TabsContent>
+            )}
+            
+            {/* Register Form */}
+            {authTab === 'register' && (
+              <TabsContent value="register" className="mt-0">
+                <motion.div
+                  variants={cardVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  key="register-form"
+                >
+                  <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
+                    <CardContent className="pt-6">
+                      <Form {...registerForm}>
+                        <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
+                          <FormField
+                            control={registerForm.control}
+                            name="username"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Username</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    className="bg-background/50"
+                                    placeholder="Choose a username"
+                                    autoComplete="username"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={registerForm.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Email</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    className="bg-background/50"
+                                    type="email"
+                                    placeholder="Enter your email"
+                                    autoComplete="email"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={registerForm.control}
+                            name="password"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Password</FormLabel>
+                                <FormControl>
+                                  <div className="relative">
+                                    <Input
+                                      {...field}
+                                      className="bg-background/50 pr-10"
+                                      type={showPassword ? "text" : "password"}
+                                      placeholder="Create a password"
+                                      autoComplete="new-password"
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                      onClick={() => setShowPassword(!showPassword)}
+                                    >
+                                      {showPassword ? (
+                                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                      ) : (
+                                        <Eye className="h-4 w-4 text-muted-foreground" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={registerForm.control}
+                            name="confirmPassword"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Confirm Password</FormLabel>
+                                <FormControl>
+                                  <div className="relative">
+                                    <Input
+                                      {...field}
+                                      className="bg-background/50 pr-10"
+                                      type={showConfirmPassword ? "text" : "password"}
+                                      placeholder="Confirm your password"
+                                      autoComplete="new-password"
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    >
+                                      {showConfirmPassword ? (
+                                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                      ) : (
+                                        <Eye className="h-4 w-4 text-muted-foreground" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <div className="pt-2">
+                            <Button
+                              type="submit"
+                              className="w-full"
+                              disabled={registerMutation.isPending}
+                            >
+                              {registerMutation.isPending ? (
+                                <span className="flex items-center">
+                                  <motion.div
+                                    className="h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                  />
+                                  Creating account...
+                                </span>
+                              ) : (
+                                <>Create Account <ChevronRight className="ml-1 h-4 w-4" /></>
+                              )}
+                            </Button>
+                          </div>
+                        </form>
+                      </Form>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </TabsContent>
+            )}
+          </AnimatePresence>
+        </Tabs>
+      </motion.div>
+      
+      {/* App Features Showcase */}
+      <motion.div 
+        className="mt-8 mb-4 space-y-2"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5, duration: 0.5 }}
+      >
+        <div className="text-center">
+          <h2 className="text-sm font-medium mb-4">Powerful AI Predictions</h2>
+          <div className="flex justify-center space-x-4">
+            {['Football', 'Basketball', 'Tennis'].map((sport, i) => (
+              <motion.div 
+                key={sport}
+                className="px-3 py-1 bg-primary/10 rounded-full text-xs font-medium text-primary"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6 + (i * 0.1), duration: 0.3 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {sport}
+              </motion.div>
+            ))}
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
