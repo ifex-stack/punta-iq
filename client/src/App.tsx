@@ -105,11 +105,15 @@ const Router: React.FC = () => {
     .then(debugUser => {
       console.log("Auto-login as beta tester successful:", debugUser.username);
       console.log("User object:", debugUser);
-      queryClient.setQueryData(["/api/user"], debugUser);
-      // Remove the debug parameter from URL for cleaner experience
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.delete('debug');
-      window.history.replaceState({}, '', newUrl);
+      
+      // Short delay to show the spinner and give a better loading experience
+      setTimeout(() => {
+        queryClient.setQueryData(["/api/user"], debugUser);
+        // Remove the debug parameter from URL for cleaner experience
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('debug');
+        window.history.replaceState({}, '', newUrl);
+      }, 1500);
     })
     .catch(err => {
       console.error("Debug login failed:", err);

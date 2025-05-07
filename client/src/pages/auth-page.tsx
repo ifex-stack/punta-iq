@@ -104,12 +104,27 @@ export default function AuthPage() {
       if (response.ok) {
         const user = await response.json();
         console.log("Beta login successful:", user.username);
-        queryClient.setQueryData(["/api/user"], user);
+        
+        // Success toast
         toast({
           title: "Demo Login Successful",
           description: "You are now logged in as beta_tester",
         });
-        window.location.href = '/';
+        
+        // Additional loading toast with delay
+        toast({
+          title: "Preparing Demo Environment",
+          description: "Loading your personalized sports dashboard...",
+          duration: 3000,
+        });
+        
+        // Set user data immediately but delay redirect
+        queryClient.setQueryData(["/api/user"], user);
+        
+        // Delay redirect to show loading state
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 2000);
       } else {
         console.error("Beta login failed:", response.status);
         toast({
@@ -173,8 +188,19 @@ export default function AuthPage() {
           title: "Registration successful",
           description: "Your account has been created.",
         });
-        // Use direct window.location.href instead of navigate to force a full page reload
-        window.location.href = '/';
+        
+        // Show a loading state and delay redirect to allow user to enjoy the transition
+        const loadingToast = toast({
+          title: "Setting up your account",
+          description: "Preparing your personalized experience...",
+          duration: 3000,
+        });
+        
+        // Delayed redirect after successful registration
+        setTimeout(() => {
+          // Use direct window.location.href instead of navigate to force a full page reload
+          window.location.href = '/';
+        }, 2500);
       },
       onError: (error) => {
         console.error("Registration error:", error);
