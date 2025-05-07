@@ -12,37 +12,19 @@ import SubscriptionPage from "@/pages/subscription-page";
 import SubscriptionSuccessPage from "@/pages/subscription-success";
 import ProfilePage from "@/pages/profile-page";
 import FAQPage from "@/pages/faq-page";
-import HistoricalDashboard from "@/pages/historical-dashboard";
-import FantasyContestsPage from "@/pages/fantasy-contests-page";
-import FantasyContestCreatePage from "@/pages/fantasy-contest-create-page";
-import FantasyTeamBuildPage from "@/pages/fantasy-team-build-page";
-import AdvancedPredictionsPage from "@/pages/advanced-predictions-page";
-import PlayerComparisonPage from "@/pages/player-comparison-page";
-import PlayerAnalysisPage from "@/pages/player-analysis-page";
-import PlayerPerformancePage from "@/pages/player-performance-page";
 import ReferralsPage from "@/pages/referrals-page";
-import GamificationPage from "@/pages/gamification-page";
-import AdminPage from "@/pages/admin-page";
 import FeedbackPage from "@/pages/feedback";
-import AdvancedAnalysisPage from "@/pages/advanced-analysis-page";
-import AccumulatorsPage from "@/pages/enhanced-accumulators-page"; // Using enhanced version with animations and improved UX
-import AIAccumulatorsPage from "@/pages/ai-accumulators-page"; // New AI-powered accumulators
+import AccumulatorsPage from "@/pages/enhanced-accumulators-page";
 import LiveScorePage from "@/pages/livescore-page";
-import AIServiceStatusPage from "@/pages/ai-service-status-page";
-import TieredPredictionsPage from "@/pages/tiered-predictions-page"; // New tiered predictions page
-import AnalyticsDashboardPage from "@/pages/analytics-dashboard";
-import UserDemographicsPage from "@/pages/user-demographics-page";
-import MetricsPage from "@/pages/metrics-page";
 import PrivacyPolicyPage from "@/pages/legal/privacy-policy";
 import TermsOfServicePage from "@/pages/legal/terms-of-service";
 import ResponsibleGamblingPage from "@/pages/legal/responsible-gambling";
-import { UIShowcase } from "@/components/ui-showcase";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from 'next-themes';
 import { setNavigationState } from "./lib/error-handler";
 import { CurrencyProvider } from "./hooks/use-currency";
 
-// New components
+// Mobile-specific components
 import { OnboardingProvider, OnboardingReminderButton } from "@/components/onboarding/onboarding-provider";
 import { GuidedTour } from "@/components/onboarding/guided-tour";
 import { GettingStartedGuide } from "@/components/onboarding/getting-started-guide";
@@ -52,7 +34,7 @@ import { NotificationToastListener } from "@/components/notifications/notificati
 import { CurrencyRecommendationProvider } from "@/components/currency/currency-recommendation-provider";
 import { fetchFeatureFlags } from "./lib/feature-flags";
 
-// Mobile layout and pages
+// Primary mobile app layout and pages
 import MobileAppLayout from "@/components/layout/mobile-app-layout";
 import MobileHomePage from "@/pages/mobile-home-page";
 import MobileExplorePage from "@/pages/mobile-explore-page";
@@ -100,47 +82,32 @@ const Router: React.FC = () => {
             </div>
           }>
             <Switch>
+              {/* Primary Mobile App Navigation */}
               <ProtectedRoute path="/" component={MobileHomePage} />
               <ProtectedRoute path="/explore" component={MobileExplorePage} />
               <ProtectedRoute path="/history" component={HistoryPage} />
               <ProtectedRoute path="/favorites" component={FavoritesPage} />
+              <ProtectedRoute path="/profile" component={ProfilePage} />
               <ProtectedRoute path="/pricing" component={PricingPage} />
-              <ProtectedRoute path="/predictions" component={MobileHomePage} />
               
-              {/* Legacy routes - redirecting to new equivalents */}
-              <ProtectedRoute path="/my-picks" component={FavoritesPage} />
-              <ProtectedRoute path="/performance" component={HistoryPage} />
-              <ProtectedRoute path="/predictions/advanced" component={AdvancedPredictionsPage} />
-              <ProtectedRoute path="/advanced-analysis" component={AdvancedAnalysisPage} />
+              {/* Secondary Mobile App Pages */}
               <ProtectedRoute path="/accumulators" component={AccumulatorsPage} />
-              <Route path="/ai-accumulators" component={AIAccumulatorsPage} />
-              <ProtectedRoute path="/predictions/tiered" component={TieredPredictionsPage} />
-              <ProtectedRoute path="/fantasy/contests" component={FantasyContestsPage} />
-              <ProtectedRoute path="/fantasy/contests/create" component={FantasyContestCreatePage} />
-              <ProtectedRoute path="/fantasy/teams/:teamId/build" component={FantasyTeamBuildPage} />
-              <ProtectedRoute path="/fantasy/player-comparison" component={PlayerComparisonPage} />
-              <ProtectedRoute path="/fantasy/player-analysis" component={PlayerAnalysisPage} />
-              <ProtectedRoute path="/fantasy/player-performance" component={PlayerPerformancePage} />
-              <Route path="/fantasy" component={FantasyContestsPage} />
               <Route path="/subscription" component={SubscriptionPage} />
               <Route path="/subscription-success" component={SubscriptionSuccessPage} />
-              <ProtectedRoute path="/profile" component={ProfilePage} />
               <ProtectedRoute path="/referrals" component={ReferralsPage} />
-              <ProtectedRoute path="/gamification" component={GamificationPage} />
-              <ProtectedRoute path="/admin" component={AdminPage} />
-              <ProtectedRoute path="/analytics-dashboard" component={AnalyticsDashboardPage} />
-              <ProtectedRoute path="/user-demographics" component={UserDemographicsPage} />
-              <Route path="/historical-dashboard" component={HistoricalDashboard} />
-              <ProtectedRoute path="/metrics" component={MetricsPage} />
               <Route path="/livescore" component={LiveScorePage} />
-              <Route path="/ai-service-status" component={AIServiceStatusPage} />
+              
+              {/* Support & Legal Pages */}
               <Route path="/faq" component={FAQPage} />
               <Route path="/feedback" component={FeedbackPage} />
               <Route path="/legal/privacy-policy" component={PrivacyPolicyPage} />
               <Route path="/legal/terms-of-service" component={TermsOfServicePage} />
               <Route path="/legal/responsible-gambling" component={ResponsibleGamblingPage} />
-              <Route path="/ui-showcase" component={UIShowcase} />
-              <Route path="/login-test" component={React.lazy(() => import('./pages/login-test-page'))} />
+              
+              {/* Legacy Redirects */}
+              <ProtectedRoute path="/predictions" component={MobileHomePage} />
+              <ProtectedRoute path="/my-picks" component={FavoritesPage} />
+              
               <Route component={NotFound} />
             </Switch>
           </React.Suspense>
