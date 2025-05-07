@@ -132,8 +132,8 @@ const Router: React.FC = () => {
                 <ProtectedRoute path="/fantasy/player-analysis" component={PlayerAnalysisPage} />
                 <ProtectedRoute path="/fantasy/player-performance" component={PlayerPerformancePage} />
                 <Route path="/fantasy" component={FantasyContestsPage} />
-                <ProtectedRoute path="/subscription" component={SubscriptionPage} />
-                <ProtectedRoute path="/subscription-success" component={SubscriptionSuccessPage} />
+                <Route path="/subscription" component={SubscriptionPage} />
+                <Route path="/subscription-success" component={SubscriptionSuccessPage} />
                 <ProtectedRoute path="/profile" component={ProfilePage} />
                 <ProtectedRoute path="/referrals" component={ReferralsPage} />
                 <ProtectedRoute path="/gamification" component={GamificationPage} />
@@ -191,8 +191,8 @@ const Router: React.FC = () => {
               <ProtectedRoute path="/fantasy/player-analysis" component={PlayerAnalysisPage} />
               <ProtectedRoute path="/fantasy/player-performance" component={PlayerPerformancePage} />
               <Route path="/fantasy" component={FantasyContestsPage} />
-              <ProtectedRoute path="/subscription" component={SubscriptionPage} />
-              <ProtectedRoute path="/subscription-success" component={SubscriptionSuccessPage} />
+              <Route path="/subscription" component={SubscriptionPage} />
+              <Route path="/subscription-success" component={SubscriptionSuccessPage} />
               <ProtectedRoute path="/profile" component={ProfilePage} />
               <ProtectedRoute path="/referrals" component={ReferralsPage} />
               <ProtectedRoute path="/gamification" component={GamificationPage} />
