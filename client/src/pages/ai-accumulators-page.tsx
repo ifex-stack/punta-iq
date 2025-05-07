@@ -70,14 +70,21 @@ export default function AIAccumulatorsPage() {
     { id: 'volleyball', name: 'Volleyball', icon: '🏐' },
   ];
 
-  // Mock mutation for generating AI accumulators
+  // Enhanced mutation for generating AI accumulators
   const generateMutation = useMutation({
     mutationFn: async () => {
       setIsGenerating(true);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2500));
+      // Show progress notification
+      toast({
+        title: "AI Processing",
+        description: "Analyzing matches and calculating probabilities...",
+      });
       
+      // Simulate API call with realistic delay
+      await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
+      
+      // Enhanced prediction data with more detailed sport information
       const mockPredictions: Prediction[] = [
         {
           id: 1,
@@ -89,7 +96,7 @@ export default function AIAccumulatorsPage() {
           prediction: 'Home Win',
           odds: 2.1,
           confidence: 78,
-          analysis: 'Manchester United has won 4 of their last 5 home games and Chelsea has struggled in away fixtures recently.'
+          analysis: 'Manchester United has won 4 of their last 5 home games and Chelsea has struggled in away fixtures recently. United\'s midfield has shown improved form in the last 3 matches, creating more high-quality chances.'
         },
         {
           id: 2,
@@ -101,7 +108,7 @@ export default function AIAccumulatorsPage() {
           prediction: 'Over 220.5 Points',
           odds: 1.85,
           confidence: 82,
-          analysis: 'Both teams are in the top 5 for offensive efficiency and have hit the over in 7 of their last 10 games.'
+          analysis: 'Both teams are in the top 5 for offensive efficiency and have hit the over in 7 of their last 10 games. Key players are healthy, and the last 5 head-to-head matchups averaged 232.6 points.'
         },
         {
           id: 3,
@@ -113,7 +120,7 @@ export default function AIAccumulatorsPage() {
           prediction: 'Both Teams To Score',
           odds: 1.75,
           confidence: 76,
-          analysis: 'Barcelona has scored in their last 12 home games while Atletico has found the net in 9 consecutive away matches.'
+          analysis: 'Barcelona has scored in their last 12 home games while Atletico has found the net in 9 consecutive away matches. Defensive injuries on both sides increase the likelihood of goals being conceded.'
         },
         {
           id: 4,
@@ -125,21 +132,122 @@ export default function AIAccumulatorsPage() {
           prediction: 'Home Win',
           odds: 1.65,
           confidence: 85,
-          analysis: 'Boston has dominated at home this season with a 18-3 record and has won the last 5 meetings against Miami.'
+          analysis: 'Boston has dominated at home this season with a 18-3 record and has won the last 5 meetings against Miami. Their defensive rating at home is 105.2, which is 8.4 points better than their away rating.'
+        },
+        {
+          id: 5,
+          homeTeam: 'Paris Saint-Germain',
+          awayTeam: 'Marseille',
+          league: 'Ligue 1',
+          sport: 'football',
+          date: new Date(Date.now() + 86400000 * 4).toISOString(),
+          prediction: 'Over 2.5 Goals',
+          odds: 1.95,
+          confidence: 81,
+          analysis: 'PSG and Marseille fixtures have featured over 2.5 goals in 75% of their last 12 meetings. Both teams are averaging 2+ goals scored per game this season.'
+        },
+        {
+          id: 6,
+          homeTeam: 'Golden State Warriors',
+          awayTeam: 'Dallas Mavericks',
+          league: 'NBA',
+          sport: 'basketball',
+          date: new Date(Date.now() + 86400000 * 3).toISOString(),
+          prediction: 'Home Team Over 115.5',
+          odds: 1.9,
+          confidence: 79,
+          analysis: 'Warriors are averaging 118.7 points per game at home this season. Dallas has conceded 117+ points in 6 of their last 8 away games.'
+        },
+        {
+          id: 7,
+          homeTeam: 'Bayern Munich',
+          awayTeam: 'Borussia Dortmund',
+          league: 'Bundesliga',
+          sport: 'football',
+          date: new Date(Date.now() + 86400000 * 5).toISOString(),
+          prediction: 'Over 3.5 Goals',
+          odds: 2.05,
+          confidence: 77,
+          analysis: 'Der Klassiker has produced an average of 4.2 goals per game in the last 10 meetings. Both teams are in excellent offensive form, scoring consistently.'
+        },
+        {
+          id: 8,
+          homeTeam: 'Philadelphia Eagles',
+          awayTeam: 'Dallas Cowboys',
+          league: 'NFL',
+          sport: 'american-football',
+          date: new Date(Date.now() + 86400000 * 4).toISOString(),
+          prediction: 'Home Win',
+          odds: 2.25,
+          confidence: 73,
+          analysis: 'Eagles have a strong home record this season and major statistical advantages in rushing offense and defensive pressure rate.'
+        },
+        {
+          id: 9,
+          homeTeam: 'Liverpool',
+          awayTeam: 'Arsenal',
+          league: 'Premier League',
+          sport: 'football',
+          date: new Date(Date.now() + 86400000 * 6).toISOString(),
+          prediction: 'Home Win or Draw',
+          odds: 1.55,
+          confidence: 83,
+          analysis: 'Liverpool is unbeaten in their last 28 home Premier League games. Arsenal has dropped points in 4 of their last 6 away fixtures.'
+        },
+        {
+          id: 10,
+          homeTeam: 'Phoenix Suns',
+          awayTeam: 'Denver Nuggets',
+          league: 'NBA',
+          sport: 'basketball',
+          date: new Date(Date.now() + 86400000 * 5).toISOString(),
+          prediction: 'Under 225.5 Points',
+          odds: 1.9,
+          confidence: 75,
+          analysis: 'Recent matchups between these teams have trended under, with an average total of 218.3 points in their last 6 games.'
         }
       ];
       
+      // Filter predictions by selected sports if specified
+      let filteredPredictions = mockPredictions;
+      if (selectedSports.length > 0) {
+        filteredPredictions = mockPredictions.filter(p => selectedSports.includes(p.sport));
+      }
+      
+      // Filter by confidence level if set
+      if (confidenceLevel > 0) {
+        filteredPredictions = filteredPredictions.filter(p => p.confidence >= confidenceLevel);
+      }
+      
       // Return randomly selected predictions based on maxSelections
-      const selectedPredictions = mockPredictions
+      const selectedPredictions = filteredPredictions
         .sort(() => Math.random() - 0.5)
         .slice(0, maxSelections);
       
+      // If we don't have enough predictions after filtering, add some from the original pool
+      if (selectedPredictions.length < maxSelections && selectedPredictions.length < filteredPredictions.length) {
+        const remaining = mockPredictions
+          .filter(p => !selectedPredictions.some(sp => sp.id === p.id))
+          .sort(() => Math.random() - 0.5)
+          .slice(0, maxSelections - selectedPredictions.length);
+        
+        selectedPredictions.push(...remaining);
+      }
+      
+      // Calculate accumulator odds and confidence
       const totalOdds = selectedPredictions.reduce((acc, pred) => acc * pred.odds, 1);
-      const avgConfidence = selectedPredictions.reduce((acc, pred) => acc + pred.confidence, 0) / selectedPredictions.length;
+      const avgConfidence = selectedPredictions.reduce((acc, pred) => acc + pred.confidence, 0) / 
+        (selectedPredictions.length || 1); // Avoid division by zero
+      
+      // Create dynamic name based on sports included
+      const sportNames = Array.from(new Set(selectedPredictions.map(p => p.sport)));
+      const sportDisplay = sportNames.length > 1 
+        ? 'Multi-Sport' 
+        : sportNames[0]?.charAt(0).toUpperCase() + sportNames[0]?.slice(1) || 'Sports';
       
       return {
         id: Date.now(),
-        name: `AI Accumulator #${Math.floor(Math.random() * 1000)}`,
+        name: `${sportDisplay} Accumulator #${Math.floor(Math.random() * 1000)}`,
         predictions: selectedPredictions,
         totalOdds: parseFloat(totalOdds.toFixed(2)),
         confidenceScore: Math.round(avgConfidence),
@@ -348,23 +456,43 @@ export default function AIAccumulatorsPage() {
                 
                 <CardFooter>
                   <Button 
-                    className="w-full" 
+                    className="w-full relative overflow-hidden group" 
                     size="lg"
                     disabled={isGenerating || selectedSports.length === 0}
                     onClick={generateAccumulator}
                   >
                     {isGenerating ? (
                       <>
-                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                        Generating Accumulator...
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin relative z-10" />
+                        <span className="relative z-10">Generating Accumulator...</span>
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/40 via-purple-500/40 to-pink-500/40 opacity-75 animate-pulse"></div>
                       </>
                     ) : (
                       <>
-                        <Brain className="h-4 w-4 mr-2" />
-                        Generate AI Accumulator
+                        <Brain className="h-4 w-4 mr-2 group-hover:animate-pulse relative z-10" />
+                        <span className="relative z-10">Generate AI Accumulator</span>
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/0 via-purple-600/0 to-pink-600/0 group-hover:from-blue-600/20 group-hover:via-purple-600/20 group-hover:to-pink-600/20 transition-opacity duration-300"></div>
                       </>
                     )}
                   </Button>
+                  
+                  {/* AI Processing indicator - only shown when generating */}
+                  {isGenerating && (
+                    <div className="mt-4 bg-muted/30 rounded-lg p-3">
+                      <div className="flex items-start gap-2">
+                        <Brain className="h-5 w-5 text-primary mt-0.5 animate-pulse" />
+                        <div>
+                          <p className="text-sm font-medium">AI Processing</p>
+                          <p className="text-xs text-muted-foreground">
+                            Analyzing fixtures, historical data, and current form...
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-3 h-1 w-full bg-muted overflow-hidden rounded-full">
+                        <div className="h-full bg-primary animate-[gradient_2s_ease-in-out_infinite]" style={{ width: '60%' }}></div>
+                      </div>
+                    </div>
+                  )}
                 </CardFooter>
               </Card>
             </motion.div>
