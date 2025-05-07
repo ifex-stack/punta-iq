@@ -1,227 +1,75 @@
+import React, { useState, useEffect } from "react";
 import { Route, Switch, useLocation } from "wouter";
-import React, { useEffect, Suspense, useState } from "react";
-import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { ThemeProvider } from 'next-themes';
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
-import { NotificationsProvider } from "@/hooks/use-notifications";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
-import SubscriptionPage from "@/pages/subscription-page";
-import SubscriptionSuccessPage from "@/pages/subscription-success";
-import ProfilePage from "@/pages/profile-page";
-import FAQPage from "@/pages/faq-page";
-import ReferralsPage from "@/pages/referrals-page";
-import FeedbackPage from "@/pages/feedback";
-import AccumulatorsPage from "@/pages/enhanced-accumulators-page";
-import AIAccumulatorsPage from "@/pages/ai-accumulators-page";
-import LiveScorePage from "@/pages/livescore-page";
-import PrivacyPolicyPage from "@/pages/legal/privacy-policy";
-import TermsOfServicePage from "@/pages/legal/terms-of-service";
-import ResponsibleGamblingPage from "@/pages/legal/responsible-gambling";
-import { ProtectedRoute } from "./lib/protected-route";
-import { ThemeProvider } from 'next-themes';
-import { setNavigationState } from "./lib/error-handler";
-import { CurrencyProvider } from "./hooks/use-currency";
-import { motion, AnimatePresence } from "framer-motion";
 
-// Mobile-specific components
-import SplashScreen from "@/components/splash-screen";
-import { OnboardingProvider, OnboardingReminderButton } from "@/components/onboarding/onboarding-provider";
-import { GuidedTour } from "@/components/onboarding/guided-tour";
-import { GettingStartedGuide } from "@/components/onboarding/getting-started-guide";
-import { NotificationProvider } from "@/components/notifications/notification-provider";
-import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
-import { NotificationToastListener } from "@/components/notifications/notification-toast";
-import { CurrencyRecommendationProvider } from "@/components/currency/currency-recommendation-provider";
-import { fetchFeatureFlags } from "./lib/feature-flags";
-
-// Primary mobile app layout and pages
-import MobileAppLayout from "@/components/layout/mobile-app-layout";
-import MobileHomePage from "@/pages/mobile-home-page";
-import MobileExplorePage from "@/pages/mobile-explore-page";
-import HistoryPage from "@/pages/history-page";
-import FavoritesPage from "@/pages/favorites-page";
-import PricingPage from "@/pages/pricing-page";
-
-// Create typed component definition to fix TypeScript errors
-const Router: React.FC = () => {
-  // Track location changes to know when we're navigating
+// Simple Router component
+const Router = () => {
   const [location] = useLocation();
   const { user } = useAuth();
-  const [showSplash, setShowSplash] = useState(true);
   
-  // Set navigation state when location changes
-  useEffect(() => {
-    // Mark that we're navigating (will suppress errors during this time)
-    setNavigationState(true);
-    
-    // Clean up navigation flag after a delay
-    const timeoutId = setTimeout(() => {
-      setNavigationState(false);
-    }, 1000);
-    
-    return () => clearTimeout(timeoutId);
-  }, [location]);
-  
-  // Render splash screen first
-  if (showSplash && location !== '/auth') {
-    return <SplashScreen onComplete={() => setShowSplash(false)} />;
-  }
-  
-  // Explicitly handle auth page to prevent showing navigation bars
-  if (location === '/auth') {
-    return (
-      <div className="flex h-screen">
-        <div className="flex-1 relative">
-          <AuthPage />
-        </div>
-      </div>
-    );
-  }
-  
-  // Check if the user is accessing with ?debug=true in URL to bypass login
-  // This is only for development and testing purposes
+  // Special debug mode handling
   const urlParams = new URLSearchParams(window.location.search);
   const debugMode = urlParams.get('debug') === 'true';
-
-  if (debugMode && !user) {
-    console.log("DEBUG MODE ACTIVATED - Bypassing authentication");
-    // Create a debug login request when in debug mode
-    fetch('/api/beta_login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include'
-    })
-    .then(res => res.json())
-    .then(debugUser => {
-      console.log("Auto-login as beta tester successful:", debugUser.username);
-      queryClient.setQueryData(["/api/user"], debugUser);
-      // Remove the debug parameter from URL for cleaner experience
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.delete('debug');
-      window.history.replaceState({}, '', newUrl);
-    })
-    .catch(err => {
-      console.error("Debug login failed:", err);
-    });
-    
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Debug Login</h2>
-          <p className="text-sm text-muted-foreground">Logging in as beta tester automatically...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Normal flow - if user is not logged in, redirect to auth page
-  // But only if the current location is not already the auth page
-  if (!user && location !== '/auth') {
-    window.location.href = '/auth';
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-      </div>
-    );
+  
+  useEffect(() => {
+    if (debugMode && !user) {
+      console.log("DEBUG MODE ACTIVATED - Trying beta login");
+      
+      fetch('/api/beta_login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      })
+      .then(res => res.json())
+      .then(data => {
+        console.log("Auto-login successful", data);
+        queryClient.setQueryData(["/api/user"], data);
+        window.location.href = '/';
+      })
+      .catch(err => {
+        console.error("Debug login failed:", err);
+      });
+    }
+  }, [debugMode, user]);
+  
+  // Simple auth routing
+  if (location === '/auth') {
+    return <AuthPage />;
   }
   
-  // Only use mobile layout - this is a mobile-first/mobile-only application
+  // If not on auth page and not logged in, redirect to auth
+  if (!user && !debugMode) {
+    window.location.href = '/auth';
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  }
+  
+  // Very simple router
   return (
-    <div className="flex h-screen">
-      <div className="flex-1 relative">
-        <MobileAppLayout>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={location}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <React.Suspense fallback={
-                <div className="flex items-center justify-center min-h-screen">
-                  <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-                </div>
-              }>
-                <Switch>
-                  {/* Primary Mobile App Navigation */}
-                  <Route path="/" component={MobileHomePage} />
-                  <Route path="/explore" component={MobileExplorePage} />
-                  <Route path="/history" component={HistoryPage} />
-                  <Route path="/favorites" component={FavoritesPage} />
-                  <Route path="/profile" component={ProfilePage} />
-                  <Route path="/pricing" component={PricingPage} />
-                  
-                  {/* Secondary Mobile App Pages */}
-                  <Route path="/accumulators" component={AccumulatorsPage} />
-                  <Route path="/ai-accumulators" component={AIAccumulatorsPage} />
-                  <Route path="/subscription" component={SubscriptionPage} />
-                  <Route path="/subscription-success" component={SubscriptionSuccessPage} />
-                  <Route path="/referrals" component={ReferralsPage} />
-                  <Route path="/livescore" component={LiveScorePage} />
-                  
-                  {/* Support & Legal Pages */}
-                  <Route path="/faq" component={FAQPage} />
-                  <Route path="/feedback" component={FeedbackPage} />
-                  <Route path="/legal/privacy-policy" component={PrivacyPolicyPage} />
-                  <Route path="/legal/terms-of-service" component={TermsOfServicePage} />
-                  <Route path="/legal/responsible-gambling" component={ResponsibleGamblingPage} />
-                  
-                  {/* Legacy Redirects */}
-                  <Route path="/predictions" component={MobileHomePage} />
-                  <Route path="/my-picks" component={FavoritesPage} />
-                  
-                  <Route component={NotFound} />
-                </Switch>
-              </React.Suspense>
-            </motion.div>
-          </AnimatePresence>
-        </MobileAppLayout>
-        
-        {/* Mobile-optimized notifications and onboarding components */}
-        <div className="fixed right-4 top-4 z-40 scale-90 origin-top-right">
-          <NotificationDropdown />
-        </div>
-        <GuidedTour />
-        <GettingStartedGuide />
-        <OnboardingReminderButton />
-      </div>
+    <div>
+      <Switch>
+        <Route path="/" component={() => <div className="p-4"><h1 className="text-2xl mb-4">Welcome to PuntaIQ</h1><p>You are logged in as {user?.username || 'guest'}</p></div>} />
+        <Route path="/auth" component={AuthPage} />
+        <Route component={NotFound} />
+      </Switch>
     </div>
   );
-}
+};
 
+// Simple App component
 function App() {
-  // Fetch feature flags on app initialization
-  useEffect(() => {
-    fetchFeatureFlags()
-      .then(() => console.log("Feature flags loaded"))
-      .catch(err => console.error("Failed to load feature flags:", err));
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="system" enableSystem={true} attribute="class">
-        <TooltipProvider>
-          <AuthProvider>
-            <CurrencyProvider>
-              <CurrencyRecommendationProvider>
-                <NotificationsProvider>
-                  <NotificationProvider>
-                    <OnboardingProvider>
-                      <Toaster />
-                      <NotificationToastListener />
-                      <Router />
-                    </OnboardingProvider>
-                  </NotificationProvider>
-                </NotificationsProvider>
-              </CurrencyRecommendationProvider>
-            </CurrencyProvider>
-          </AuthProvider>
-        </TooltipProvider>
+      <ThemeProvider defaultTheme="dark" attribute="class">
+        <AuthProvider>
+          <Toaster />
+          <Router />
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
