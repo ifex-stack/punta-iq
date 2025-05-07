@@ -132,13 +132,24 @@ export default function AuthPage() {
   const onLoginSubmit = (data: LoginFormValues) => {
     console.log("Login attempt with:", data.username);
     loginMutation.mutate(data, {
-      onSuccess: () => {
+      onSuccess: (user) => {
         toast({
           title: "Login successful",
           description: "Welcome back!",
         });
-        // Use direct window.location.href instead of navigate to force a full page reload
-        window.location.href = '/';
+        
+        // Show a loading state and delay redirect to allow user to enjoy the transition
+        const loadingToast = toast({
+          title: "Preparing your dashboard",
+          description: "Loading your personalized predictions...",
+          duration: 3000,
+        });
+        
+        // Delayed redirect after successful login to allow user to see the welcome message
+        setTimeout(() => {
+          // Use direct window.location.href instead of navigate to force a full page reload
+          window.location.href = '/';
+        }, 2500);
       },
       onError: (error) => {
         console.error("Login error:", error);

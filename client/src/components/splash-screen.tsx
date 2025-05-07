@@ -7,7 +7,7 @@ interface SplashScreenProps {
   duration?: number;
 }
 
-export default function SplashScreen({ onComplete, duration = 2500 }: SplashScreenProps) {
+export default function SplashScreen({ onComplete, duration = 3500 }: SplashScreenProps) {
   const [, navigate] = useLocation();
   const [progress, setProgress] = useState(0);
   
