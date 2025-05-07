@@ -70,13 +70,23 @@ const Router: React.FC = () => {
     return <SplashScreen onComplete={() => setShowSplash(false)} />;
   }
   
-  // Don't wrap auth page in AppLayout to prevent showing navigation bars
-  if (location === '/auth' || !user) {
+  // Explicitly handle auth page to prevent showing navigation bars
+  if (location === '/auth') {
     return (
       <div className="flex h-screen">
         <div className="flex-1 relative">
           <AuthPage />
         </div>
+      </div>
+    );
+  }
+  
+  // If user is not logged in, redirect to auth page
+  if (!user) {
+    window.location.href = '/auth';
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
       </div>
     );
   }

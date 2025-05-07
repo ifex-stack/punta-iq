@@ -51,9 +51,10 @@ export default function AuthPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      navigate('/');
+      console.log("User already logged in, redirecting to home page");
+      window.location.href = '/';
     }
-  }, [user, navigate]);
+  }, [user]);
   
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -88,14 +89,24 @@ export default function AuthPage() {
   
   // Handle login form submission
   const onLoginSubmit = (data: LoginFormValues) => {
+    console.log("Login attempt with:", data.username);
     loginMutation.mutate(data, {
       onSuccess: () => {
         toast({
           title: "Login successful",
           description: "Welcome back!",
         });
-        navigate('/');
+        // Use direct window.location.href instead of navigate to force a full page reload
+        window.location.href = '/';
       },
+      onError: (error) => {
+        console.error("Login error:", error);
+        toast({
+          title: "Login failed",
+          description: error.message || "Unable to login. Please try again.",
+          variant: "destructive",
+        });
+      }
     });
   };
   
@@ -103,14 +114,24 @@ export default function AuthPage() {
   const onRegisterSubmit = (data: RegisterFormValues) => {
     const { confirmPassword, ...registerData } = data;
     
+    console.log("Registration attempt with:", registerData.username);
     registerMutation.mutate(registerData, {
       onSuccess: () => {
         toast({
           title: "Registration successful",
           description: "Your account has been created.",
         });
-        navigate('/');
+        // Use direct window.location.href instead of navigate to force a full page reload
+        window.location.href = '/';
       },
+      onError: (error) => {
+        console.error("Registration error:", error);
+        toast({
+          title: "Registration failed",
+          description: error.message || "Unable to create account. Please try again.",
+          variant: "destructive",
+        });
+      }
     });
   };
   
