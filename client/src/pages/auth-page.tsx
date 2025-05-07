@@ -341,6 +341,19 @@ export default function AuthPage() {
                             >
                               Try Demo Account
                             </Button>
+                            
+                            <div className="mt-4 text-center">
+                              <a 
+                                href="/?debug=true" 
+                                className="text-xs text-muted-foreground underline hover:text-primary"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  window.location.href = '/?debug=true';
+                                }}
+                              >
+                                Quick Login (Debug Mode)
+                              </a>
+                            </div>
                           </div>
                         </form>
                       </Form>

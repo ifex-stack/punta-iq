@@ -482,7 +482,9 @@ export function setupAuth(app: Express) {
   });
 
   // Add a special beta tester login endpoint that doesn't require authentication
+  // This is specifically for testing and development purposes
   app.post("/api/beta_login", (req, res) => {
+    console.log("Beta tester login request received");
     // Create a debug user for beta testers
     const debugUser: SelectUser = {
       id: 9999,

@@ -81,7 +81,44 @@ const Router: React.FC = () => {
     );
   }
   
-  // If user is not logged in, redirect to auth page
+  // Check if the user is accessing with ?debug=true in URL to bypass login
+  // This is only for development and testing purposes
+  const urlParams = new URLSearchParams(window.location.search);
+  const debugMode = urlParams.get('debug') === 'true';
+
+  if (debugMode && !user) {
+    console.log("DEBUG MODE ACTIVATED - Bypassing authentication");
+    // Create a debug login request when in debug mode
+    fetch('/api/beta_login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    })
+    .then(res => res.json())
+    .then(debugUser => {
+      console.log("Auto-login as beta tester successful:", debugUser.username);
+      queryClient.setQueryData(["/api/user"], debugUser);
+      // Remove the debug parameter from URL for cleaner experience
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('debug');
+      window.history.replaceState({}, '', newUrl);
+    })
+    .catch(err => {
+      console.error("Debug login failed:", err);
+    });
+    
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Debug Login</h2>
+          <p className="text-sm text-muted-foreground">Logging in as beta tester automatically...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Normal flow - if user is not logged in, redirect to auth page
   // But only if the current location is not already the auth page
   if (!user && location !== '/auth') {
     window.location.href = '/auth';
