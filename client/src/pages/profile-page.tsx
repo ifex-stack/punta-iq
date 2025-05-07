@@ -289,30 +289,44 @@ export default function ProfilePage() {
     <div className="pb-20">
       {/* Header with user info */}
       <section className="mb-6 mt-2">
-        <div className="flex items-center mb-6">
-          <Avatar className="h-16 w-16 mr-4">
-            {user.avatar ? (
-              <AvatarImage src={user.avatar} alt={user.username} />
-            ) : (
-              <AvatarFallback className="bg-primary/10 text-primary">
-                {user.username?.substring(0, 2).toUpperCase() || 'U'}
-              </AvatarFallback>
-            )}
-          </Avatar>
-          <div>
-            <h1 className="text-xl font-bold mb-1">{user.username || 'User'}</h1>
-            <p className="text-sm text-muted-foreground">{user.email || 'user@example.com'}</p>
-            <div className="flex items-center mt-1">
-              <Badge variant="outline" className="mr-2">
-                {subDetails.plan}
-              </Badge>
-              {subDetails.status === 'Active' && (
-                <Badge variant="default" className="bg-green-600">
-                  Active
-                </Badge>
+        <div className="flex justify-between mb-6">
+          <div className="flex items-center">
+            <Avatar className="h-16 w-16 mr-4">
+              {user.avatar ? (
+                <AvatarImage src={user.avatar} alt={user.username} />
+              ) : (
+                <AvatarFallback className="bg-primary/10 text-primary">
+                  {user.username?.substring(0, 2).toUpperCase() || 'U'}
+                </AvatarFallback>
               )}
+            </Avatar>
+            <div>
+              <h1 className="text-xl font-bold mb-1">{user.username || 'User'}</h1>
+              <p className="text-sm text-muted-foreground">{user.email || 'user@example.com'}</p>
+              <div className="flex items-center mt-1">
+                <Badge variant="outline" className="mr-2">
+                  {subDetails.plan}
+                </Badge>
+                {subDetails.status === 'Active' && (
+                  <Badge variant="default" className="bg-green-600">
+                    Active
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
+          
+          {/* Sign Out Button in Header */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleLogout}
+            disabled={logoutMutation.isPending}
+            className="h-10"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
+          </Button>
         </div>
       </section>
       
@@ -645,17 +659,7 @@ export default function ProfilePage() {
               </Card>
             </motion.div>
             
-            <motion.div variants={itemVariants}>
-              <Button 
-                variant="destructive" 
-                className="w-full" 
-                onClick={handleLogout}
-                disabled={logoutMutation.isPending}
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign Out
-              </Button>
-            </motion.div>
+            {/* Sign Out button removed - now in header */}
             
             {/* PREDICTION STATS SECTION */}
             <motion.div variants={itemVariants} className="mt-4">
