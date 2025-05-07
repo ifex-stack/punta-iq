@@ -318,10 +318,9 @@ export default function ProfilePage() {
       
       {/* Tabs for different profile sections */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-3 w-full mb-6">
+        <TabsList className="grid grid-cols-2 w-full mb-6">
           <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
-          <TabsTrigger value="subscription">Subscription</TabsTrigger>
         </TabsList>
         
         {/* Account Tab */}
@@ -967,144 +966,6 @@ export default function ProfilePage() {
               </Card>
             </motion.div>
           </motion.div>
-        </TabsContent>
-        
-        {/* Subscription Tab */}
-        <TabsContent value="subscription">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`subscription-${isSubscriptionError ? 'error' : 'content'}`}
-              variants={containerVariants}
-              initial="hidden"
-              animate="show"
-              exit={{ opacity: 0 }}
-              className="space-y-4"
-            >
-              {isSubscriptionError ? (
-                <motion.div variants={itemVariants} className="text-center py-8 space-y-4">
-                  <div className="bg-red-50 dark:bg-red-950/20 inline-flex h-16 w-16 items-center justify-center rounded-full mx-auto">
-                    <RefreshCw className="h-8 w-8 text-red-500" />
-                  </div>
-                  <h3 className="font-semibold">Unable to load subscription</h3>
-                  <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                    We're having trouble loading your subscription information. Please try again.
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    className="mt-2" 
-                    onClick={() => refetchSubscription()}
-                    disabled={isLoadingSubscription}
-                  >
-                    {isLoadingSubscription ? (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Retry
-                      </>
-                    )}
-                  </Button>
-                </motion.div>
-              ) : (
-                <>
-                  <motion.div variants={itemVariants}>
-                    <Card className="p-4">
-                      <h3 className="text-sm font-medium mb-4">Subscription Details</h3>
-                      
-                      {isLoadingSubscription ? (
-                        <div className="space-y-2">
-                          <Skeleton className="h-4 w-32" />
-                          <Skeleton className="h-4 w-48" />
-                          <Skeleton className="h-4 w-40" />
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          <div className="grid grid-cols-2 gap-2 py-1">
-                            <span className="text-sm text-muted-foreground">Plan:</span>
-                            <span className="text-sm font-medium">{subDetails.plan}</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 py-1">
-                            <span className="text-sm text-muted-foreground">Status:</span>
-                            <span className="text-sm font-medium">{subDetails.status}</span>
-                          </div>
-                          {subDetails.nextBilling && (
-                            <div className="grid grid-cols-2 gap-2 py-1">
-                              <span className="text-sm text-muted-foreground">Next Billing:</span>
-                              <span className="text-sm font-medium">{subDetails.nextBilling}</span>
-                            </div>
-                          )}
-                          
-                          <div className="pt-4">
-                            <Button 
-                              variant={subDetails.plan === 'Free' ? 'default' : 'outline'} 
-                              className="w-full"
-                              onClick={() => navigate('/pricing')}
-                            >
-                              {subDetails.plan === 'Free' ? 'Upgrade Subscription' : 'Manage Subscription'}
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </Card>
-                  </motion.div>
-                  
-                  <motion.div variants={itemVariants}>
-                    <Card className="p-4">
-                      <h3 className="text-sm font-medium mb-4">Payment Method</h3>
-                      
-                      {isLoadingSubscription ? (
-                        <div className="space-y-2">
-                          <Skeleton className="h-4 w-full" />
-                          <Skeleton className="h-4 w-24" />
-                        </div>
-                      ) : (
-                        <div>
-                          {subscription ? (
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center">
-                                <CreditCard className="h-5 w-5 mr-2 text-muted-foreground" />
-                                <span className="text-sm">
-                                  {(subscription as any)?.paymentMethod?.last4 
-                                    ? `•••• •••• •••• ${(subscription as any)?.paymentMethod?.last4}`
-                                    : '•••• •••• •••• 4242'}
-                                </span>
-                                {(subscription as any)?.paymentMethod?.brand && (
-                                  <Badge variant="outline" className="ml-2 capitalize">
-                                    {(subscription as any)?.paymentMethod?.brand}
-                                  </Badge>
-                                )}
-                              </div>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => navigate('/pricing')}
-                              >
-                                Update
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="text-center p-4">
-                              <p className="text-sm text-muted-foreground mb-2">No payment method on file</p>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => navigate('/pricing')}
-                              >
-                                Add Payment Method
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </Card>
-                  </motion.div>
-                </>
-              )}
-            </motion.div>
-          </AnimatePresence>
         </TabsContent>
       </Tabs>
     </div>
