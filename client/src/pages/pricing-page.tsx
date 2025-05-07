@@ -193,88 +193,88 @@ export default function PricingPage() {
             </div>
           </div>
           
-          {/* View mode selector */}
+          {/* View mode selector - Tabs container */}
           <div className="flex justify-center mb-8">
             <Tabs 
               value={viewMode} 
               onValueChange={(v) => setViewMode(v as 'cards' | 'comparison')}
-              className="relative z-10"
+              className="relative z-10 w-full max-w-5xl"
             >
-              <TabsList className="grid grid-cols-2 w-[300px] bg-background/50 backdrop-blur-sm">
+              <TabsList className="grid grid-cols-2 w-[300px] bg-background/50 backdrop-blur-sm mx-auto">
                 <TabsTrigger value="cards">Card View</TabsTrigger>
                 <TabsTrigger value="comparison">Compare Features</TabsTrigger>
               </TabsList>
+              
+              {/* Card view - Inside Tabs Component */}
+              <TabsContent value="cards">
+                <section className="relative z-10 mx-auto max-w-5xl px-4">
+                  <motion.div
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="show"
+                    className="grid grid-cols-1 md:grid-cols-3 gap-6"
+                  >
+                    {subscriptionPlans.map((plan) => (
+                      <motion.div key={plan.id} variants={itemVariants}>
+                        <PricingCard
+                          id={plan.id}
+                          name={plan.name}
+                          price={plan.price}
+                          currency={plan.currency}
+                          interval={selectedInterval}
+                          features={plan.features}
+                          isPopular={plan.isPopular}
+                          discountPercentage={plan.discountPercentage}
+                          onSubscribe={handleSubscribe}
+                          isCurrentPlan={isSubscribedTo(plan.id)}
+                          isPremium={plan.id === 'elite'}
+                        />
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                  
+                  {/* Call to action */}
+                  <motion.div
+                    variants={fadeInVariants}
+                    initial="hidden"
+                    animate="show"
+                    className="mt-12 text-center"
+                  >
+                    <div className="mx-auto max-w-2xl p-6 rounded-lg bg-background/50 backdrop-blur-sm border">
+                      <Sparkles className="h-10 w-10 mx-auto mb-4 text-primary" />
+                      <h2 className="text-lg font-bold mb-2">Get Started with PuntaIQ Today</h2>
+                      <p className="text-muted-foreground mb-4">
+                        Join thousands of sports fans who are transforming their betting with AI-powered predictions.
+                      </p>
+                      <Button onClick={() => handleSubscribe('pro')} className="font-medium">
+                        <Zap className="h-4 w-4 mr-2" />
+                        Start Your Free Trial
+                      </Button>
+                    </div>
+                  </motion.div>
+                </section>
+              </TabsContent>
+              
+              {/* Comparison view - Inside Tabs Component */}
+              <TabsContent value="comparison">
+                <section className="relative z-10 mx-auto max-w-5xl px-4">
+                  <motion.div
+                    variants={fadeInVariants}
+                    initial="hidden"
+                    animate="show"
+                  >
+                    <FeatureComparison 
+                      selectedInterval={selectedInterval}
+                      onSubscribe={handleSubscribe}
+                      currentPlanId={userSubscription?.planId}
+                    />
+                  </motion.div>
+                </section>
+              </TabsContent>
             </Tabs>
           </div>
         </motion.div>
       </section>
-      
-      {/* Card view */}
-      <TabsContent value="cards" className={viewMode === 'cards' ? 'block' : 'hidden'}>
-        <section className="relative z-10 mx-auto max-w-5xl px-4">
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="show"
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
-          >
-            {subscriptionPlans.map((plan) => (
-              <motion.div key={plan.id} variants={itemVariants}>
-                <PricingCard
-                  id={plan.id}
-                  name={plan.name}
-                  price={plan.price}
-                  currency={plan.currency}
-                  interval={selectedInterval}
-                  features={plan.features}
-                  isPopular={plan.isPopular}
-                  discountPercentage={plan.discountPercentage}
-                  onSubscribe={handleSubscribe}
-                  isCurrentPlan={isSubscribedTo(plan.id)}
-                  isPremium={plan.id === 'elite'}
-                />
-              </motion.div>
-            ))}
-          </motion.div>
-          
-          {/* Call to action */}
-          <motion.div
-            variants={fadeInVariants}
-            initial="hidden"
-            animate="show"
-            className="mt-12 text-center"
-          >
-            <div className="mx-auto max-w-2xl p-6 rounded-lg bg-background/50 backdrop-blur-sm border">
-              <Sparkles className="h-10 w-10 mx-auto mb-4 text-primary" />
-              <h2 className="text-lg font-bold mb-2">Get Started with PuntaIQ Today</h2>
-              <p className="text-muted-foreground mb-4">
-                Join thousands of sports fans who are transforming their betting with AI-powered predictions.
-              </p>
-              <Button onClick={() => handleSubscribe('pro')} className="font-medium">
-                <Zap className="h-4 w-4 mr-2" />
-                Start Your Free Trial
-              </Button>
-            </div>
-          </motion.div>
-        </section>
-      </TabsContent>
-      
-      {/* Comparison view */}
-      <TabsContent value="comparison" className={viewMode === 'comparison' ? 'block' : 'hidden'}>
-        <section className="relative z-10 mx-auto max-w-5xl px-4">
-          <motion.div
-            variants={fadeInVariants}
-            initial="hidden"
-            animate="show"
-          >
-            <FeatureComparison 
-              selectedInterval={selectedInterval}
-              onSubscribe={handleSubscribe}
-              currentPlanId={userSubscription?.planId}
-            />
-          </motion.div>
-        </section>
-      </TabsContent>
       
       {/* Additional benefits */}
       <section className="relative z-10 mt-16 px-4">
