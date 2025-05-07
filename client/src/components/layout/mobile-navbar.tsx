@@ -56,36 +56,73 @@ export default function MobileNavbar() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background px-3 py-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/90 backdrop-blur-sm px-3 py-2 shadow-lg">
       <div className="flex items-center justify-between">
         {navItems.map((item) => {
           const active = isActive(item.activeWhen);
           return (
-            <button
+            <motion.button
               key={item.href}
               className="flex flex-col items-center py-1 relative bg-transparent border-0"
               onClick={() => navigate(item.href)}
+              whileTap={{ scale: 0.9 }}
+              whileHover={{ y: -2 }}
             >
-              <div className={cn(
-                "flex items-center justify-center h-10 w-10 rounded-full text-muted-foreground relative",
-                active && "text-primary"
-              )}>
-                <item.icon size={20} />
+              <motion.div 
+                className={cn(
+                  "flex items-center justify-center h-12 w-12 rounded-full text-muted-foreground relative",
+                  "shadow-lg border border-primary/10",
+                  active && "text-primary bg-gradient-to-br from-primary/5 to-primary/20"
+                )}
+                initial={{ boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)" }}
+                animate={{
+                  boxShadow: active 
+                    ? "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 0 12px rgba(0, 128, 255, 0.2)" 
+                    : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                  y: active ? -4 : 0
+                }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              >
+                <motion.div
+                  animate={{
+                    scale: active ? 1.1 : 1,
+                    rotate: active ? [0, -5, 5, -5, 5, 0] : 0
+                  }}
+                  transition={{
+                    rotate: { duration: 0.5, ease: "easeInOut" },
+                    scale: { duration: 0.2 }
+                  }}
+                >
+                  <item.icon size={22} className={active ? "drop-shadow-md" : ""} />
+                </motion.div>
                 {active && (
                   <motion.div
                     layoutId="navbar-indicator"
                     className="absolute inset-0 bg-primary/10 rounded-full"
-                    transition={{ type: "spring", duration: 0.3 }}
+                    animate={{
+                      opacity: [0.5, 0.8, 0.5],
+                    }}
+                    transition={{ 
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
                   />
                 )}
-              </div>
-              <span className={cn(
-                "text-[10px] mt-1 font-medium", 
-                active ? "text-primary" : "text-muted-foreground"
-              )}>
+              </motion.div>
+              <motion.span 
+                className={cn(
+                  "text-[10px] mt-1 font-medium", 
+                  active ? "text-primary font-bold" : "text-muted-foreground"
+                )}
+                animate={{
+                  scale: active ? 1.05 : 1
+                }}
+                transition={{ type: "spring", stiffness: 400 }}
+              >
                 {item.label}
-              </span>
-            </button>
+              </motion.span>
+            </motion.button>
           );
         })}
       </div>
