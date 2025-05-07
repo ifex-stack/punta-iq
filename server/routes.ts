@@ -152,6 +152,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up analytics routes
   app.use('/api/analytics', analyticsRouter);
   
+  // Special beta login endpoint for testing
+  app.post("/api/beta_login", (req, res) => {
+    // Create a complete debug user object with all required fields from the schema
+    const debugUser = {
+      id: 9999,
+      username: 'beta_tester',
+      email: 'beta@puntaiq.com',
+      password: 'hashed_password_placeholder',
+      createdAt: new Date(),
+      deviceImei: null,
+      phoneNumber: null,
+      isTwoFactorEnabled: false,
+      twoFactorSecret: null,
+      referralCode: 'BETATEST',
+      role: 'admin' as const,
+      lastLoginAt: new Date(),
+      isActive: true,
+      isEmailVerified: true,
+      emailVerificationToken: null,
+      passwordResetToken: null,
+      passwordResetExpires: null,
+      notificationToken: null,
+      referredBy: null,
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      subscriptionTier: 'pro',
+      // Gamification properties
+      fantasyPoints: 1500,
+      totalContestsWon: 12,
+      totalContestsEntered: 25,
+      referralStreak: 3,
+      lastReferralDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+      // Additional properties 
+      userPreferences: {
+        favoriteSports: [1, 3, 5],
+        favoriteLeagues: [39, 40, 61],
+        preferredTimeZone: 'UTC',
+        theme: 'dark',
+        language: 'en',
+        currency: 'USD',
+        bettingFrequency: 'weekly',
+        predictionTypes: ['singles', 'accumulators'],
+        riskTolerance: 'medium',
+        preferredOddsFormat: 'decimal',
+        predictionsPerDay: 5,
+        experienceLevel: 'intermediate',
+        onboardingCompleted: true
+      },
+      notificationSettings: {
+        general: {
+          predictions: true,
+          results: true,
+          promotions: true,
+        },
+        sports: {
+          football: true,
+          basketball: true,
+          tennis: true,
+          baseball: true,
+          hockey: true,
+          cricket: false,
+          formula1: false,
+          mma: true,
+          volleyball: false,
+          other: false
+        },
+        metrics: {
+          notificationCount: 24,
+          lastNotificationSent: new Date(),
+          clickThroughRate: 0.65,
+          viewCount: 42,
+          clickCount: 27,
+          dismissCount: 5
+        }
+      },
+      onboardingStatus: 'completed' as const,
+      lastOnboardingStep: 5
+    };
+  
+    // Log user in via Passport
+    req.login(debugUser, (err) => {
+      if (err) {
+        console.error("Beta login error:", err);
+        return res.status(500).json({ 
+          error: "Server Error", 
+          message: "Failed to login as beta tester"
+        });
+      }
+      
+      // Remove password from response
+      const { password, ...userWithoutPassword } = debugUser;
+      res.status(200).json(userWithoutPassword);
+    });
+  });
+  
   // Set up betting metrics routes
   app.use('/api/betting-metrics', bettingMetricsRouter);
   
