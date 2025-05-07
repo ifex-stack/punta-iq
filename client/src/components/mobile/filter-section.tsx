@@ -46,7 +46,7 @@ export function FilterSection({
       ? filters.sports.filter(s => s !== sport)
       : [...filters.sports, sport];
     
-    const updatedFilters = {
+    const updatedFilters: FilterOptions = {
       ...filters,
       sports: updatedSports
     };
@@ -56,7 +56,7 @@ export function FilterSection({
   };
   
   const handleConfidenceChange = (value: number[]) => {
-    const updatedFilters = {
+    const updatedFilters: FilterOptions = {
       ...filters,
       confidenceLevel: value[0]
     };
@@ -66,7 +66,7 @@ export function FilterSection({
   };
   
   const handlePremiumToggle = (checked: boolean) => {
-    const updatedFilters = {
+    const updatedFilters: FilterOptions = {
       ...filters,
       premiumOnly: checked
     };
@@ -76,9 +76,14 @@ export function FilterSection({
   };
   
   const handleSortChange = (value: string) => {
-    const updatedFilters = {
+    // Ensure the sort value is one of the allowed types
+    const sortValue = (value === 'time' || value === 'confidence' || value === 'odds') 
+      ? value 
+      : 'time';
+      
+    const updatedFilters: FilterOptions = {
       ...filters,
-      sortBy: value as 'time' | 'confidence' | 'odds'
+      sortBy: sortValue
     };
     
     setFilters(updatedFilters);
@@ -86,7 +91,7 @@ export function FilterSection({
   };
   
   const handleReset = () => {
-    const defaultFilters = {
+    const defaultFilters: FilterOptions = {
       sports: ['football', 'basketball'],
       confidenceLevel: 50,
       premiumOnly: false,
