@@ -15,12 +15,6 @@ export default function MobileNavbar() {
       activeWhen: ['/'],
     },
     {
-      label: 'Explore',
-      href: '/explore',
-      icon: Search,
-      activeWhen: ['/explore', '/prediction'],
-    },
-    {
       label: 'History',
       href: '/history',
       icon: BarChart3,
@@ -39,10 +33,16 @@ export default function MobileNavbar() {
       activeWhen: ['/favorites'],
     },
     {
+      label: 'Pricing',
+      href: '/pricing',
+      icon: ShoppingBag,
+      activeWhen: ['/pricing', '/subscribe'],
+    },
+    {
       label: 'Profile',
       href: '/profile',
       icon: User,
-      activeWhen: ['/profile', '/settings'],
+      activeWhen: ['/profile', '/settings', '/explore', '/prediction'],
     },
   ];
   
