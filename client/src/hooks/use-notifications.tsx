@@ -45,34 +45,46 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
     
     try {
       setIsLoading(true);
-      const response = await apiRequest('GET', '/api/notifications');
       
-      // Check if response is ok before parsing
-      if (!response.ok) {
-        if (response.status === 401) {
-          // Just log auth errors, the auth provider will handle redirecting if needed
-          console.warn('Authentication required for notifications');
+      // Try-catch with silent handling for auth errors
+      try {
+        const response = await apiRequest('GET', '/api/notifications');
+        
+        // Check if response is ok before parsing
+        if (!response.ok) {
+          if (response.status === 401) {
+            // Silently handle auth errors
+            console.log('Auth error suppressed:', { status: 401, message: 'Unauthorized', code: 'ERROR_401' });
+            return;
+          }
+          
+          console.error(`Failed to fetch notifications: ${response.status} ${response.statusText}`);
           return;
         }
         
-        console.error(`Failed to fetch notifications: ${response.status} ${response.statusText}`);
-        return;
+        const data = await response.json();
+        
+        // Make sure we have valid data before updating state
+        if (Array.isArray(data)) {
+          setMessages(data);
+          setHasUnread(data.some((notification: any) => !notification.read));
+        } else {
+          console.error('Invalid notification data received from API:', data);
+        }
+      } catch (apiError: any) {
+        // Silently handle auth errors
+        if (apiError?.status === 401 || 
+            (apiError instanceof Error && apiError.message.includes('Unauthorized'))) {
+          console.log('Auth error suppressed:', apiError);
+        } else {
+          // Only log non-auth errors
+          console.error('Failed to fetch notifications:', apiError);
+        }
       }
       
-      const data = await response.json();
-      
-      // Make sure we have valid data before updating state
-      if (Array.isArray(data)) {
-        setMessages(data);
-        setHasUnread(data.some((notification: any) => !notification.read));
-      } else {
-        console.error('Invalid notification data received from API:', data);
-      }
     } catch (error) {
-      // Only log non-auth errors
-      if (!(error instanceof Error && error.message.includes('Authentication required'))) {
-        console.error('Error fetching notifications:', error);
-      }
+      // This catch block is for unexpected errors outside the inner try-catch
+      console.error('Unexpected error in notification handling:', error);
     } finally {
       setIsLoading(false);
     }

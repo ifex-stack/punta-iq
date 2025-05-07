@@ -27,7 +27,9 @@ interface PredictionCardProps {
   market: string;
   odds: number;
   confidence: number;
-  startTime: string;
+  // Support both date string format (ISO) and Date object to avoid inconsistencies
+  startTime: string | Date;
+  date?: string | Date; // Alternative property name that might be used
   isCorrect?: boolean | null;
   isPremium?: boolean;
   isSaved?: boolean;
@@ -49,6 +51,7 @@ export function PredictionCard({
   odds,
   confidence,
   startTime,
+  date,
   isCorrect,
   isPremium = false,
   isSaved = false,
@@ -59,8 +62,30 @@ export function PredictionCard({
   showLeague = true
 }: PredictionCardProps) {
   
-  // Format date
-  const matchDate = new Date(startTime);
+  // Format date - handle both date formats and fallback with proper error handling
+  let matchDate: Date;
+  try {
+    // First use date prop if it exists, otherwise use startTime
+    const dateValue = date || startTime;
+    
+    // Handle different date formats
+    if (dateValue instanceof Date) {
+      matchDate = dateValue;
+    } else {
+      matchDate = new Date(dateValue);
+    }
+    
+    // Validate the date
+    if (isNaN(matchDate.getTime())) {
+      throw new Error('Invalid date');
+    }
+  } catch (error) {
+    // If date is invalid, use current date as fallback
+    console.warn('Invalid date format received:', startTime);
+    matchDate = new Date();
+  }
+  
+  // Format with consistent patterns
   const formattedTime = format(matchDate, 'HH:mm');
   const formattedDate = format(matchDate, 'dd MMM');
   
@@ -94,21 +119,46 @@ export function PredictionCard({
       transition={{ duration: 0.3 }}
       className={cn("w-full", className)}
       layout
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.98 }}
     >
       <Card 
         className={cn(
-          "relative overflow-hidden border bg-card hover:bg-card/95 transition-colors",
+          "relative overflow-hidden border bg-card transition-all touch-manipulation",
+          "hover:bg-card/95 hover:shadow-lg active:shadow-sm",
+          "transform perspective-1000 hover:translate-y-[-2px]",
           compact ? "shadow-sm" : "shadow-md"
         )}
         onClick={handleCardClick}
       >
-        {/* Premium badge */}
+        {/* Premium badge with 3D effect */}
         {isPremium && (
-          <div className="absolute top-0 right-0">
-            <Badge variant="premium" className="rounded-bl-md rounded-tr-md rounded-br-none rounded-tl-none">
+          <motion.div 
+            className="absolute top-0 right-0 z-10"
+            initial={{ rotate: 0, scale: 1 }}
+            animate={{ 
+              rotate: [0, -2, 2, -2, 0],
+              scale: [1, 1.05, 1],
+              y: [0, -2, 0]
+            }}
+            transition={{ 
+              duration: 2, 
+              repeat: Infinity, 
+              repeatDelay: 5,
+              ease: "easeInOut" 
+            }}
+          >
+            <Badge 
+              variant="premium" 
+              className="rounded-bl-md rounded-tr-md rounded-br-none rounded-tl-none shadow-md"
+              style={{
+                background: "linear-gradient(135deg, #7928CA, #FF0080)",
+                textShadow: "0 1px 2px rgba(0,0,0,0.2)"
+              }}
+            >
               PRO
             </Badge>
-          </div>
+          </motion.div>
         )}
         
         <CardContent className={cn(
@@ -164,14 +214,34 @@ export function PredictionCard({
               )}
               
               <div className="flex items-center">
-                <div 
+                <motion.div 
                   className={cn(
-                    "w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium text-white",
+                    "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium text-white",
+                    "shadow-md backdrop-blur-sm",
                     getConfidenceColor(confidence)
                   )}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  initial={{ boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)" }}
+                  animate={{ 
+                    boxShadow: [
+                      "0 4px 6px -1px rgba(0, 0, 0, 0.1)", 
+                      "0 6px 12px -1px rgba(0, 0, 0, 0.15)", 
+                      "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
+                    ],
+                    y: [0, -2, 0]
+                  }}
+                  transition={{ 
+                    duration: 3, 
+                    repeat: Infinity, 
+                    repeatDelay: 2
+                  }}
+                  style={{
+                    transform: "perspective(800px) rotateX(5deg)",
+                  }}
                 >
-                  {confidence}%
-                </div>
+                  <span className="drop-shadow-sm">{confidence}%</span>
+                </motion.div>
               </div>
             </div>
           </div>
