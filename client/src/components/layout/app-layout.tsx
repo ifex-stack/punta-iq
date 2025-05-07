@@ -24,6 +24,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     // Handle secondary pages under main sections
     if (location.startsWith('/predictions/')) return 'predictions_stats';
     if (location.includes('/accumulators')) return 'predictions_stats';
+    if (location.includes('/ai-accumulators')) return 'predictions_stats';
     if (location.includes('/advanced-analysis')) return 'predictions_stats';
     
     return 'home';

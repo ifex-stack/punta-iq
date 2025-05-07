@@ -7,7 +7,8 @@ import {
   Settings, 
   Sun,
   Moon,
-  BarChart
+  BarChart,
+  TrendingUp
 } from "lucide-react";
 import { PuntaIQLogo } from "@/components/ui/puntaiq-logo";
 import { Link } from "wouter";
@@ -220,6 +221,17 @@ const TopBar = () => {
             <span className="ml-1">Metrics</span>
           </Button>
         </Link>
+        
+        <Link href="/ai-accumulators">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white"
+          >
+            <TrendingUp className="h-4 w-4" />
+            <span className="ml-1">AI Accumulators</span>
+          </Button>
+        </Link>
 
         <ThemeToggle variant="ghost" />
         
@@ -397,6 +409,16 @@ const TopBar = () => {
                   >
                     <BarChart className="mr-3 h-5 w-5" />
                     <span>Expert Predictions</span>
+                  </Button>
+                </Link>
+                
+                <Link href="/ai-accumulators">
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start h-12 text-base rounded-lg mb-1 touch-manipulation active:scale-95 transition-transform"
+                  >
+                    <TrendingUp className="mr-3 h-5 w-5" />
+                    <span>AI Accumulators</span>
                   </Button>
                 </Link>
                 
