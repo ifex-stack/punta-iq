@@ -77,8 +77,8 @@ export default function AuthPage() {
   
   // Auto-fill demo account
   const handleDemoAccount = () => {
-    loginForm.setValue('username', 'demo_user');
-    loginForm.setValue('password', 'password123');
+    loginForm.setValue('username', 'beta_tester');
+    loginForm.setValue('password', 'puntaiq_beta_test');
     
     toast({
       title: "Demo Account",
