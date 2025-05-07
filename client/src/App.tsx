@@ -123,7 +123,7 @@ const Router: React.FC = () => {
                 <ProtectedRoute path="/predictions/advanced" component={AdvancedPredictionsPage} />
                 <ProtectedRoute path="/advanced-analysis" component={AdvancedAnalysisPage} />
                 <ProtectedRoute path="/accumulators" component={AccumulatorsPage} />
-                <ProtectedRoute path="/ai-accumulators" component={AIAccumulatorsPage} />
+                <Route path="/ai-accumulators" component={AIAccumulatorsPage} />
                 <ProtectedRoute path="/predictions/tiered" component={TieredPredictionsPage} />
                 <ProtectedRoute path="/fantasy/contests" component={FantasyContestsPage} />
                 <ProtectedRoute path="/fantasy/contests/create" component={FantasyContestCreatePage} />
@@ -182,7 +182,7 @@ const Router: React.FC = () => {
               <ProtectedRoute path="/predictions/advanced" component={AdvancedPredictionsPage} />
               <ProtectedRoute path="/advanced-analysis" component={AdvancedAnalysisPage} />
               <ProtectedRoute path="/accumulators" component={AccumulatorsPage} />
-              <ProtectedRoute path="/ai-accumulators" component={AIAccumulatorsPage} />
+              <Route path="/ai-accumulators" component={AIAccumulatorsPage} />
               <ProtectedRoute path="/predictions/tiered" component={TieredPredictionsPage} />
               <ProtectedRoute path="/fantasy/contests" component={FantasyContestsPage} />
               <ProtectedRoute path="/fantasy/contests/create" component={FantasyContestCreatePage} />
