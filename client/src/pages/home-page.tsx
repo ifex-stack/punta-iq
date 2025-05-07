@@ -358,7 +358,20 @@ export default function HomePage() {
                         key={prediction.id}
                         className={`p-4 hover:bg-muted/50 transition-colors ${index % 2 === 0 ? 'bg-background' : 'bg-muted/20'}`}
                       >
-                        <PredictionCard prediction={prediction} />
+                        <PredictionCard 
+                          id={Number(prediction.id)}
+                          homeTeam={prediction.homeTeam}
+                          awayTeam={prediction.awayTeam}
+                          league={prediction.league}
+                          sport={prediction.sport}
+                          prediction={prediction.prediction}
+                          market={prediction.market || "Match Result"}
+                          odds={prediction.odds}
+                          confidence={prediction.confidence}
+                          startTime={prediction.startTime}
+                          isCorrect={prediction.isCorrect}
+                          isPremium={prediction.isPremium}
+                        />
                       </div>
                     ))}
                   </div>
