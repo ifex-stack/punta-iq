@@ -313,7 +313,7 @@ export default function HistoryPage() {
                 
                 <div className="space-y-2">
                   {getRecentPredictions().map(prediction => (
-                    <PredictionCard
+                    <SimplePredictionCard
                       key={prediction.id}
                       homeTeam={prediction.homeTeam}
                       awayTeam={prediction.awayTeam}
@@ -321,6 +321,7 @@ export default function HistoryPage() {
                       date={prediction.date}
                       odds={prediction.odds}
                       prediction={prediction.prediction}
+                      sport={prediction.sport || "football"}
                     />
                   ))}
                 </div>
@@ -418,13 +419,14 @@ export default function HistoryPage() {
             >
               {historicalData.predictions.map(prediction => (
                 <motion.div key={prediction.id} variants={itemVariants}>
-                  <PredictionCard
+                  <SimplePredictionCard
                     homeTeam={prediction.homeTeam}
                     awayTeam={prediction.awayTeam}
                     league={prediction.league}
                     date={prediction.date}
                     odds={prediction.odds}
                     prediction={prediction.prediction}
+                    sport={prediction.sport || "football"}
                   />
                 </motion.div>
               ))}

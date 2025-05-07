@@ -15,6 +15,7 @@ import FAQPage from "@/pages/faq-page";
 import ReferralsPage from "@/pages/referrals-page";
 import FeedbackPage from "@/pages/feedback";
 import AccumulatorsPage from "@/pages/enhanced-accumulators-page";
+import AIAccumulatorsPage from "@/pages/ai-accumulators-page";
 import LiveScorePage from "@/pages/livescore-page";
 import PrivacyPolicyPage from "@/pages/legal/privacy-policy";
 import TermsOfServicePage from "@/pages/legal/terms-of-service";
@@ -109,6 +110,7 @@ const Router: React.FC = () => {
                   
                   {/* Secondary Mobile App Pages */}
                   <Route path="/accumulators" component={AccumulatorsPage} />
+                  <Route path="/ai-accumulators" component={AIAccumulatorsPage} />
                   <Route path="/subscription" component={SubscriptionPage} />
                   <Route path="/subscription-success" component={SubscriptionSuccessPage} />
                   <Route path="/referrals" component={ReferralsPage} />
