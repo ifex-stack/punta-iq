@@ -3823,93 +3823,31 @@ export class DatabaseStorage implements IStorage {
   // User methods
   async getUser(id: number): Promise<User | undefined> {
     try {
-      const [user] = await db.select({
-        id: users.id,
-        username: users.username,
-        email: users.email,
-        password: users.password,
-        createdAt: users.createdAt,
-        subscriptionTier: users.subscriptionTier,
-        stripeCustomerId: users.stripeCustomerId,
-        stripeSubscriptionId: users.stripeSubscriptionId,
-        notificationSettings: users.notificationSettings,
-        fantasyPoints: users.fantasyPoints,
-        totalContestsWon: users.totalContestsWon,
-        totalContestsEntered: users.totalContestsEntered,
-        // New fields for 2FA and referrals
-        isTwoFactorEnabled: users.isTwoFactorEnabled,
-        phoneNumber: users.phoneNumber,
-        referralCode: users.referralCode,
-        referredBy: users.referredBy,
-        // Referral gamification fields
-        referralStreak: users.referralStreak,
-        lastReferralDate: users.lastReferralDate
-      }).from(users).where(eq(users.id, id));
+      // Use .select() without parameters to select all fields
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, id));
+      
       return user;
     } catch (error) {
       console.error("Error getting user:", error);
-      // If the error is due to missing columns, return minimal user data
-      const [userMinimal] = await db.select({
-        id: users.id,
-        username: users.username,
-        email: users.email,
-        password: users.password,
-        createdAt: users.createdAt,
-        subscriptionTier: users.subscriptionTier,
-        stripeCustomerId: users.stripeCustomerId,
-        stripeSubscriptionId: users.stripeSubscriptionId,
-        notificationSettings: users.notificationSettings,
-        fantasyPoints: users.fantasyPoints,
-        totalContestsWon: users.totalContestsWon,
-        totalContestsEntered: users.totalContestsEntered
-      }).from(users).where(eq(users.id, id));
-      return userMinimal;
+      return undefined;
     }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     try {
-      const [user] = await db.select({
-        id: users.id,
-        username: users.username,
-        email: users.email,
-        password: users.password,
-        createdAt: users.createdAt,
-        subscriptionTier: users.subscriptionTier,
-        stripeCustomerId: users.stripeCustomerId,
-        stripeSubscriptionId: users.stripeSubscriptionId,
-        notificationSettings: users.notificationSettings,
-        fantasyPoints: users.fantasyPoints,
-        totalContestsWon: users.totalContestsWon,
-        totalContestsEntered: users.totalContestsEntered,
-        // New fields for 2FA and referrals
-        isTwoFactorEnabled: users.isTwoFactorEnabled,
-        phoneNumber: users.phoneNumber,
-        referralCode: users.referralCode,
-        referredBy: users.referredBy,
-        // Referral gamification fields
-        referralStreak: users.referralStreak,
-        lastReferralDate: users.lastReferralDate
-      }).from(users).where(eq(users.username, username));
+      // Use .select() without parameters to select all fields
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username));
+      
       return user;
     } catch (error) {
       console.error("Error getting user by username:", error);
-      // If the error is due to missing columns, return minimal user data
-      const [userMinimal] = await db.select({
-        id: users.id,
-        username: users.username,
-        email: users.email,
-        password: users.password,
-        createdAt: users.createdAt,
-        subscriptionTier: users.subscriptionTier,
-        stripeCustomerId: users.stripeCustomerId,
-        stripeSubscriptionId: users.stripeSubscriptionId,
-        notificationSettings: users.notificationSettings,
-        fantasyPoints: users.fantasyPoints,
-        totalContestsWon: users.totalContestsWon,
-        totalContestsEntered: users.totalContestsEntered
-      }).from(users).where(eq(users.username, username));
-      return userMinimal;
+      return undefined;
     }
   }
 
