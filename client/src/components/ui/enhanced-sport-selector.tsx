@@ -410,7 +410,7 @@ export function EnhancedSportSelector({
             initial="hidden"
             animate="visible"
           >
-            {displayedSports.map((sport) => (
+            {displayedSports.map((sport: Sport) => (
               <motion.div key={sport.id} variants={itemVariants}>
                 {renderSportItem(sport)}
               </motion.div>
