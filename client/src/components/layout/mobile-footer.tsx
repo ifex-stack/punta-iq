@@ -16,7 +16,11 @@ import {
   Atom,
   Dribbble,
   Swords,
-  LucideIcon
+  LucideIcon,
+  Gauge,
+  BarChart4,
+  Sparkles,
+  Zap
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
@@ -40,6 +44,14 @@ export default function MobileFooter() {
     { name: "Baseball", href: "/?sport=baseball", icon: Atom },
     { name: "Cricket", href: "/?sport=cricket", icon: GraduationCap },
     { name: "MMA", href: "/?sport=mma", icon: Swords },
+  ];
+  
+  // Enhanced features section
+  const featuresLinks: FooterLink[] = [
+    { name: "Confidence Meter", href: "/confidence-meter-demo", icon: Gauge },
+    { name: "AI Accumulators", href: "/ai-accumulators", icon: Sparkles },
+    { name: "Advanced Stats", href: "/advanced-analysis-page", icon: BarChart4 },
+    { name: "Predictions", href: "/", icon: Zap },
   ];
   
   // Legal section
@@ -72,6 +84,27 @@ export default function MobileFooter() {
                     <link.icon size={12} className="mr-1 flex-shrink-0" />
                     <span className="truncate">{link.name}</span>
                     <ChevronRight size={12} className="ml-auto flex-shrink-0" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+          
+          {/* Features Section */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold text-primary bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
+              Enhanced Features
+            </h3>
+            <ul className="grid grid-cols-2 gap-2">
+              {featuresLinks.map((link) => (
+                <li key={link.name}>
+                  <button
+                    onClick={() => navigate(link.href)}
+                    className="text-xs text-muted-foreground hover:text-primary flex items-center w-full transition-colors group"
+                  >
+                    <link.icon size={12} className="mr-1 flex-shrink-0 text-primary/70 group-hover:text-primary" />
+                    <span className="truncate">{link.name}</span>
+                    <ChevronRight size={12} className="ml-auto flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
                 </li>
               ))}
