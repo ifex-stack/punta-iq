@@ -20,6 +20,7 @@ import FeedbackPage from "@/pages/feedback";
 import AccumulatorsPage from "@/pages/enhanced-accumulators-page";
 import AIAccumulatorsPage from "@/pages/ai-accumulators-page";
 import LiveScorePage from "@/pages/livescore-page";
+import ConfidenceMeterDemo from "@/pages/confidence-meter-demo";
 import PrivacyPolicyPage from "@/pages/legal/privacy-policy";
 import TermsOfServicePage from "@/pages/legal/terms-of-service";
 import ResponsibleGamblingPage from "@/pages/legal/responsible-gambling";
@@ -186,6 +187,7 @@ const Router: React.FC = () => {
                   <Route path="/subscription-success" component={SubscriptionSuccessPage} />
                   <Route path="/referrals" component={ReferralsPage} />
                   <Route path="/livescore" component={LiveScorePage} />
+                  <Route path="/confidence-meter-demo" component={ConfidenceMeterDemo} />
                   
                   {/* Support & Legal Pages */}
                   <Route path="/faq" component={FAQPage} />

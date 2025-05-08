@@ -301,6 +301,45 @@ export function setupPredictionRoutes(app: Express) {
     }
   });
   
+  // Get personalized confidence breakdown for a prediction
+  app.get("/api/predictions/:predictionId/confidence", async (req, res) => {
+    try {
+      const predictionId = parseInt(req.params.predictionId);
+      if (isNaN(predictionId)) {
+        return res.status(400).json({ message: "Invalid prediction ID" });
+      }
+      
+      // Check if the prediction exists
+      const prediction = await storage.getPredictionById(predictionId);
+      if (!prediction) {
+        return res.status(404).json({ message: "Prediction not found" });
+      }
+      
+      // Generate confidence breakdown based on authentication status
+      if (req.isAuthenticated()) {
+        // User is authenticated, generate personalized confidence
+        const userId = req.user.id;
+        const confidenceBreakdown = await generatePersonalizedConfidenceBreakdown(userId, predictionId);
+        
+        if (confidenceBreakdown) {
+          return res.json(confidenceBreakdown);
+        }
+      }
+      
+      // Fallback to base confidence for non-authenticated users or if personalization fails
+      const baseConfidence = await generateBaseConfidenceBreakdown(predictionId);
+      
+      if (baseConfidence) {
+        return res.json(baseConfidence);
+      }
+      
+      // Last resort fallback if both methods fail
+      res.status(500).json({ message: "Could not generate confidence breakdown" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
   // Save/view a prediction
   app.post("/api/predictions/view", async (req, res) => {
     if (!req.isAuthenticated()) {
