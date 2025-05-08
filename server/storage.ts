@@ -4222,15 +4222,10 @@ export class DatabaseStorage implements IStorage {
   
   async getUserByVerificationToken(token: string): Promise<User | undefined> {
     try {
-      const [user] = await db.select({
-        id: users.id,
-        username: users.username,
-        email: users.email,
-        password: users.password,
-        createdAt: users.createdAt,
-        emailVerificationToken: users.emailVerificationToken,
-        isEmailVerified: users.isEmailVerified
-      }).from(users).where(eq(users.emailVerificationToken, token));
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.emailVerificationToken, token));
       return user;
     } catch (error) {
       console.error("Error getting user by verification token:", error);
@@ -4240,15 +4235,10 @@ export class DatabaseStorage implements IStorage {
   
   async getUserByResetToken(token: string): Promise<User | undefined> {
     try {
-      const [user] = await db.select({
-        id: users.id,
-        username: users.username,
-        email: users.email,
-        password: users.password,
-        createdAt: users.createdAt,
-        passwordResetToken: users.passwordResetToken,
-        passwordResetExpires: users.passwordResetExpires
-      }).from(users).where(eq(users.passwordResetToken, token));
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.passwordResetToken, token));
       
       // If the reset token has expired, return undefined
       if (user && user.passwordResetExpires && user.passwordResetExpires < new Date()) {
@@ -4271,12 +4261,7 @@ export class DatabaseStorage implements IStorage {
           emailVerificationToken: null
         })
         .where(eq(users.id, userId))
-        .returning({
-          id: users.id,
-          username: users.username,
-          email: users.email,
-          isEmailVerified: users.isEmailVerified
-        });
+        .returning();
       
       if (!user) throw new Error("User not found");
       return user;
@@ -4295,13 +4280,7 @@ export class DatabaseStorage implements IStorage {
           passwordResetExpires: expires
         })
         .where(eq(users.id, userId))
-        .returning({
-          id: users.id,
-          username: users.username,
-          email: users.email,
-          passwordResetToken: users.passwordResetToken,
-          passwordResetExpires: users.passwordResetExpires
-        });
+        .returning();
       
       if (!user) throw new Error("User not found");
       return user;
@@ -4321,11 +4300,7 @@ export class DatabaseStorage implements IStorage {
           passwordResetExpires: null
         })
         .where(eq(users.id, userId))
-        .returning({
-          id: users.id,
-          username: users.username,
-          email: users.email
-        });
+        .returning();
       
       if (!user) throw new Error("User not found");
       return user;
