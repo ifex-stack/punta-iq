@@ -3887,18 +3887,47 @@ export class DatabaseStorage implements IStorage {
       const referralCode = insertUser.referralCode || 
         `${insertUser.username.replace(/\s+/g, '').substring(0, 5).toUpperCase()}${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
       
+      // Create a complete user object with all required fields and defaults
+      const userValues = {
+        ...insertUser,
+        referralCode,
+        subscriptionTier: subscriptionTiers.FREE,
+        isActive: true,
+        isEmailVerified: insertUser.isEmailVerified !== undefined ? insertUser.isEmailVerified : false,
+        emailVerificationToken: insertUser.emailVerificationToken || null,
+        passwordResetToken: null,
+        passwordResetExpires: null,
+        notificationSettings: {
+          predictions: true,
+          results: true,
+          promotions: true,
+        },
+        userPreferences: {
+          favoriteSports: [],
+          favoriteLeagues: [],
+          bettingFrequency: null,
+          predictionTypes: [],
+          riskTolerance: null,
+          preferredOddsFormat: 'decimal',
+          predictionsPerDay: null,
+          experienceLevel: 'beginner',
+          onboardingCompleted: false,
+          lastStep: 0,
+          completedSteps: [],
+          timezone: null,
+          autoDetectTimezone: true,
+          preferredContentDeliveryTimes: {
+            predictions: '08:00',
+            results: '22:00',
+            news: '12:00',
+          }
+        }
+      };
+      
+      // Insert the user with all fields properly initialized
       const [user] = await db
         .insert(users)
-        .values({
-          ...insertUser,
-          referralCode,
-          subscriptionTier: subscriptionTiers.FREE,
-          notificationSettings: {
-            predictions: true,
-            results: true,
-            promotions: true,
-          }
-        })
+        .values(userValues)
         .returning();
         
       // If the user was referred by someone, create a referral record
@@ -3909,30 +3938,16 @@ export class DatabaseStorage implements IStorage {
             referredId: user.id,
             status: "pending"
           });
-        } catch (error) {
-          console.error("Error creating referral record:", error);
+        } catch (referralError) {
+          console.error("Error creating referral record:", referralError);
+          // Continue even if referral creation fails
         }
       }
       
       return user;
     } catch (error) {
       console.error("Error creating user:", error);
-      // Fall back to basic user creation if new fields aren't available
-      const [user] = await db
-        .insert(users)
-        .values({
-          username: insertUser.username,
-          email: insertUser.email,
-          password: insertUser.password,
-          subscriptionTier: subscriptionTiers.FREE,
-          notificationSettings: {
-            predictions: true,
-            results: true,
-            promotions: true,
-          }
-        })
-        .returning();
-      return user;
+      throw new Error(`Failed to create user: ${error.message || 'Unknown error'}`);
     }
   }
 
