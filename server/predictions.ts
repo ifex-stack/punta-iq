@@ -4,6 +4,7 @@ import { z } from "zod";
 import { insertAccumulatorSchema, insertUserPredictionSchema, sports, leagues, accumulatorItems } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { db } from "./db";
+import { generateBaseConfidenceBreakdown, generatePersonalizedConfidenceBreakdown } from "./confidence-service";
 
 export function setupPredictionRoutes(app: Express) {
   // Get prediction statistics
