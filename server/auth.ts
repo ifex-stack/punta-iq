@@ -7,9 +7,6 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
-import createMemoryStore from "memorystore";
-import connectPgSimple from "connect-pg-simple";
-import { pool, useMemoryFallback } from "./db";
 import { logger } from "./logger";
 
 declare global {
@@ -38,39 +35,9 @@ export function setupAuth(app: Express) {
     throw new Error("SESSION_SECRET environment variable is required");
   }
   
-  // Session store setup
-  let sessionStore;
-  
-  // Try to use PostgreSQL for session storage if available
-  if (!useMemoryFallback) {
-    try {
-      const PostgresStore = connectPgSimple(session);
-      sessionStore = new PostgresStore({
-        pool,
-        tableName: 'session', // Default table name for sessions
-        createTableIfMissing: true,
-        pruneSessionInterval: 60 * 60 // Prune expired sessions every hour
-      });
-      logger.info('Auth', 'Using PostgreSQL session store for persistent sessions');
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Auth', `Failed to initialize PostgreSQL session store: ${errorMessage}`);
-      logger.warn('Auth', 'Falling back to in-memory session store. Sessions will be lost on server restart.');
-      
-      // Fall back to memory store
-      const MemoryStore = createMemoryStore(session);
-      sessionStore = new MemoryStore({
-        checkPeriod: 86400000 // prune expired entries every 24h
-      });
-    }
-  } else {
-    // Use memory store if database is not available
-    logger.warn('Auth', 'Database not available. Using in-memory session store. Sessions will be lost on server restart.');
-    const MemoryStore = createMemoryStore(session);
-    sessionStore = new MemoryStore({
-      checkPeriod: 86400000 // prune expired entries every 24h
-    });
-  }
+  // Get the session store from the storage implementation
+  const sessionStore = storage.sessionStore;
+  logger.info('Auth', 'Using session store from storage implementation');
   
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET,
@@ -79,8 +46,10 @@ export function setupAuth(app: Express) {
     store: sessionStore,
     cookie: {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+      httpOnly: true, // Prevents client-side JS from reading the cookie
     }
-  };
+  }
 
   app.set("trust proxy", 1);
   app.use(session(sessionSettings));

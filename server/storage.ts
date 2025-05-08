@@ -1,3 +1,4 @@
+import session from "express-session";
 import { 
   users, 
   sports, 
@@ -322,7 +323,7 @@ export interface IStorage {
   getAllPlayerSeasonStats(): Promise<import("@shared/player-interfaces").PlayerSeasonStats[]>;
   
   // Session store
-  sessionStore: Store;
+  sessionStore: session.Store;
 }
 
 export class MemStorage implements IStorage {
