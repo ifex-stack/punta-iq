@@ -38,23 +38,32 @@ try {
     try {
       pool = new Pool({ 
         connectionString: process.env.DATABASE_URL,
-        connectionTimeoutMillis: 5000,  // 5 second timeout
-        max: 20  // Maximum pool size
+        connectionTimeoutMillis: 10000,  // 10 second timeout
+        max: 20,  // Maximum pool size
+        idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
+        retryDelay: 1000, // Time between retries in ms
       });
       
-      // Test the connection
-      pool.query('SELECT NOW()').then(() => {
-        logger.info('Database', 'Successfully connected to PostgreSQL database');
-        useMemoryFallback = false;
-        
-        // Initialize Drizzle ORM after successful connection
-        db = drizzle(pool, { schema });
-        logger.info('Database', 'Database connection initialized');
-      }).catch((error: unknown) => {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        logger.error('Database', `Failed to connect to PostgreSQL database: ${errorMessage}`);
-        useMemoryFallback = true;
-      });
+      logger.info('Database', 'Database pool created');
+      
+      // Initialize Drizzle ORM
+      db = drizzle(pool, { schema });
+      
+      // Test the connection asynchronously but don't block startup
+      (async () => {
+        try {
+          const result = await pool.query('SELECT NOW()');
+          const timestamp = result.rows[0]?.now || 'unknown';
+          logger.info('Database', `Successfully connected to PostgreSQL database (server time: ${timestamp})`);
+          useMemoryFallback = false;
+          logger.info('Database', 'Using persistent database storage');
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          logger.error('Database', `Failed to connect to PostgreSQL database: ${errorMessage}`);
+          logger.warn('Database', 'Falling back to in-memory storage due to connection failure');
+          useMemoryFallback = true;
+        }
+      })();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Database', `Error initializing database connection: ${errorMessage}`);
