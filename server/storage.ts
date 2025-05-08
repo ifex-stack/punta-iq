@@ -3915,74 +3915,27 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     try {
-      const [user] = await db.select({
-        id: users.id,
-        username: users.username,
-        email: users.email,
-        password: users.password,
-        createdAt: users.createdAt,
-        subscriptionTier: users.subscriptionTier,
-        stripeCustomerId: users.stripeCustomerId,
-        stripeSubscriptionId: users.stripeSubscriptionId,
-        notificationSettings: users.notificationSettings,
-        fantasyPoints: users.fantasyPoints,
-        totalContestsWon: users.totalContestsWon,
-        totalContestsEntered: users.totalContestsEntered,
-        // New fields for 2FA and referrals
-        isTwoFactorEnabled: users.isTwoFactorEnabled,
-        phoneNumber: users.phoneNumber,
-        referralCode: users.referralCode,
-        referredBy: users.referredBy,
-        // Referral gamification fields
-        referralStreak: users.referralStreak,
-        lastReferralDate: users.lastReferralDate
-      }).from(users).where(eq(users.email, email));
+      // Use .select() without parameters to select all fields, which ensures we get email verification fields
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email));
+      
       return user;
     } catch (error) {
       console.error("Error getting user by email:", error);
-      // If the error is due to missing columns, return minimal user data
-      const [userMinimal] = await db.select({
-        id: users.id,
-        username: users.username,
-        email: users.email,
-        password: users.password,
-        createdAt: users.createdAt,
-        subscriptionTier: users.subscriptionTier,
-        stripeCustomerId: users.stripeCustomerId,
-        stripeSubscriptionId: users.stripeSubscriptionId,
-        notificationSettings: users.notificationSettings,
-        fantasyPoints: users.fantasyPoints,
-        totalContestsWon: users.totalContestsWon,
-        totalContestsEntered: users.totalContestsEntered
-      }).from(users).where(eq(users.email, email));
-      return userMinimal;
+      return undefined;
     }
   }
   
   async getUserByReferralCode(referralCode: string): Promise<User | undefined> {
     try {
-      const [user] = await db.select({
-        id: users.id,
-        username: users.username,
-        email: users.email,
-        password: users.password,
-        createdAt: users.createdAt,
-        subscriptionTier: users.subscriptionTier,
-        stripeCustomerId: users.stripeCustomerId,
-        stripeSubscriptionId: users.stripeSubscriptionId,
-        notificationSettings: users.notificationSettings,
-        fantasyPoints: users.fantasyPoints,
-        totalContestsWon: users.totalContestsWon,
-        totalContestsEntered: users.totalContestsEntered,
-        // New fields for 2FA and referrals
-        isTwoFactorEnabled: users.isTwoFactorEnabled,
-        phoneNumber: users.phoneNumber,
-        referralCode: users.referralCode,
-        referredBy: users.referredBy,
-        // Referral gamification fields
-        referralStreak: users.referralStreak,
-        lastReferralDate: users.lastReferralDate
-      }).from(users).where(eq(users.referralCode, referralCode));
+      // Use .select() without parameters to select all fields
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.referralCode, referralCode));
+      
       return user;
     } catch (error) {
       console.error("Error getting user by referral code:", error);
@@ -4222,10 +4175,12 @@ export class DatabaseStorage implements IStorage {
   
   async getUserByVerificationToken(token: string): Promise<User | undefined> {
     try {
+      // Use .returning() to get all fields with proper types
       const [user] = await db
         .select()
         .from(users)
         .where(eq(users.emailVerificationToken, token));
+      
       return user;
     } catch (error) {
       console.error("Error getting user by verification token:", error);
@@ -4235,6 +4190,7 @@ export class DatabaseStorage implements IStorage {
   
   async getUserByResetToken(token: string): Promise<User | undefined> {
     try {
+      // Use .returning() to get all fields with proper types
       const [user] = await db
         .select()
         .from(users)
