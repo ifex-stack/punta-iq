@@ -80,6 +80,7 @@ import {
   subscriptionTiers
 } from "@shared/schema";
 import session from "express-session";
+import { Store } from "express-session";
 import createMemoryStore from "memorystore";
 import connectPg from "connect-pg-simple";
 import { eq, desc, and, gte, sql, or, not, inArray, like } from "drizzle-orm";
@@ -321,7 +322,7 @@ export interface IStorage {
   getAllPlayerSeasonStats(): Promise<import("@shared/player-interfaces").PlayerSeasonStats[]>;
   
   // Session store
-  sessionStore: session.SessionStore;
+  sessionStore: Store;
 }
 
 export class MemStorage implements IStorage {
