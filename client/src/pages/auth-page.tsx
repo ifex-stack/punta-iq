@@ -121,8 +121,20 @@ export default function AuthPage() {
     const registerPayload = {
       ...registerData,
       emailVerificationToken: '',   // Will be generated on server
-      isEmailVerified: false        // Default for new accounts
+      isEmailVerified: false,       // Default for new accounts
+      // Include all required defaults for registration
+      isTwoFactorEnabled: false,
+      subscriptionTier: 'free',
+      fantasyPoints: 0,
+      totalContestsWon: 0,
+      totalContestsEntered: 0,
+      referralStreak: 0,
+      onboardingStatus: 'not_started',
+      lastOnboardingStep: 0
     };
+    
+    // Log the complete payload for debugging
+    console.log("Complete registration payload:", {...registerPayload, password: '***REDACTED***'});
     
     console.log("Registration attempt with:", registerPayload.username);
     registerMutation.mutate(registerPayload, {
