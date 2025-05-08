@@ -1,463 +1,377 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from "@/lib/utils";
-import { ChevronRight, ChevronLeft, Pin, Sparkles, Check, Search } from 'lucide-react';
-import { SPORTS_LIST, POPULAR_SPORTS, type Sport } from '@/lib/sports-data';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
+import { SPORTS_LIST, POPULAR_SPORTS, getSportById } from '@/lib/sports-data';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose
-} from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { AnimatedBackground } from '@/components/ui/animated-background';
+import { ChevronLeft, ChevronRight, Star, StarOff, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-interface EnhancedSportSelectorProps {
-  selectedSport: string;
-  onSelectSport: (sport: string) => void;
+export interface EnhancedSportSelectorProps {
+  selectedSports: string[];
+  onSportToggle: (sport: string) => void;
+  multiple?: boolean;
+  mode?: 'default' | 'compact' | 'pills' | '3d';
   className?: string;
-  showAll?: boolean;
-  showPopularOnly?: boolean;
-  favoriteSports?: string[];
-  onToggleFavorite?: (sportId: string) => void;
-  maxVisible?: number;
-  animateSelection?: boolean;
-  appearance?: 'default' | 'minimal' | 'pills' | '3d';
+  maxDisplay?: number;
+  showFavorites?: boolean;
+  favoritesOnly?: boolean;
+  onToggleFavoritesOnly?: () => void;
 }
 
-export function EnhancedSportSelector({ 
-  selectedSport,
-  onSelectSport,
+export function EnhancedSportSelector({
+  selectedSports,
+  onSportToggle,
+  multiple = true,
+  mode = 'default',
   className,
-  showAll = true,
-  showPopularOnly = false,
-  favoriteSports = [],
-  onToggleFavorite,
-  maxVisible = 0, // 0 means show all based on container width
-  animateSelection = true,
-  appearance = 'default'
+  maxDisplay,
+  showFavorites = true,
+  favoritesOnly = false,
+  onToggleFavoritesOnly
 }: EnhancedSportSelectorProps) {
-  const [showFilterDialog, setShowFilterDialog] = useState(false);
-  const [displayedSports, setDisplayedSports] = useState<Sport[]>([]);
-  const [filteredSports, setFilteredSports] = useState<Sport[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [startIndex, setStartIndex] = useState(0);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>(['football', 'basketball']);
+  const [scrollAmount, setScrollAmount] = useState(0);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
   const [containerWidth, setContainerWidth] = useState(0);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-
-  // Filter sports based on props and favorites
+  const [scrollWidth, setScrollWidth] = useState(0);
+  
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Filter sports based on favorites mode
+  const displaySports = favoritesOnly 
+    ? SPORTS_LIST.filter(sport => favoriteIds.includes(sport.id) && sport.id !== 'all')
+    : SPORTS_LIST.filter(sport => sport.id !== 'all');
+  
+  // Scroll handler
+  const handleScroll = () => {
+    if (!scrollContainerRef.current) return;
+    
+    const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+    setScrollAmount(scrollLeft);
+    setCanScrollLeft(scrollLeft > 0);
+    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10); // 10px buffer
+  };
+  
+  // Initialize scroll state and add resize listener
   useEffect(() => {
-    let sportsList = showPopularOnly ? POPULAR_SPORTS : SPORTS_LIST;
-    
-    if (!showAll) {
-      sportsList = sportsList.filter(sport => sport.id !== 'all');
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', handleScroll);
+      setContainerWidth(scrollContainer.clientWidth);
+      setScrollWidth(scrollContainer.scrollWidth);
+      handleScroll();
+      
+      const resizeObserver = new ResizeObserver(() => {
+        setContainerWidth(scrollContainer.clientWidth);
+        setScrollWidth(scrollContainer.scrollWidth);
+        handleScroll();
+      });
+      
+      resizeObserver.observe(scrollContainer);
+      
+      return () => {
+        scrollContainer.removeEventListener('scroll', handleScroll);
+        resizeObserver.disconnect();
+      };
     }
+  }, [favoritesOnly, displaySports.length]);
+  
+  // Scroll handlers
+  const scrollLeft = () => {
+    if (!scrollContainerRef.current) return;
+    scrollContainerRef.current.scrollBy({ left: -200, behavior: 'smooth' });
+  };
+  
+  const scrollRight = () => {
+    if (!scrollContainerRef.current) return;
+    scrollContainerRef.current.scrollBy({ left: 200, behavior: 'smooth' });
+  };
+  
+  // Favorite handlers
+  const toggleFavorite = (sportId: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent triggering the sport toggle
     
-    // Sort favoriteSports to the front
-    if (favoriteSports.length > 0) {
-      sportsList = [
-        ...sportsList.filter(s => favoriteSports.includes(s.id)),
-        ...sportsList.filter(s => !favoriteSports.includes(s.id))
-      ];
-    }
-    
-    setDisplayedSports(sportsList);
-    setFilteredSports(sportsList);
-  }, [showAll, showPopularOnly, favoriteSports]);
-
-  // Filter sports based on search
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredSports(displayedSports);
-      return;
-    }
-    
-    const query = searchQuery.toLowerCase();
-    const filtered = displayedSports.filter(
-      sport => sport.label.toLowerCase().includes(query)
-    );
-    
-    setFilteredSports(filtered);
-  }, [searchQuery, displayedSports]);
-
-  // Recalculate visible items when container resizes
-  useEffect(() => {
-    if (!containerRef.current) return;
-    
-    const observer = new ResizeObserver(entries => {
-      for (let entry of entries) {
-        setContainerWidth(entry.contentRect.width);
+    setFavoriteIds(current => {
+      if (current.includes(sportId)) {
+        return current.filter(id => id !== sportId);
+      } else {
+        return [...current, sportId];
       }
     });
-    
-    observer.observe(containerRef.current);
-    
-    return () => {
-      observer.disconnect();
-    };
-  }, [containerRef.current]);
-
-  // Calculate how many items can be shown
-  const calculateVisibleCount = () => {
-    if (maxVisible > 0) return maxVisible;
-    
-    // Auto-calculate based on container width and appearance
-    let itemWidth = 120; // default
-    
-    switch (appearance) {
-      case 'minimal': itemWidth = 80; break;
-      case 'pills': itemWidth = 100; break;
-      case '3d': itemWidth = 140; break;
-      default: itemWidth = 120;
-    }
-    
-    return Math.floor(containerWidth / itemWidth) || 5;
   };
-
-  const visibleCount = calculateVisibleCount();
-  const canScrollLeft = startIndex > 0;
-  const canScrollRight = startIndex + visibleCount < filteredSports.length;
-
-  const scrollLeft = () => {
-    if (canScrollLeft) {
-      setStartIndex(Math.max(0, startIndex - Math.floor(visibleCount / 2)));
-    }
-  };
-
-  const scrollRight = () => {
-    if (canScrollRight) {
-      setStartIndex(Math.min(filteredSports.length - visibleCount, startIndex + Math.floor(visibleCount / 2)));
-    }
-  };
-
-  // Visible sports based on current index
-  const visibleSports = filteredSports.slice(startIndex, startIndex + visibleCount);
-
-  // Variants for animation
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.05
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, scale: 0.8, y: 10 },
-    visible: { 
-      opacity: 1, 
-      scale: 1, 
-      y: 0,
-      transition: { type: "spring", damping: 12, stiffness: 200 }
+  
+  // Style variants based on mode
+  const getSportItemStyles = (sportId: string) => {
+    const isSelected = selectedSports.includes(sportId);
+    const sport = getSportById(sportId);
+    const sportColor = sport?.color || '#666';
+    
+    const baseClasses = "flex items-center transition-all duration-300 cursor-pointer";
+    
+    // Default color classes for different states
+    const unselectedClasses = "text-muted-foreground border-muted-foreground/30 bg-muted/20";
+    const selectedClasses = `border-${sportId} text-${sportId} bg-${sportId}/10`;
+    
+    // Apply mode-specific styling
+    switch (mode) {
+      case 'compact':
+        return cn(
+          baseClasses,
+          "px-2 py-1 rounded-md text-xs border",
+          isSelected ? selectedClasses : unselectedClasses,
+          isSelected && "font-medium"
+        );
+        
+      case 'pills':
+        return cn(
+          baseClasses,
+          "px-3 py-1.5 rounded-full text-sm border shadow-sm",
+          isSelected 
+            ? `bg-${sportId} border-${sportId} text-white font-medium`
+            : "bg-muted/30 text-muted-foreground border-transparent"
+        );
+        
+      case '3d':
+        return cn(
+          baseClasses,
+          "px-3 py-2 rounded-md text-sm border transform transition-all perspective-800",
+          isSelected 
+            ? `bg-gradient-to-b from-${sportId}/80 to-${sportId} border-${sportId}/80 text-white font-medium shadow-md scale-105 -translate-y-1`
+            : "bg-gradient-to-b from-muted/60 to-muted/30 text-muted-foreground border-muted/20",
+        );
+        
+      case 'default':
+      default:
+        return cn(
+          baseClasses,
+          "px-3 py-2 rounded-md text-sm border",
+          isSelected 
+            ? `border-${sportId} bg-${sportId}/10 text-${sportId} font-medium`
+            : unselectedClasses
+        );
     }
   };
-
+  
+  // Get custom color styles for a sport
+  const getSportInlineStyles = (sportId: string) => {
+    const isSelected = selectedSports.includes(sportId);
+    const sport = getSportById(sportId);
+    const sportColor = sport?.color || '#666';
+    
+    // Base styles for all modes
+    const baseStyles = {};
+    
+    // Mode-specific custom styles (that can't be handled by Tailwind classes)
+    switch (mode) {
+      case 'compact':
+        return {
+          ...baseStyles,
+          ...(isSelected && { borderColor: sportColor, color: sportColor }),
+        };
+        
+      case 'pills':
+        return {
+          ...baseStyles,
+          ...(isSelected && { backgroundColor: sportColor, borderColor: sportColor }),
+        };
+        
+      case '3d':
+        return {
+          ...baseStyles,
+          ...(isSelected && { 
+            background: `linear-gradient(to bottom, ${sportColor}CC, ${sportColor})`,
+            borderColor: `${sportColor}CC`
+          }),
+        };
+        
+      case 'default':
+      default:
+        return {
+          ...baseStyles,
+          ...(isSelected && { borderColor: sportColor, color: sportColor }),
+        };
+    }
+  };
+  
+  // Icon wrapper style based on mode
+  const getIconWrapperStyle = (sportId: string) => {
+    const isSelected = selectedSports.includes(sportId);
+    const sport = getSportById(sportId);
+    const sportColor = sport?.color || '#666';
+    
+    switch (mode) {
+      case 'compact':
+        return cn(
+          "mr-1",
+          isSelected && `text-${sportId}`
+        );
+        
+      case 'pills':
+        return cn(
+          "mr-1.5",
+          isSelected ? "text-white" : "text-muted-foreground"
+        );
+        
+      case '3d':
+        return cn(
+          "mr-1.5 transition-transform",
+          isSelected ? "text-white scale-110" : "text-muted-foreground"
+        );
+        
+      case 'default':
+      default:
+        return cn(
+          "mr-2",
+          isSelected && `text-${sportId}`
+        );
+    }
+  };
+  
+  // Custom inline styles for icon wrapper
+  const getIconWrapperInlineStyle = (sportId: string) => {
+    const isSelected = selectedSports.includes(sportId);
+    const sport = getSportById(sportId);
+    const sportColor = sport?.color || '#666';
+    
+    switch (mode) {
+      case 'compact':
+        return isSelected ? { color: sportColor } : {};
+        
+      case 'default':
+      default:
+        return isSelected ? { color: sportColor } : {};
+    }
+  };
+  
   return (
     <div className={cn("relative", className)}>
-      <div className="flex items-center">
-        {/* Left scroll button */}
-        {canScrollLeft && (
-          <motion.button
-            className="absolute left-0 z-10 rounded-full bg-background/80 shadow-md p-1 backdrop-blur-sm"
-            onClick={scrollLeft}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <ChevronLeft className="h-5 w-5 text-foreground" />
-          </motion.button>
-        )}
-        
-        {/* Sports buttons container */}
-        <motion.div 
-          ref={containerRef}
-          className={cn(
-            "flex items-center space-x-3 overflow-hidden px-8 py-2 mx-auto w-full justify-center"
-          )}
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
+      {/* Sports List with Horizontal Scrolling */}
+      <div className="relative">
+        <div 
+          ref={scrollContainerRef}
+          className="flex overflow-x-auto py-2 px-1 scrollbar-hide -mx-1 snap-x"
         >
-          <AnimatePresence initial={false} mode="sync">
-            {visibleSports.map((sport) => {
-              const isSelected = selectedSport === sport.id;
-              const isFavorite = favoriteSports.includes(sport.id);
-              const IconComponent = sport.icon;
+          <AnimatePresence>
+            {displaySports.map(sport => {
+              const isSelected = selectedSports.includes(sport.id);
+              const isFavorite = favoriteIds.includes(sport.id);
+              const sportStyle = getSportItemStyles(sport.id);
+              const inlineStyles = getSportInlineStyles(sport.id);
+              const iconWrapperStyle = getIconWrapperStyle(sport.id);
+              const iconInlineStyles = getIconWrapperInlineStyle(sport.id);
+              const Icon = sport.icon;
               
               return (
-                <SportButton 
+                <motion.div
                   key={sport.id}
-                  label={sport.label}
-                  icon={<IconComponent className="mr-1 h-4 w-4" />}
-                  isSelected={isSelected}
-                  isFavorite={isFavorite}
-                  onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(sport.id) : undefined}
-                  onClick={() => onSelectSport(sport.id)}
-                  animate={animateSelection}
-                  appearance={appearance}
-                  variants={itemVariants}
-                />
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.2 }}
+                  className="px-1 snap-start"
+                >
+                  <div 
+                    className={`relative group ${sportStyle}`}
+                    style={inlineStyles}
+                    onClick={() => onSportToggle(sport.id)}
+                  >
+                    <div className={iconWrapperStyle} style={iconInlineStyles}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <span>{sport.label}</span>
+                    
+                    {/* Favorite Star (only shown when showFavorites is enabled) */}
+                    {showFavorites && (
+                      <motion.button
+                        onClick={(e) => toggleFavorite(sport.id, e)}
+                        className={cn(
+                          "ml-1.5 opacity-0 group-hover:opacity-100 focus:opacity-100",
+                          isFavorite && "opacity-100"
+                        )}
+                        initial={{ scale: 0.8 }}
+                        animate={{ scale: 1 }}
+                        whileHover={{ scale: 1.2 }}
+                        whileTap={{ scale: 0.9 }}
+                        aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                      >
+                        {isFavorite ? (
+                          <Star className="w-3.5 h-3.5 fill-current" />
+                        ) : (
+                          <StarOff className="w-3.5 h-3.5" />
+                        )}
+                      </motion.button>
+                    )}
+                  </div>
+                </motion.div>
               );
             })}
           </AnimatePresence>
-        </motion.div>
+        </div>
         
-        {/* Right scroll button */}
-        {canScrollRight && (
-          <motion.button
-            className="absolute right-0 z-10 rounded-full bg-background/80 shadow-md p-1 backdrop-blur-sm"
-            onClick={scrollRight}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+        {/* Scroll Shadow Indicators */}
+        <div className={cn(
+          "absolute top-0 left-0 h-full w-12 pointer-events-none",
+          "bg-gradient-to-r from-background to-transparent",
+          !canScrollLeft && "opacity-0"
+        )} />
+        
+        <div className={cn(
+          "absolute top-0 right-0 h-full w-12 pointer-events-none",
+          "bg-gradient-to-l from-background to-transparent",
+          !canScrollRight && "opacity-0"
+        )} />
+        
+        {/* Scroll Controls */}
+        {canScrollLeft && (
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1/2 h-8 w-8 rounded-full opacity-80 hover:opacity-100 shadow-md"
+            onClick={scrollLeft}
           >
-            <ChevronRight className="h-5 w-5 text-foreground" />
-          </motion.button>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
         )}
         
-        {/* Filter button */}
-        <Dialog open={showFilterDialog} onOpenChange={setShowFilterDialog}>
-          <DialogTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="absolute right-[-40px] p-1 ml-2 rounded-full"
-            >
-              <Sparkles className="h-4 w-4" />
-              <span className="sr-only">Filter Sports</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle className="text-center">Choose Sports</DialogTitle>
-            </DialogHeader>
-            <div className="relative w-full mb-4">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search sports..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <ScrollArea className="h-[50vh] mt-2">
-              <div className="grid grid-cols-2 gap-2">
-                {filteredSports.map(sport => (
-                  <SportFilterItem
-                    key={sport.id}
-                    sport={sport}
-                    isSelected={selectedSport === sport.id}
-                    isFavorite={favoriteSports.includes(sport.id)}
-                    onSelect={() => {
-                      onSelectSport(sport.id);
-                      setShowFilterDialog(false);
-                    }}
-                    onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(sport.id) : undefined}
-                  />
-                ))}
-              </div>
-            </ScrollArea>
-            <DialogClose asChild>
-              <Button className="w-full mt-4" variant="default">Done</Button>
-            </DialogClose>
-          </DialogContent>
-        </Dialog>
+        {canScrollRight && (
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-1/2 h-8 w-8 rounded-full opacity-80 hover:opacity-100 shadow-md"
+            onClick={scrollRight}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        )}
       </div>
+      
+      {/* Favorites Toggle */}
+      {showFavorites && onToggleFavoritesOnly && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onToggleFavoritesOnly}
+                className="absolute -top-1 -right-1 h-7 w-7 rounded-full"
+              >
+                {favoritesOnly ? (
+                  <PanelLeftOpen className="h-4 w-4" />
+                ) : (
+                  <PanelLeftClose className="h-4 w-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{favoritesOnly ? "Show all sports" : "Show favorites only"}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
     </div>
   );
 }
-
-interface SportButtonProps {
-  label: string;
-  icon: React.ReactNode;
-  isSelected: boolean;
-  isFavorite?: boolean;
-  onToggleFavorite?: () => void;
-  onClick: () => void;
-  animate?: boolean;
-  appearance?: 'default' | 'minimal' | 'pills' | '3d';
-  variants?: any;
-}
-
-const SportButton = ({ 
-  label, 
-  icon, 
-  isSelected, 
-  isFavorite = false,
-  onToggleFavorite,
-  onClick,
-  animate = true,
-  appearance = 'default',
-  variants
-}: SportButtonProps) => {
-  const buttonVariants = {
-    selected: {
-      backgroundColor: "var(--primary)",
-      color: "var(--primary-foreground)",
-      scale: 1.05,
-      transition: { type: "spring", stiffness: 300, damping: 15 }
-    },
-    deselected: {
-      backgroundColor: "var(--muted)",
-      color: "var(--muted-foreground)",
-      scale: 1,
-      transition: { type: "spring", stiffness: 300, damping: 15 }
-    }
-  };
-
-  // Apply different styles based on appearance
-  const getButtonClasses = () => {
-    const baseClasses = "flex items-center whitespace-nowrap focus:outline-none transition-colors shadow-sm";
-    
-    switch (appearance) {
-      case 'minimal':
-        return cn(baseClasses, "rounded-full p-2", isSelected 
-          ? "bg-primary text-primary-foreground" 
-          : "bg-muted text-muted-foreground hover:bg-muted/80");
-      
-      case 'pills':
-        return cn(baseClasses, "rounded-full px-3 py-1 text-xs font-medium", isSelected 
-          ? "bg-primary text-primary-foreground" 
-          : "bg-muted text-muted-foreground hover:bg-muted/80");
-          
-      case '3d':
-        return cn(baseClasses, "rounded-lg px-4 py-2 text-sm font-medium border", isSelected 
-          ? "bg-primary text-primary-foreground border-primary/50 shadow-lg" 
-          : "bg-muted text-muted-foreground border-muted/20 hover:bg-muted/80");
-          
-      default: // default
-        return cn(baseClasses, "rounded-full px-4 py-1.5 text-xs font-medium", isSelected 
-          ? "bg-primary text-primary-foreground" 
-          : "bg-muted text-muted-foreground hover:bg-muted/80");
-    }
-  };
-  
-  // Only show label for certain appearances
-  const showLabel = appearance !== 'minimal';
-  
-  // Add 3D effect for the 3d appearance
-  const motion3dProps = appearance === '3d' ? {
-    whileHover: { y: -3, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)" },
-    initial: { y: 0 },
-  } : {};
-
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <motion.button
-            className={cn(
-              getButtonClasses(),
-              isFavorite && "ring-1 ring-primary/30"
-            )}
-            onClick={onClick}
-            whileTap={{ scale: 0.95 }}
-            animate={animate ? (isSelected ? "selected" : "deselected") : undefined}
-            variants={variants || buttonVariants}
-            {...motion3dProps}
-          >
-            {icon}
-            {showLabel && <span className="ml-1">{label}</span>}
-            
-            {onToggleFavorite && (
-              <motion.button
-                className={cn(
-                  "ml-1 opacity-0 group-hover:opacity-100 focus:opacity-100",
-                  isFavorite && "opacity-100 text-primary"
-                )}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleFavorite();
-                }}
-                whileHover={{ scale: 1.2 }}
-                whileTap={{ scale: 0.8 }}
-              >
-                <Pin className="h-3 w-3" />
-              </motion.button>
-            )}
-          </motion.button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{label}</p>
-          {isFavorite && <p className="text-xs text-muted-foreground">Favorited</p>}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-};
-
-interface SportFilterItemProps {
-  sport: Sport;
-  isSelected: boolean;
-  isFavorite: boolean;
-  onSelect: () => void;
-  onToggleFavorite?: () => void;
-}
-
-const SportFilterItem = ({
-  sport,
-  isSelected,
-  isFavorite,
-  onSelect,
-  onToggleFavorite
-}: SportFilterItemProps) => {
-  const IconComponent = sport.icon;
-  
-  return (
-    <motion.div
-      className={cn(
-        "flex items-center justify-between p-2 rounded-md cursor-pointer",
-        isSelected ? "bg-primary/10" : "hover:bg-muted/60"
-      )}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={onSelect}
-    >
-      <div className="flex items-center">
-        <div className={cn(
-          "w-8 h-8 rounded-full flex items-center justify-center mr-2",
-          isSelected ? "bg-primary text-primary-foreground" : "bg-muted"
-        )}>
-          <IconComponent className="h-4 w-4" />
-        </div>
-        <span className="font-medium text-sm">{sport.label}</span>
-      </div>
-      
-      <div className="flex items-center space-x-1">
-        {isSelected && (
-          <Check className="h-4 w-4 text-primary" />
-        )}
-        
-        {onToggleFavorite && (
-          <motion.button
-            className={cn(
-              "p-1 rounded-full",
-              isFavorite ? "text-primary" : "text-muted-foreground hover:text-foreground"
-            )}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFavorite();
-            }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <Pin className="h-3 w-3" />
-          </motion.button>
-        )}
-      </div>
-    </motion.div>
-  );
-};
 
 export default EnhancedSportSelector;

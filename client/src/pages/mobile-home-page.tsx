@@ -6,6 +6,9 @@ import { Wand2, RefreshCw, CalendarDays, Heart, BarChart2, Zap } from "lucide-re
 import FilterSection, { FilterOptions } from "@/components/mobile/filter-section";
 import { PredictionCard } from "@/components/mobile/prediction-card";
 import { useAuth } from "@/hooks/use-auth";
+import EnhancedSportSelector from "@/components/ui/enhanced-sport-selector";
+import AnimatedBackground from "@/components/ui/animated-background";
+import PageTransition from "@/components/ui/page-transition";
 
 // Types
 interface Prediction {
@@ -252,6 +255,29 @@ export default function MobileHomePage() {
     applyFilters(predictions, newFilters);
   };
 
+  // Handle sport toggle
+  const handleSportToggle = (sportId: string) => {
+    const updatedSports = filters.sports.includes(sportId)
+      ? filters.sports.filter(s => s !== sportId)
+      : [...filters.sports, sportId];
+    
+    const updatedFilters = {
+      ...filters,
+      sports: updatedSports
+    };
+    
+    setFilters(updatedFilters);
+    applyFilters(predictions, updatedFilters);
+    
+    toast({
+      title: filters.sports.includes(sportId) ? `${sportId} removed` : `${sportId} added`,
+      description: filters.sports.includes(sportId) 
+        ? `Removed ${sportId} from your filters` 
+        : `Added ${sportId} to your filters`,
+      variant: "default",
+    });
+  };
+
   // Handle refresh
   const handleRefresh = () => {
     loadPredictions(true);
@@ -294,7 +320,8 @@ export default function MobileHomePage() {
   };
 
   return (
-    <div className="container px-4 py-6 max-w-3xl mx-auto">
+    <PageTransition direction="fade" duration={0.6}>
+      <div className="container px-4 py-6 max-w-3xl mx-auto">
       <div className="flex justify-between items-center mb-4">
         <div>
           <h1 className="text-2xl font-bold">AI Predictions</h1>
@@ -332,38 +359,65 @@ export default function MobileHomePage() {
         ))}
       </div>
 
+      {/* Enhanced Sports Selector */}
+      <div className="mb-4">
+        <h3 className="text-sm font-medium mb-2">Select Sports</h3>
+        <AnimatedBackground 
+          variant="gradient" 
+          intensity="low" 
+          className="rounded-lg p-1"
+          colors={['#4f46e5', '#7c3aed', '#2563eb']}
+        >
+          <EnhancedSportSelector
+            selectedSports={filters.sports}
+            onSportToggle={handleSportToggle}
+            mode="pills"
+            showFavorites={true}
+            multiple={true}
+            className="py-1"
+          />
+        </AnimatedBackground>
+      </div>
+
       {/* AutoFill AI Generator Button */}
       <div className="mb-6">
-        <Button
-          variant="default"
-          size="lg"
-          className="w-full gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-md"
-          onClick={handleGenerateAIPredictions}
-          disabled={isGenerating}
+        <AnimatedBackground
+          variant="particles"
+          intensity="medium"
+          className="rounded-lg p-1 mb-2"
+          colors={['#7c3aed', '#4f46e5', '#8b5cf6']}
         >
-          {isGenerating ? (
-            <>
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                className="h-5 w-5 border-2 border-white border-t-transparent rounded-full"
-              />
-              <span>Generating predictions...</span>
-            </>
-          ) : (
-            <>
-              <Wand2 size={18} />
-              <span>AutoFill with AI Predictions</span>
-            </>
-          )}
-        </Button>
+          <Button
+            variant="default"
+            size="lg"
+            className="w-full gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-md"
+            onClick={handleGenerateAIPredictions}
+            disabled={isGenerating}
+          >
+            {isGenerating ? (
+              <>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="h-5 w-5 border-2 border-white border-t-transparent rounded-full"
+                />
+                <span>Generating predictions...</span>
+              </>
+            ) : (
+              <>
+                <Wand2 size={18} />
+                <span>AutoFill with AI Predictions</span>
+              </>
+            )}
+          </Button>
+        </AnimatedBackground>
         
         <p className="text-xs text-muted-foreground text-center mt-1">
           Get unique AI-generated predictions that change with each click
         </p>
       </div>
 
-      {/* Filters */}
+      {/* Additional Filters */}
       <FilterSection onFilterChange={handleFilterChange} />
 
       {/* Content */}
@@ -426,5 +480,6 @@ export default function MobileHomePage() {
         )}
       </AnimatePresence>
     </div>
+    </PageTransition>
   );
 }
