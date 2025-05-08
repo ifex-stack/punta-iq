@@ -3883,27 +3883,89 @@ export class DatabaseStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     try {
+      console.log("Starting user creation with data:", JSON.stringify({
+        ...insertUser,
+        password: "REDACTED" // Don't log passwords
+      }, null, 2));
+      
       // Generate a unique referral code if not provided
       const referralCode = insertUser.referralCode || 
         `${insertUser.username.replace(/\s+/g, '').substring(0, 5).toUpperCase()}${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
       
-      // Create a complete user object with all required fields and defaults
+      // Explicitly set required fields and ensure proper type casting for enums
       const userValues = {
-        ...insertUser,
+        username: insertUser.username,
+        email: insertUser.email,
+        password: insertUser.password,
+        deviceImei: insertUser.deviceImei || null,
+        phoneNumber: insertUser.phoneNumber || null,
         referralCode,
+        referredBy: insertUser.referredBy || null,
+        
+        // Security and status fields
+        role: "user", // Cast as enum value
         subscriptionTier: subscriptionTiers.FREE,
         isActive: true,
         isEmailVerified: insertUser.isEmailVerified !== undefined ? insertUser.isEmailVerified : false,
         emailVerificationToken: insertUser.emailVerificationToken || null,
         passwordResetToken: null,
         passwordResetExpires: null,
+        
+        // Need to initialize all timestamp fields with null or default
+        lastLoginAt: null,
+        lastReferralDate: null,
+        
+        // Make sure isTwoFactorEnabled is properly set
+        isTwoFactorEnabled: false,
+        twoFactorSecret: null,
+        
+        // Stripe fields
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+        
+        // Gamification fields
+        fantasyPoints: 0,
+        totalContestsWon: 0,
+        totalContestsEntered: 0,
+        referralStreak: 0,
+        
+        // Notification token
+        notificationToken: null,
+        
+        // Explicitly set notification settings structure
         notificationSettings: {
-          predictions: true,
-          results: true,
-          promotions: true,
+          general: {
+            predictions: true,
+            results: true,
+            promotions: true,
+          },
+          sports: {
+            football: true,
+            basketball: true,
+            tennis: true,
+            baseball: true,
+            hockey: true,
+            cricket: true,
+            formula1: true,
+            mma: true,
+            volleyball: true,
+            other: true,
+          },
+          metrics: {
+            notificationCount: 0,
+            lastNotificationSent: null,
+            clickThroughRate: 0,
+            viewCount: 0,
+            clickCount: 0,
+            dismissCount: 0,
+          }
         },
-        onboardingStatus: 'not_started', // Properly set onboarding status as enum
+        
+        // Onboarding fields - need to use the exact enum values 
+        onboardingStatus: 'not_started' as 'not_started', // Explicit type cast to match enum
         lastOnboardingStep: 0,
+        
+        // User preferences
         userPreferences: {
           favoriteSports: [],
           favoriteLeagues: [],
@@ -3922,16 +3984,64 @@ export class DatabaseStorage implements IStorage {
             predictions: '08:00',
             results: '22:00',
             news: '12:00',
+            promotions: '18:00'
+          },
+          schedulingPreferences: {
+            weekdays: true,
+            weekends: true,
+            respectQuietHours: true,
+            quietHoursStart: '23:00',
+            quietHoursEnd: '07:00'
+          },
+          predictionFilters: {
+            enabledSports: {
+              football: true,
+              basketball: true,
+              tennis: false,
+              baseball: false,
+              hockey: false,
+              cricket: false,
+              formula1: false,
+              mma: false,
+              volleyball: false
+            },
+            enabledLeagues: {
+              football: ["premier_league", "laliga", "bundesliga", "seriea", "ligue1", "champions_league"],
+              basketball: ["nba", "euroleague"],
+              tennis: [],
+              baseball: [],
+              hockey: [],
+              cricket: [],
+              formula1: [],
+              mma: [],
+              volleyball: []
+            },
+            marketTypes: {
+              matchWinner: true,
+              bothTeamsToScore: true,
+              overUnder: true,
+              correctScore: false,
+              handicap: false,
+              playerProps: false
+            },
+            minimumConfidence: 60,
+            minimumOdds: 1.5,
+            maximumOdds: 10.0,
+            includeAccumulators: true
           }
         }
       };
       
       try {
+        console.log("Attempting to insert user with username:", userValues.username);
+        
         // Insert the user with all fields properly initialized
         const [user] = await db
           .insert(users)
           .values(userValues)
           .returning();
+          
+        console.log("User created successfully with ID:", user.id);
           
         // If the user was referred by someone, create a referral record
         if (insertUser.referredBy) {
@@ -3939,24 +4049,67 @@ export class DatabaseStorage implements IStorage {
             await db.insert(referrals).values({
               referrerId: insertUser.referredBy,
               referredId: user.id,
-              status: "pending"
+              status: "pending" as "pending", // Explicit type cast to match enum
+              // For new fields
+              channel: null,
+              utmParameters: null,
+              deviceInfo: null,
+              conversionTime: null,
+              firstActionDate: null
             });
+            console.log("Referral record created for new user");
           } catch (referralError) {
             console.error("Error creating referral record:", referralError);
             // Continue even if referral creation fails
           }
         }
         
+        // Create welcome notification
+        try {
+          await db.insert(notifications).values({
+            userId: user.id,
+            title: "Welcome to PuntaIQ!",
+            message: "Thanks for joining. Start exploring AI-powered sports predictions today!",
+            type: "success",
+            icon: "party-popper",
+            read: false,
+            timestamp: new Date(),
+            priority: 3,
+            channel: "in-app",
+            data: {
+              action: "onboarding",
+              section: "welcome"
+            },
+            isDelivered: true,
+            deliveredAt: new Date()
+          });
+          console.log("Welcome notification created for new user");
+        } catch (notificationError) {
+          console.error("Error creating welcome notification:", notificationError);
+          // Continue even if notification creation fails
+        }
+        
         return user;
       } catch (dbError) {
         console.error("Error in database operation during user creation:", dbError);
-        // Log the exact SQL error for debugging
+        
+        // Log detailed error information
         if (dbError.code) {
           console.error(`SQL Error Code: ${dbError.code}`);
         }
         if (dbError.constraint) {
           console.error(`Constraint violation: ${dbError.constraint}`);
         }
+        if (dbError.message) {
+          console.error(`DB Error message: ${dbError.message}`);
+        }
+        if (dbError.query) {
+          console.error(`Failed query: ${dbError.query}`);
+        }
+        if (dbError.stack) {
+          console.error(`Error stack: ${dbError.stack}`);
+        }
+        
         // Rethrow with more details
         throw new Error(`Database error during user creation: ${dbError.message}`);
       }
@@ -4049,7 +4202,7 @@ export class DatabaseStorage implements IStorage {
         username: "user",
         email: "user@example.com",
         userPreferences: preferences || {},
-        onboardingStatus: 'in_progress',
+        onboardingStatus: 'in_progress' as 'in_progress', // Explicit cast to match enum
         lastOnboardingStep: 0,
         // Add any other required fields with sensible defaults
         password: "", // This will never be returned to the client
@@ -4078,10 +4231,21 @@ export class DatabaseStorage implements IStorage {
       }
       
       // Only update the specific onboarding fields to avoid schema mismatches
+      // Check if status is one of the valid enum values and cast appropriately
+      let onboardingStatusValue: 'not_started' | 'in_progress' | 'completed' | null;
+      
+      if (status === 'not_started' || status === 'in_progress' || status === 'completed') {
+        onboardingStatusValue = status as 'not_started' | 'in_progress' | 'completed';
+      } else {
+        // Default to in_progress if an invalid value is passed
+        console.warn(`Invalid onboarding status provided: ${status}. Defaulting to 'in_progress'`);
+        onboardingStatusValue = 'in_progress';
+      }
+      
       const [user] = await db
         .update(users)
         .set({
-          onboardingStatus: status,
+          onboardingStatus: onboardingStatusValue,
           lastOnboardingStep: lastStep
         })
         .where(eq(users.id, userId))
@@ -4098,11 +4262,20 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error updating user onboarding status:", error);
       // Return minimal user info instead of throwing
+      // Use the same validation logic to ensure proper enum values in the fallback
+      let fallbackStatus: 'not_started' | 'in_progress' | 'completed' | null;
+      
+      if (status === 'not_started' || status === 'in_progress' || status === 'completed') {
+        fallbackStatus = status as 'not_started' | 'in_progress' | 'completed';
+      } else {
+        fallbackStatus = 'in_progress';
+      }
+      
       const fallbackUser = {
         id: userId,
         username: "user",
         email: "user@example.com",
-        onboardingStatus: status as any,
+        onboardingStatus: fallbackStatus,
         lastOnboardingStep: lastStep,
         userPreferences: {},
         // Add any other required fields with sensible defaults
