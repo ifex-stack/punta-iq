@@ -17,6 +17,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface Feature {
   name: string;
@@ -224,93 +225,94 @@ export function FeatureComparison({
       
       {/* Desktop view - Full table for larger screens */}
       <div className="rounded-lg border overflow-hidden hidden md:block">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="w-[250px]">Feature</TableHead>
-              {pricingTiers.map((tier) => (
-                <TableHead key={tier.id} className="text-center">
-                  <div className="flex flex-col items-center">
-                    <span className="font-bold">{tier.name}</span>
-                    <div className="flex items-baseline mt-1">
-                      <span className="text-xl font-bold">{tier.currency}{tier.price}</span>
-                      <span className="text-xs text-muted-foreground ml-1">/{tier.interval}</span>
+        <ScrollArea className="max-h-[600px]">
+          <Table>
+            <TableHeader className="sticky top-0 z-10">
+              <TableRow className="bg-muted/80 backdrop-blur-sm">
+                <TableHead className="w-[250px]">Feature</TableHead>
+                {pricingTiers.map((tier) => (
+                  <TableHead key={tier.id} className="text-center">
+                    <div className="flex flex-col items-center">
+                      <span className="font-bold">{tier.name}</span>
+                      <div className="flex items-baseline mt-1">
+                        <span className="text-xl font-bold">{tier.currency}{tier.price}</span>
+                        <span className="text-xs text-muted-foreground ml-1">/{tier.interval}</span>
+                      </div>
+                      {tier.isPopular && (
+                        <Badge variant="outline" className="mt-1 bg-primary/10 text-primary">
+                          Most Popular
+                        </Badge>
+                      )}
                     </div>
-                    {tier.isPopular && (
-                      <Badge variant="outline" className="mt-1 bg-primary/10 text-primary">
-                        Most Popular
-                      </Badge>
-                    )}
-                  </div>
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          
-          <TableBody>
-            {featureCategories.map((category, categoryIndex) => (
-              <React.Fragment key={category.name}>
-                <TableRow className="bg-accent/5">
-                  <TableCell colSpan={4} className="font-medium py-2">
-                    {category.name}
-                  </TableCell>
-                </TableRow>
-                
-                {category.features.map((feature, featureIndex) => (
-                  <TableRow 
-                    key={`${categoryIndex}-${featureIndex}`}
-                    className={featureIndex % 2 === 0 ? 'bg-background' : 'bg-muted/20'}
-                  >
-                    <TableCell className="font-medium">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger className="flex items-center gap-1 cursor-help">
-                            {feature.name}
-                            <AlertCircle className="h-3 w-3 text-muted-foreground/70" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-xs max-w-[200px]">{feature.description}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {renderTierIcon(feature.tiers.basic)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {renderTierIcon(feature.tiers.pro)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {renderTierIcon(feature.tiers.elite)}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            
+            <TableBody>
+              {featureCategories.map((category, categoryIndex) => (
+                <React.Fragment key={category.name}>
+                  <TableRow className="bg-accent/5">
+                    <TableCell colSpan={4} className="font-medium py-2">
+                      {category.name}
                     </TableCell>
                   </TableRow>
-                ))}
-              </React.Fragment>
-            ))}
-          </TableBody>
-          
-          <TableFooter>
-            <TableRow>
-              <TableCell>Choose your plan</TableCell>
-              {pricingTiers.map((tier) => (
-                <TableCell key={tier.id} className="text-center">
-                  <Button 
-                    variant={tier.isPopular ? "default" : "outline"}
-                    onClick={() => onSubscribe(tier.id)}
-                    disabled={currentPlanId === tier.id}
-                    className="w-full"
-                  >
-                    {currentPlanId === tier.id ? 'Current Plan' : 'Subscribe'}
-                  </Button>
-                </TableCell>
+                  
+                  {category.features.map((feature, featureIndex) => (
+                    <TableRow 
+                      key={`${categoryIndex}-${featureIndex}`}
+                      className={featureIndex % 2 === 0 ? 'bg-background' : 'bg-muted/20'}
+                    >
+                      <TableCell className="font-medium">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger className="flex items-center gap-1 cursor-help">
+                              {feature.name}
+                              <AlertCircle className="h-3 w-3 text-muted-foreground/70" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-xs max-w-[200px]">{feature.description}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {renderTierIcon(feature.tiers.basic)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {renderTierIcon(feature.tiers.pro)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {renderTierIcon(feature.tiers.elite)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </React.Fragment>
               ))}
-            </TableRow>
-          </TableFooter>
-        </Table>
+            </TableBody>
+          </Table>
+        </ScrollArea>
+        <div className="border-t bg-muted/10 p-2">
+          <div className="grid grid-cols-4 gap-4">
+            <div className="flex items-center pl-4">Choose your plan</div>
+            {pricingTiers.map((tier) => (
+              <div key={tier.id} className="text-center">
+                <Button 
+                  variant={tier.isPopular ? "default" : "outline"}
+                  onClick={() => onSubscribe(tier.id)}
+                  disabled={currentPlanId === tier.id}
+                  className="w-full"
+                >
+                  {currentPlanId === tier.id ? 'Current Plan' : 'Subscribe'}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
       
       {/* Mobile view - Card-based layout for small screens */}
-      <div className="md:hidden space-y-6">
+      <div className="md:hidden space-y-4">
         {pricingTiers.map((tier) => (
           <div 
             key={tier.id} 
@@ -333,41 +335,50 @@ export function FeatureComparison({
             </div>
             
             <div className="space-y-4">
-              {featureCategories.map((category) => (
-                <div key={category.name} className="space-y-2">
-                  <h4 className="text-sm font-semibold border-b pb-1">{category.name}</h4>
-                  <ul className="space-y-2 text-sm">
-                    {category.features.map((feature) => {
-                      const tierValue = feature.tiers[tier.id as keyof typeof feature.tiers];
-                      if (tierValue === 'none') return null; // Don't show unavailable features on mobile
-                      
-                      return (
-                        <li 
-                          key={feature.name} 
-                          className="flex justify-between items-center"
-                        >
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger className="flex items-center gap-1 cursor-help text-left">
-                                <span>{feature.name}</span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="text-xs max-w-[200px]">{feature.description}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          <span>
-                            {tierValue === 'full' 
-                              ? <Check className="h-4 w-4 text-green-500" /> 
-                              : <Minus className="h-4 w-4 text-amber-500" />
-                            }
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              ))}
+              {featureCategories.map((category) => {
+                // Filter to see if this category has any available features for this tier
+                const availableFeatures = category.features.filter(
+                  feature => feature.tiers[tier.id as keyof typeof feature.tiers] !== 'none'
+                );
+                
+                // Skip category if no features are available
+                if (availableFeatures.length === 0) return null;
+                
+                return (
+                  <div key={category.name} className="space-y-2">
+                    <h4 className="text-sm font-semibold border-b pb-1">{category.name}</h4>
+                    <ul className="space-y-2 text-sm">
+                      {availableFeatures.map((feature) => {
+                        const tierValue = feature.tiers[tier.id as keyof typeof feature.tiers];
+                        
+                        return (
+                          <li 
+                            key={feature.name} 
+                            className="flex justify-between items-center"
+                          >
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger className="flex items-center gap-1 cursor-help text-left">
+                                  <span>{feature.name}</span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs max-w-[200px]">{feature.description}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <span>
+                              {tierValue === 'full' 
+                                ? <Check className="h-4 w-4 text-green-500" /> 
+                                : <Minus className="h-4 w-4 text-amber-500" />
+                              }
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                );
+              })}
             </div>
             
             <Button 
