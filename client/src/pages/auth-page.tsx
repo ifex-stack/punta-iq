@@ -349,7 +349,19 @@ export default function AuthPage() {
                               )}
                             </Button>
                             
-                            {/* Demo account button has been removed */}
+                            {/* Beta Test Login */}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full mt-2"
+                              onClick={() => {
+                                loginForm.setValue('username', 'betatester');
+                                loginForm.setValue('password', 'test1234');
+                                loginForm.handleSubmit(onLoginSubmit)();
+                              }}
+                            >
+                              Beta Test Login
+                            </Button>
                             
                             {/* Quick login debug mode has been removed as requested */}
                           </div>

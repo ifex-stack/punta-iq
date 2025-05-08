@@ -371,6 +371,45 @@ export function setupAuth(app: Express) {
     const { password, ...userWithoutPassword } = req.user;
     res.json(userWithoutPassword);
   });
+  
+  // Seed a beta test user on server start (does nothing if user already exists)
+  async function createBetaTestUser() {
+    try {
+      // Check if beta test user already exists
+      const existingUser = await storage.getUserByUsername('betatester');
+      if (existingUser) {
+        logger.info('Auth', 'Beta test user already exists - no need to create');
+        return;
+      }
+      
+      // Create beta test user
+      logger.info('Auth', 'Creating beta test user for demonstration purposes');
+      const hashedPassword = await hashPassword('test1234');
+      
+      await storage.createUser({
+        username: 'betatester',
+        email: 'beta@puntaiq.test',
+        password: hashedPassword,
+        emailVerificationToken: '',
+        isEmailVerified: true,
+        isTwoFactorEnabled: false,
+        subscriptionTier: 'elite', // Set to the highest tier for testing all features
+        fantasyPoints: 1000,
+        totalContestsWon: 5,
+        totalContestsEntered: 10,
+        referralStreak: 3,
+        onboardingStatus: 'completed',
+        lastOnboardingStep: 5
+      });
+      
+      logger.info('Auth', 'Beta test user created successfully');
+    } catch (error) {
+      logger.error('Auth', `Failed to create beta test user: ${error}`);
+    }
+  }
+  
+  // Create beta test user when the server starts
+  createBetaTestUser();
 
   // Email verification endpoint
   app.post("/api/verify-email", async (req, res) => {
