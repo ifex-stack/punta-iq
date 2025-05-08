@@ -271,12 +271,32 @@ export const insertMatchSchema = createInsertSchema(matches).pick({
   awayOdds: true,
 });
 
+// Prediction confidence breakdown enum
+export const confidenceFactorEnum = pgEnum('confidence_factor', [
+  'form',               // Team form
+  'head_to_head',       // Head-to-head record
+  'home_advantage',     // Home advantage
+  'injuries',           // Key player injuries/availability
+  'motivation',         // Team motivation factors
+  'weather',            // Weather conditions
+  'fatigue',            // Team fatigue/rest days
+  'historical_odds',    // Historical odds accuracy
+  'market_movement',    // Betting market movements
+  'model_consensus',    // AI model consensus
+  'expert_opinion',     // Expert analyst opinions
+  'user_preference'     // User-specific preference adjustment
+]);
+
 // Predictions table
 export const predictions = pgTable("predictions", {
   id: serial("id").primaryKey(),
   matchId: integer("match_id").notNull(),
   predictedOutcome: text("predicted_outcome").notNull(), // e.g., "home", "away", "draw", "btts", "over2.5"
   confidence: doublePrecision("confidence").notNull(), // 0-100 percentage
+  confidenceFactors: json("confidence_factors").default({}), // Detailed breakdown of confidence factors
+  baseConfidence: doublePrecision("base_confidence"), // Base confidence before personalization
+  confidenceAdjustmentFactors: json("confidence_adjustment_factors").default({}), // Factors affecting personalized adjustments
+  personalizedConfidenceAlgorithm: text("personalized_confidence_algorithm"), // Algorithm version used for personalization
   isPremium: boolean("is_premium").default(false),
   additionalPredictions: json("additional_predictions"), // e.g., { btts: true, overUnder: "over2.5" }
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -301,6 +321,10 @@ export const insertPredictionSchema = createInsertSchema(predictions).pick({
   matchId: true,
   predictedOutcome: true,
   confidence: true,
+  confidenceFactors: true,
+  baseConfidence: true,
+  confidenceAdjustmentFactors: true,
+  personalizedConfidenceAlgorithm: true,
   isPremium: true,
   additionalPredictions: true,
   sport: true,

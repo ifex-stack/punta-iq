@@ -4036,11 +4036,23 @@ export class DatabaseStorage implements IStorage {
         console.log("Attempting to insert user with username:", userValues.username);
         
         // Insert the user with all fields properly initialized
-        const [user] = await db
+        const result = await db
           .insert(users)
           .values(userValues)
           .returning();
           
+        // Check if result is an array and has at least one element
+        if (!Array.isArray(result) || result.length === 0) {
+          throw new Error("User creation failed: No user returned from database");
+        }
+        
+        const user = result[0];
+        
+        // Verify user object has required properties
+        if (!user || typeof user !== 'object' || !user.id) {
+          throw new Error("User creation failed: Invalid user object returned");
+        }
+        
         console.log("User created successfully with ID:", user.id);
           
         // If the user was referred by someone, create a referral record
