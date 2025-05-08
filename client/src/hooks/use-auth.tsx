@@ -113,7 +113,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/register", credentials);
       return await res.json();
     },
-    onSuccess: (user: UserResponse) => {
+    onSuccess: (response: UserResponse & { loginStatus?: string; message?: string }) => {
+      // Check if registration was successful but login failed
+      if (response.loginStatus === 'manual_login_required') {
+        // Store minimal user data but don't set as fully logged in
+        queryClient.setQueryData(["/api/user"], null);
+        
+        toast({
+          title: "Account created successfully",
+          description: response.message || "Please log in with your new credentials.",
+          duration: 5000,
+        });
+        
+        // Return early to prevent showing welcome message
+        return;
+      }
+      
+      // Normal success flow - user is registered and logged in
+      const user = response;
+      
       // Update auth data
       queryClient.setQueryData(["/api/user"], user);
       

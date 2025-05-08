@@ -204,20 +204,40 @@ export function setupAuth(app: Express) {
         // Continue with login despite notification error
       }
 
-      // Log user in
-      req.login(user, (err) => {
-        if (err) {
-          logger.error('Auth', `Session creation error on registration: ${err}`);
-          return res.status(500).json({
-            error: 'Session Error',
-            message: 'Account created but login failed. Please try logging in manually.',
-            code: 'SESSION_ERROR_AFTER_REGISTER'
+      // Log user in with retry mechanism
+      const loginWithRetry = (retryCount = 0) => {
+        req.login(user, (err) => {
+          if (err) {
+            logger.error('Auth', `Session creation error on registration (attempt ${retryCount + 1}): ${err}`);
+            
+            // Retry login up to 2 times if it fails
+            if (retryCount < 2) {
+              logger.info('Auth', `Retrying login after registration (attempt ${retryCount + 1})`);
+              setTimeout(() => loginWithRetry(retryCount + 1), 500);
+              return;
+            }
+            
+            // If all retries fail, still return success with the user data,
+            // but include a flag indicating that they may need to log in manually
+            const { password, ...userWithoutPassword } = user;
+            return res.status(201).json({
+              ...userWithoutPassword,
+              loginStatus: 'manual_login_required',
+              message: 'Account created successfully. Please log in with your credentials.'
+            });
+          }
+          
+          // Remove password from response
+          const { password, ...userWithoutPassword } = user;
+          res.status(201).json({
+            ...userWithoutPassword,
+            loginStatus: 'success'
           });
-        }
-        // Remove password from response
-        const { password, ...userWithoutPassword } = user;
-        res.status(201).json(userWithoutPassword);
-      });
+        });
+      };
+      
+      // Start the login process with retries
+      loginWithRetry();
     } catch (error) {
       if (error instanceof z.ZodError) {
         // Detailed validation error message

@@ -119,7 +119,28 @@ export default function AuthPage() {
     
     console.log("Registration attempt with:", registerData.username);
     registerMutation.mutate(registerData, {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
+        // Check if this requires manual login (handled in useAuth hook)
+        if (response.loginStatus === 'manual_login_required') {
+          // Auto switch to login tab
+          setAuthTab('login');
+          
+          // Pre-fill the login form with their username
+          loginForm.setValue('username', registerData.username);
+          loginForm.setValue('password', ''); // Clear password field for security
+          
+          // Focus the password field
+          setTimeout(() => {
+            const passwordField = document.querySelector('input[name="password"]');
+            if (passwordField) {
+              (passwordField as HTMLInputElement).focus();
+            }
+          }, 300);
+          
+          return;
+        }
+        
+        // Normal success flow
         toast({
           title: "Registration successful",
           description: "Your account has been created.",
