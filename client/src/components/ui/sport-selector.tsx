@@ -151,7 +151,7 @@ export function SportSelector({
                 <SportButton 
                   key={sport.id}
                   label={sport.label}
-                  icon={<Icon className={cn("mr-1 h-4 w-4", sport.color && `text-[${sport.color}]`)} />}
+                  icon={<sport.icon className="mr-1 h-4 w-4" />}
                   isSelected={isSelected}
                   isPinned={isPinned}
                   onPin={(e) => togglePin(sport.id, e)}

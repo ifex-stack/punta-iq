@@ -1,50 +1,43 @@
 import { 
-  Trophy, 
-  CircleDot, 
-  Dumbbell, 
-  StickyNote, 
-  Snowflake, 
-  Circle, 
+  Trophy,
+  CircleDot,
+  Dumbbell,
+  StickyNote,
+  Snowflake,
+  Circle,
   Bike,
   Shirt,
   Flag,
-  HeartPulse,
   Waves,
   Car,
-  Tennis as TennisIcon,
-  Bowling,
+  Swords,
   Table,
-  Boxing,
   Clock,
   Mic,
-  Golf,
-  Racket,
+  Rocket,
+  Gamepad,
   Asterisk,
   CircleDashed,
   Target,
-  CrosshairIcon,
   Footprints,
   Wine,
-  Ship,
-  type LucideIcon
+  Ship
 } from 'lucide-react';
-import { 
-  SiPremierleague, 
-  SiNba, 
-  SiNfl, 
-  SiFormulae, 
-  SiUfc 
-} from "react-icons/si";
+import { SiPremierleague, SiNba, SiUfc } from "react-icons/si";
 import type { IconType } from 'react-icons';
+import React from 'react';
 
-export type Sport = {
+// This is a safe type that TypeScript can understand
+type IconComponent = React.ComponentType<any>;
+
+export interface Sport {
   id: string;
   label: string;
-  icon: typeof SiPremierleague | LucideIcon;
-  apiKey?: string;  // The key used in API requests
-  color?: string;   // Optional theme color for the sport
-  popular?: boolean; // Whether this is a popular sport
-};
+  icon: IconComponent;
+  apiKey?: string;
+  color?: string;
+  popular?: boolean;
+}
 
 // Sports supported by our application
 export const SPORTS_LIST: Sport[] = [
@@ -54,7 +47,7 @@ export const SPORTS_LIST: Sport[] = [
   // Most popular sports
   { id: 'football', label: 'Football', icon: SiPremierleague, apiKey: 'soccer', popular: true, color: '#38b6ff' },
   { id: 'basketball', label: 'Basketball', icon: SiNba, apiKey: 'basketball', popular: true, color: '#ff5500' },
-  { id: 'tennis', label: 'Tennis', icon: TennisIcon, apiKey: 'tennis', popular: true, color: '#ffcc00' },
+  { id: 'tennis', label: 'Tennis', icon: CircleDot, apiKey: 'tennis', popular: true, color: '#ffcc00' },
   { id: 'baseball', label: 'Baseball', icon: StickyNote, apiKey: 'baseball', popular: true, color: '#ff0000' },
   { id: 'hockey', label: 'Hockey', icon: Snowflake, apiKey: 'hockey', popular: true, color: '#0066ff' },
   
@@ -65,20 +58,20 @@ export const SPORTS_LIST: Sport[] = [
   { id: 'cricket', label: 'Cricket', icon: Shirt, apiKey: 'cricket', popular: true, color: '#00cc66' },
   
   // Other sports
-  { id: 'golf', label: 'Golf', icon: Golf, apiKey: 'golf', color: '#009933' },
+  { id: 'golf', label: 'Golf', icon: CircleDot, apiKey: 'golf', color: '#009933' },
   { id: 'cycling', label: 'Cycling', icon: Bike, apiKey: 'cycling', color: '#ff9900' },
-  { id: 'rugby', label: 'Rugby', icon: Bowling, apiKey: 'rugby', color: '#663300' },
+  { id: 'rugby', label: 'Rugby', icon: Dumbbell, apiKey: 'rugby', color: '#663300' },
   { id: 'volleyball', label: 'Volleyball', icon: CircleDashed, apiKey: 'volleyball', color: '#ff6600' },
   { id: 'handball', label: 'Handball', icon: Circle, apiKey: 'handball', color: '#0099cc' },
-  { id: 'boxing', label: 'Boxing', icon: Boxing, apiKey: 'boxing', color: '#cc0000' },
+  { id: 'boxing', label: 'Boxing', icon: Swords, apiKey: 'boxing', color: '#cc0000' },
   { id: 'darts', label: 'Darts', icon: Target, apiKey: 'darts', color: '#009933' },
   { id: 'snooker', label: 'Snooker', icon: Table, apiKey: 'snooker', color: '#006600' },
   { id: 'motorsport', label: 'Motorsport', icon: Car, apiKey: 'motorsport', color: '#cc3300' },
-  { id: 'badminton', label: 'Badminton', icon: Racket, apiKey: 'badminton', color: '#6600cc' },
+  { id: 'badminton', label: 'Badminton', icon: Rocket, apiKey: 'badminton', color: '#6600cc' },
   { id: 'water_sports', label: 'Water Sports', icon: Waves, apiKey: 'watersports', color: '#0099ff' },
   { id: 'winter_sports', label: 'Winter Sports', icon: Snowflake, apiKey: 'wintersports', color: '#3399ff' },
   { id: 'athletics', label: 'Athletics', icon: Footprints, apiKey: 'athletics', color: '#ff3399' },
-  { id: 'esports', label: 'Esports', icon: Asterisk, apiKey: 'esports', color: '#9933cc' },
+  { id: 'esports', label: 'Esports', icon: Gamepad, apiKey: 'esports', color: '#9933cc' },
   { id: 'horse_racing', label: 'Horse Racing', icon: Clock, apiKey: 'horseracing', color: '#996633' },
   { id: 'chess', label: 'Chess', icon: Circle, apiKey: 'chess', color: '#666666' },
   { id: 'entertainment', label: 'Entertainment', icon: Mic, apiKey: 'entertainment', color: '#ff66cc' },
@@ -94,13 +87,11 @@ export function getSportById(id: string): Sport | undefined {
   return SPORTS_LIST.find(sport => sport.id === id);
 }
 
-// Get sport icon component
-export function getSportIcon(id: string): JSX.Element | null {
+// Get sport icon component (as a string identifier instead of JSX to avoid type issues)
+export function getSportIconId(id: string): string | null {
   const sport = getSportById(id);
   if (!sport) return null;
-  
-  const Icon = sport.icon;
-  return <Icon className="h-4 w-4" />;
+  return id;
 }
 
 // Map sport ID to display name
