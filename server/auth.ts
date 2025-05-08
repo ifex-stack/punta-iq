@@ -152,25 +152,53 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
-      // Validate request body
-      const validatedData = registerSchema.parse(req.body);
+      logger.info('Auth', 'Registration attempt received');
       
-      // Check if user already exists
-      const existingUsername = await storage.getUserByUsername(validatedData.username);
-      if (existingUsername) {
-        return res.status(400).json({
-          error: 'Registration Failed',
-          message: "Username already exists",
-          code: 'USERNAME_EXISTS'
-        });
+      // Validate request body
+      try {
+        var validatedData = registerSchema.parse(req.body);
+        logger.info('Auth', `Registration validation passed for: ${validatedData.username}`);
+      } catch (validationError) {
+        if (validationError instanceof z.ZodError) {
+          // Detailed validation error message
+          logger.warn('Auth', `Registration validation failed: ${validationError.errors[0].message}`);
+          return res.status(400).json({
+            error: 'Validation Error',
+            message: validationError.errors[0].message,
+            code: 'VALIDATION_ERROR',
+            field: validationError.errors[0].path.join('.') // Return the field that failed validation
+          });
+        }
+        throw validationError; // Re-throw unexpected validation errors
       }
       
-      const existingEmail = await storage.getUserByEmail(validatedData.email);
-      if (existingEmail) {
-        return res.status(400).json({
-          error: 'Registration Failed',
-          message: "Email already exists",
-          code: 'EMAIL_EXISTS'
+      // Check if user already exists
+      try {
+        const existingUsername = await storage.getUserByUsername(validatedData.username);
+        if (existingUsername) {
+          logger.warn('Auth', `Registration failed: Username already exists (${validatedData.username})`);
+          return res.status(400).json({
+            error: 'Registration Failed',
+            message: "Username already exists",
+            code: 'USERNAME_EXISTS'
+          });
+        }
+        
+        const existingEmail = await storage.getUserByEmail(validatedData.email);
+        if (existingEmail) {
+          logger.warn('Auth', `Registration failed: Email already exists (${validatedData.email})`);
+          return res.status(400).json({
+            error: 'Registration Failed',
+            message: "Email already exists",
+            code: 'EMAIL_EXISTS'
+          });
+        }
+      } catch (lookupError) {
+        logger.error('Auth', `Error checking user existence: ${lookupError}`);
+        return res.status(500).json({
+          error: 'Server Error',
+          message: 'Database error occurred while checking user existence',
+          code: 'DB_ERROR'
         });
       }
 
@@ -178,12 +206,28 @@ export function setupAuth(app: Express) {
       const verificationToken = randomBytes(32).toString('hex');
       
       // Create user with hashed password
-      const user = await storage.createUser({
-        ...validatedData,
-        password: await hashPassword(validatedData.password),
-        emailVerificationToken: verificationToken,
-        isEmailVerified: false
-      });
+      let user;
+      try {
+        const hashedPassword = await hashPassword(validatedData.password);
+        logger.info('Auth', 'Password hashed successfully, creating user');
+        
+        user = await storage.createUser({
+          ...validatedData,
+          password: hashedPassword,
+          emailVerificationToken: verificationToken,
+          isEmailVerified: false
+        });
+        
+        logger.info('Auth', `User created successfully: ${user.id}`);
+      } catch (createError) {
+        logger.error('Auth', `Failed to create user: ${createError}`);
+        return res.status(500).json({
+          error: 'Server Error',
+          message: 'Failed to create user account',
+          code: 'USER_CREATION_ERROR',
+          details: process.env.NODE_ENV === 'development' ? createError.message : undefined
+        });
+      }
 
       // Create welcome notification for the new user
       try {
@@ -220,6 +264,7 @@ export function setupAuth(app: Express) {
             // If all retries fail, still return success with the user data,
             // but include a flag indicating that they may need to log in manually
             const { password, ...userWithoutPassword } = user;
+            logger.warn('Auth', 'All login attempts after registration failed, returning manual login required');
             return res.status(201).json({
               ...userWithoutPassword,
               loginStatus: 'manual_login_required',
@@ -229,6 +274,7 @@ export function setupAuth(app: Express) {
           
           // Remove password from response
           const { password, ...userWithoutPassword } = user;
+          logger.info('Auth', `Registration successful and user logged in: ${user.id}`);
           res.status(201).json({
             ...userWithoutPassword,
             loginStatus: 'success'
@@ -239,16 +285,7 @@ export function setupAuth(app: Express) {
       // Start the login process with retries
       loginWithRetry();
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        // Detailed validation error message
-        return res.status(400).json({
-          error: 'Validation Error',
-          message: error.errors[0].message,
-          code: 'VALIDATION_ERROR',
-          field: error.errors[0].path.join('.') // Return the field that failed validation
-        });
-      }
-      logger.error('Auth', `Registration error: ${error}`);
+      logger.error('Auth', `Unexpected registration error: ${error}`);
       res.status(500).json({
         error: 'Server Error',
         message: 'Failed to create account. Please try again later.',

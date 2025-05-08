@@ -3902,6 +3902,8 @@ export class DatabaseStorage implements IStorage {
           results: true,
           promotions: true,
         },
+        onboardingStatus: 'not_started', // Properly set onboarding status as enum
+        lastOnboardingStep: 0,
         userPreferences: {
           favoriteSports: [],
           favoriteLeagues: [],
@@ -3924,29 +3926,42 @@ export class DatabaseStorage implements IStorage {
         }
       };
       
-      // Insert the user with all fields properly initialized
-      const [user] = await db
-        .insert(users)
-        .values(userValues)
-        .returning();
-        
-      // If the user was referred by someone, create a referral record
-      if (insertUser.referredBy) {
-        try {
-          await db.insert(referrals).values({
-            referrerId: insertUser.referredBy,
-            referredId: user.id,
-            status: "pending"
-          });
-        } catch (referralError) {
-          console.error("Error creating referral record:", referralError);
-          // Continue even if referral creation fails
+      try {
+        // Insert the user with all fields properly initialized
+        const [user] = await db
+          .insert(users)
+          .values(userValues)
+          .returning();
+          
+        // If the user was referred by someone, create a referral record
+        if (insertUser.referredBy) {
+          try {
+            await db.insert(referrals).values({
+              referrerId: insertUser.referredBy,
+              referredId: user.id,
+              status: "pending"
+            });
+          } catch (referralError) {
+            console.error("Error creating referral record:", referralError);
+            // Continue even if referral creation fails
+          }
         }
+        
+        return user;
+      } catch (dbError) {
+        console.error("Error in database operation during user creation:", dbError);
+        // Log the exact SQL error for debugging
+        if (dbError.code) {
+          console.error(`SQL Error Code: ${dbError.code}`);
+        }
+        if (dbError.constraint) {
+          console.error(`Constraint violation: ${dbError.constraint}`);
+        }
+        // Rethrow with more details
+        throw new Error(`Database error during user creation: ${dbError.message}`);
       }
-      
-      return user;
     } catch (error) {
-      console.error("Error creating user:", error);
+      console.error("Outer error in createUser:", error);
       throw new Error(`Failed to create user: ${error.message || 'Unknown error'}`);
     }
   }
