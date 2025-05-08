@@ -322,164 +322,164 @@ export default function MobileHomePage() {
   return (
     <PageTransition direction="fade" duration={0.6}>
       <div className="container px-4 py-6 max-w-3xl mx-auto">
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h1 className="text-2xl font-bold">AI Predictions</h1>
-          <p className="text-sm text-muted-foreground">
-            Smart picks for today's matches
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h1 className="text-2xl font-bold">AI Predictions</h1>
+            <p className="text-sm text-muted-foreground">
+              Smart picks for today's matches
+            </p>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="relative"
+            disabled={isLoading}
+            onClick={handleRefresh}
+          >
+            <RefreshCw 
+              size={20} 
+              className={`${isLoading ? "animate-spin" : ""}`} 
+            />
+          </Button>
+        </div>
+
+        {/* Date Filter */}
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+          {dateOptions.map(option => (
+            <Button
+              key={option.value}
+              variant={selectedDate === option.value ? "default" : "outline"}
+              size="sm"
+              className="flex items-center gap-1 h-9"
+              onClick={() => handleDateChange(option.value)}
+            >
+              <CalendarDays size={14} />
+              {option.label}
+            </Button>
+          ))}
+        </div>
+
+        {/* Enhanced Sports Selector */}
+        <div className="mb-4">
+          <h3 className="text-sm font-medium mb-2">Select Sports</h3>
+          <AnimatedBackground 
+            variant="gradient" 
+            intensity="low" 
+            className="rounded-lg p-1"
+            colors={['#4f46e5', '#7c3aed', '#2563eb']}
+          >
+            <EnhancedSportSelector
+              selectedSports={filters.sports}
+              onSportToggle={handleSportToggle}
+              mode="pills"
+              showFavorites={true}
+              multiple={true}
+              className="py-1"
+            />
+          </AnimatedBackground>
+        </div>
+
+        {/* AutoFill AI Generator Button */}
+        <div className="mb-6">
+          <AnimatedBackground
+            variant="particles"
+            intensity="medium"
+            className="rounded-lg p-1 mb-2"
+            colors={['#7c3aed', '#4f46e5', '#8b5cf6']}
+          >
+            <Button
+              variant="default"
+              size="lg"
+              className="w-full gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-md"
+              onClick={handleGenerateAIPredictions}
+              disabled={isGenerating}
+            >
+              {isGenerating ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="h-5 w-5 border-2 border-white border-t-transparent rounded-full"
+                  />
+                  <span>Generating predictions...</span>
+                </>
+              ) : (
+                <>
+                  <Wand2 size={18} />
+                  <span>AutoFill with AI Predictions</span>
+                </>
+              )}
+            </Button>
+          </AnimatedBackground>
+          
+          <p className="text-xs text-muted-foreground text-center mt-1">
+            Get unique AI-generated predictions that change with each click
           </p>
         </div>
-        <Button 
-          variant="ghost" 
-          size="icon"
-          className="relative"
-          disabled={isLoading}
-          onClick={handleRefresh}
-        >
-          <RefreshCw 
-            size={20} 
-            className={`${isLoading ? "animate-spin" : ""}`} 
-          />
-        </Button>
-      </div>
 
-      {/* Date Filter */}
-      <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-        {dateOptions.map(option => (
-          <Button
-            key={option.value}
-            variant={selectedDate === option.value ? "default" : "outline"}
-            size="sm"
-            className="flex items-center gap-1 h-9"
-            onClick={() => handleDateChange(option.value)}
-          >
-            <CalendarDays size={14} />
-            {option.label}
-          </Button>
-        ))}
-      </div>
+        {/* Additional Filters */}
+        <FilterSection onFilterChange={handleFilterChange} />
 
-      {/* Enhanced Sports Selector */}
-      <div className="mb-4">
-        <h3 className="text-sm font-medium mb-2">Select Sports</h3>
-        <AnimatedBackground 
-          variant="gradient" 
-          intensity="low" 
-          className="rounded-lg p-1"
-          colors={['#4f46e5', '#7c3aed', '#2563eb']}
-        >
-          <EnhancedSportSelector
-            selectedSports={filters.sports}
-            onSportToggle={handleSportToggle}
-            mode="pills"
-            showFavorites={true}
-            multiple={true}
-            className="py-1"
-          />
-        </AnimatedBackground>
-      </div>
-
-      {/* AutoFill AI Generator Button */}
-      <div className="mb-6">
-        <AnimatedBackground
-          variant="particles"
-          intensity="medium"
-          className="rounded-lg p-1 mb-2"
-          colors={['#7c3aed', '#4f46e5', '#8b5cf6']}
-        >
-          <Button
-            variant="default"
-            size="lg"
-            className="w-full gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-md"
-            onClick={handleGenerateAIPredictions}
-            disabled={isGenerating}
-          >
-            {isGenerating ? (
-              <>
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="h-5 w-5 border-2 border-white border-t-transparent rounded-full"
-                />
-                <span>Generating predictions...</span>
-              </>
-            ) : (
-              <>
-                <Wand2 size={18} />
-                <span>AutoFill with AI Predictions</span>
-              </>
-            )}
-          </Button>
-        </AnimatedBackground>
-        
-        <p className="text-xs text-muted-foreground text-center mt-1">
-          Get unique AI-generated predictions that change with each click
-        </p>
-      </div>
-
-      {/* Additional Filters */}
-      <FilterSection onFilterChange={handleFilterChange} />
-
-      {/* Content */}
-      <AnimatePresence mode="wait">
-        {isLoading ? (
-          <motion.div
-            key="loading"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center py-12"
-          >
+        {/* Content */}
+        <AnimatePresence mode="wait">
+          {isLoading ? (
             <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-              className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full mb-4"
-            />
-            <p className="text-muted-foreground">Loading predictions...</p>
-          </motion.div>
-        ) : filteredPredictions.length > 0 ? (
-          <motion.div
-            key="predictions-list"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="space-y-4"
-          >
-            {filteredPredictions.map((prediction) => (
-              <PredictionCard 
-                key={prediction.id}
-                prediction={prediction}
-                onFavoriteToggle={handleFavoriteToggle}
-                isFavorite={favorites.includes(prediction.id)}
-              />
-            ))}
-          </motion.div>
-        ) : (
-          <motion.div
-            key="empty-state"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center py-12 px-4 text-center"
-          >
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-              <BarChart2 className="w-8 h-8 text-primary" />
-            </div>
-            <h3 className="text-lg font-medium mb-2">No predictions found</h3>
-            <p className="text-sm text-muted-foreground mb-6 max-w-xs">
-              Try changing your filters or click the AutoFill button to generate new predictions.
-            </p>
-            <Button
-              onClick={handleGenerateAIPredictions}
-              className="gap-2"
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center py-12"
             >
-              <Zap size={16} />
-              Generate New Predictions
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full mb-4"
+              />
+              <p className="text-muted-foreground">Loading predictions...</p>
+            </motion.div>
+          ) : filteredPredictions.length > 0 ? (
+            <motion.div
+              key="predictions-list"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="space-y-4"
+            >
+              {filteredPredictions.map((prediction) => (
+                <PredictionCard 
+                  key={prediction.id}
+                  prediction={prediction}
+                  onFavoriteToggle={handleFavoriteToggle}
+                  isFavorite={favorites.includes(prediction.id)}
+                />
+              ))}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="empty-state"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center py-12 px-4 text-center"
+            >
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                <BarChart2 className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-lg font-medium mb-2">No predictions found</h3>
+              <p className="text-sm text-muted-foreground mb-6 max-w-xs">
+                Try changing your filters or click the AutoFill button to generate new predictions.
+              </p>
+              <Button
+                onClick={handleGenerateAIPredictions}
+                className="gap-2"
+              >
+                <Zap size={16} />
+                Generate New Predictions
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </PageTransition>
   );
 }
