@@ -77,71 +77,7 @@ export default function AuthPage() {
     },
   });
   
-  // Auto-fill demo account
-  const handleDemoAccount = async () => {
-    // Two-pronged approach: fill form AND direct API call
-    loginForm.setValue('username', 'beta_tester');
-    loginForm.setValue('password', 'puntaiq_beta_test');
-    
-    // Show immediate feedback
-    toast({
-      title: "Demo Mode",
-      description: "Activating beta test account...",
-      variant: "default"
-    });
-
-    try {
-      console.log("CRITICAL: Attempting direct beta login");
-      // Call our special beta login endpoint directly
-      const response = await fetch('/api/beta_login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-      });
-
-      if (response.ok) {
-        const user = await response.json();
-        console.log("Beta login successful:", user.username);
-        
-        // Success toast
-        toast({
-          title: "Demo Login Successful",
-          description: "You are now logged in as beta_tester",
-        });
-        
-        // Additional loading toast with delay
-        toast({
-          title: "Preparing Demo Environment",
-          description: "Loading your personalized sports dashboard...",
-          duration: 3000,
-        });
-        
-        // Set user data immediately but delay redirect
-        queryClient.setQueryData(["/api/user"], user);
-        
-        // Delay redirect to show loading state
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 2000);
-      } else {
-        console.error("Beta login failed:", response.status);
-        toast({
-          title: "Demo Login Failed",
-          description: "Could not login with demo account. Try regular login.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Beta login error:", error);
-      toast({
-        title: "Demo Login Error",
-        description: "An error occurred trying to login with the demo account.",
-        variant: "destructive",
-      });
-    }
-  };
+  // Demo account functionality has been removed for security reasons
   
   // Handle login form submission
   const onLoginSubmit = (data: LoginFormValues) => {
@@ -373,27 +309,9 @@ export default function AuthPage() {
                               )}
                             </Button>
                             
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="w-full"
-                              onClick={handleDemoAccount}
-                            >
-                              Try Demo Account
-                            </Button>
+                            {/* Demo account button has been removed */}
                             
-                            <div className="mt-4 text-center">
-                              <a 
-                                href="/?debug=true" 
-                                className="text-xs text-muted-foreground underline hover:text-primary"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  window.location.href = '/?debug=true';
-                                }}
-                              >
-                                Quick Login (Debug Mode)
-                              </a>
-                            </div>
+                            {/* Quick login debug mode has been removed as requested */}
                           </div>
                         </form>
                       </Form>
