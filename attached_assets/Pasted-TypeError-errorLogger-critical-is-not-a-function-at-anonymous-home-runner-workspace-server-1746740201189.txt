@@ -1,0 +1,45 @@
+TypeError: errorLogger.critical is not a function
+    at <anonymous> (/home/runner/workspace/server/index.ts:140:19)
+    at Layer.handle_error (/home/runner/workspace/node_modules/express/lib/router/layer.js:71:5)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:326:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at Layer.handle_error (/home/runner/workspace/node_modules/express/lib/router/layer.js:67:12)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:326:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at Layer.handle_error (/home/runner/workspace/node_modules/express/lib/router/layer.js:67:12)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:326:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at Layer.handle_error (/home/runner/workspace/node_modules/express/lib/router/layer.js:67:12)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:326:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at Layer.handle_error (/home/runner/workspace/node_modules/express/lib/router/layer.js:67:12)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:326:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at Layer.handle_error (/home/runner/workspace/node_modules/express/lib/router/layer.js:67:12)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:326:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at Layer.handle_error (/home/runner/workspace/node_modules/express/lib/router/layer.js:67:12)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:326:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at Layer.handle_error (/home/runner/workspace/node_modules/express/lib/router/layer.js:67:12)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:326:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at /home/runner/workspace/node_modules/express-session/index.js:497:9
+    at /home/runner/workspace/node_modules/connect-pg-simple/index.js:365:27
+    at process.processTicksAndRejections (node:internal/process/task_queues:81:21)

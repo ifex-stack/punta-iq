@@ -137,7 +137,8 @@ app.use((req, res, next) => {
     };
     
     if (status >= 500) {
-      errorLogger.critical(`${status} ${message}`, errorData);
+      // Winston doesn't have a critical level by default, use error instead
+      errorLogger.error(`[CRITICAL] ${status} ${message}`, errorData);
     } else if (status >= 400) {
       errorLogger.error(`${status} ${message}`, errorData);
     } else {

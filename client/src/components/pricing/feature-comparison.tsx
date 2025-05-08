@@ -222,7 +222,8 @@ export function FeatureComparison({
     <div className="mt-8">
       <h2 className="text-xl font-bold mb-4 text-center">Complete Feature Comparison</h2>
       
-      <div className="rounded-lg border overflow-hidden">
+      {/* Desktop view - Full table for larger screens */}
+      <div className="rounded-lg border overflow-hidden hidden md:block">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -306,6 +307,79 @@ export function FeatureComparison({
             </TableRow>
           </TableFooter>
         </Table>
+      </div>
+      
+      {/* Mobile view - Card-based layout for small screens */}
+      <div className="md:hidden space-y-6">
+        {pricingTiers.map((tier) => (
+          <div 
+            key={tier.id} 
+            className={`rounded-lg border ${tier.isPopular ? 'border-primary/40 bg-primary/5' : 'border-border'} p-4 relative overflow-hidden`}
+          >
+            {tier.isPopular && (
+              <div className="absolute top-0 right-0">
+                <div className="bg-primary text-primary-foreground text-xs px-3 py-1 rotate-45 translate-x-2 translate-y-3">
+                  Popular
+                </div>
+              </div>
+            )}
+            
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">{tier.name}</h3>
+              <div className="flex items-baseline">
+                <span className="text-xl font-bold">{tier.currency}{tier.price}</span>
+                <span className="text-xs text-muted-foreground ml-1">/{tier.interval}</span>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              {featureCategories.map((category) => (
+                <div key={category.name} className="space-y-2">
+                  <h4 className="text-sm font-semibold border-b pb-1">{category.name}</h4>
+                  <ul className="space-y-2 text-sm">
+                    {category.features.map((feature) => {
+                      const tierValue = feature.tiers[tier.id as keyof typeof feature.tiers];
+                      if (tierValue === 'none') return null; // Don't show unavailable features on mobile
+                      
+                      return (
+                        <li 
+                          key={feature.name} 
+                          className="flex justify-between items-center"
+                        >
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger className="flex items-center gap-1 cursor-help text-left">
+                                <span>{feature.name}</span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs max-w-[200px]">{feature.description}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <span>
+                            {tierValue === 'full' 
+                              ? <Check className="h-4 w-4 text-green-500" /> 
+                              : <Minus className="h-4 w-4 text-amber-500" />
+                            }
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </div>
+            
+            <Button 
+              variant={tier.isPopular ? "default" : "outline"}
+              onClick={() => onSubscribe(tier.id)}
+              disabled={currentPlanId === tier.id}
+              className="w-full mt-6"
+            >
+              {currentPlanId === tier.id ? 'Current Plan' : 'Subscribe'}
+            </Button>
+          </div>
+        ))}
       </div>
     </div>
   );

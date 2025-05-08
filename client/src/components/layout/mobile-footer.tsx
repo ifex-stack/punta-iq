@@ -51,7 +51,7 @@ export default function MobileFooter() {
     { name: "Confidence Meter", href: "/confidence-meter-demo", icon: Gauge },
     { name: "AI Accumulators", href: "/ai-accumulators", icon: Sparkles },
     { name: "Advanced Stats", href: "/advanced-analysis-page", icon: BarChart4 },
-    { name: "Predictions", href: "/", icon: Zap },
+    { name: "Personalized Picks", href: "/favorites-page", icon: Zap },
   ];
   
   // Legal section
