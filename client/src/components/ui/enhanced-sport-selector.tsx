@@ -2,8 +2,18 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
-  Basketball, Football, Tennis, Baseball, Hockey, Golf, 
-  Rugby, Cricket, Volleyball, Boxing, MoveHorizontal, Star
+  Trophy, 
+  Dumbbell,
+  Bike, 
+  Clock, 
+  Timer, 
+  ShieldX, 
+  Flag, 
+  MoveHorizontal, 
+  Star,
+  Activity,
+  Zap,
+  Glasses
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -45,74 +55,74 @@ export function EnhancedSportSelector({
   const [scrollLeft, setScrollLeft] = useState(0);
   
   // Sports data with icons and colors
-  const sports: Sport[] = [
+  const sportsData: Sport[] = [
     { 
       id: 'football', 
       name: 'Football', 
-      icon: <Football size={mode === 'compact' ? 18 : 24} />, 
+      icon: <Activity size={mode === 'compact' ? 18 : 24} />, 
       color: '#4ade80', 
       backgroundColor: 'rgba(74, 222, 128, 0.1)' 
     },
     { 
       id: 'basketball', 
       name: 'Basketball', 
-      icon: <Basketball size={mode === 'compact' ? 18 : 24} />, 
+      icon: <Zap size={mode === 'compact' ? 18 : 24} />, 
       color: '#f97316', 
       backgroundColor: 'rgba(249, 115, 22, 0.1)' 
     },
     { 
       id: 'tennis', 
       name: 'Tennis', 
-      icon: <Tennis size={mode === 'compact' ? 18 : 24} />, 
+      icon: <Clock size={mode === 'compact' ? 18 : 24} />, 
       color: '#facc15', 
       backgroundColor: 'rgba(250, 204, 21, 0.1)' 
     },
     { 
       id: 'baseball', 
       name: 'Baseball', 
-      icon: <Baseball size={mode === 'compact' ? 18 : 24} />, 
+      icon: <Trophy size={mode === 'compact' ? 18 : 24} />, 
       color: '#14b8a6', 
       backgroundColor: 'rgba(20, 184, 166, 0.1)' 
     },
     { 
       id: 'hockey', 
       name: 'Hockey', 
-      icon: <Hockey size={mode === 'compact' ? 18 : 24} />, 
+      icon: <ShieldX size={mode === 'compact' ? 18 : 24} />, 
       color: '#0ea5e9', 
       backgroundColor: 'rgba(14, 165, 233, 0.1)' 
     },
     { 
       id: 'golf', 
       name: 'Golf', 
-      icon: <Golf size={mode === 'compact' ? 18 : 24} />, 
+      icon: <Flag size={mode === 'compact' ? 18 : 24} />, 
       color: '#a3e635', 
       backgroundColor: 'rgba(163, 230, 53, 0.1)' 
     },
     { 
       id: 'rugby', 
       name: 'Rugby', 
-      icon: <Rugby size={mode === 'compact' ? 18 : 24} />, 
+      icon: <Dumbbell size={mode === 'compact' ? 18 : 24} />, 
       color: '#8b5cf6', 
       backgroundColor: 'rgba(139, 92, 246, 0.1)' 
     },
     { 
       id: 'cricket', 
       name: 'Cricket', 
-      icon: <Cricket size={mode === 'compact' ? 18 : 24} />, 
+      icon: <Timer size={mode === 'compact' ? 18 : 24} />, 
       color: '#ec4899', 
       backgroundColor: 'rgba(236, 72, 153, 0.1)' 
     },
     { 
       id: 'volleyball', 
       name: 'Volleyball', 
-      icon: <Volleyball size={mode === 'compact' ? 18 : 24} />, 
+      icon: <Glasses size={mode === 'compact' ? 18 : 24} />, 
       color: '#f43f5e', 
       backgroundColor: 'rgba(244, 63, 94, 0.1)' 
     },
     { 
       id: 'boxing', 
       name: 'Boxing', 
-      icon: <Boxing size={mode === 'compact' ? 18 : 24} />, 
+      icon: <Dumbbell size={mode === 'compact' ? 18 : 24} />, 
       color: '#6366f1', 
       backgroundColor: 'rgba(99, 102, 241, 0.1)' 
     },
@@ -169,8 +179,8 @@ export function EnhancedSportSelector({
   
   // Filter sports if showing favorites only
   const displayedSports = favoritesOnly
-    ? sports.filter(sport => favoriteSports.includes(sport.id))
-    : sports.slice(0, maxDisplay);
+    ? sportsData.filter((sport: Sport) => favoriteSports.includes(sport.id))
+    : sportsData.slice(0, maxDisplay);
   
   // Render a sport item based on the selected mode
   const renderSportItem = (sport: Sport) => {
