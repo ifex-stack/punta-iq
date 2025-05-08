@@ -117,8 +117,15 @@ export default function AuthPage() {
   const onRegisterSubmit = (data: RegisterFormValues) => {
     const { confirmPassword, ...registerData } = data;
     
-    console.log("Registration attempt with:", registerData.username);
-    registerMutation.mutate(registerData, {
+    // Add required fields for proper registration
+    const registerPayload = {
+      ...registerData,
+      emailVerificationToken: '',   // Will be generated on server
+      isEmailVerified: false        // Default for new accounts
+    };
+    
+    console.log("Registration attempt with:", registerPayload.username);
+    registerMutation.mutate(registerPayload, {
       onSuccess: (response: any) => {
         // Check if this requires manual login (handled in useAuth hook)
         if (response.loginStatus === 'manual_login_required') {

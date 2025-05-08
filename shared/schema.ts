@@ -216,7 +216,8 @@ export const insertUserSchema = createInsertSchema(users).pick({
   role: true,
   isActive: true,
   isEmailVerified: true,
-  lastLoginAt: true
+  lastLoginAt: true,
+  emailVerificationToken: true
 });
 
 // Sports table
