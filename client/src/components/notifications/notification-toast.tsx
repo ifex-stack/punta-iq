@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -27,12 +27,29 @@ export function NotificationToastListener() {
   const { messages, markAsRead } = useNotifications();
   const [, navigate] = useLocation();
 
+  // Track which notifications we've already shown toasts for
+  const [shownNotifications, setShownNotifications] = useState<Set<string>>(new Set());
+  
   useEffect(() => {
     // Listen for new messages and display them as toasts
     if (messages && messages.length > 0) {
-      // Only show the latest message that has not been shown yet
-      const latestMessage = messages.find((msg: NotificationMessage) => !msg.toastShown);
-      if (latestMessage) {
+      // Check localStorage to see if we've displayed the welcome notification before
+      const hasDisplayedWelcome = localStorage.getItem('welcome_notification_shown') === 'true';
+      
+      // Find messages that haven't been shown as toasts yet and aren't in our shown set
+      const unshownMessages = messages.filter((msg: NotificationMessage) => {
+        // Skip welcome notification if we've already shown it in this session
+        if (msg.title === "Welcome to PuntaIQ!" && hasDisplayedWelcome) {
+          return false;
+        }
+        
+        return !msg.toastShown && !shownNotifications.has(msg.id);
+      });
+      
+      // Only show one notification at a time
+      if (unshownMessages.length > 0) {
+        const latestMessage = unshownMessages[0];
+        
         // Extract notification metadata for tracking
         const metadata = {
           title: latestMessage.title,
@@ -46,6 +63,18 @@ export function NotificationToastListener() {
         
         // Track that this notification was viewed
         trackNotificationView(latestMessage.id, metadata);
+        
+        // Add this notification to our set of shown notifications
+        setShownNotifications(prev => {
+          const newSet = new Set(prev);
+          newSet.add(latestMessage.id);
+          return newSet;
+        });
+        
+        // If this is the welcome notification, mark that we've shown it
+        if (latestMessage.title === "Welcome to PuntaIQ!") {
+          localStorage.setItem('welcome_notification_shown', 'true');
+        }
         
         // Handle marking as read and dismissal tracking
         const handleDismiss = () => {
@@ -86,7 +115,7 @@ export function NotificationToastListener() {
         });
       }
     }
-  }, [messages, toast, navigate, markAsRead]);
+  }, [messages, toast, navigate, markAsRead, shownNotifications]);
 
   return null;
 }
