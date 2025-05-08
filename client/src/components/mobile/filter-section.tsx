@@ -9,7 +9,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Filter, X, Check } from 'lucide-react';
+import { Filter, X, Check, CircleDot } from 'lucide-react';
+import { getSportById } from '@/lib/sports-data';
 
 export interface FilterOptions {
   sports: string[];
@@ -168,22 +169,28 @@ export function FilterSection({
               <div>
                 <Label className="text-sm font-medium mb-2 block">Sports</Label>
                 <div className="flex gap-2 flex-wrap">
-                  {['football', 'basketball', 'tennis', 'baseball', 'hockey'].map(sport => (
-                    <motion.button
-                      key={sport}
-                      onClick={() => handleSportToggle(sport)}
-                      className={cn(
-                        "px-3 py-1.5 rounded-full text-xs border transition-all",
-                        "transform perspective-800"
-                      )}
-                      initial="inactive"
-                      animate={filters.sports.includes(sport) ? "active" : "inactive"}
-                      variants={buttonVariants}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      {sport.charAt(0).toUpperCase() + sport.slice(1)}
-                    </motion.button>
-                  ))}
+                  {['football', 'basketball', 'tennis', 'baseball', 'hockey'].map(sport => {
+                    const sportObj = getSportById(sport);
+                    const IconComponent = sportObj?.icon || CircleDot;
+                    
+                    return (
+                      <motion.button
+                        key={sport}
+                        onClick={() => handleSportToggle(sport)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-xs border transition-all",
+                          "flex items-center gap-1.5 transform perspective-800"
+                        )}
+                        initial="inactive"
+                        animate={filters.sports.includes(sport) ? "active" : "inactive"}
+                        variants={buttonVariants}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <IconComponent className="h-3.5 w-3.5" />
+                        {sport.charAt(0).toUpperCase() + sport.slice(1)}
+                      </motion.button>
+                    );
+                  })}
                 </div>
               </div>
               
