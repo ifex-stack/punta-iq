@@ -32,9 +32,30 @@ const registerSchema = insertUserSchema.extend({
   email: z.string().email("Invalid email format"),
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  // Make sure optional fields have default values
+  // All of these fields are optional with defaults for registration
   emailVerificationToken: z.string().optional(),
   isEmailVerified: z.boolean().optional().default(false),
+  deviceImei: z.string().optional().nullable(),
+  phoneNumber: z.string().optional().nullable(),
+  isTwoFactorEnabled: z.boolean().optional().default(false),
+  twoFactorSecret: z.string().optional().nullable(),
+  referralCode: z.string().optional(),
+  referredBy: z.number().optional().nullable(),
+  stripeCustomerId: z.string().optional().nullable(),
+  stripeSubscriptionId: z.string().optional().nullable(),
+  subscriptionTier: z.string().optional().default("free"),
+  notificationSettings: z.any().optional(),
+  fantasyPoints: z.number().optional().default(0),
+  totalContestsWon: z.number().optional().default(0),
+  totalContestsEntered: z.number().optional().default(0),
+  referralStreak: z.number().optional().default(0),
+  lastReferralDate: z.date().optional().nullable(),
+  onboardingStatus: z.enum(["not_started", "in_progress", "completed"]).optional().default("not_started"),
+  lastOnboardingStep: z.number().optional().default(0),
+  passwordResetToken: z.string().optional().nullable(),
+  passwordResetExpires: z.date().optional().nullable(),
+  notificationToken: z.string().optional().nullable(),
+  userPreferences: z.any().optional()
 });
 
 type RegisterData = z.infer<typeof registerSchema>;

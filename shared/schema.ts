@@ -217,7 +217,24 @@ export const insertUserSchema = createInsertSchema(users).pick({
   isActive: true,
   isEmailVerified: true,
   lastLoginAt: true,
-  emailVerificationToken: true
+  emailVerificationToken: true,
+  isTwoFactorEnabled: true,
+  twoFactorSecret: true,
+  stripeCustomerId: true,
+  stripeSubscriptionId: true,
+  subscriptionTier: true,
+  notificationSettings: true,
+  fantasyPoints: true,
+  totalContestsWon: true,
+  totalContestsEntered: true,
+  referralStreak: true,
+  lastReferralDate: true,
+  onboardingStatus: true,
+  lastOnboardingStep: true,
+  passwordResetToken: true,
+  passwordResetExpires: true,
+  notificationToken: true,
+  userPreferences: true
 });
 
 // Sports table
