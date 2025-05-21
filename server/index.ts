@@ -11,6 +11,30 @@ import { analytics, AnalyticsEventType } from "./analytics-service";
 import { spawn } from 'child_process';
 import path from 'path';
 
+// Set up global uncaught exception handler
+process.on('uncaughtException', (error: Error) => {
+  const errorLogger = createContextLogger('UNCAUGHT_EXCEPTION');
+  errorLogger.error('Uncaught Exception', {
+    error: {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    }
+  });
+});
+
+// Set up global unhandled rejection handler
+process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+  const errorLogger = createContextLogger('UNHANDLED_REJECTION');
+  errorLogger.error('Unhandled Promise Rejection', {
+    reason: reason instanceof Error ? {
+      message: reason.message,
+      stack: reason.stack,
+      name: reason.name
+    } : reason
+  });
+});
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -113,175 +137,186 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  try {
+    const server = await registerRoutes(app);
 
-  // Create a logger for errors
-  const errorLogger = createContextLogger('ERROR');
-  
-  // Global error handling middleware
-  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-    const path = req.path;
-    const method = req.method;
-    const userId = req.user?.id;
+    // Create a logger for errors
+    const errorLogger = createContextLogger('ERROR');
     
-    // Log the error with appropriate severity
-    const errorData = {
-      status,
-      method,
-      path,
-      userId,
-      stack: err.stack,
-      body: req.body && !path.includes('password') ? req.body : '[REDACTED]'
-    };
-    
-    if (status >= 500) {
-      // Winston doesn't have a critical level by default, use error instead
-      errorLogger.error(`[CRITICAL] ${status} ${message}`, errorData);
-    } else if (status >= 400) {
-      errorLogger.error(`${status} ${message}`, errorData);
+    // Global error handling middleware
+    app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      const path = req.path;
+      const method = req.method;
+      const userId = req.user?.id;
+      
+      // Log the error with appropriate severity
+      const errorData = {
+        status,
+        method,
+        path,
+        userId,
+        stack: err.stack,
+        body: req.body && !path.includes('password') ? req.body : '[REDACTED]'
+      };
+      
+      if (status >= 500) {
+        errorLogger.error(`[CRITICAL] ${status} ${message}`, errorData);
+      } else if (status >= 400) {
+        errorLogger.error(`${status} ${message}`, errorData);
+      } else {
+        errorLogger.warn(`${status} ${message}`, errorData);
+      }
+      
+      // Send structured error response
+      const errorResponse = { 
+        message,
+        code: err.code || 'INTERNAL_ERROR',
+        status
+      };
+      
+      // Add validation errors if present (for form validation)
+      if (err.errors) {
+        errorResponse['errors'] = err.errors;
+      }
+      
+      // Send the response
+      res.status(status).json(errorResponse);
+    });
+
+    // importantly only setup vite in development and after
+    // setting up all the other routes so the catch-all route
+    // doesn't interfere with the other routes
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
     } else {
-      errorLogger.warn(`${status} ${message}`, errorData);
+      serveStatic(app);
     }
-    
-    // Send structured error response
-    const errorResponse = { 
-      message,
-      code: err.code || 'INTERNAL_ERROR',
-      status
-    };
-    
-    // Add validation errors if present (for form validation)
-    if (err.errors) {
-      errorResponse['errors'] = err.errors;
-    }
-    
-    // Send the response
-    res.status(status).json(errorResponse);
-  });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
-
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  const appLogger = createContextLogger('APP');
-  
-  appLogger.info('Application starting up', {
-    environment: app.get('env'),
-    nodeVersion: process.version,
-    timestamp: new Date().toISOString()
-  });
-  
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, async () => {
-    appLogger.info(`PuntaIQ server running on port ${port}`, {
-      port,
-      host: '0.0.0.0',
-      appVersion: process.env.npm_package_version || '1.0.0',
+    // ALWAYS serve the app on port 5000
+    // this serves both the API and the client.
+    // It is the only port that is not firewalled.
+    const port = 5000;
+    const appLogger = createContextLogger('APP');
+    
+    appLogger.info('Application starting up', {
+      environment: app.get('env'),
+      nodeVersion: process.version,
+      timestamp: new Date().toISOString()
     });
     
-    // Keep old log format for compatibility
-    log(`serving on port ${port}`);
-    
-    // Initialize database tables with fallback mechanism
-    try {
-      appLogger.info('Initializing database tables');
-      await initializeDatabase();
-      appLogger.info('Database tables initialized successfully');
-    } catch (error) {
-      appLogger.error('Failed to initialize database tables', { error });
-      appLogger.warn('Using in-memory storage as fallback');
-    }
-    
-    // Initialize fantasy football data with fallback mechanism
-    try {
-      appLogger.info('Initializing fantasy football data');
-      await initializeFantasyData();
-      appLogger.info('Fantasy football data initialized successfully');
-    } catch (error) {
-      appLogger.error('Failed to initialize fantasy data', { error });
-      appLogger.warn('Using default fantasy data as fallback');
-    }
-    
-    // Initialize and start the automation system
-    try {
-      appLogger.info('Initializing PuntaIQ automation system');
-      await automationManager.initialize();
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, async () => {
+      appLogger.info(`PuntaIQ server running on port ${port}`, {
+        port,
+        host: '0.0.0.0',
+        appVersion: process.env.npm_package_version || '1.0.0',
+      });
       
-      if (process.env.NODE_ENV === 'production') {
-        await automationManager.startAll();
-        appLogger.info('PuntaIQ automation system started successfully');
-      } else {
-        appLogger.info('PuntaIQ automation system initialized but not started in development mode');
+      // Keep old log format for compatibility
+      log(`serving on port ${port}`);
+      
+      try {
+        // Initialize database tables with fallback mechanism
+        appLogger.info('Initializing database tables');
+        await initializeDatabase();
+        appLogger.info('Database tables initialized successfully');
+      } catch (error) {
+        appLogger.error('Failed to initialize database tables', { error });
+        appLogger.warn('Using in-memory storage as fallback');
       }
-    } catch (error) {
-      appLogger.error('Failed to initialize PuntaIQ automation system', { error });
-    }
-    
-    // Start the AI microservice proactively
-    try {
-      appLogger.info('Starting the AI microservice');
       
-      // Get the path to the start script
-      const scriptPath = path.join(process.cwd(), 'scripts', 'start-ai-service.js');
+      try {
+        // Initialize fantasy football data with fallback mechanism
+        appLogger.info('Initializing fantasy football data');
+        await initializeFantasyData();
+        appLogger.info('Fantasy football data initialized successfully');
+      } catch (error) {
+        appLogger.error('Failed to initialize fantasy data', { error });
+        appLogger.warn('Using default fantasy data as fallback');
+      }
       
-      // Spawn the Node.js process to run the script with output capturing
-      const childProcess = spawn('node', [scriptPath], {
-        detached: true, 
-        stdio: ['ignore', 'pipe', 'pipe'],
-        env: {
-          ...process.env,
-          AI_SERVICE_PROACTIVE_START: 'true'
+      try {
+        // Initialize and start the automation system
+        appLogger.info('Initializing PuntaIQ automation system');
+        await automationManager.initialize();
+        
+        if (process.env.NODE_ENV === 'production') {
+          await automationManager.startAll();
+          appLogger.info('PuntaIQ automation system started successfully');
+        } else {
+          appLogger.info('PuntaIQ automation system initialized but not started in development mode');
         }
-      });
+      } catch (error) {
+        appLogger.error('Failed to initialize PuntaIQ automation system', { error });
+      }
       
-      // Capture output for better debugging
-      childProcess.stdout.on('data', (data) => {
-        appLogger.info(`[AI Service Starter] ${data.toString().trim()}`);
-      });
+      try {
+        // Start the AI microservice proactively
+        appLogger.info('Starting the AI microservice');
+        
+        // Get the path to the start script
+        const scriptPath = path.join(process.cwd(), 'scripts', 'start-ai-service.js');
+        
+        // Spawn the Node.js process to run the script with output capturing
+        const childProcess = spawn('node', [scriptPath], {
+          detached: true, 
+          stdio: ['ignore', 'pipe', 'pipe'],
+          env: {
+            ...process.env,
+            AI_SERVICE_PROACTIVE_START: 'true'
+          }
+        });
+        
+        // Capture output for better debugging
+        childProcess.stdout.on('data', (data) => {
+          appLogger.info(`[AI Service Starter] ${data.toString().trim()}`);
+        });
+        
+        childProcess.stderr.on('data', (data) => {
+          appLogger.error(`[AI Service Starter Error] ${data.toString().trim()}`);
+        });
+        
+        // Detach the child process so it runs independently
+        childProcess.unref();
+        
+        appLogger.info(`AI microservice startup initiated, process ID: ${childProcess.pid}`);
+      } catch (error) {
+        appLogger.error('Failed to start AI microservice', { error });
+        appLogger.warn('Failed to start the AI microservice - will start on demand');
+      }
       
-      childProcess.stderr.on('data', (data) => {
-        appLogger.error(`[AI Service Starter Error] ${data.toString().trim()}`);
-      });
+      try {
+        // Start the microservice health check system
+        appLogger.info('Starting AI microservice health check system');
+        startMicroserviceHealthCheck();
+        appLogger.info('AI microservice health check system started successfully');
+      } catch (error) {
+        appLogger.error('Failed to start AI microservice health check system', { error });
+      }
       
-      // Detach the child process so it runs independently
-      childProcess.unref();
-      
-      appLogger.info(`AI microservice startup initiated, process ID: ${childProcess.pid}`);
-    } catch (error) {
-      appLogger.error('Failed to start AI microservice', { error });
-      appLogger.warn('Failed to start the AI microservice - will start on demand');
-    }
-    
-    // Start the microservice health check system
-    try {
-      appLogger.info('Starting AI microservice health check system');
-      startMicroserviceHealthCheck();
-      appLogger.info('AI microservice health check system started successfully');
-    } catch (error) {
-      appLogger.error('Failed to start AI microservice health check system', { error });
-    }
-    
-    // Start the notification scheduler for timezone-based content delivery
-    try {
-      appLogger.info('Starting timezone-based notification scheduler');
-      startNotificationScheduler();
-      appLogger.info('Timezone-based notification scheduler started successfully');
-    } catch (error) {
-      appLogger.error('Failed to start timezone-based notification scheduler', { error });
-    }
-  });
+      try {
+        // Start the notification scheduler for timezone-based content delivery
+        appLogger.info('Starting timezone-based notification scheduler');
+        startNotificationScheduler();
+        appLogger.info('Timezone-based notification scheduler started successfully');
+      } catch (error) {
+        appLogger.error('Failed to start timezone-based notification scheduler', { error });
+      }
+    });
+  } catch (error) {
+    const startupLogger = createContextLogger('STARTUP');
+    startupLogger.error('Failed to start application', {
+      error: {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      }
+    });
+    process.exit(1);
+  }
 })();
